@@ -100,15 +100,18 @@ const Router = {
     }
 
     // Load tool
-    return this._loadTool(tool, clientId, sessionId);
+    return this._loadTool(tool, params);
   },
 
   /**
    * Load tool UI
    * @private
    */
-  _loadTool(tool, clientId, sessionId) {
+  _loadTool(tool, params) {
     try {
+      const clientId = params.client || params.clientId;
+      const sessionId = params.session || params.sessionId;
+
       // Initialize tool
       const initResult = FrameworkCore.initializeTool(tool.id, clientId);
 
@@ -116,23 +119,17 @@ const Router = {
         return this._handleError(new Error(initResult.error));
       }
 
-      // Create template
-      const template = HtmlService.createTemplateFromFile('shared/tool-wrapper');
+      // Build params for tool render
+      const renderParams = {
+        clientId: clientId,
+        sessionId: sessionId,
+        insights: initResult.insights || [],
+        adaptations: initResult.adaptations || {},
+        page: parseInt(params.page) || 1
+      };
 
-      // Inject data
-      template.toolId = tool.id;
-      template.toolName = tool.manifest.name;
-      template.toolConfig = JSON.stringify(tool.manifest);
-      template.clientId = clientId;
-      template.sessionId = sessionId;
-      template.insights = JSON.stringify(initResult.insights || []);
-      template.adaptations = JSON.stringify(initResult.adaptations || {});
-      template.baseUrl = ScriptApp.getService().getUrl();
-
-      return template.evaluate()
-        .setTitle(`Financial TruPath - ${tool.manifest.name}`)
-        .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
-        .addMetaTag('viewport', 'width=device-width, initial-scale=1.0');
+      // Each tool implements its own render() method
+      return tool.render(renderParams);
 
     } catch (error) {
       console.error('Error loading tool:', error);
