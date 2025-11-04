@@ -9,11 +9,14 @@
 ## 🔗 Important URLs
 
 ### Web App Deployment
-**URL:** https://script.google.com/macros/s/AKfycbzjexmRLtfsOss4lW7Y_lmSnAwpN2w3GPjgol80kY4aMg0xM_SSTlQap7OhpwTwYXxS/exec
+**URL:** https://script.google.com/macros/s/AKfycbx4Db59S_aORDt3arVenyUhc6qQqCwFfokGXkfQk6QTVkzp6Zy6FOysOZv_HMbwMlaI/exec
 
-**Deployment ID:** `AKfycbzjexmRLtfsOss4lW7Y_lmSnAwpN2w3GPjgol80kY4aMg0xM_SSTlQap7OhpwTwYXxS @1`
+**Deployment ID:** `AKfycbx4Db59S_aORDt3arVenyUhc6qQqCwFfokGXkfQk6QTVkzp6Zy6FOysOZv_HMbwMlaI @2`
 
-**Version:** v3.0.0 - Initial Foundation Deployment
+**Version:** v3.0.1 - TruPath Brand Identity Applied
+
+**Previous Deployments:**
+- v3.0.0 @1 - Initial Foundation Deployment
 
 ### Google Sheets Database
 **Spreadsheet:** FTP-v3-Mastersheet
@@ -175,6 +178,16 @@ Financial-TruPath-v3/
 ---
 
 ## 📝 Version History
+
+**v3.0.1** - November 3, 2024
+- Applied complete TruPath Financial branding
+- Dark purple/gold color scheme (#1e192b, #ad9168)
+- Radley serif + Rubik sans-serif fonts
+- Professional branded login page
+- Full dashboard with tool navigation
+- Enhanced UI components with animations
+- 470 lines of branded CSS
+- Responsive design with mobile support
 
 **v3.0.0** - November 3, 2024
 - Initial foundation deployment
