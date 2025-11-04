@@ -245,6 +245,18 @@ function generateTool1PDF(clientId) {
 }
 
 /**
+ * Save Tool1 page data (called from client via google.script.run)
+ */
+function saveTool1Page(data) {
+  try {
+    Tool1.savePageData(data.client, parseInt(data.page), data);
+    return { success: true };
+  } catch (error) {
+    throw new Error('Failed to save: ' + error.toString());
+  }
+}
+
+/**
  * Initialize all Google Sheets
  * Run this once after creating your spreadsheet
  */

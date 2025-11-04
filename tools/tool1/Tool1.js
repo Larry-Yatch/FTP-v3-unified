@@ -48,6 +48,33 @@ const Tool1 = {
             <h1>Core Trauma Strategy Assessment</h1>
             <p class="muted">Page <?= page ?> of 5</p>
 
+            <script>
+              // Handle form submission without POST (avoids iframe sandbox issues)
+              function submitToolPage(formId, page) {
+                const form = document.getElementById(formId);
+                const formData = new FormData(form);
+                const data = Object.fromEntries(formData.entries());
+
+                showLoading('Saving');
+
+                // Save via google.script.run
+                google.script.run
+                  .withSuccessHandler(function() {
+                    const clientId = data.client;
+                    const nextPage = parseInt(page) + 1;
+                    const url = '<?= baseUrl ?>?route=tool1&client=' + clientId + '&page=' + nextPage;
+                    window.top.location.href = url;
+                  })
+                  .withFailureHandler(function(error) {
+                    hideLoading();
+                    alert('Error saving data: ' + error);
+                  })
+                  .saveTool1Page(data);
+
+                return false; // Prevent default form submission
+              }
+            </script>
+
             <div class="progress-container">
               <div class="progress-bar">
                 <div class="progress-fill" style="width: <?= (page / 5) * 100 ?>%"></div>
@@ -106,8 +133,7 @@ const Tool1 = {
       <h2>Let's Get Started</h2>
       <p class="muted mb-20">This assessment will help identify your core trauma strategy patterns.</p>
 
-      <form id="page1Form" method="POST" action="${ScriptApp.getService().getUrl()}">
-        <input type="hidden" name="route" value="tool1_submit">
+      <form id="page1Form" onsubmit="return submitToolPage('page1Form', 1)">
         <input type="hidden" name="client" value="${clientId}">
         <input type="hidden" name="page" value="1">
 
