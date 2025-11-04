@@ -49,11 +49,13 @@ const FrameworkCore = {
         config: CONFIG
       };
 
-      // Call tool's initialize method
-      const initResult = toolReg.module.initialize(dependencies, insights);
+      // Call tool's initialize method if it exists (optional)
+      if (typeof toolReg.module.initialize === 'function') {
+        const initResult = toolReg.module.initialize(dependencies, insights);
 
-      if (!initResult.success) {
-        return initResult;
+        if (!initResult.success) {
+          return initResult;
+        }
       }
 
       // Apply adaptations if tool supports it
