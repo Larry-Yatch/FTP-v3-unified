@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Financial TruPath v3 - Animation System Demo</title>
+
+  <!-- Load shared styles with animation system -->
+  <style>
+    <?!= HtmlService.createHtmlOutputFromFile('shared/styles').getContent(); ?>
+  </style>
+
+  <style>
+    /* Demo-specific styles */
+    .demo-section {
+      margin-bottom: 40px;
+    }
+
+    .demo-row {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      margin-top: 20px;
+    }
+
+    .demo-item {
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .demo-box {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .code-snippet {
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      color: var(--ok);
+      margin-top: 10px;
+      text-align: left;
+      overflow-x: auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1 style="text-align: center; margin-top: 40px;">Animation System Demo</h1>
+    <p style="text-align: center; color: var(--muted); margin-bottom: 40px;">
+      Financial TruPath v3 - Interactive Animation Showcase
+    </p>
+
+    <!-- 1. Button & Hover Animations -->
+    <div class="demo-section card">
+      <h2>1. Button & Hover Animations</h2>
+      <p class="muted">Modern Scale: Smooth lift + scale (250ms) - Try hovering!</p>
+
+      <div class="demo-row">
+        <div class="demo-item">
+          <button class="btn">Default Button</button>
+          <div class="code-snippet">&lt;button class="btn"&gt;</div>
+        </div>
+
+        <div class="demo-item">
+          <button class="btn-primary">Primary Button</button>
+          <div class="code-snippet">&lt;button class="btn-primary"&gt;</div>
+        </div>
+
+        <div class="demo-item">
+          <button class="btn-secondary">Secondary Button</button>
+          <div class="code-snippet">&lt;button class="btn-secondary"&gt;</div>
+        </div>
+      </div>
+
+      <div class="demo-row">
+        <div class="demo-item">
+          <div class="tool-card">
+            <h3>Tool Card</h3>
+            <p class="muted">Hover for elevation</p>
+          </div>
+          <div class="code-snippet">&lt;div class="tool-card"&gt;</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. Entrance Animations -->
+    <div class="demo-section card">
+      <h2>2. Entrance Animations</h2>
+      <p class="muted">Zoom In: Scale from small with bounce (350ms)</p>
+
+      <button class="btn-secondary" onclick="replayEntrances()">Replay Animations</button>
+
+      <div class="demo-row" style="margin-top: 20px;">
+        <div class="demo-item">
+          <div class="demo-box animate-entrance" id="entrance1">
+            Single Entrance
+          </div>
+          <div class="code-snippet">&lt;div class="animate-entrance"&gt;</div>
+        </div>
+      </div>
+
+      <h3 style="margin-top: 30px;">Staggered Entrance</h3>
+      <div class="animate-entrance-stagger" id="staggerContainer">
+        <div class="demo-box" style="margin-bottom: 10px;">Item 1 (0ms delay)</div>
+        <div class="demo-box" style="margin-bottom: 10px;">Item 2 (50ms delay)</div>
+        <div class="demo-box" style="margin-bottom: 10px;">Item 3 (100ms delay)</div>
+        <div class="demo-box" style="margin-bottom: 10px;">Item 4 (150ms delay)</div>
+      </div>
+      <div class="code-snippet">&lt;div class="animate-entrance-stagger"&gt;</div>
+    </div>
+
+    <!-- 3. Loading Animations -->
+    <div class="demo-section card">
+      <h2>3. Loading Animations</h2>
+      <p class="muted">Multiple loading states (800ms rotation)</p>
+
+      <div class="demo-row">
+        <div class="demo-item">
+          <div class="demo-box">
+            <div class="loading-spinner"></div>
+            <p style="margin-top: 10px;">Spinner</p>
+          </div>
+          <div class="code-snippet">&lt;div class="loading-spinner"&gt;</div>
+        </div>
+
+        <div class="demo-item">
+          <div class="demo-box">
+            <div class="animate-pulse" style="width: 40px; height: 40px; background: var(--gold); border-radius: 50%; margin: 0 auto;"></div>
+            <p style="margin-top: 10px;">Pulse</p>
+          </div>
+          <div class="code-snippet">&lt;div class="animate-pulse"&gt;</div>
+        </div>
+
+        <div class="demo-item">
+          <div class="demo-box">
+            <div class="skeleton-loader" style="height: 20px; border-radius: 4px; margin-bottom: 10px;"></div>
+            <div class="skeleton-loader" style="height: 20px; border-radius: 4px; width: 70%;"></div>
+            <p style="margin-top: 10px;">Skeleton</p>
+          </div>
+          <div class="code-snippet">&lt;div class="skeleton-loader"&gt;</div>
+        </div>
+      </div>
+
+      <div class="demo-row" style="margin-top: 20px;">
+        <div class="demo-item">
+          <button class="btn-primary" onclick="simulateLoading(this)">
+            <span class="btn-text">Click to Load</span>
+            <span class="loading-spinner" style="display: none;"></span>
+          </button>
+          <div class="code-snippet">Button with loading state</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. Feedback Animations -->
+    <div class="demo-section card">
+      <h2>4. Feedback Animations</h2>
+      <p class="muted">Ripple, shake, and bounce effects (600ms)</p>
+
+      <div class="demo-row">
+        <div class="demo-item">
+          <button class="btn-primary animate-ripple">Click for Ripple</button>
+          <div class="code-snippet">&lt;button class="animate-ripple"&gt;</div>
+        </div>
+
+        <div class="demo-item">
+          <button class="btn" onclick="shakeElement('shakeBox')">Trigger Shake</button>
+          <div class="demo-box" id="shakeBox" style="margin-top: 10px;">
+            I will shake!
+          </div>
+          <div class="code-snippet">&lt;div class="animate-shake"&gt;</div>
+        </div>
+
+        <div class="demo-item">
+          <button class="btn" onclick="bounceElement('bounceBox')">Trigger Bounce</button>
+          <div class="demo-box animate-success" id="bounceBox" style="margin-top: 10px; background: rgba(154, 230, 180, 0.1); border-color: var(--ok);">
+            Success!
+          </div>
+          <div class="code-snippet">&lt;div class="animate-success"&gt;</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. Page Transitions -->
+    <div class="demo-section card">
+      <h2>5. Page Transition Animations</h2>
+      <p class="muted">Fade cross and slide transitions (300ms)</p>
+
+      <div class="demo-row">
+        <div class="demo-item">
+          <button class="btn-secondary" onclick="fadeTransition()">Fade Transition</button>
+          <div class="demo-box" id="fadeBox" style="margin-top: 10px;">
+            This box will fade in/out
+          </div>
+        </div>
+
+        <div class="demo-item">
+          <button class="btn-secondary" onclick="slideTransition()">Slide Transition</button>
+          <div class="demo-box slide-in-right" id="slideBox" style="margin-top: 10px;">
+            Slides from right
+          </div>
+        </div>
+      </div>
+      <div class="code-snippet">.page-exit / .page-enter / .slide-in-right</div>
+    </div>
+
+    <!-- 6. Micro-interactions -->
+    <div class="demo-section card">
+      <h2>6. Micro-interaction Animations</h2>
+      <p class="muted">Toggle slide and checkbox animations (200ms)</p>
+
+      <div class="demo-row">
+        <div class="demo-item">
+          <div class="demo-box">
+            <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+              <label class="toggle-switch">
+                <input type="checkbox" id="toggle1" onchange="handleToggle(this)">
+                <span class="toggle-slider"></span>
+              </label>
+              <label for="toggle1">Toggle Switch</label>
+            </div>
+          </div>
+          <div class="code-snippet">&lt;label class="toggle-switch"&gt;</div>
+        </div>
+
+        <div class="demo-item">
+          <div class="demo-box">
+            <label class="checkbox-animated" style="display: flex; align-items: center; gap: 10px; cursor: pointer; justify-content: center;">
+              <input type="checkbox" id="check1">
+              <span class="checkbox-checkmark"></span>
+              <span>Animated Checkbox</span>
+            </label>
+          </div>
+          <div class="code-snippet">&lt;label class="checkbox-animated"&gt;</div>
+        </div>
+      </div>
+
+      <h3 style="margin-top: 30px;">Focus Ring</h3>
+      <div class="demo-row">
+        <div class="demo-item">
+          <input type="text" class="form-input focus-ring" placeholder="Click to see focus ring" />
+          <div class="code-snippet">&lt;input class="focus-ring"&gt;</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 7. Utility Classes -->
+    <div class="demo-section card">
+      <h2>7. Utility Animation Classes</h2>
+      <p class="muted">Hover utilities and custom effects</p>
+
+      <div class="demo-row">
+        <div class="demo-item">
+          <div class="demo-box hover-lift">Hover Lift</div>
+          <div class="code-snippet">&lt;div class="hover-lift"&gt;</div>
+        </div>
+
+        <div class="demo-item">
+          <div class="demo-box hover-scale">Hover Scale</div>
+          <div class="code-snippet">&lt;div class="hover-scale"&gt;</div>
+        </div>
+
+        <div class="demo-item">
+          <div class="demo-box hover-glow">Hover Glow</div>
+          <div class="code-snippet">&lt;div class="hover-glow"&gt;</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 8. Messages -->
+    <div class="demo-section card">
+      <h2>8. Message Animations</h2>
+      <p class="muted">Animated message components with entrance</p>
+
+      <div class="message success">
+        Success message with entrance animation
+      </div>
+
+      <div class="message error">
+        Error message with entrance animation
+      </div>
+
+      <div class="message warning">
+        Warning message with entrance animation
+      </div>
+
+      <div class="message info">
+        Info message with entrance animation
+      </div>
+
+      <div class="code-snippet">&lt;div class="message success"&gt;</div>
+    </div>
+
+    <!-- Animation Tokens Reference -->
+    <div class="demo-section card">
+      <h2>Animation Tokens Reference</h2>
+
+      <h3>Durations</h3>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 20px;">
+        <div class="code-snippet">--duration-instant: 100ms</div>
+        <div class="code-snippet">--duration-fast: 200ms</div>
+        <div class="code-snippet">--duration-normal: 250ms</div>
+        <div class="code-snippet">--duration-medium: 300ms</div>
+        <div class="code-snippet">--duration-entrance: 350ms</div>
+        <div class="code-snippet">--duration-feedback: 600ms</div>
+        <div class="code-snippet">--duration-loading: 800ms</div>
+      </div>
+
+      <h3>Easing Functions</h3>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 20px;">
+        <div class="code-snippet">--ease-standard</div>
+        <div class="code-snippet">--ease-bounce</div>
+        <div class="code-snippet">--ease-smooth</div>
+        <div class="code-snippet">--ease-linear</div>
+      </div>
+
+      <h3>Shadows</h3>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
+        <div class="code-snippet">--shadow-hover</div>
+        <div class="code-snippet">--shadow-active</div>
+        <div class="code-snippet">--shadow-elevated</div>
+      </div>
+    </div>
+
+    <div style="text-align: center; margin: 40px 0; color: var(--muted);">
+      <p>Animation System v1.0 - Financial TruPath v3</p>
+      <p>All animations respect prefers-reduced-motion for accessibility</p>
+    </div>
+  </div>
+
+  <script>
+    // Replay entrance animations
+    function replayEntrances() {
+      const entrance1 = document.getElementById('entrance1');
+      const staggerContainer = document.getElementById('staggerContainer');
+
+      entrance1.style.animation = 'none';
+      staggerContainer.querySelectorAll('.demo-box').forEach(item => {
+        item.style.animation = 'none';
+      });
+
+      setTimeout(() => {
+        entrance1.style.animation = '';
+        staggerContainer.querySelectorAll('.demo-box').forEach(item => {
+          item.style.animation = '';
+        });
+      }, 10);
+    }
+
+    // Simulate loading button
+    function simulateLoading(btn) {
+      btn.disabled = true;
+      btn.querySelector('.btn-text').style.display = 'none';
+      btn.querySelector('.loading-spinner').style.display = 'inline-block';
+
+      setTimeout(() => {
+        btn.disabled = false;
+        btn.querySelector('.btn-text').style.display = 'inline';
+        btn.querySelector('.loading-spinner').style.display = 'none';
+      }, 2000);
+    }
+
+    // Shake element
+    function shakeElement(id) {
+      const el = document.getElementById(id);
+      el.classList.add('animate-shake');
+      setTimeout(() => el.classList.remove('animate-shake'), 500);
+    }
+
+    // Bounce element
+    function bounceElement(id) {
+      const el = document.getElementById(id);
+      el.style.animation = 'none';
+      setTimeout(() => el.style.animation = '', 10);
+    }
+
+    // Fade transition
+    function fadeTransition() {
+      const box = document.getElementById('fadeBox');
+      box.classList.add('page-exit');
+
+      setTimeout(() => {
+        box.textContent = 'Content changed!';
+        box.classList.remove('page-exit');
+        box.classList.add('page-enter');
+
+        setTimeout(() => {
+          box.classList.remove('page-enter');
+          box.textContent = 'This box will fade in/out';
+        }, 300);
+      }, 300);
+    }
+
+    // Slide transition
+    function slideTransition() {
+      const box = document.getElementById('slideBox');
+      box.style.animation = 'none';
+      setTimeout(() => box.style.animation = '', 10);
+    }
+
+    // Toggle handler
+    function handleToggle(checkbox) {
+      console.log('Toggle:', checkbox.checked ? 'ON' : 'OFF');
+    }
+  </script>
+</body>
+</html>

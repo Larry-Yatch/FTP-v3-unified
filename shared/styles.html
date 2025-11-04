@@ -21,11 +21,473 @@
   --bad: #ef4444;
   --border: rgba(173, 145, 104, 0.2);
   --gold: #ad9168;
+
+  /* Animation System Tokens */
+  /* Durations */
+  --duration-instant: 100ms;
+  --duration-fast: 200ms;
+  --duration-normal: 250ms;
+  --duration-medium: 300ms;
+  --duration-entrance: 350ms;
+  --duration-feedback: 600ms;
+  --duration-loading: 800ms;
+
+  /* Easing Functions */
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-smooth: ease-in-out;
+  --ease-linear: linear;
+
+  /* Shadows */
+  --shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.15);
+  --shadow-active: 0 2px 8px rgba(0, 0, 0, 0.1);
+  --shadow-elevated: 0 6px 20px rgba(173, 145, 104, 0.2);
 }
 
 * {
   box-sizing: border-box;
 }
+
+/* ============================================
+   ANIMATION SYSTEM - Hardware Accelerated
+   ============================================ */
+
+/* Accessibility: Respect user motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ========== BUTTON & HOVER ANIMATIONS ========== */
+/* Modern Scale: Smooth lift + scale - modern SaaS feel */
+
+.animate-hover,
+.btn,
+.btn-primary,
+.btn-secondary,
+.tool-card,
+.btn-nav {
+  transform-origin: center;
+  transition: transform var(--duration-normal) var(--ease-standard),
+              box-shadow var(--duration-normal) var(--ease-standard),
+              background var(--duration-normal) var(--ease-standard),
+              border-color var(--duration-normal) var(--ease-standard);
+  will-change: transform;
+}
+
+.animate-hover:hover,
+.btn:hover:not(:disabled),
+.btn-primary:hover:not(:disabled),
+.btn-secondary:hover:not(:disabled),
+.btn-nav:hover:not(:disabled) {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-hover);
+}
+
+.animate-hover:active,
+.btn:active:not(:disabled),
+.btn-primary:active:not(:disabled),
+.btn-secondary:active:not(:disabled),
+.btn-nav:active:not(:disabled) {
+  transform: translateY(0px) scale(0.98);
+  box-shadow: var(--shadow-active);
+}
+
+.tool-card:hover:not(.locked):not(:disabled) {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-elevated);
+}
+
+/* ========== ENTRANCE ANIMATIONS ========== */
+/* Zoom In: Scale from small with bounce - attention-grabbing */
+
+@keyframes zoomIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-entrance,
+.login-container,
+.card,
+.tool-wrapper,
+.message {
+  animation: zoomIn var(--duration-entrance) var(--ease-bounce) forwards;
+  will-change: transform, opacity;
+}
+
+/* Staggered entrance for lists */
+.animate-entrance-stagger > * {
+  animation: zoomIn var(--duration-entrance) var(--ease-bounce) backwards;
+}
+
+.animate-entrance-stagger > *:nth-child(1) { animation-delay: 0ms; }
+.animate-entrance-stagger > *:nth-child(2) { animation-delay: 50ms; }
+.animate-entrance-stagger > *:nth-child(3) { animation-delay: 100ms; }
+.animate-entrance-stagger > *:nth-child(4) { animation-delay: 150ms; }
+.animate-entrance-stagger > *:nth-child(5) { animation-delay: 200ms; }
+.animate-entrance-stagger > *:nth-child(6) { animation-delay: 250ms; }
+
+/* ========== LOADING ANIMATIONS ========== */
+/* Spinner: Classic rotating spinner - universal loading state */
+
+@keyframes rotate {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spinner,
+.loading-spinner {
+  animation: rotate var(--duration-loading) var(--ease-linear) infinite;
+  will-change: transform;
+}
+
+/* Alternative pulse loading */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-pulse {
+  animation: pulse 2s var(--ease-smooth) infinite;
+}
+
+/* Skeleton loading shimmer */
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.skeleton-loader {
+  background: linear-gradient(
+    90deg,
+    rgba(173, 145, 104, 0.1) 0%,
+    rgba(173, 145, 104, 0.2) 50%,
+    rgba(173, 145, 104, 0.1) 100%
+  );
+  background-size: 1000px 100%;
+  animation: shimmer 2s var(--ease-linear) infinite;
+}
+
+/* ========== FEEDBACK ANIMATIONS ========== */
+/* Ripple Effect: Material ripple - click feedback on buttons/cards */
+
+.animate-ripple {
+  position: relative;
+  overflow: hidden;
+}
+
+.animate-ripple::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(173, 145, 104, 0.4);
+  transform: translate(-50%, -50%);
+  opacity: 0;
+}
+
+.animate-ripple:active::after {
+  animation: ripple var(--duration-feedback) var(--ease-standard);
+}
+
+@keyframes ripple {
+  0% {
+    width: 0;
+    height: 0;
+    opacity: 1;
+  }
+  100% {
+    width: 300px;
+    height: 300px;
+    opacity: 0;
+  }
+}
+
+/* Success/Error shake feedback */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+  20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+
+.animate-shake {
+  animation: shake 0.5s var(--ease-standard);
+}
+
+/* Success bounce */
+@keyframes successBounce {
+  0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-10px); }
+  60% { transform: translateY(-5px); }
+}
+
+.animate-success {
+  animation: successBounce 0.6s var(--ease-bounce);
+}
+
+/* ========== PAGE TRANSITION ANIMATIONS ========== */
+/* Fade Cross: Simple cross-fade - minimal, professional */
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.page-exit {
+  animation: fadeOut var(--duration-medium) var(--ease-smooth) forwards;
+}
+
+.page-enter {
+  animation: fadeIn var(--duration-medium) var(--ease-smooth) forwards;
+}
+
+/* Slide transitions */
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.slide-in-right {
+  animation: slideInRight var(--duration-medium) var(--ease-standard);
+}
+
+.slide-in-left {
+  animation: slideInLeft var(--duration-medium) var(--ease-standard);
+}
+
+/* ========== MICRO-INTERACTION ANIMATIONS ========== */
+/* Toggle Slide: Smooth toggle switch - settings, preferences */
+
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 26px;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(173, 145, 104, 0.2);
+  border: 1px solid var(--border);
+  border-radius: 26px;
+  transition: all var(--duration-fast) var(--ease-standard);
+}
+
+.toggle-slider::before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: var(--muted);
+  border-radius: 50%;
+  transition: transform var(--duration-fast) var(--ease-standard),
+              background-color var(--duration-fast) var(--ease-standard);
+  will-change: transform;
+}
+
+.toggle-switch input:checked + .toggle-slider {
+  background-color: rgba(173, 145, 104, 0.4);
+  border-color: var(--gold);
+}
+
+.toggle-switch input:checked + .toggle-slider::before {
+  transform: translateX(24px);
+  background-color: var(--gold);
+}
+
+/* Checkbox animations */
+.checkbox-animated {
+  position: relative;
+  cursor: pointer;
+}
+
+.checkbox-animated input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.checkbox-checkmark {
+  position: relative;
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  background-color: transparent;
+  border: 2px solid var(--border);
+  border-radius: 4px;
+  transition: all var(--duration-fast) var(--ease-standard);
+}
+
+.checkbox-animated input:checked ~ .checkbox-checkmark {
+  background-color: var(--gold);
+  border-color: var(--gold);
+  animation: checkboxPop var(--duration-fast) var(--ease-bounce);
+}
+
+.checkbox-checkmark::after {
+  content: '';
+  position: absolute;
+  display: none;
+  left: 6px;
+  top: 2px;
+  width: 5px;
+  height: 10px;
+  border: solid #140f23;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.checkbox-animated input:checked ~ .checkbox-checkmark::after {
+  display: block;
+  animation: checkmarkDraw 0.3s var(--ease-standard);
+}
+
+@keyframes checkboxPop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+@keyframes checkmarkDraw {
+  0% {
+    height: 0;
+    width: 0;
+  }
+  50% {
+    height: 10px;
+    width: 0;
+  }
+  100% {
+    height: 10px;
+    width: 5px;
+  }
+}
+
+/* Focus ring animations */
+.focus-ring {
+  transition: box-shadow var(--duration-fast) var(--ease-standard);
+}
+
+.focus-ring:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(173, 145, 104, 0.3);
+}
+
+/* ========== UTILITY ANIMATION CLASSES ========== */
+
+/* Delay utilities */
+.delay-0 { animation-delay: 0ms !important; }
+.delay-50 { animation-delay: 50ms !important; }
+.delay-100 { animation-delay: 100ms !important; }
+.delay-150 { animation-delay: 150ms !important; }
+.delay-200 { animation-delay: 200ms !important; }
+.delay-300 { animation-delay: 300ms !important; }
+
+/* Duration utilities */
+.duration-fast { animation-duration: var(--duration-fast) !important; }
+.duration-normal { animation-duration: var(--duration-normal) !important; }
+.duration-medium { animation-duration: var(--duration-medium) !important; }
+
+/* Hover lift utility */
+.hover-lift {
+  transition: transform var(--duration-fast) var(--ease-standard);
+  will-change: transform;
+}
+
+.hover-lift:hover {
+  transform: translateY(-3px);
+}
+
+/* Hover scale utility */
+.hover-scale {
+  transition: transform var(--duration-fast) var(--ease-standard);
+  will-change: transform;
+}
+
+.hover-scale:hover {
+  transform: scale(1.05);
+}
+
+/* Hover glow utility */
+.hover-glow {
+  transition: box-shadow var(--duration-normal) var(--ease-standard);
+}
+
+.hover-glow:hover {
+  box-shadow: 0 0 20px rgba(173, 145, 104, 0.4);
+}
+
+/* End Animation System */
 
 body {
   margin: 0;
@@ -91,7 +553,7 @@ h3 { font-size: 22px; margin-bottom: 15px; }
   border-radius: 20px;
   box-shadow: 0 8px 30px rgba(0,0,0,0.4);
   text-align: center;
-  animation: fadeIn 0.5s ease-in;
+  /* Animation handled by animation system above */
 }
 
 .login-logo {
@@ -121,22 +583,21 @@ h3 { font-size: 22px; margin-bottom: 15px; }
   font-family: 'Rubik', sans-serif;
   font-weight: 500;
   text-transform: uppercase;
-  transition: all 0.3s;
   letter-spacing: 0.5px;
   width: 100%;
+  /* Animations handled by animation system above */
 }
 
 .btn:hover {
   background: var(--gold);
   color: #140f23;
-  box-shadow: 0 4px 15px rgba(173, 145, 104, 0.3);
-  transform: translateY(-2px);
+  /* transform and box-shadow handled by animation system */
 }
 
 .btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
-  transform: none;
+  transform: none !important;
 }
 
 .btn-primary {
@@ -147,13 +608,12 @@ h3 { font-size: 22px; margin-bottom: 15px; }
   border-radius: 50px;
   cursor: pointer;
   font-weight: 500;
-  transition: all 0.3s;
   width: 100%;
+  /* Animations handled by animation system above */
 }
 
 .btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(173, 145, 104, 0.3);
+  /* transform and box-shadow handled by animation system */
 }
 
 .btn-secondary {
@@ -164,11 +624,12 @@ h3 { font-size: 22px; margin-bottom: 15px; }
   border-radius: 25px;
   cursor: pointer;
   font-weight: 500;
-  transition: all 0.3s;
+  /* Animations handled by animation system above */
 }
 
 .btn-secondary:hover {
   background: rgba(173, 145, 104, 0.2);
+  /* transform handled by animation system */
 }
 
 /* Tool Cards */
@@ -178,22 +639,22 @@ h3 { font-size: 22px; margin-bottom: 15px; }
   border-radius: 15px;
   padding: 20px;
   cursor: pointer;
-  transition: all 0.3s;
   display: block;
   font-family: inherit;
   color: inherit;
+  /* Animations handled by animation system above */
 }
 
 .tool-card:hover:not(.locked):not(:disabled) {
   background: linear-gradient(315deg, rgba(173, 145, 104, 0.3) 0%, rgba(30, 25, 43, 0.5) 100%);
   border-color: var(--gold);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(173, 145, 104, 0.2);
+  /* transform and box-shadow handled by animation system */
 }
 
 .tool-card.locked, .tool-card:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  transform: none !important;
 }
 
 /* Forms */
@@ -257,7 +718,7 @@ textarea {
   margin-bottom: 20px;
   border-radius: 12px;
   border: 1px solid var(--border);
-  animation: fadeIn 0.3s ease-in;
+  /* Animation handled by animation system above */
 }
 
 .message.error {
@@ -373,7 +834,7 @@ textarea {
   border: 3px solid var(--border);
   border-radius: 50%;
   border-top-color: var(--gold);
-  animation: spin 1s ease-in-out infinite;
+  /* Animation handled by animation system above */
 }
 
 /* Navigation */
@@ -398,32 +859,19 @@ textarea {
   cursor: pointer;
   font-size: 13px;
   font-family: 'Rubik', sans-serif;
-  transition: all 0.3s;
+  /* Animations handled by animation system above */
 }
 
 .btn-nav:hover {
   background: rgba(173, 145, 104, 0.2);
   border-color: var(--gold);
-  transform: translateY(-1px);
+  /* transform handled by animation system */
 }
 
-/* Animations */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-}
-
+/* Legacy Animations - Replaced by Animation System Above */
+/* Kept for backwards compatibility */
 .tool-wrapper {
-  animation: fadeIn 0.3s ease-in;
+  /* Uses animation system zoomIn animation */
 }
 
 /* Range Inputs */
