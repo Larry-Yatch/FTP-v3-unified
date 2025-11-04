@@ -37,7 +37,7 @@ const Tool1 = {
       <body>
         <div class="container">
           <div class="tool-navigation">
-            <button class="btn-nav" onclick="location.href='<?= baseUrl ?>?route=dashboard&client=<?= clientId ?>'">
+            <button class="btn-nav" onclick="window.top.location.href='<?= baseUrl ?>?route=dashboard&client=<?= clientId ?>'">
               ← Dashboard
             </button>
             <span>Page <?= page ?> of 5</span>
