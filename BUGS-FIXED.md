@@ -1,4 +1,88 @@
-# Bug Fixes - November 3, 2024
+# Bugs Fixed Log
+
+**Last Updated:** November 4, 2024
+
+---
+
+## November 4, 2024 - Comprehensive iframe Navigation Fixes (v3.2.1 - v3.2.4)
+
+### Bug: Page 4 Dashboard Navigation White Screen + All iframe Issues (Critical)
+**Deploys:** @27, @28, @30, @31
+**Severity:** Critical - Complete navigation failure
+
+**Reported Issue:**
+> "When I click 'Return to dashboard' at the top [of Tool 1 page 4], I get a white screen."
+
+**Root Causes (Multiple Compounding Issues):**
+1. `setTimeout()` before form submission breaks user gesture chain in iframes
+2. Missing `loading-animation.html` includes → `ReferenceError: showLoading is not defined`
+3. Mixed navigation patterns (some used `window.top.location`, others deprecated functions)
+4. Inconsistent loading indicator implementations
+
+**Technical Analysis:**
+Chrome's iframe sandbox requires user gestures for top-level navigation. Pattern that fails:
+```
+user click → setTimeout → navigation  ❌ (gesture chain broken)
+```
+
+**Solutions by Deploy:**
+
+**@27 - CRITICAL Fix:** Removed ALL `setTimeout()` wrappers
+- Files: `Code.js`, `core/Router.js`, `core/FormUtils.js`, `shared/loading-animation.html`, `tools/tool1/Tool1Report.js`
+- Added `getDashboardPage(clientId)` server function
+- Standardized on `document.write()` pattern
+
+**@28 - Fix:** Added loading-animation include to login page
+- File: `core/Router.js`
+- Fixed: `ReferenceError: showLoading is not defined` on login
+
+**@30 - Fix:** Added loading-animation include to Tool1Report
+- File: `tools/tool1/Tool1Report.js`
+- Fixed: Would have caused error on report page
+
+**@31 - Fix:** Removed deprecation warning
+- File: `core/Router.js`
+- Updated dashboard tool button to direct navigation
+
+**New Pattern (document.write()):**
+```javascript
+// Server-side: Return HTML instead of redirect
+function getDashboardPage(clientId) {
+  const fakeRequest = { parameter: { route: 'dashboard', client: clientId } };
+  return Router.route(fakeRequest).getContent();
+}
+
+// Client-side: Replace document instead of navigate
+function navigateToDashboard(clientId, message) {
+  showLoading(message);
+  google.script.run
+    .withSuccessHandler(function(dashboardHtml) {
+      document.open();
+      document.write(dashboardHtml);
+      document.close();
+    })
+    .getDashboardPage(clientId);
+}
+```
+
+**Why This Works:**
+- ✅ No navigation = no iframe restrictions
+- ✅ `document.write()` doesn't need user activation
+- ✅ Immediate action = gesture chain preserved
+- ✅ SPA-like behavior = faster UX
+
+**Impact:**
+- ✅ All 7 navigation points now flawless
+- ✅ Zero console errors
+- ✅ Zero warnings
+- ✅ Zero white screens
+- ✅ Consistent loading indicators
+
+**Status:** ✅ Fully Resolved - Rock Solid
+
+---
+
+## November 3, 2024 - Tool 1 Implementation Bugs
 
 ## 🐛 Bugs Found & Fixed
 

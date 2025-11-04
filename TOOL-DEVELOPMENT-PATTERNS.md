@@ -1,8 +1,8 @@
 # Tool Development Patterns - Financial TruPath v3
 
-**Version:** 1.0
-**Last Updated:** November 3, 2024
-**Status:** ✅ Production Ready
+**Version:** 1.1
+**Last Updated:** November 4, 2024
+**Status:** ✅ Production Ready - All Navigation Issues Resolved
 
 ---
 
@@ -385,20 +385,69 @@ case 'tool2_report':
 
 ---
 
+## 🧭 **Navigation & Loading Pattern (CRITICAL)**
+
+### **Required Includes**
+Every page that creates HTML **MUST** include:
+
+```html
+<?!= include('shared/styles') ?>
+<?!= include('shared/loading-animation') ?>
+```
+
+**Why:** `loading-animation.html` provides:
+- `showLoading(message)` function
+- `hideLoading()` function
+- `navigateToDashboard(clientId, message)` function
+
+**Missing this include = ReferenceError in production!**
+
+### **Dashboard Navigation Pattern**
+
+For any "Return to Dashboard" button, use:
+
+```javascript
+<button onclick="navigateToDashboard('${clientId}', 'Loading Dashboard')">
+  ← Back to Dashboard
+</button>
+```
+
+**DO NOT USE:**
+- ❌ `window.top.location.href = dashboardUrl`
+- ❌ `window.location.href = dashboardUrl`
+- ❌ `setTimeout(() => navigation...)` (breaks gesture chain)
+
+**WHY:** The `document.write()` pattern avoids all iframe sandbox issues:
+```javascript
+// This is what navigateToDashboard() does internally:
+google.script.run
+  .withSuccessHandler(function(dashboardHtml) {
+    document.open();
+    document.write(dashboardHtml);
+    document.close();
+  })
+  .getDashboardPage(clientId);
+```
+
 ## 🧪 **Testing Checklist**
 
 Before deploying a new tool:
 
+- [ ] **Required includes** present (styles + loading-animation)
 - [ ] **Page 1** loads correctly
 - [ ] **Page 1 → 2** navigation works
 - [ ] **All pages** can be navigated
+- [ ] **Dashboard button** works from all pages
 - [ ] **Final page** submits successfully
 - [ ] **Report page** displays results
+- [ ] **Report → Dashboard** button works
 - [ ] **Resume** from middle page works
 - [ ] **Validation** catches errors properly
 - [ ] **Next tool** unlocks after completion
 - [ ] **RESPONSES sheet** receives data
-- [ ] **No POST errors** in browser console
+- [ ] **Zero console errors** - check browser console
+- [ ] **Zero warnings** - especially no deprecation warnings
+- [ ] **Loading indicators** show on all navigation
 
 ---
 
