@@ -11,17 +11,19 @@ const ToolInterface = {
    * Required methods that every tool MUST implement
    */
   REQUIRED_METHODS: [
-    'initialize',          // Setup tool with dependencies and insights
-    'validate',            // Validate form data
-    'process',             // Process tool submission
-    'generateInsights',    // Generate insights for other tools
-    'getConfig'            // Return tool configuration
+    'render'               // Render tool UI - ALL tools must have this
   ],
 
   /**
    * Optional methods that tools CAN implement based on their needs
    */
   OPTIONAL_METHODS: [
+    'handleSubmit',          // Handle form submissions (for form-based tools)
+    'initialize',            // Setup tool with dependencies and insights
+    'validate',              // Validate form data
+    'process',               // Process tool submission
+    'generateInsights',      // Generate insights for other tools
+    'getConfig',             // Return tool configuration
     'adaptBasedOnInsights',  // Adapt questions based on previous tool insights
     'onLoad',                // Called when tool first loads
     'onSave',                // Called before saving data
@@ -46,10 +48,7 @@ const ToolInterface = {
       }
     });
 
-    // Check if module has an ID
-    if (!toolModule.id) {
-      errors.push('Tool must have an "id" property');
-    }
+    // Note: 'id' is in the manifest, not required on the tool object itself
 
     return {
       valid: errors.length === 0,
