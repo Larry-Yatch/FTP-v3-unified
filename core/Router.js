@@ -180,7 +180,7 @@ const Router = {
               </span>
             </button>
           </form>
-          <p class="muted mt-20">v3.0.3 | Modular Architecture</p>
+          <p class="muted mt-20">v3.0.4 | Modular Architecture</p>
         </div>
 
         <!-- Loading Overlay -->
@@ -207,20 +207,12 @@ const Router = {
             btnSpinner.style.gap = '8px';
 
             // Show full overlay immediately
-            setTimeout(function() {
-              overlay.style.display = 'flex';
-            }, 150);
+            overlay.style.display = 'flex';
 
-            // Fade out page before navigation
-            setTimeout(function() {
-              document.body.style.transition = 'opacity 0.2s ease-out';
-              document.body.style.opacity = '0';
-            }, 400);
-
-            // Navigate to dashboard (give time for fade-out)
+            // Navigate immediately - overlay stays visible during page load
             setTimeout(function() {
               window.location.href = '<?= ScriptApp.getService().getUrl() ?>?route=dashboard&client=' + encodeURIComponent(clientId);
-            }, 600);
+            }, 100);
           });
         </script>
       </body>
