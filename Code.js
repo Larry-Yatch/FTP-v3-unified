@@ -88,6 +88,11 @@ function doGet(e) {
 
 /**
  * Main entry point for POST requests (form submissions)
+ *
+ * NOTE: Modern tools should use google.script.run with GET navigation
+ * instead of POST to avoid iframe sandbox issues.
+ *
+ * This handler remains for backward compatibility and non-form routes.
  */
 function doPost(e) {
   try {
@@ -106,14 +111,15 @@ function doPost(e) {
     // Handle form submission based on route
     const route = e.parameter.route;
 
-    if (route === 'tool1_submit') {
-      return Tool1.handleSubmit(e.parameter);
-    }
+    // No POST routes currently in use
+    // All form submissions use google.script.run + GET navigation
 
     // Default: unknown route
     return HtmlService.createHtmlOutput(`
       <h1>Error</h1>
       <p>Unknown POST route: ${route}</p>
+      <p>Modern tools should use google.script.run instead of POST.</p>
+      <a href="${ScriptApp.getService().getUrl()}">← Return to Home</a>
     `);
 
   } catch (error) {
@@ -245,15 +251,98 @@ function generateTool1PDF(clientId) {
 }
 
 /**
- * Save Tool1 page data (called from client via google.script.run)
+ * GENERIC: Save tool page data (called from client via google.script.run)
+ * Works for ANY tool that implements savePageData()
+ *
+ * @param {string} toolId - Tool identifier (e.g., 'tool1', 'tool2')
+ * @param {Object} data - Form data including client, page, and form fields
+ * @returns {Object} Result with success status
+ */
+function saveToolPageData(toolId, data) {
+  try {
+    registerTools(); // Ensure tools are registered
+
+    // Get tool from registry
+    const toolReg = ToolRegistry.get(toolId);
+    if (!toolReg) {
+      return { success: false, error: `Tool not found: ${toolId}` };
+    }
+
+    const tool = toolReg.module;
+
+    // Check if tool has savePageData method
+    if (typeof tool.savePageData !== 'function') {
+      return { success: false, error: `Tool ${toolId} does not support page data saving` };
+    }
+
+    // Call tool's savePageData
+    tool.savePageData(data.client, parseInt(data.page), data);
+
+    Logger.log(`Saved ${toolId} page ${data.page} for ${data.client}`);
+    return { success: true };
+
+  } catch (error) {
+    Logger.log(`Error saving ${toolId} page data: ${error}`);
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * GENERIC: Complete tool submission (final page)
+ * Works for ANY tool that implements processFinalSubmission()
+ *
+ * @param {string} toolId - Tool identifier
+ * @param {Object} data - Complete form data
+ * @returns {Object} Result with redirectUrl
+ */
+function completeToolSubmission(toolId, data) {
+  try {
+    registerTools();
+
+    const toolReg = ToolRegistry.get(toolId);
+    if (!toolReg) {
+      return { success: false, error: `Tool not found: ${toolId}` };
+    }
+
+    const tool = toolReg.module;
+
+    // Check if tool has processFinalSubmission method
+    if (typeof tool.processFinalSubmission !== 'function') {
+      return { success: false, error: `Tool ${toolId} does not support final submission` };
+    }
+
+    // Call tool's final submission handler
+    const clientId = data.client;
+    const result = tool.processFinalSubmission(clientId);
+
+    // Tool should return redirect URL
+    if (result && result.redirectUrl) {
+      Logger.log(`Completed ${toolId} for ${clientId}`);
+      return {
+        success: true,
+        redirectUrl: result.redirectUrl
+      };
+    }
+
+    // Default redirect to report page
+    const reportUrl = `${ScriptApp.getService().getUrl()}?route=${toolId}_report&client=${clientId}`;
+    return {
+      success: true,
+      redirectUrl: reportUrl
+    };
+
+  } catch (error) {
+    Logger.log(`Error completing ${toolId} submission: ${error}`);
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * DEPRECATED: Use saveToolPageData() instead
+ * Kept for backward compatibility
  */
 function saveTool1Page(data) {
-  try {
-    Tool1.savePageData(data.client, parseInt(data.page), data);
-    return { success: true };
-  } catch (error) {
-    throw new Error('Failed to save: ' + error.toString());
-  }
+  return saveToolPageData('tool1', data);
 }
 
 /**

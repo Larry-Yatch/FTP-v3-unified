@@ -14,88 +14,28 @@ const Tool1 = {
   render(params) {
     const clientId = params.clientId;
     const page = parseInt(params.page) || 1;
+    const baseUrl = ScriptApp.getService().getUrl();
 
     // Get existing data if resuming
     const existingData = this.getExistingData(clientId);
 
-    const template = HtmlService.createTemplate(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>TruPath - Core Trauma Strategy Assessment</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <meta name="theme-color" content="#1e192b">
-        <style>
-          html, body {
-            background: linear-gradient(135deg, #4b4166, #1e192b);
-            margin: 0;
-            padding: 0;
-          }
-        </style>
-        <?!= include('shared/styles') ?>
-        <?!= include('shared/loading-animation') ?>
-      </head>
-      <body>
-        <div class="container">
-          <div class="tool-navigation">
-            <button class="btn-nav" onclick="navigateWithLoading('<?= baseUrl ?>?route=dashboard&client=<?= clientId ?>', 'Loading Dashboard')">
-              ← Dashboard
-            </button>
-            <span>Page <?= page ?> of 5</span>
-          </div>
+    // Get page-specific content
+    const pageContent = this.renderPageContent(page, existingData, clientId);
 
-          <div class="card">
-            <h1>Core Trauma Strategy Assessment</h1>
-            <p class="muted">Page <?= page ?> of 5</p>
-
-            <script>
-              // Handle form submission without POST (avoids iframe sandbox issues)
-              function submitToolPage(formId, page) {
-                const form = document.getElementById(formId);
-                const formData = new FormData(form);
-                const data = Object.fromEntries(formData.entries());
-
-                showLoading('Saving');
-
-                // Save via google.script.run
-                google.script.run
-                  .withSuccessHandler(function() {
-                    const clientId = data.client;
-                    const nextPage = parseInt(page) + 1;
-                    const url = '<?= baseUrl ?>?route=tool1&client=' + clientId + '&page=' + nextPage;
-                    window.top.location.href = url;
-                  })
-                  .withFailureHandler(function(error) {
-                    hideLoading();
-                    alert('Error saving data: ' + error);
-                  })
-                  .saveTool1Page(data);
-
-                return false; // Prevent default form submission
-              }
-            </script>
-
-            <div class="progress-container">
-              <div class="progress-bar">
-                <div class="progress-fill" style="width: <?= (page / 5) * 100 ?>%"></div>
-              </div>
-            </div>
-
-            <?!= pageContent ?>
-          </div>
-        </div>
-
-        <script>
-          document.body.classList.add('loaded');
-        </script>
-      </body>
-      </html>
-    `);
-
-    template.baseUrl = ScriptApp.getService().getUrl();
-    template.clientId = clientId;
-    template.page = page;
-    template.pageContent = this.renderPage(page, existingData, clientId);
+    // Use FormUtils to build standard page structure
+    const template = HtmlService.createTemplate(
+      FormUtils.buildStandardPage({
+        toolName: 'Core Trauma Strategy Assessment',
+        toolId: 'tool1',
+        page: page,
+        totalPages: 5,
+        clientId: clientId,
+        baseUrl: baseUrl,
+        pageContent: pageContent,
+        isFinalPage: (page === 5),
+        customValidation: (page === 5) ? 'validateRankings' : null  // Page 5 has custom validation
+      })
+    );
 
     return template.evaluate()
       .setTitle('TruPath - Core Trauma Strategy Assessment')
@@ -103,29 +43,30 @@ const Tool1 = {
   },
 
   /**
-   * Render specific page content
+   * Render page-specific content (just the form fields, not the full page)
+   * FormUtils will wrap this in standard page structure
    */
-  renderPage(page, existingData, clientId) {
+  renderPageContent(page, existingData, clientId) {
     switch(page) {
       case 1:
-        return this.renderPage1(existingData, clientId);
+        return this.renderPage1Content(existingData, clientId);
       case 2:
-        return this.renderPage2(existingData, clientId);
+        return this.renderPage2Content(existingData, clientId);
       case 3:
-        return this.renderPage3(existingData, clientId);
+        return this.renderPage3Content(existingData, clientId);
       case 4:
-        return this.renderPage4(existingData, clientId);
+        return this.renderPage4Content(existingData, clientId);
       case 5:
-        return this.renderPage5(existingData, clientId);
+        return this.renderPage5Content(existingData, clientId);
       default:
         return '<p class="error">Invalid page number</p>';
     }
   },
 
   /**
-   * Page 1: Name and Email
+   * Page 1: Name and Email (content only, FormUtils wraps in form)
    */
-  renderPage1(data, clientId) {
+  renderPage1Content(data, clientId) {
     const name = data?.name || '';
     const email = data?.email || '';
 
@@ -133,29 +74,22 @@ const Tool1 = {
       <h2>Let's Get Started</h2>
       <p class="muted mb-20">This assessment will help identify your core trauma strategy patterns.</p>
 
-      <form id="page1Form" onsubmit="return submitToolPage('page1Form', 1)">
-        <input type="hidden" name="client" value="${clientId}">
-        <input type="hidden" name="page" value="1">
+      <div class="form-group">
+        <label class="form-label">First and Last Name *</label>
+        <input type="text" name="name" value="${name}" placeholder="Your full name" required>
+      </div>
 
-        <div class="form-group">
-          <label class="form-label">First and Last Name *</label>
-          <input type="text" name="name" value="${name}" placeholder="Your full name" required>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">Email Address *</label>
-          <input type="email" name="email" value="${email}" placeholder="your@email.com" required>
-        </div>
-
-        <button type="submit" class="btn-primary">Continue to Section 1 →</button>
-      </form>
+      <div class="form-group">
+        <label class="form-label">Email Address *</label>
+        <input type="email" name="email" value="${email}" placeholder="your@email.com" required>
+      </div>
     `;
   },
 
   /**
    * Page 2: Section 1 - FSV & Control (Questions 3-8)
    */
-  renderPage2(data, clientId) {
+  renderPage2Content(data, clientId) {
     const questions = [
       {name: 'q3', text: 'I am destined to fail because I am not good enough.'},
       {name: 'q4', text: 'I need to take on big things to prove that I am good enough.'},
@@ -171,11 +105,6 @@ const Tool1 = {
         <strong>-5:</strong> I never think/feel/experience this, completely irrelevant<br>
         <strong>+5:</strong> I think/feel/experience this very regularly, completely relevant
       </p>
-
-      <form id="page2Form" method="POST" action="${ScriptApp.getService().getUrl()}">
-        <input type="hidden" name="route" value="tool1_submit">
-        <input type="hidden" name="client" value="${clientId}">
-        <input type="hidden" name="page" value="2">
     `;
 
     questions.forEach(q => {
@@ -200,18 +129,13 @@ const Tool1 = {
       `;
     });
 
-    html += `
-        <button type="submit" class="btn-primary">Continue to Section 2 →</button>
-      </form>
-    `;
-
     return html;
   },
 
   /**
    * Page 3: Section 2 - Showing & Receiving (Questions 10-15)
    */
-  renderPage3(data, clientId) {
+  renderPage3Content(data, clientId) {
     const questions = [
       {name: 'q10', text: 'I will sacrifice my happiness to serve others.'},
       {name: 'q11', text: 'It is ok for me to do things for others, but I am uncomfortable receiving from them.'},
@@ -227,11 +151,6 @@ const Tool1 = {
         <strong>-5:</strong> I never think/feel/experience this, completely irrelevant<br>
         <strong>+5:</strong> I think/feel/experience this very regularly, completely relevant
       </p>
-
-      <form id="page3Form" method="POST" action="${ScriptApp.getService().getUrl()}">
-        <input type="hidden" name="route" value="tool1_submit">
-        <input type="hidden" name="client" value="${clientId}">
-        <input type="hidden" name="page" value="3">
     `;
 
     questions.forEach(q => {
@@ -256,18 +175,13 @@ const Tool1 = {
       `;
     });
 
-    html += `
-        <button type="submit" class="btn-primary">Continue to Section 3 →</button>
-      </form>
-    `;
-
     return html;
   },
 
   /**
    * Page 4: Section 3 - Control & Fear (Questions 17-22)
    */
-  renderPage4(data, clientId) {
+  renderPage4Content(data, clientId) {
     const questions = [
       {name: 'q17', text: 'If I do not control my world, I know I will suffer.'},
       {name: 'q18', text: 'To avoid emotions I do not like, I distract myself by staying busy.'},
@@ -283,11 +197,6 @@ const Tool1 = {
         <strong>-5:</strong> I never think/feel/experience this, completely irrelevant<br>
         <strong>+5:</strong> I think/feel/experience this very regularly, completely relevant
       </p>
-
-      <form id="page4Form" method="POST" action="${ScriptApp.getService().getUrl()}">
-        <input type="hidden" name="route" value="tool1_submit">
-        <input type="hidden" name="client" value="${clientId}">
-        <input type="hidden" name="page" value="4">
     `;
 
     questions.forEach(q => {
@@ -312,18 +221,13 @@ const Tool1 = {
       `;
     });
 
-    html += `
-        <button type="submit" class="btn-primary">Continue to Rankings →</button>
-      </form>
-    `;
-
     return html;
   },
 
   /**
    * Page 5: Rankings (Questions 24 & 26)
    */
-  renderPage5(data, clientId) {
+  renderPage5Content(data, clientId) {
     const thoughts = [
       {name: 'thought_fsv', text: 'I have to do something / be someone better to be safe.'},
       {name: 'thought_exval', text: 'I need others to value me to be safe.'},
@@ -349,13 +253,8 @@ const Tool1 = {
         <strong>Important:</strong> Each statement must have a unique ranking (no duplicates).
       </p>
 
-      <form id="page5Form" method="POST" action="${ScriptApp.getService().getUrl()}" onsubmit="return validateRankings()">
-        <input type="hidden" name="route" value="tool1_submit">
-        <input type="hidden" name="client" value="${clientId}">
-        <input type="hidden" name="page" value="5">
-
-        <h3 style="margin-top: 30px;">Ranking Thoughts</h3>
-        <p class="muted" style="font-size: 14px;">Rank from 1 (least relevant) to 10 (most relevant)</p>
+      <h3 style="margin-top: 30px;">Ranking Thoughts</h3>
+      <p class="muted" style="font-size: 14px;">Rank from 1 (least relevant) to 10 (most relevant)</p>
     `;
 
     thoughts.forEach(t => {
@@ -394,10 +293,7 @@ const Tool1 = {
     });
 
     html += `
-        <div id="rankingError" class="error" style="display: none; margin: 20px 0; padding: 15px; background: #fee; border: 1px solid #fcc; border-radius: 8px;"></div>
-
-        <button type="submit" class="btn-primary">Submit Assessment →</button>
-      </form>
+      <div id="rankingError" class="error" style="display: none; margin: 20px 0; padding: 15px; background: #fee; border: 1px solid #fcc; border-radius: 8px;"></div>
 
       <script>
         // Update dropdown options to show which ranks are already selected
@@ -471,31 +367,6 @@ const Tool1 = {
   },
 
   /**
-   * Handle form submission
-   */
-  handleSubmit(formData) {
-    const clientId = formData.client;
-    const page = parseInt(formData.page);
-
-    // Save form data
-    this.savePageData(clientId, page, formData);
-
-    // Redirect to next page
-    const nextPage = page + 1;
-    if (nextPage <= 5) {
-      return HtmlService.createHtmlOutput(`
-        <script>
-          window.top.location.href = '${ScriptApp.getService().getUrl()}?route=tool1&client=${clientId}&page=${nextPage}';
-        </script>
-      `)
-      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
-    } else {
-      // Process final submission
-      return this.processFinalSubmission(clientId);
-    }
-  },
-
-  /**
    * Save page data using PropertiesService (draft storage)
    */
   savePageData(clientId, page, formData) {
@@ -552,6 +423,7 @@ const Tool1 = {
 
   /**
    * Process final submission - Calculate scores and generate report
+   * Returns redirect URL for completeToolSubmission() handler
    */
   processFinalSubmission(clientId) {
     try {
@@ -559,7 +431,7 @@ const Tool1 = {
       const allData = this.getExistingData(clientId);
 
       if (!allData) {
-        return HtmlService.createHtmlOutput('<h1>Error</h1><p>No data found. Please start the assessment again.</p>');
+        throw new Error('No data found. Please start the assessment again.');
       }
 
       // Calculate scores
@@ -574,17 +446,15 @@ const Tool1 = {
       // Unlock Tool 2 (completion is tracked via RESPONSES sheet)
       ToolAccessControl.adminUnlockTool(clientId, 'tool2', 'system', 'Auto-unlocked after Tool 1 completion');
 
-      // Redirect to report page
+      // Return redirect URL for client-side navigation
       const reportUrl = `${ScriptApp.getService().getUrl()}?route=tool1_report&client=${clientId}`;
-      return HtmlService.createHtmlOutput(`
-        <script>
-          window.top.location.href = '${reportUrl}';
-        </script>
-      `);
+      return {
+        redirectUrl: reportUrl
+      };
 
     } catch (error) {
       Logger.log(`Error processing final submission: ${error}`);
-      return HtmlService.createHtmlOutput(`<h1>Error</h1><p>${error.toString()}</p>`);
+      throw error; // Let completeToolSubmission handler deal with errors
     }
   },
 
