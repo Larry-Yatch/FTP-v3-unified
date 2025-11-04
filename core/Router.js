@@ -129,7 +129,7 @@ const Router = {
       };
 
       // Each tool implements its own render() method
-      return tool.render(renderParams);
+      return tool.module.render(renderParams);
 
     } catch (error) {
       console.error('Error loading tool:', error);
