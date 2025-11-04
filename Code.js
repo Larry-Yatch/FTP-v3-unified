@@ -396,6 +396,84 @@ function getDashboardPage(clientId) {
 }
 
 /**
+ * OPTIMIZED: Authenticate and get dashboard in one call (faster login)
+ * @param {string} clientId - Student ID
+ * @returns {Object} Result with dashboard HTML or error
+ */
+function authenticateAndGetDashboard(clientId) {
+  try {
+    // Authenticate first
+    const authResult = lookupClientById(clientId);
+
+    if (!authResult.success) {
+      return authResult; // Return error from authentication
+    }
+
+    // Get dashboard HTML
+    registerTools();
+    const fakeRequest = {
+      parameter: {
+        route: 'dashboard',
+        client: authResult.clientId
+      }
+    };
+
+    const dashboardOutput = Router.route(fakeRequest);
+
+    return {
+      success: true,
+      dashboardHtml: dashboardOutput.getContent()
+    };
+
+  } catch (error) {
+    Logger.log(`Error in authenticateAndGetDashboard: ${error}`);
+    return {
+      success: false,
+      error: 'System error during login. Please try again.'
+    };
+  }
+}
+
+/**
+ * OPTIMIZED: Lookup by details and get dashboard in one call (faster backup login)
+ * @param {Object} params - Object with firstName, lastName, email
+ * @returns {Object} Result with dashboard HTML or error
+ */
+function lookupAndGetDashboard(params) {
+  try {
+    // Lookup first
+    const lookupResult = lookupClientByDetails(params);
+
+    if (!lookupResult.success) {
+      return lookupResult; // Return error from lookup
+    }
+
+    // Get dashboard HTML
+    registerTools();
+    const fakeRequest = {
+      parameter: {
+        route: 'dashboard',
+        client: lookupResult.clientId
+      }
+    };
+
+    const dashboardOutput = Router.route(fakeRequest);
+
+    return {
+      success: true,
+      dashboardHtml: dashboardOutput.getContent()
+    };
+
+  } catch (error) {
+    Logger.log(`Error in lookupAndGetDashboard: ${error}`);
+    return {
+      success: false,
+      error: 'System error during login. Please try again.'
+    };
+  }
+}
+
+/**
  * DEPRECATED: Use saveToolPageData() instead
  * Kept for backward compatibility
  */

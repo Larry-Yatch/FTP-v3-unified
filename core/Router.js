@@ -199,17 +199,22 @@ const Router = {
 
             <form id="backupForm">
               <p class="muted" style="margin-bottom: 20px; font-size: 14px;">
-                Enter your information to look up your Student ID:
+                Enter at least 2 of the following:
               </p>
 
               <div class="form-group">
-                <label class="form-label">Full Name</label>
-                <input type="text" id="studentName" name="name" placeholder="Enter your full name">
+                <label class="form-label">First Name</label>
+                <input type="text" id="studentFirstName" name="firstName" placeholder="Your first name">
               </div>
 
               <div class="form-group">
-                <label class="form-label">Email Address (optional)</label>
-                <input type="email" id="studentEmail" name="email" placeholder="Enter your email address">
+                <label class="form-label">Last Name</label>
+                <input type="text" id="studentLastName" name="lastName" placeholder="Your last name">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Email Address</label>
+                <input type="email" id="studentEmail" name="email" placeholder="Your email address">
               </div>
 
               <button type="submit" class="btn-primary" id="backupBtn">
@@ -275,25 +280,14 @@ const Router = {
             // Show loading overlay
             showLoading('Authenticating');
 
-            // Authenticate via server
+            // Authenticate and get dashboard in ONE call (faster!)
             google.script.run
                 .withSuccessHandler(function(result) {
                   if (result && result.success) {
-                    // Success - get dashboard
-                    google.script.run
-                        .withSuccessHandler(function(dashboardHtml) {
-                          document.open();
-                          document.write(dashboardHtml);
-                          document.close();
-                        })
-                        .withFailureHandler(function(error) {
-                          hideLoading();
-                          btn.disabled = false;
-                          btnText.style.display = 'inline';
-                          btnSpinner.style.display = 'none';
-                          showAlert('Error loading dashboard: ' + error.message, true);
-                        })
-                        .getDashboardPage(result.clientId);
+                    // Got dashboard HTML - load it
+                    document.open();
+                    document.write(result.dashboardHtml);
+                    document.close();
                   } else {
                     hideLoading();
                     btn.disabled = false;
@@ -309,7 +303,7 @@ const Router = {
                   btnSpinner.style.display = 'none';
                   showAlert('System error. Please try again.', true);
                 })
-                .lookupClientById(clientId);
+                .authenticateAndGetDashboard(clientId);
           });
 
           // Backup login (Name/Email)
@@ -317,11 +311,18 @@ const Router = {
             e.preventDefault();
             hideAlert();
 
-            const name = document.getElementById('studentName').value.trim();
+            const firstName = document.getElementById('studentFirstName').value.trim();
+            const lastName = document.getElementById('studentLastName').value.trim();
             const email = document.getElementById('studentEmail').value.trim();
 
-            if (!name && !email) {
-              showAlert('Please enter at least your name or email', true);
+            // Count provided fields
+            let fieldCount = 0;
+            if (firstName) fieldCount++;
+            if (lastName) fieldCount++;
+            if (email) fieldCount++;
+
+            if (fieldCount < 2) {
+              showAlert('Please provide at least 2 fields', true);
               return;
             }
 
@@ -339,26 +340,14 @@ const Router = {
             // Show loading overlay
             showLoading('Looking up your account');
 
-            // Lookup via server
+            // Lookup and get dashboard in ONE call (faster!)
             google.script.run
                 .withSuccessHandler(function(result) {
                   if (result && result.success) {
-                    // Found - get dashboard
-                    showAlert('Account found! Loading...', false);
-                    google.script.run
-                        .withSuccessHandler(function(dashboardHtml) {
-                          document.open();
-                          document.write(dashboardHtml);
-                          document.close();
-                        })
-                        .withFailureHandler(function(error) {
-                          hideLoading();
-                          btn.disabled = false;
-                          btnText.style.display = 'inline';
-                          btnSpinner.style.display = 'none';
-                          showAlert('Error loading dashboard: ' + error.message, true);
-                        })
-                        .getDashboardPage(result.clientId);
+                    // Got dashboard HTML - load it
+                    document.open();
+                    document.write(result.dashboardHtml);
+                    document.close();
                   } else {
                     hideLoading();
                     btn.disabled = false;
@@ -374,7 +363,7 @@ const Router = {
                   btnSpinner.style.display = 'none';
                   showAlert('System error. Please try again.', true);
                 })
-                .lookupClientByDetails({ name: name, email: email });
+                .lookupAndGetDashboard({ firstName: firstName, lastName: lastName, email: email });
           });
         </script>
       </body>

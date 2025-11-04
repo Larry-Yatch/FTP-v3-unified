@@ -96,20 +96,27 @@ function lookupClientById(clientId) {
 }
 
 /**
- * Lookup student by name and/or email
- * @param {Object} params - Object with name and/or email
+ * Lookup student by first name, last name, and/or email
+ * @param {Object} params - Object with firstName, lastName, and/or email
  * @returns {Object} Result with student info or error
  */
 function lookupClientByDetails(params) {
   try {
     // Validate parameters
-    const name = (params.name || '').toString().trim().toLowerCase();
+    const firstName = (params.firstName || '').toString().trim().toLowerCase();
+    const lastName = (params.lastName || '').toString().trim().toLowerCase();
     const email = (params.email || '').toString().trim().toLowerCase();
 
-    if (!name && !email) {
+    // Count provided fields
+    let providedCount = 0;
+    if (firstName) providedCount++;
+    if (lastName) providedCount++;
+    if (email) providedCount++;
+
+    if (providedCount < 2) {
       return {
         success: false,
-        error: 'Please provide your name and/or email address'
+        error: 'Please provide at least 2 fields (first name, last name, and/or email)'
       };
     }
 
@@ -146,27 +153,38 @@ function lookupClientByDetails(params) {
       const status = String(row[statusCol] || '').trim().toLowerCase();
       if (status === 'inactive') continue;
 
-      const rowName = String(row[nameCol] || '').trim().toLowerCase();
+      const rowFullName = String(row[nameCol] || '').trim().toLowerCase();
       const rowEmail = String(row[emailCol] || '').trim().toLowerCase();
       const rowClientId = String(row[clientIdCol] || '').trim();
+
+      // Split the stored full name into parts for matching
+      const nameParts = rowFullName.split(/\s+/);
+      const rowFirstName = nameParts[0] || '';
+      const rowLastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : '';
 
       let matchScore = 0;
       let matchTypes = [];
 
-      // Name matching (fuzzy - checks if provided name is contained in student name)
-      if (name && rowName.includes(name)) {
-        matchScore++;
-        matchTypes.push('Name');
+      // First name matching (exact match on first word)
+      if (firstName && rowFirstName === firstName) {
+        matchScore += 1;
+        matchTypes.push('First Name');
+      }
+
+      // Last name matching (exact match on last word)
+      if (lastName && rowLastName === lastName) {
+        matchScore += 1;
+        matchTypes.push('Last Name');
       }
 
       // Email matching (exact)
       if (email && rowEmail === email) {
-        matchScore += 2; // Email match is stronger
+        matchScore += 2; // Email match is strongest
         matchTypes.push('Email');
       }
 
-      // Require at least one match
-      if (matchScore > 0 && rowClientId) {
+      // Require at least 2 matches (matching the "at least 2 fields" requirement)
+      if (matchScore >= 2 && rowClientId) {
         matches.push({
           clientId: rowClientId,
           name: String(row[nameCol] || '').trim(),
