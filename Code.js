@@ -190,3 +190,240 @@ function testFramework() {
 
   console.log('=== Test Complete ===');
 }
+
+// ========================================
+// ADMIN FUNCTIONS - Run these from GAS Editor
+// ========================================
+
+/**
+ * Add a new student to the system
+ * Run this from GAS Editor to create test users
+ *
+ * @param {string} clientId - Student ID (e.g., 'TEST001')
+ * @param {string} name - Student name
+ * @param {string} email - Student email
+ * @returns {Object} Result
+ */
+function addStudent(clientId, name, email) {
+  try {
+    console.log(`Adding student: ${clientId} - ${name}`);
+
+    const ss = SpreadsheetApp.openById(CONFIG.MASTER_SHEET_ID);
+    const studentsSheet = ss.getSheetByName(CONFIG.SHEETS.STUDENTS);
+
+    if (!studentsSheet) {
+      return { success: false, error: 'Students sheet not found' };
+    }
+
+    // Check if student already exists
+    const data = studentsSheet.getDataRange().getValues();
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === clientId) {
+        console.log('⚠️ Student already exists');
+        return { success: false, error: 'Student already exists' };
+      }
+    }
+
+    // Add student to Students sheet
+    studentsSheet.appendRow([
+      clientId,
+      name,
+      email,
+      'active',           // Status
+      new Date(),         // Enrolled_Date
+      new Date(),         // Last_Activity
+      0,                  // Tools_Completed
+      'tool1'             // Current_Tool
+    ]);
+
+    console.log('✅ Added to Students sheet');
+
+    // Initialize tool access (Tool 1 unlocked, rest locked)
+    const result = ToolAccessControl.initializeStudent(clientId);
+
+    if (result.success) {
+      console.log('✅ Initialized tool access');
+      console.log(`✅ Student ${clientId} created successfully!`);
+      console.log(`   Name: ${name}`);
+      console.log(`   Email: ${email}`);
+      console.log(`   Status: Active`);
+      console.log(`   Tool 1: Unlocked`);
+      console.log(`   Tools 2-8: Locked`);
+
+      return {
+        success: true,
+        clientId: clientId,
+        message: `Student ${clientId} created successfully`
+      };
+    } else {
+      return result;
+    }
+
+  } catch (error) {
+    console.error('❌ Error adding student:', error);
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Quick function to add TEST001 user
+ * Just run this to get started!
+ */
+function addTestUser() {
+  return addStudent('TEST001', 'Test Student', 'test@trupath.com');
+}
+
+/**
+ * Add multiple test users at once
+ */
+function addTestUsers() {
+  console.log('Adding test users...\n');
+
+  const users = [
+    ['TEST001', 'Test Student One', 'test1@trupath.com'],
+    ['TEST002', 'Test Student Two', 'test2@trupath.com'],
+    ['TEST003', 'Test Student Three', 'test3@trupath.com']
+  ];
+
+  const results = [];
+
+  users.forEach(([id, name, email]) => {
+    const result = addStudent(id, name, email);
+    results.push({ id, success: result.success });
+    console.log('');  // Blank line between users
+  });
+
+  console.log('=== Summary ===');
+  results.forEach(r => {
+    console.log(`${r.id}: ${r.success ? '✅ Created' : '⚠️ Failed'}`);
+  });
+
+  return results;
+}
+
+/**
+ * List all students in the system
+ */
+function listStudents() {
+  try {
+    const ss = SpreadsheetApp.openById(CONFIG.MASTER_SHEET_ID);
+    const studentsSheet = ss.getSheetByName(CONFIG.SHEETS.STUDENTS);
+
+    if (!studentsSheet) {
+      console.log('❌ Students sheet not found');
+      return;
+    }
+
+    const data = studentsSheet.getDataRange().getValues();
+
+    if (data.length < 2) {
+      console.log('No students found.');
+      return;
+    }
+
+    console.log('=== Students List ===\n');
+
+    for (let i = 1; i < data.length; i++) {
+      console.log(`ID: ${data[i][0]}`);
+      console.log(`Name: ${data[i][1]}`);
+      console.log(`Email: ${data[i][2]}`);
+      console.log(`Status: ${data[i][3]}`);
+      console.log(`Enrolled: ${data[i][4]}`);
+      console.log(`Tools Completed: ${data[i][6] || 0}`);
+      console.log(`Current Tool: ${data[i][7] || 'tool1'}`);
+      console.log('---');
+    }
+
+    console.log(`\nTotal: ${data.length - 1} students`);
+
+  } catch (error) {
+    console.error('❌ Error listing students:', error);
+  }
+}
+
+/**
+ * Check a student's tool access status
+ * @param {string} clientId - Student ID
+ */
+function checkStudentAccess(clientId) {
+  try {
+    console.log(`=== Access Status for ${clientId} ===\n`);
+
+    const access = ToolAccessControl.getStudentAccess(clientId);
+
+    if (access.length === 0) {
+      console.log('❌ No access records found for this student');
+      console.log('💡 Run: initializeStudentAccess("' + clientId + '")');
+      return;
+    }
+
+    access.forEach(record => {
+      console.log(`${record.toolId}: ${record.status}`);
+      if (record.status === 'locked' && record.lockReason) {
+        console.log(`  Reason: ${record.lockReason}`);
+      }
+      if (record.status === 'unlocked' && record.unlockedDate) {
+        console.log(`  Unlocked: ${record.unlockedDate}`);
+      }
+    });
+
+    console.log('\n=== End ===');
+
+  } catch (error) {
+    console.error('❌ Error checking access:', error);
+  }
+}
+
+/**
+ * Initialize tool access for a student (if missing)
+ * @param {string} clientId - Student ID
+ */
+function initializeStudentAccess(clientId) {
+  const result = ToolAccessControl.initializeStudent(clientId);
+  console.log(result);
+  return result;
+}
+
+/**
+ * Manually unlock a tool for a student
+ * @param {string} clientId - Student ID
+ * @param {string} toolId - Tool to unlock (e.g., 'tool2')
+ */
+function unlockToolForStudent(clientId, toolId) {
+  const result = ToolAccessControl.adminUnlockTool(
+    clientId,
+    toolId,
+    'admin@trupath.com',
+    'Manual unlock via admin function'
+  );
+  console.log(result);
+  return result;
+}
+
+/**
+ * Complete admin setup - run this to get started quickly!
+ * Creates test users and verifies everything works
+ */
+function quickAdminSetup() {
+  console.log('=== Quick Admin Setup ===\n');
+
+  // Add TEST001
+  console.log('Step 1: Adding TEST001...');
+  const result = addTestUser();
+
+  if (result.success) {
+    console.log('\nStep 2: Verifying access...');
+    checkStudentAccess('TEST001');
+
+    console.log('\n✅ Setup Complete!');
+    console.log('\nYou can now:');
+    console.log('1. Visit your web app URL');
+    console.log('2. Enter "TEST001" as Student ID');
+    console.log('3. Enter any password (auth not yet implemented)');
+    console.log('4. You should see the dashboard!');
+    console.log('\nWeb App URL:');
+    console.log(ScriptApp.getService().getUrl());
+  } else {
+    console.log('\n⚠️ Setup had issues:', result.error);
+  }
+}
