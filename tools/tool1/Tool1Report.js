@@ -101,6 +101,7 @@ const Tool1Report = {
         <style>
           ${this.getReportStyles()}
         </style>
+        <?!= include('shared/loading-animation') ?>
       </head>
       <body>
         <div class="report-container">
