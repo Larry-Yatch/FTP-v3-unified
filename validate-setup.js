@@ -32,7 +32,7 @@ function validateCompleteSetup() {
     issues.push('Tool1 object not in global scope');
   }
 
-  // Test 2: Tool1 Methods
+  // Test 2: Tool1 Methods (v3.1.0 - FormUtils pattern)
   console.log('\n🔧 TEST 2: Tool1 Methods');
   if (typeof Tool1?.render === 'function') {
     console.log('   ✅ PASS: Tool1.render() exists');
@@ -43,13 +43,22 @@ function validateCompleteSetup() {
     issues.push('Tool1.render() method not found');
   }
 
-  if (typeof Tool1?.handleSubmit === 'function') {
-    console.log('   ✅ PASS: Tool1.handleSubmit() exists');
+  if (typeof Tool1?.savePageData === 'function') {
+    console.log('   ✅ PASS: Tool1.savePageData() exists');
     passCount++;
   } else {
-    console.log('   ❌ FAIL: Tool1.handleSubmit() missing');
+    console.log('   ❌ FAIL: Tool1.savePageData() missing');
     failCount++;
-    issues.push('Tool1.handleSubmit() method not found');
+    issues.push('Tool1.savePageData() method not found');
+  }
+
+  if (typeof Tool1?.processFinalSubmission === 'function') {
+    console.log('   ✅ PASS: Tool1.processFinalSubmission() exists');
+    passCount++;
+  } else {
+    console.log('   ❌ FAIL: Tool1.processFinalSubmission() missing');
+    failCount++;
+    issues.push('Tool1.processFinalSubmission() method not found');
   }
 
   // Test 3: Tool Registration
