@@ -13,13 +13,73 @@
 
 **Status:** Design 100% complete. Zero blockers. Ready to code.
 
-**Estimated Time:** 5-6 hours total
-- Tool 1 scale update: 15 minutes
-- Tool 2 implementation: 4-6 hours
+**Estimated Time:** 4-6 hours (Tool 2 implementation only)
 
 ---
 
-## 📋 **CRITICAL: Read These 3 Documents First**
+## 📚 **READING ORDER: Follow This Sequence**
+
+### **Phase 1: Essential Reading (20 minutes)** 🔥
+
+**Read these IN ORDER before coding:**
+
+**1. This Document (SESSION-HANDOFF.md)** - You're reading it now!
+- Current status, what we accomplished, next steps
+- Implementation plan with code examples
+- Complete session context
+
+**2. TOOL2-QUESTION-MASTER-LIST.md** (5 min skim, reference during coding)
+- `/Users/Larry/code/Financial-TruPath-v3/docs/TOOL2-QUESTION-MASTER-LIST.md`
+- **YOUR PRIMARY REFERENCE:** All 57 questions with exact wording
+- Copy-paste questions directly from this document
+- Every scale label, instruction, adaptive logic documented
+
+**3. TOOL2-DESIGN-REVIEW-FINAL.md** (5 min skim key sections)
+- `/Users/Larry/code/Financial-TruPath-v3/docs/TOOL2-DESIGN-REVIEW-FINAL.md`
+- **YOUR AUTHORITY DOCUMENT:** All design decisions locked
+- Stress weights: 5, 4, 2, 1, 1
+- Benchmarks: 60% High, 20% Medium
+- Growth archetypes, scoring approach, all approved choices
+
+---
+
+### **Phase 2: Implementation Guides (Keep open while coding)** 📖
+
+**4. TOOL2-READINESS-ANALYSIS.md** - Your step-by-step checklist
+- `/Users/Larry/code/Financial-TruPath-v3/docs/TOOL2-READINESS-ANALYSIS.md`
+- Phase-by-phase implementation with code examples
+- Testing checklist
+- Deployment steps
+
+---
+
+### **Phase 3: Optional Reference (Only if needed)** 📚
+
+**5. ARCHITECTURE.md** - Framework context
+- `/Users/Larry/Documents/agent-girl/v3-fin-nav/docs/ARCHITECTURE.md`
+- Only if confused about OpenAI service or tool lifecycle
+
+**6. LEGACY-CLARITY-SCORING-ALGORITHM.md** - v2 analysis
+- `/Users/Larry/code/Financial-TruPath-v3/docs/TOOL2-LEGACY-CLARITY-SCORING-ALGORITHM.md`
+- Only if questions about why we chose absolute benchmarks
+
+---
+
+### **🎯 TL;DR - Quick Start:**
+
+```
+1. Read SESSION-HANDOFF.md (this document) - 10 min
+2. Skim TOOL2-QUESTION-MASTER-LIST.md - 5 min
+3. Skim TOOL2-DESIGN-REVIEW-FINAL.md - 5 min
+4. Start coding with TOOL2-READINESS-ANALYSIS.md as checklist
+
+Total prep time: 20 minutes
+Then code: 4-6 hours
+```
+
+---
+
+## 📋 **CRITICAL: The 3 Core Documents**
 
 These documents contain everything you need to implement Tool 2:
 
@@ -192,7 +252,6 @@ low = remaining domains
 - ✅ Documentation: Complete and comprehensive
 
 ### **Ready to Build 🚧**
-- 🏗️ Tool 1 Scale Update: 15-minute task (remove zero from -5 to +5 scale)
 - 🏗️ Tool 2 Implementation: 4-6 hours (57 questions, 5 pages, GPT integration)
 
 ### **Next Up 🔜**
@@ -204,22 +263,7 @@ low = remaining domains
 
 ## 🎯 **Next Session: Implementation Plan**
 
-### **Phase 1: Tool 1 Scale Update** ⏱️ 15 min
-
-**Goal:** Standardize scale across all tools (-5 to +5, no zero)
-
-**File:** `/Users/Larry/Documents/agent-girl/v3-fin-nav/tools/tool1/Tool1.js`
-
-**Task:**
-1. Remove `<option value="0">0</option>` from Pages 2-4 (18 questions total)
-2. Test with TEST001
-3. Deploy as v3.2.7
-
-**Reference:** `TOOL1-SCALE-UPDATE-TASK.md` for detailed steps
-
----
-
-### **Phase 2: Tool 2 Implementation** ⏱️ 4-6 hours
+### **Tool 2 Implementation** ⏱️ 4-6 hours
 
 **File Structure:**
 ```
@@ -664,19 +708,13 @@ https://docs.google.com/spreadsheets/d/1dEcTk-ODdp4mmYqPl4Du8jgmoUjhpnEjOgFfOOdE
 
 ### **Recommended Approach:**
 
-**1. Quick Orientation (5 min)**
-- Review this handoff document
-- Skim TOOL2-QUESTION-MASTER-LIST.md
-- Reference TOOL2-DESIGN-REVIEW-FINAL.md as needed
+**1. Quick Orientation (20 min)**
+- Read this handoff document completely
+- Skim TOOL2-QUESTION-MASTER-LIST.md (your primary reference)
+- Skim TOOL2-DESIGN-REVIEW-FINAL.md (your authority document)
+- Open TOOL2-READINESS-ANALYSIS.md as your checklist
 
-**2. Tool 1 Scale Update (15 min)**
-- Open Tool1.js
-- Remove zero option from Pages 2-4
-- Test with TEST001
-- Deploy v3.2.7
-- Git commit
-
-**3. Tool 2 Implementation (4-6 hours)**
+**2. Tool 2 Implementation (4-6 hours)**
 - Build page by page (1, 2, 3, 4, 5)
 - Test after each page
 - Commit after each page
@@ -687,7 +725,7 @@ https://docs.google.com/spreadsheets/d/1dEcTk-ODdp4mmYqPl4Du8jgmoUjhpnEjOgFfOOdE
 - Deploy v3.3.0
 - Git commit
 
-**4. Celebration 🎉**
+**3. Celebration 🎉**
 - Tool 2 is the most sophisticated assessment in the system
 - Trauma-informed + GPT-powered + stress-weighted
 - Foundation for all future tools
