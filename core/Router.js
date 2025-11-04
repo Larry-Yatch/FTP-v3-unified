@@ -45,7 +45,7 @@ const Router = {
    * @private
    */
   _isSystemRoute(route) {
-    const systemRoutes = ['login', 'dashboard', 'admin', 'logout', 'tool1_report'];
+    const systemRoutes = ['login', 'dashboard', 'admin', 'logout', 'tool1_report', 'tool2_report'];
     return systemRoutes.includes(route);
   },
 
@@ -69,6 +69,9 @@ const Router = {
 
       case 'tool1_report':
         return Tool1Report.render(params.client || params.clientId);
+
+      case 'tool2_report':
+        return Tool2Report.render(params.client || params.clientId);
 
       default:
         return this._handle404(route);

@@ -49,7 +49,33 @@ function registerTools() {
     Tool1.manifest = tool1Manifest;
     ToolRegistry.register('tool1', Tool1, tool1Manifest);
 
-    console.log('Tools registered successfully');
+    // Tool 2: Financial Clarity & Values Assessment
+    const tool2Manifest = {
+      id: "tool2",
+      version: "1.0.0",
+      name: "Financial Clarity & Values Assessment",
+      pattern: "multi-phase",
+      route: "tool2",
+      routes: ["/tool2"],
+      description: "Comprehensive assessment consolidating Financial Clarity, False Self, and External Validation",
+      icon: "💰",
+      estimatedTime: "20-30 minutes",
+      sections: 5,
+      totalQuestions: 30,
+      categories: ["financial_clarity", "false_self", "external_validation"],
+      outputs: {
+        report: true,
+        email: true,
+        insights: true
+      },
+      dependencies: ["tool1"],
+      unlocks: ["tool3"]
+    };
+
+    Tool2.manifest = tool2Manifest;
+    ToolRegistry.register('tool2', Tool2, tool2Manifest);
+
+    console.log('Tools registered successfully (Tool 1, Tool 2)');
   } catch (error) {
     console.error('Error registering tools:', error);
   }
