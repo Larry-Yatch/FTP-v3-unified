@@ -1,144 +1,606 @@
 # Session Handoff - Financial TruPath v3
 
-**Date:** November 4, 2024 (Evening Session)
-**Session Focus:** Authentication Optimization + Tool 2 Scaffolding
-**Current Status:** ✅ Production Ready - Tool 1 Complete, Tool 2 Scaffolded, Ready for Content
+**Date:** November 4, 2024 (Late Evening - Design Finalization Session)
+**Session Focus:** Tool 2 Complete Design + Question Finalization
+**Current Status:** ✅ **READY TO CODE** - All design decisions finalized
 **Latest Deploy:** v3.2.6 @34
 
 ---
 
 ## 🚀 START HERE FOR NEXT SESSION
 
-### Tomorrow's Mission: **Complete Tool 2 Content Implementation**
+### **Mission: Implement Tool 2 - Financial Clarity Assessment**
 
-**Estimated Time:** 2.5-3.5 hours
-**Goal:** Fill Tool 2 scaffolding with actual questions, scoring logic, and report content
+**Status:** Design 100% complete. Zero blockers. Ready to code.
 
-**Read This First:**
-📄 **[TOOL2-READINESS-ANALYSIS.md](./TOOL2-READINESS-ANALYSIS.md)** - Complete implementation guide
+**Estimated Time:** 5-6 hours total
+- Tool 1 scale update: 15 minutes
+- Tool 2 implementation: 4-6 hours
 
 ---
 
-## ✅ What We Accomplished Today
+## 📋 **CRITICAL: Read These 3 Documents First**
 
-### 1. **Authentication System Overhaul** ⚡
+These documents contain everything you need to implement Tool 2:
 
-**Problem:** Non-functional password field + slow login (2 sequential server calls)
+### **1. TOOL2-QUESTION-MASTER-LIST.md** 📄
+**Path:** `/Users/Larry/code/Financial-TruPath-v3/docs/TOOL2-QUESTION-MASTER-LIST.md`
 
-**Solution Implemented:**
+**Contains:**
+- All 57 questions with exact wording
+- Scale labels for every -5 to +5 question
+- Free-text instructions for GPT analysis
+- Adaptive question logic (6 trauma-specific question pairs)
+- Implementation notes and code examples
+- Complete data flow architecture
 
-#### A. Removed Password Field → Two-Path Login System
-- **Primary Path:** Student ID only (no password)
-- **Backup Path:** First Name + Last Name + Email (at least 2 required)
-- Pattern adapted from proven v2 system
+**This is your primary reference.** Copy-paste questions directly from here.
 
-#### B. Performance Optimization (2x Faster Login)
-**Before:**
+---
+
+### **2. TOOL2-DESIGN-REVIEW-FINAL.md** 📄
+**Path:** `/Users/Larry/code/Financial-TruPath-v3/docs/TOOL2-DESIGN-REVIEW-FINAL.md`
+
+**Contains:**
+- All approved design decisions
+- Stress weights: Money Flow(5), Obligations(4), Liquidity(2), Growth(1), Protection(1)
+- Benchmark thresholds: 60% High, 20% Medium
+- Growth archetype method: Simple domain-based
+- GPT integration specs: 8 API calls per report
+- Scoring transparency approach
+- Complete implementation checklist
+
+**This is your design authority.** All decisions are locked.
+
+---
+
+### **3. LEGACY-CLARITY-SCORING-ALGORITHM.md** 📄
+**Path:** `/Users/Larry/code/Financial-TruPath-v3/docs/LEGACY-CLARITY-SCORING-ALGORITHM.md`
+
+**Contains:**
+- v2 scoring analysis and why it's flawed
+- Cohort comparison issues (we're NOT using this)
+- Stress weighting rationale
+- Recommendations for v3 absolute benchmarks
+
+**Context only.** Don't replicate legacy approach, use v3 design.
+
+---
+
+## ✅ **What We Accomplished This Session**
+
+### **1. Tool 2 Design Finalized** 🎨
+
+**From:** Rough concept with placeholder questions
+**To:** Complete specification with 57 finalized questions
+
+**Key Decisions Made:**
+- ✅ Finalized all 57 questions (up from 52)
+- ✅ Added 3 mindset baseline questions (scarcity + relationship with money)
+- ✅ Added 8 stress questions (critical for weighted scoring)
+- ✅ Changed 3 demographics to numeric inputs (age, dependents, income streams)
+- ✅ Defined adaptive psychology logic (top 1 trauma, 2 questions)
+- ✅ Approved GPT integration for MVP (not deferred)
+- ✅ Set stress weights for 5 domains
+- ✅ Defined benchmark thresholds (60%/20%)
+- ✅ Chose growth archetype method (simple domain-based)
+
+---
+
+### **2. Question Review & Refinement** 🔍
+
+**Larry's Feedback Incorporated:**
+1. ✅ Q4, Q6, Q9 → Changed to numeric inputs with validation
+2. ✅ Q10 conditional → Removed "N/A" option (conditional display only)
+3. ✅ Q15 income sources → Kept for GPT analysis
+4. ✅ Q31 emergency fund use → Cut (not critical)
+5. ✅ Q33 savings → Clarified "beyond emergency fund"
+6. ✅ Added stress questions for ALL domains → Critical for scoring
+7. ✅ Adaptive questions → Confirmed 2 per top trauma (not 4-6)
+8. ✅ Added scarcity mindset questions → Essential for scarcity quotient
+9. ✅ Added relationship with money → Valuable for future tools
+10. ✅ GPT integration → Approved for MVP (personalization is key)
+
+**Net Result:** 57 well-designed questions ready to implement.
+
+---
+
+### **3. GPT Integration Decision** 🤖
+
+**APPROVED: Include GPT in MVP**
+
+**Rationale:**
+- Personalization is the differentiator vs generic assessments
+- Without GPT, free-text questions are wasted
+- Cost: ~$0.01-0.05 per report (GPT-4o-mini)
+- Time: ~5-10 seconds processing
+- Value: Trauma-informed, personalized insights
+
+**8 GPT API Calls per Report:**
+1. Analyze income sources (Q18)
+2. Analyze major expenses (Q23)
+3. Analyze wasteful spending (Q24)
+4. Analyze current debts (Q29)
+5. Analyze investment types (Q43)
+6. Analyze emotions about finances (Q52)
+7. Analyze trauma impact (Q56a-f, based on top trauma)
+8. Generate growth archetype narrative
+
+---
+
+### **4. Scoring Architecture Defined** ⚖️
+
+**Domain Structure:**
+- Money Flow (Income + Spending) - 11 questions
+- Obligations (Debt + Emergency Fund) - 11 questions
+- Liquidity (Savings) - 4 questions
+- Growth (Investments + Retirement) - 9 questions
+- Protection (Insurance) - 4 questions
+
+**Stress Weights:**
 ```javascript
-// 2 sequential calls = SLOW
-google.script.run.lookupClientById(id) → success
-  → google.script.run.getDashboardPage(id) → load
+const stressWeights = {
+  moneyFlow: 5,      // Highest emotional impact
+  obligations: 4,    // Debt stress
+  liquidity: 2,      // Savings anxiety
+  growth: 1,         // Investments/retirement (less immediate)
+  protection: 1      // Insurance (background)
+};
 ```
 
-**After:**
+**Benchmark Thresholds:**
 ```javascript
-// 1 combined call = FAST
-google.script.run.authenticateAndGetDashboard(id) → load
+if (percentage >= 60) return 'High';    // +3 or higher on most
+if (percentage >= 20) return 'Medium';  // +1 or mixed
+else return 'Low';                      // More negative than positive
 ```
 
-**New Functions Created:**
-- `authenticateAndGetDashboard(clientId)` - Student ID login
-- `lookupAndGetDashboard({firstName, lastName, email})` - Backup login
-- `lookupClientByDetails()` - Name/email matching with scoring
-
-**Performance Improvement:**
-- 50% reduction in server calls
-- ~50% faster login time (1-2 sec vs 2-4 sec)
-- Single network round-trip
-
-#### C. Updated Authentication Module
-**File:** `core/Authentication.js`
-- Split name parsing (first/last from full name)
-- Fuzzy matching with scoring algorithm
-- Status checking (blocks inactive accounts)
-- Flexible ID normalization (handles spaces, hyphens, etc.)
-
-**Files Modified:**
-- ✅ `core/Router.js` - New login UI with 3 fields
-- ✅ `core/Authentication.js` - Two-path lookup logic
-- ✅ `Code.js` - Optimized combined functions
-- ✅ `shared/styles.html` - Added btn-link styles
-- ✅ `README.md` - Updated deployment URL
-
-**Deployments:**
-- @33: v3.2.5 - Two-path authentication
-- @34: v3.2.6 - Performance optimization + first/last name fields
+**Priority Algorithm:**
+```javascript
+weighted[domain] = rawScore * stressWeight
+sort ascending (most negative = highest priority)
+high = top 2 domains
+medium = next 3 domains
+low = remaining domains
+```
 
 ---
 
-### 2. **Tool 2 Scaffolding Complete** 🏗️
+### **5. Documentation Created** 📚
 
-**Mission:** Set up foundation so tomorrow = just content implementation
+**New Documents:**
+1. ✅ `TOOL2-QUESTION-MASTER-LIST.md` (1,107 lines) - Complete question spec
+2. ✅ `TOOL2-DESIGN-REVIEW-FINAL.md` (394 lines) - All approved decisions
+3. ✅ `LEGACY-CLARITY-SCORING-ALGORITHM.md` (386 lines) - v2 analysis
+4. ✅ `TOOL1-SCALE-UPDATE-TASK.md` (386 lines) - Tool 1 update guide
 
-**Created Files:**
-
-```
-tools/tool2/
-├── tool.manifest.json          ✅ Metadata configured
-├── Tool2.js                     ✅ 5-page template ready
-└── Tool2Report.js               ✅ Report structure ready
-```
-
-**Tool 2 Structure:**
-
-| Page | Section | Status |
-|------|---------|--------|
-| 1 | Financial Clarity - Part 1 | 📝 Placeholder |
-| 2 | Financial Clarity - Part 2 | 📝 Placeholder |
-| 3 | False Self Assessment | 📝 Placeholder |
-| 4 | External Validation | 📝 Placeholder |
-| 5 | Review & Submit | ✅ Complete |
-
-**Framework Integration:**
-- ✅ Registered in `Code.js`
-- ✅ Added `tool2_report` route in `Router.js`
-- ✅ Access control configured (auto-unlock after Tool 1)
-- ✅ Admin manual unlock available (`unlockToolForStudent()`)
-- ✅ Uses FormUtils for consistent navigation
-- ✅ Draft auto-save support built-in
-- ✅ Report structure with placeholders
-
-**What's Ready:**
-- All navigation wired up
-- All form handling configured
-- Progress tracking in place
-- Error handling implemented
-- Loading animations ready
-- Mobile-responsive layout
-
-**What Needs Content (Tomorrow):**
-1. Add actual questions from v2 tools
-2. Implement scoring logic
-3. Write report content
-4. Test with real data
+**Updated Documents:**
+1. ✅ `SESSION-HANDOFF.md` (this document)
+2. ✅ `TOOL2-READINESS-ANALYSIS.md` - Implementation guide updated
 
 ---
 
-## 📊 Current Production Status
+## 📊 **Current Project Status**
 
-### Active Deployment: v3.2.6 @34
+### **Completed ✅**
+- ✅ Tool 1: Fully functional, production-ready
+- ✅ Authentication: Two-path system, optimized
+- ✅ Framework: Proven and documented
+- ✅ Tool 2 Design: **100% COMPLETE** - Questions finalized, structure complete
+- ✅ Tool 2 Scoring: Algorithm defined, weights set, benchmarks approved
+- ✅ Tool 2 GPT: Integration approved, architecture documented
+- ✅ Documentation: Complete and comprehensive
+
+### **Ready to Build 🚧**
+- 🏗️ Tool 1 Scale Update: 15-minute task (remove zero from -5 to +5 scale)
+- 🏗️ Tool 2 Implementation: 4-6 hours (57 questions, 5 pages, GPT integration)
+
+### **Next Up 🔜**
+- Tool 3-8: Repeat pattern with different content
+- Admin Panel: Student management
+- Cross-tool insights system
+
+---
+
+## 🎯 **Next Session: Implementation Plan**
+
+### **Phase 1: Tool 1 Scale Update** ⏱️ 15 min
+
+**Goal:** Standardize scale across all tools (-5 to +5, no zero)
+
+**File:** `/Users/Larry/Documents/agent-girl/v3-fin-nav/tools/tool1/Tool1.js`
+
+**Task:**
+1. Remove `<option value="0">0</option>` from Pages 2-4 (18 questions total)
+2. Test with TEST001
+3. Deploy as v3.2.7
+
+**Reference:** `TOOL1-SCALE-UPDATE-TASK.md` for detailed steps
+
+---
+
+### **Phase 2: Tool 2 Implementation** ⏱️ 4-6 hours
+
+**File Structure:**
+```
+/Users/Larry/Documents/agent-girl/v3-fin-nav/tools/tool2/
+├── tool.manifest.json (update metadata)
+├── Tool2.js (implement 57 questions)
+└── Tool2Report.js (implement scoring + GPT + report)
+```
+
+**Implementation Checklist:**
+
+**A. Pages 1-5 Implementation (3 hours)**
+- [ ] Page 1: Demographics + Mindset (13 questions) - 30 min
+  - Pre-fill name, email, studentId from Tool 1
+  - Numeric inputs: age, dependents, income streams
+  - Conditional business stage (Q10)
+  - 3 mindset scales: holistic scarcity, financial scarcity, relationship with money
+
+- [ ] Page 2: Money Flow (11 questions) - 40 min
+  - Income: 4 scales + 1 stress + 1 free-text (sources)
+  - Spending: 4 scales + 1 stress + 2 free-text (expenses, wasteful)
+
+- [ ] Page 3: Obligations (11 questions) - 40 min
+  - Debt: 4 scales + 1 stress + 1 free-text (list)
+  - Emergency Fund: 4 scales + 1 stress
+
+- [ ] Page 4: Growth (13 questions) - 40 min
+  - Savings: 3 scales + 1 stress
+  - Investments: 3 scales + 1 stress + 1 free-text (types)
+  - Retirement: 3 scales + 1 stress
+
+- [ ] Page 5: Protection + Psychological (11 questions) - 70 min
+  - Insurance: 3 scales + 1 stress
+  - Base psych: 3 questions (emotions, obstacle, confidence)
+  - Adaptive: Query Tool 1 → show 2 questions for top trauma
+  - Review section
+
+**B. Scoring Logic (1.5 hours)**
+- [ ] Calculate 5 domain raw scores
+- [ ] Apply absolute benchmarks (High/Med/Low at 60%/20%)
+- [ ] Apply stress weights (5, 4, 2, 1, 1)
+- [ ] Calculate priority tiers (High/Med/Low)
+- [ ] Identify focus domain
+
+**C. GPT Integration (1 hour)**
+- [ ] Implement OpenAI API integration (likely already exists from v2)
+- [ ] Create 8 GPT analysis functions
+- [ ] Domain insights: moneyFlow, obligations, liquidity, growth, protection
+- [ ] Psychological insights: emotional barriers, trauma impact
+- [ ] Growth archetype generation
+
+**D. Report Generation (1 hour)**
+- [ ] Build HTML report structure
+- [ ] Priority focus areas section
+- [ ] Growth archetype section
+- [ ] Domain-specific insights (with GPT personalization)
+- [ ] Next steps / closing
+
+**E. Testing (30 min)**
+- [ ] Complete end-to-end as TEST001
+- [ ] Test all page transitions
+- [ ] Test draft auto-save/resume
+- [ ] Test adaptive logic (multiple trauma categories)
+- [ ] Verify report generation
+- [ ] Check scoring calculations
+
+**F. Deploy (15 min)**
+- [ ] `clasp push`
+- [ ] `clasp deploy --description "v3.3.0 - Tool 2 Financial Clarity complete"`
+- [ ] Production test
+- [ ] Git commit and push
+
+---
+
+## 💡 **Key Implementation Notes**
+
+### **Pre-filling from Tool 1:**
+```javascript
+// In Tool2.js renderPage1Content()
+const tool1Data = DataService.getToolResponse(clientId, 'tool1');
+const name = tool1Data?.data?.name || '';
+const email = tool1Data?.data?.email || '';
+const studentId = clientId;
+```
+
+### **Numeric Input Validation:**
+```javascript
+// Q4: Age
+<input type="number" name="age" min="18" max="100" required>
+
+// Q6: Dependents
+<input type="number" name="dependents" min="0" max="20" required
+       placeholder="Enter 0 if none">
+
+// Q9: Income Streams
+<input type="number" name="incomeStreams" min="0" max="10" required
+       placeholder="Enter 0 for single income source">
+```
+
+### **Conditional Business Stage:**
+```javascript
+// Q10: Only show if self-employed or business owner
+<div id="businessStageGroup" style="display: none;">
+  <label>If Business Owner: Business Stage *</label>
+  <select name="businessStage">...</select>
+</div>
+
+<script>
+document.querySelector('[name="employmentStatus"]').addEventListener('change', (e) => {
+  const show = e.target.value && (
+    e.target.value.includes('Self-employed') ||
+    e.target.value.includes('Business owner')
+  );
+  document.getElementById('businessStageGroup').style.display = show ? 'block' : 'none';
+});
+</script>
+```
+
+### **Adaptive Question Logic:**
+```javascript
+// Page 5: renderPage5Content()
+renderPage5Content(data, clientId) {
+  // Base questions for everyone (Q48-Q54)
+  let html = this.renderBaseQuestions(data);
+
+  // Adaptive section based on Tool 1
+  try {
+    const tool1Data = DataService.getToolResponse(clientId, 'tool1');
+    if (tool1Data?.results) {
+      const traumaScores = tool1Data.results;
+
+      // Find top 1 trauma category
+      const topTrauma = Object.entries(traumaScores)
+        .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))[0];
+
+      const [category, score] = topTrauma;
+
+      // Show 2 questions for that category
+      if (Math.abs(score) > 5) {  // Threshold
+        if (category === 'FSV') {
+          html += this.renderQ55a(data);  // Hiding scale
+          html += this.renderQ56a(data);  // Hiding impact
+        } else if (category === 'Control') {
+          html += this.renderQ55b(data);  // Control anxiety scale
+          html += this.renderQ56b(data);  // Control impact
+        }
+        // ... etc for Fear, ExVal, Receiving, Showing
+      }
+    }
+  } catch (e) {
+    Logger.log('Could not load Tool 1 data: ' + e);
+    // Graceful degradation - works without adaptive
+  }
+
+  return html;
+}
+```
+
+### **Scoring Example:**
+```javascript
+processResults(data) {
+  // 1. Calculate domain scores
+  const domains = {
+    moneyFlow: this.calculateMoneyFlow(data),
+    obligations: this.calculateObligations(data),
+    liquidity: this.calculateLiquidity(data),
+    growth: this.calculateGrowth(data),
+    protection: this.calculateProtection(data)
+  };
+
+  // 2. Apply benchmarks
+  Object.keys(domains).forEach(d => {
+    domains[d] = this.applyBenchmark(domains[d]);
+  });
+
+  // 3. Apply stress weights & prioritize
+  const prioritized = this.prioritizeDomains(domains);
+
+  // 4. Generate GPT insights (async)
+  const insights = await this.generateGPTInsights(data, domains);
+
+  return {
+    domains: domains,
+    priority: prioritized,
+    focusDomain: prioritized.high[0],
+    insights: insights,
+    timestamp: new Date().toISOString()
+  };
+}
+```
+
+### **GPT Integration Example:**
+```javascript
+async generateGPTInsights(data, domains) {
+  const insights = {};
+
+  // Parallel API calls for efficiency
+  const promises = [
+    this.analyzeMoneyFlow(data, domains.moneyFlow),
+    this.analyzeObligations(data, domains.obligations),
+    this.analyzeLiquidity(domains.liquidity),
+    this.analyzeGrowth(data, domains.growth),
+    this.analyzeProtection(domains.protection),
+    this.analyzeEmotionalBarriers(data),
+    this.analyzeTraumaImpact(data)
+  ];
+
+  const results = await Promise.all(promises);
+
+  insights.moneyFlow = results[0];
+  insights.obligations = results[1];
+  insights.liquidity = results[2];
+  insights.growth = results[3];
+  insights.protection = results[4];
+  insights.emotional = results[5];
+  insights.trauma = results[6];
+
+  return insights;
+}
+
+async analyzeMoneyFlow(data, domainData) {
+  const prompt = `
+    Analyze this person's money flow clarity:
+
+    Income sources: ${data.incomeSources || 'Not provided'}
+    Major expenses: ${data.majorExpenses || 'Not provided'}
+    Wasteful spending: ${data.wastefulSpending || 'Not provided'}
+
+    Domain level: ${domainData.level} (${domainData.percentage}%)
+    Income score: ${domainData.incomeScore}
+    Spending score: ${domainData.spendingScore}
+
+    Provide:
+    1. One insight about income diversity/stability
+    2. One insight about spending awareness
+    3. One specific action to improve
+
+    Keep under 100 words, encouraging tone, focus on strengths and opportunities.
+  `;
+
+  return await OpenAIService.chat(prompt, { model: 'gpt-4o-mini' });
+}
+```
+
+---
+
+## 📁 **Key Files Reference**
+
+### **Implementation Files:**
+```
+Primary:
+/Users/Larry/Documents/agent-girl/v3-fin-nav/tools/tool1/Tool1.js
+/Users/Larry/Documents/agent-girl/v3-fin-nav/tools/tool2/Tool2.js
+/Users/Larry/Documents/agent-girl/v3-fin-nav/tools/tool2/Tool2Report.js
+/Users/Larry/Documents/agent-girl/v3-fin-nav/tools/tool2/tool.manifest.json
+
+Tool 2 Design Reference:
+/Users/Larry/code/Financial-TruPath-v3/docs/TOOL2-QUESTION-MASTER-LIST.md
+/Users/Larry/code/Financial-TruPath-v3/docs/TOOL2-DESIGN-REVIEW-FINAL.md
+/Users/Larry/code/Financial-TruPath-v3/docs/LEGACY-CLARITY-SCORING-ALGORITHM.md
+/Users/Larry/code/Financial-TruPath-v3/docs/TOOL1-SCALE-UPDATE-TASK.md
+/Users/Larry/code/Financial-TruPath-v3/docs/TOOL2-READINESS-ANALYSIS.md
+
+Future Tool Development:
+/Users/Larry/code/Financial-TruPath-v3/docs/TOOL-DEVELOPMENT-GUIDE.md - Complete guide for Tools 3-8
+/Users/Larry/Documents/agent-girl/v3-fin-nav/tools/MultiPageToolTemplate.js - Working code template
+```
+
+### **Legacy Reference (v2):**
+```
+/Users/Larry/code/FTP-v2/v2-sheet-script/Tool1_Orientation.js
+/Users/Larry/code/FTP-v2/v2-sheet-script/Tool2_FinancialClarity.js
+/Users/Larry/code/FTP-v2/apps/Tool-3.1-false-self-view-grounding/scripts/Code.js
+/Users/Larry/code/FTP-v2/apps/Tool-3.2-external-validation-grounding/scripts/Functions.js
+```
+
+---
+
+## 🎓 **Design Decisions Summary**
+
+### **What Changed from Initial Design:**
+
+**Added (+12 net):**
+- ✅ 3 mindset baseline questions (Q11-Q13)
+- ✅ 8 stress questions (one per domain component)
+- ✅ GPT integration (8 API calls per report)
+- ✅ Numeric inputs for age, dependents, income streams
+
+**Removed (-2):**
+- ❌ Last emergency fund use (not critical)
+- ❌ Last 3 savings withdrawals (not essential)
+
+**Modified:**
+- ✅ Q35 clarified: "savings beyond emergency fund"
+- ✅ Adaptive logic confirmed: TOP 1 trauma, 2 questions (not 4-6)
+
+**Final Count:** 57 questions (was 52)
+
+---
+
+### **Key Architectural Decisions:**
+
+**1. Domain Consolidation:** 8 → 5 domains
+- Money Flow (Income + Spending)
+- Obligations (Debt + Emergency Fund)
+- Liquidity (Savings only)
+- Growth (Investments + Retirement)
+- Protection (Insurance)
+
+**2. Scoring Approach:** Absolute benchmarks (not cohort comparison)
+- High: 60%+ of maximum possible score
+- Medium: 20-59%
+- Low: <20%
+- Fair, consistent, reliable (unlike legacy cohort method)
+
+**3. Stress Weighting:** Emotional impact multipliers
+- Money Flow: 5 (spending stress dominates)
+- Obligations: 4 (debt stress)
+- Liquidity: 2 (savings anxiety)
+- Growth: 1 (less immediate)
+- Protection: 1 (background concern)
+
+**4. GPT Personalization:** Included in MVP
+- 8 free-text questions analyzed
+- Domain insights + psychological insights + growth archetype
+- Cost: ~$0.01-0.05 per report
+- Differentiator vs generic assessments
+
+**5. Adaptive Psychology:** Trauma-informed depth
+- Query Tool 1 trauma scores
+- Show 2 questions for top trauma category
+- Scale question + open-response impact question
+- 6 trauma categories: FSV, Control, ExVal, Fear, Receiving, Showing
+
+**6. Scale Standardization:** -5 to +5 (no zero)
+- Forces intentionality
+- Cleaner interpretation
+- Matches legacy Orientation/Clarity pattern
+- Tool 1 will be updated to match
+
+---
+
+## ⚠️ **Critical Reminders**
+
+### **Before Starting:**
+1. ✅ Read TOOL2-QUESTION-MASTER-LIST.md completely (your primary reference)
+2. ✅ Read TOOL2-DESIGN-REVIEW-FINAL.md (all decisions locked)
+3. ✅ Check clasp authentication (`clasp login` if needed)
+4. ✅ Test with TEST001 user throughout
+
+### **During Implementation:**
+- **Copy-paste questions exactly** from TOOL2-QUESTION-MASTER-LIST.md
+- **Test incrementally** - Build one page, test, commit, repeat
+- **Use Tool 1 as reference** - It's a proven working implementation
+- **Commit after each page** - Makes debugging easier
+- **Use Logger.log()** for debugging adaptive logic and scoring
+
+### **Quality Checks:**
+- All 57 questions implemented correctly
+- Pre-filling from Tool 1 works
+- Conditional business stage logic works
+- Adaptive psychological section works (query Tool 1, show 2 questions)
+- Form validation works (all required fields)
+- Draft auto-save/resume works
+- Scoring calculates correctly (use test data to verify)
+- GPT integration works (8 API calls)
+- Report generates without errors
+- Priority tiers make sense
+
+---
+
+## 🔗 **Important Links**
 
 **Production URL:**
-```
 https://script.google.com/macros/s/AKfycbwRWkym_TzkbX5jULJJ0PKc0rqtuvdUjqM6rVhTdeL_0egXidur3LZZURnImiqYc6w/exec
-```
 
-**Features:**
-- ✅ Two-path login system (Student ID OR Name/Email)
-- ✅ Fast authentication (1 server call instead of 2)
-- ✅ Tool 1 fully functional and production-ready
-- ✅ Tool 2 scaffolding (not visible to students yet - locked)
-- ✅ Solid navigation (document.write pattern, no iframe issues)
+**GitHub Repository:**
+https://github.com/Larry-Yatch/FTP-v3-unified
+
+**Google Sheet:**
+https://docs.google.com/spreadsheets/d/1dEcTk-ODdp4mmYqPl4Du8jgmoUjhpnEjOgFfOOdEznc/edit
 
 **Test Credentials:**
 - Student ID: `TEST001`
@@ -146,304 +608,120 @@ https://script.google.com/macros/s/AKfycbwRWkym_TzkbX5jULJJ0PKc0rqtuvdUjqM6rVhTd
 
 ---
 
-## 🎯 Tomorrow's Workflow
+## 📊 **Success Metrics**
 
-### Phase 1: Review v2 Content (15-20 min)
-
-**Location:** `/Users/Larry/code/FTP-v2/v2-sheet-script/`
-
-**Extract from 3 v2 tools:**
-1. **Financial Clarity** - Questions & scoring logic
-2. **False Self** - Questions & scoring logic
-3. **External Validation** - Questions & scoring logic
-
-**Look for:**
-- Question text and order
-- Response scales (1-5, Yes/No, etc.)
-- Scoring algorithms
-- Category thresholds
-- Report templates
-
----
-
-### Phase 2: Implement Content (90-120 min)
-
-#### A. Questions (60 min)
-**File:** `tools/tool2/Tool2.js`
-
-**Tasks:**
-1. Replace placeholder questions in `renderPage1Content()` (Financial Clarity pt 1)
-2. Replace placeholder questions in `renderPage2Content()` (Financial Clarity pt 2)
-3. Replace placeholder questions in `renderPage3Content()` (False Self)
-4. Replace placeholder questions in `renderPage4Content()` (External Validation)
-5. Update `totalQuestions` in manifest (currently says 30, adjust as needed)
-
-**Pattern to Follow:**
-```javascript
-const questions = [
-  {name: 'fc_q1', text: 'Actual question from v2'},
-  {name: 'fc_q2', text: 'Another question'},
-  // ...
-];
-
-questions.forEach(q => {
-  const selected = data?.[q.name] || '';
-  html += `
-    <div class="form-group">
-      <label class="form-label">${q.text} *</label>
-      <select name="${q.name}" required>
-        <option value="">Select a response</option>
-        <option value="1" ${selected === '1' ? 'selected' : ''}>Strongly Disagree</option>
-        <!-- ... -->
-      </select>
-    </div>
-  `;
-});
-```
-
-#### B. Scoring Logic (30 min)
-**File:** `tools/tool2/Tool2.js` → `processResults()`
-
-**Replace placeholder:**
-```javascript
-// TODO: Calculate actual scores for each section
-financialClarity: { score: 0, level: 'To be calculated' }
-```
-
-**With actual calculations:**
-```javascript
-processResults(data) {
-  // Financial Clarity scoring
-  const fcScore = this.calculateFinancialClarityScore(data);
-
-  // False Self scoring
-  const fsScore = this.calculateFalseSelfScore(data);
-
-  // External Validation scoring
-  const evScore = this.calculateExternalValidationScore(data);
-
-  return {
-    financialClarity: fcScore,
-    falseSelf: fsScore,
-    externalValidation: evScore,
-    timestamp: new Date().toISOString()
-  };
-}
-```
-
-#### C. Report Content (30-45 min)
-**File:** `tools/tool2/Tool2Report.js` → `buildReportHTML()`
-
-**Tasks:**
-1. Write Financial Clarity analysis template
-2. Write False Self analysis template
-3. Write External Validation analysis template
-4. Add interpretation text for each score level
-5. Add actionable insights/recommendations
-
-**Pattern:**
-```javascript
-// Replace placeholder sections with actual content
-<h2>📊 Financial Clarity Analysis</h2>
-<p>Your score: ${results.financialClarity.score}</p>
-<p>Level: ${results.financialClarity.level}</p>
-
-${this.getFinancialClarityInterpretation(results.financialClarity)}
-```
-
----
-
-### Phase 3: Test & Deploy (15-20 min)
-
-#### Testing Checklist
-```bash
-# 1. Re-authenticate clasp (if needed)
-cd /Users/Larry/Documents/agent-girl/v3-fin-nav
-clasp login
-
-# 2. Push code
-clasp push
-
-# 3. Deploy
-clasp deploy --description "v3.3.0 - Tool 2 complete with content"
-```
-
-**Test Flow:**
-1. Login as TEST001
-2. Complete Tool 1 (if not already done)
-3. Verify Tool 2 unlocks on dashboard
-4. Click "Start Assessment" for Tool 2
-5. Complete all 5 pages
-6. Verify report generates correctly
-7. Check PDF download works
-
----
-
-## 📁 Key Files for Tomorrow
-
-### Files You'll Edit:
-1. **`tools/tool2/Tool2.js`**
-   - `renderPage1Content()` through `renderPage4Content()`
-   - `processResults()`
-   - Add scoring helper functions
-
-2. **`tools/tool2/Tool2Report.js`**
-   - `buildReportHTML()`
-   - Add interpretation helper functions
-
-3. **`tools/tool2/tool.manifest.json`**
-   - Update `totalQuestions` count (currently 30)
-   - Adjust `sections` if needed (currently 5)
-
-### Reference Files:
-- **`/Users/Larry/code/FTP-v2/v2-sheet-script/`** - v2 content source
-- **`tools/tool1/Tool1.js`** - Working example of question rendering
-- **`tools/tool1/Tool1Report.js`** - Working example of report generation
-- **`tools/MultiPageToolTemplate.js`** - Template reference
-
----
-
-## 🔧 Quick Commands for Tomorrow
-
-```bash
-# Navigate to project
-cd /Users/Larry/Documents/agent-girl/v3-fin-nav
-
-# Check what's changed
-git status
-git diff tools/tool2/
-
-# Test clasp connection
-clasp push --dry-run
-
-# Full deploy workflow
-git add tools/tool2/
-git commit -m "feat: Complete Tool 2 content implementation"
-git push
-clasp push
-clasp deploy --description "v3.3.0 - Tool 2 complete"
-
-# View deployments
-clasp deployments
-
-# Find v2 content
-ls /Users/Larry/code/FTP-v2/v2-sheet-script/
-```
-
----
-
-## 📖 Documentation
-
-### For Development
-- **[TOOL2-READINESS-ANALYSIS.md](./TOOL2-READINESS-ANALYSIS.md)** - Complete implementation guide
-- **[TOOL-DEVELOPMENT-PATTERNS.md](./TOOL-DEVELOPMENT-PATTERNS.md)** - Development patterns
-- **[SESSION-HANDOFF.md](./SESSION-HANDOFF.md)** - This document
-
-### Code Templates
-- **`tools/tool2/Tool2.js`** - Your working file
-- **`tools/tool1/Tool1.js`** - Reference implementation
-- **`tools/MultiPageToolTemplate.js`** - General template
-
----
-
-## 🎓 What You Learned Today
-
-### Authentication Best Practices
-1. **Two-path login** = better UX (ID or name lookup)
-2. **Combined server calls** = better performance (2x faster)
-3. **Name parsing** = flexible matching (handles variations)
-4. **Status checking** = security (blocks inactive accounts)
-
-### Scaffolding Approach
-1. **Build framework first** = faster content implementation
-2. **Placeholder content** = test structure before real data
-3. **Section organization** = clear separation of concerns
-4. **Reusable patterns** = Tool 2 mirrors Tool 1 structure
-
-### Code Organization
-1. **Consistent naming** = fc_q1, fs_q1, ev_q1 (section prefixes)
-2. **Helper functions** = processResults(), countSectionQuestions()
-3. **Placeholder TODOs** = clear markers for tomorrow's work
-4. **Documentation inline** = implementation checklists in code
-
----
-
-## ⚠️ Important Notes
-
-### Before Starting Tomorrow
-
-1. **clasp Authentication**
-   - Session may have expired
-   - Run `clasp login` if push fails
-   - Error: `invalid_grant` means need to re-auth
-
-2. **v2 Reference Location**
-   - **Correct path:** `/Users/Larry/code/FTP-v2/v2-sheet-script/`
-   - DO NOT modify v2 code
-   - Extract content only
-
-3. **Git Status**
-   - Tool 2 scaffolding already committed (commit `d24686b`)
-   - Already pushed to GitHub
-   - Just needs clasp push when auth is fixed
-
-### Current Git State
-```
-Last commit: d24686b - feat: Add Tool 2 scaffolding
-Pushed to: GitHub ✅
-Pushed to: Google Apps Script ⏳ (needs re-auth)
-```
-
----
-
-## 📊 Project Status Summary
-
-### Completed ✅
-- Tool 1: Fully functional, production-ready
-- Authentication: Two-path system, optimized performance
-- Navigation: Rock-solid (document.write pattern)
-- Framework: Proven and documented
-- Tool 2 Structure: Complete scaffolding
-
-### In Progress 🚧
-- Tool 2 Content: Questions, scoring, reports (tomorrow)
-
-### Next Up 🔜
-- Tool 3-8: Copy Tool 2 pattern, adjust content
-- Admin Panel: Student management, progress tracking
-- Insights System: Cross-tool intelligence testing
-
----
-
-## 🎯 Success Criteria for Tomorrow
+**Tool 2 Completion Criteria:**
+- [ ] All 57 questions implemented
+- [ ] All 5 pages render without errors
+- [ ] Pre-filling works
+- [ ] Conditional logic works
+- [ ] Adaptive section works
+- [ ] Scoring calculates correctly
+- [ ] GPT integration works
+- [ ] Report generates with personalized insights
+- [ ] Priority tiers are logical
+- [ ] Focus domain identified correctly
+- [ ] Tested end-to-end with TEST001
+- [ ] Deployed to production as v3.3.0
+- [ ] Git committed and pushed
 
 **Definition of Done:**
-- [ ] All Tool 2 pages have real questions (not placeholders)
-- [ ] Scoring logic implemented for all 3 sections
-- [ ] Report generates with actual analysis content
-- [ ] TEST001 can complete full Tool 2 flow
-- [ ] PDF download works
-- [ ] Tool 3 unlocks after completion
-- [ ] Deployed to production
-
-**Estimated Time:** 2.5-3.5 hours
-**Difficulty:** Medium (content implementation, proven framework)
+✅ TEST001 can complete Tool 2 from start to finish
+✅ Report displays on dashboard with personalized insights
+✅ All domains scored correctly
+✅ Priority tiers match expected logic
+✅ GPT insights are relevant and helpful
+✅ Tool 3 unlocks after completion (when Tool 3 exists)
 
 ---
 
-## 🔗 Important Links
+## 💭 **Philosophy & Approach**
 
-**Production URL:** https://script.google.com/macros/s/AKfycbwRWkym_TzkbX5jULJJ0PKc0rqtuvdUjqM6rVhTdeL_0egXidur3LZZURnImiqYc6w/exec
+**This Tool's Purpose:**
+- Measure financial **clarity and awareness** (not balance sheets)
+- Identify **stress-weighted priorities** (where to focus first)
+- Provide **trauma-informed insights** (connecting psychology to finances)
+- Generate **personalized action steps** (GPT analysis makes it unique)
+- Create **growth identity** (archetype based on focus domain)
 
-**GitHub Repository:** https://github.com/Larry-Yatch/FTP-v3-unified
+**Why This Matters:**
+- Generic financial assessments tell people what they already know
+- Personalized insights show them **what to do next**
+- Stress weighting addresses **emotional reality** not just numbers
+- Trauma integration creates **deeper self-awareness**
+- GPT analysis makes every report **unique and valuable**
 
-**Google Sheet:** https://docs.google.com/spreadsheets/d/1dEcTk-ODdp4mmYqPl4Du8jgmoUjhpnEjOgFfOOdEznc/edit
+**Design Principles:**
+1. **Clarity Over Detail** - Awareness > exact amounts
+2. **Action Over Analysis** - What to do > what's wrong
+3. **Psychology Over Math** - Why they struggle > how much they owe
+4. **Personalization Over Templates** - Unique insights > generic advice
+5. **Progress Over Perfection** - Next step > complete transformation
 
 ---
 
-**Last Updated:** November 4, 2024, 2:00 AM
-**By:** Agent Girl (Claude Code)
-**Session Type:** Authentication + Scaffolding
-**Next Session:** Content Implementation
+## 🚀 **Next Session Workflow**
 
-**Ready for tomorrow!** 🚀
+### **Recommended Approach:**
+
+**1. Quick Orientation (5 min)**
+- Review this handoff document
+- Skim TOOL2-QUESTION-MASTER-LIST.md
+- Reference TOOL2-DESIGN-REVIEW-FINAL.md as needed
+
+**2. Tool 1 Scale Update (15 min)**
+- Open Tool1.js
+- Remove zero option from Pages 2-4
+- Test with TEST001
+- Deploy v3.2.7
+- Git commit
+
+**3. Tool 2 Implementation (4-6 hours)**
+- Build page by page (1, 2, 3, 4, 5)
+- Test after each page
+- Commit after each page
+- Implement scoring logic
+- Add GPT integration
+- Build report generation
+- End-to-end testing
+- Deploy v3.3.0
+- Git commit
+
+**4. Celebration 🎉**
+- Tool 2 is the most sophisticated assessment in the system
+- Trauma-informed + GPT-powered + stress-weighted
+- Foundation for all future tools
+- This is a major milestone!
+
+---
+
+## 📝 **Final Notes**
+
+**This Was a Design Session:**
+- We didn't write code, we finalized every design decision
+- Every question is specified down to the exact wording
+- Every scoring rule is documented
+- Every GPT prompt is outlined
+- Implementation should be straightforward copy-paste from docs
+
+**Zero Ambiguity Remaining:**
+- All 57 questions are final
+- All scoring logic is defined
+- All stress weights are set
+- All thresholds are established
+- GPT integration is approved and architected
+
+**Ready to Ship:**
+- No design blockers
+- No unclear requirements
+- No missing specifications
+- Just need to code what's already designed
+
+---
+
+**Last Updated:** November 4, 2024, 11:55 PM
+**Session Type:** Design Finalization
+**Next Session:** Implementation (Tool 1 update + Tool 2 build)
+**Status:** ✅ READY TO CODE
+
+**Let's build something amazing! 🚀**

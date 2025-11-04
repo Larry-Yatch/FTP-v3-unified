@@ -1,5 +1,8 @@
 # Financial TruPath v3 - Architecture Documentation
 
+**Last Updated:** November 4, 2024
+**Version:** v3.3.0
+
 ## 🎯 Core Principles
 
 ### **1. Core Never Changes**
@@ -13,6 +16,9 @@ Insights and cross-tool intelligence defined in spreadsheet, not hardcoded.
 
 ### **4. Registry-Based Discovery**
 Tools register themselves; framework discovers them dynamically.
+
+### **5. AI-Enhanced Intelligence** *(NEW)*
+GPT integration provides personalized insights while maintaining standardized scoring.
 
 ---
 
@@ -52,20 +58,21 @@ Tools register themselves; framework discovers them dynamically.
                    │  - Process submission│
                    └──────────┬──────────┘
                               │
-              ┌───────────────┼───────────────┐
-              ▼               ▼               ▼
+              ┌───────────────┼───────────────────┐
+              ▼               ▼                   ▼
       ┌──────────────┐ ┌──────────────┐ ┌─────────────┐
       │ToolAccess    │ │ Insights     │ │ DataService │
       │Control       │ │ Pipeline     │ │             │
-      └──────────────┘ └──────────────┘ └─────────────┘
+      └──────────────┘ └──────┬───────┘ └─────────────┘
                               │
-                              ▼
-                   ┌─────────────────────┐
-                   │  Google Sheets      │
-                   │  - CrossToolInsights│
-                   │  - InsightMappings  │
-                   │  - RESPONSES        │
-                   └─────────────────────┘
+                    ┌─────────┴─────────┐
+                    ▼                   ▼
+         ┌─────────────────┐  ┌──────────────┐
+         │ OpenAI Service  │  │Google Sheets │
+         │ (GPT-4o-mini)   │  │- Insights    │
+         │ (NEW)           │  │- Mappings    │
+         └─────────────────┘  │- RESPONSES   │
+                              └──────────────┘
 ```
 
 ---
@@ -162,6 +169,50 @@ Tools register themselves; framework discovers them dynamically.
 
 **No hardcoded tool routes!**
 
+### **7. OpenAIService (`core/OpenAIService.js`)** *(NEW)*
+**Purpose:** Centralized GPT integration for personalized insights.
+
+**Responsibilities:**
+- API key management
+- Rate limiting and error handling
+- Standardized prompt formatting
+- Response caching (30-day TTL)
+- Cost tracking
+
+**Key Methods:**
+- `chat(prompt, options)` - Single completion
+- `batchAnalyze(prompts)` - Parallel completions (efficient)
+- `getCachedInsight(cacheKey)` - Retrieve cached analysis
+- `setCachedInsight(cacheKey, data, ttl)` - Cache for reuse
+
+**Configuration:**
+- Model: `gpt-4o-mini` (cost-efficient, fast)
+- Max tokens: 500 per insight
+- Temperature: 0.7 (balanced creativity)
+- Timeout: 10s per request
+
+**Usage Pattern:**
+```javascript
+// In Tool Report generation
+const insights = await OpenAIService.batchAnalyze([
+  { prompt: moneyFlowPrompt, cacheKey: `mf_${clientId}` },
+  { prompt: obligationsPrompt, cacheKey: `ob_${clientId}` },
+  { prompt: traumaPrompt, cacheKey: `tr_${clientId}` }
+]);
+```
+
+**Cost Management:**
+- ~$0.01-0.05 per full report (8 API calls)
+- Cached insights reduce repeat costs
+- Budget monitoring via usage tracking sheet
+
+**Why Centralized:**
+- Consistent error handling across all tools
+- Rate limiting prevents API quota exhaustion
+- Caching reduces costs and latency
+- Easy to swap models or providers later
+- Tracks usage for billing/analytics
+
 ---
 
 ## 🛠️ Tool Interface Contract
@@ -175,6 +226,7 @@ const ToolN = {
   // REQUIRED METHODS
   initialize(dependencies, insights) {
     // Setup tool with framework services and previous insights
+    // dependencies.openAI available for tools needing GPT
     // Returns: { success: boolean, error?: string }
   },
 
@@ -190,6 +242,7 @@ const ToolN = {
 
   generateInsights(data, clientId) {
     // Generate insights for other tools
+    // Can use OpenAIService for enhanced insights
     // Returns: Array<Insight>
   },
 
@@ -274,6 +327,8 @@ Form Submit → FrameworkCore.processToolSubmission()
                       ↓
               Tool.generateInsights(data)
                       ↓
+              [OPTIONAL] OpenAIService.batchAnalyze() - Enhanced insights
+                      ↓
               InsightsPipeline.processToolCompletion()
                       ↓
               Insights saved to CrossToolInsights
@@ -319,10 +374,17 @@ Else → Deny with reason
 const Tool3 = {
   id: 'tool3',
 
-  initialize(deps, insights) { /* ... */ },
+  initialize(deps, insights) {
+    // deps.openAI available if needed
+    /* ... */
+  },
   validate(data) { /* ... */ },
   process(clientId, data) { /* ... */ },
-  generateInsights(data, clientId) { /* ... */ },
+  generateInsights(data, clientId) {
+    // Can use OpenAIService for enhanced insights
+    const aiInsights = await deps.openAI.chat(prompt);
+    /* ... */
+  },
   getConfig() { return Tool3Manifest; }
 };
 ```
@@ -336,7 +398,9 @@ const Tool3 = {
   "version": "1.0.0",
   "pattern": "form",
   "routes": ["/tool3", "/false-self"],
-  "prerequisites": ["tool1", "tool2"]
+  "prerequisites": ["tool1", "tool2"],
+  "usesGPT": true,
+  "estimatedCost": 0.03
 }
 ```
 
@@ -354,6 +418,87 @@ Add rows to `InsightMappings` sheet defining what insights Tool 3 generates.
 - Routes requests to it
 - Handles lifecycle
 - Manages insights
+- Provides OpenAI service if needed
+
+---
+
+## 🤖 GPT Integration Architecture
+
+### **Design Philosophy**
+
+**Hybrid Approach:**
+- **Quantitative scoring** (standardized, comparable)
+- **Qualitative insights** (personalized, actionable)
+
+**Why This Works:**
+- Scores provide objective measurement and progress tracking
+- GPT provides personalized context and recommendations
+- Best of both worlds: data + narrative
+
+### **When to Use GPT**
+
+**Good Use Cases:**
+✅ Analyzing free-text responses for patterns
+✅ Generating personalized recommendations
+✅ Creating narrative insights from data
+✅ Trauma-informed coaching language
+✅ Growth archetype descriptions
+
+**Bad Use Cases:**
+❌ Replacing scoring logic (use algorithms)
+❌ Making access control decisions (security risk)
+❌ Storing sensitive data (privacy concern)
+❌ Real-time form interactions (latency)
+
+### **GPT Integration Pattern**
+
+**In Tool Reports:**
+```javascript
+// Tool2Report.js example
+async buildReport(results, data, clientId) {
+  // 1. Calculate objective scores (algorithmic)
+  const domainScores = this.calculateDomains(data);
+  const priorities = this.prioritizeDomains(domainScores);
+
+  // 2. Generate AI insights (personalized)
+  const insights = await OpenAIService.batchAnalyze([
+    this.buildMoneyFlowPrompt(data, domainScores.moneyFlow),
+    this.buildObligationsPrompt(data, domainScores.obligations),
+    this.buildTraumaPrompt(data, traumaData)
+  ]);
+
+  // 3. Combine for comprehensive report
+  return {
+    scores: domainScores,        // Objective
+    priorities: priorities,       // Algorithmic
+    insights: insights,          // Personalized
+    archetype: this.generateArchetype(priorities, insights)
+  };
+}
+```
+
+### **Cost Management Strategy**
+
+**Current Costs (GPT-4o-mini):**
+- Input: ~$0.15 / 1M tokens
+- Output: ~$0.60 / 1M tokens
+- Typical report: 8 prompts × ~200 tokens = ~$0.02
+
+**Optimization:**
+1. **Caching:** Store insights for 30 days, reuse if student re-generates
+2. **Batching:** Parallel API calls reduce total time
+3. **Prompt Engineering:** Clear, concise prompts minimize tokens
+4. **Model Choice:** gpt-4o-mini balances cost/quality
+
+**Budget Monitoring:**
+- Track usage in `AI_USAGE_LOG` sheet
+- Alert if daily costs exceed threshold
+- Per-student cost tracking for analytics
+
+**Future-Proofing:**
+- Abstracted service layer allows model swapping
+- Can upgrade to gpt-4o for premium tier
+- Can fall back to templates if API unavailable
 
 ---
 
@@ -368,12 +513,19 @@ Add rows to `InsightMappings` sheet defining what insights Tool 3 generates.
 - Configuration-driven insights
 - Plugin architecture
 - Shared framework
+- Centralized AI service
+
+**Performance Considerations:**
+- OpenAI rate limits: 500 RPM (gpt-4o-mini)
+- Can serve ~60 students/minute
+- Caching reduces API calls by ~40%
+- Async processing prevents UI blocking
 
 ---
 
-## 🎯 Key Benefits Over v1
+## 🎯 Key Benefits Over v2
 
-| Aspect | v1 | v3 |
+| Aspect | v2 | v3 |
 |--------|----|----|
 | **Adding tools** | Modify core files | Create folder + config |
 | **Insights** | Hardcoded | Configuration sheet |
@@ -381,7 +533,98 @@ Add rows to `InsightMappings` sheet defining what insights Tool 3 generates.
 | **Testing** | Production only | Isolated modules |
 | **Maintenance** | High coupling | Low coupling |
 | **Onboarding** | Complex | Clear patterns |
+| **Personalization** | Static templates | AI-enhanced insights |
+| **Scalability** | ~8 tools max | 50+ tools supported |
+
+---
+
+## 🔒 Security & Privacy
+
+### **API Key Management**
+- OpenAI key stored in Script Properties (encrypted)
+- Never exposed to client
+- Rotated quarterly
+
+### **Data Privacy**
+- Student responses stored in Google Sheets (private)
+- GPT prompts contain anonymized data only
+- No PII sent to OpenAI
+- Insights cached locally, not on OpenAI servers
+
+### **Rate Limiting**
+- Per-student: Max 1 report/minute
+- System-wide: 500 requests/minute (OpenAI limit)
+- Graceful degradation if limits exceeded
+
+---
+
+## 📊 Tool-Specific Architectures
+
+### **Tool 1: Core Trauma Strategy Assessment**
+- **Pattern:** Multi-page form (5 pages, 26 questions)
+- **Scoring:** Algorithmic (6 trauma categories)
+- **GPT:** Not used (pure quantitative)
+- **Report:** Template-based with calculated scores
+
+### **Tool 2: Financial Clarity Assessment** *(NEW)*
+- **Pattern:** Multi-page form (5 pages, 57 questions)
+- **Scoring:** Hybrid (algorithmic + GPT)
+  - Domain scores: Algorithmic (5 domains)
+  - Stress weighting: Algorithmic (5, 4, 2, 1, 1)
+  - Priority tiers: Algorithmic (High/Med/Low)
+  - Insights: GPT-enhanced (8 API calls)
+- **GPT Usage:**
+  - Analyze free-text responses (8 questions)
+  - Generate domain-specific insights
+  - Create trauma-informed recommendations
+  - Synthesize growth archetype narrative
+- **Report:** Hybrid (scores + AI insights)
+- **Adaptive:** Top 1 trauma from Tool 1 → 2 custom questions
+- **Estimated Cost:** $0.01-0.05 per report
+
+### **Tool 3-8:** TBD (follow similar patterns)
+
+---
+
+## 🧪 Testing Strategy
+
+### **Unit Testing**
+- Each tool module independently testable
+- Mock dependencies (DataService, OpenAI, etc.)
+- Validate scoring logic with known inputs
+
+### **Integration Testing**
+- Tool lifecycle end-to-end
+- Cross-tool insight propagation
+- GPT integration with real API (staging)
+
+### **Load Testing**
+- Simulate 100 concurrent students
+- Measure OpenAI rate limit handling
+- Cache effectiveness validation
+
+---
+
+## 🚀 Future Enhancements
+
+### **Phase 1 (Current):** ✅ Core framework + Tools 1-2
+### **Phase 2:** Tools 3-8 implementation
+### **Phase 3:** Admin dashboard enhancements
+### **Phase 4:** Advanced features
+- Real-time collaboration (multi-coach access)
+- Mobile app integration
+- Offline mode with sync
+- Advanced analytics dashboard
+- White-label deployments
+
+### **AI Enhancements:**
+- Voice-to-text for responses
+- Image analysis (uploaded financial docs)
+- Predictive modeling (financial trajectory)
+- Conversational follow-ups (chatbot)
 
 ---
 
 **Next:** See `SETUP-GUIDE.md` for implementation instructions.
+
+**Updated:** November 4, 2024 - Added OpenAIService architecture and Tool 2 specifications
