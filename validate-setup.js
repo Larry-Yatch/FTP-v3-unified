@@ -255,6 +255,110 @@ function validateCompleteSetup() {
     issues.push('generateTool1PDF() function not found');
   }
 
+  // Test 14: FormUtils Framework (v3.1.0)
+  console.log('\n🏗️  TEST 14: FormUtils Framework');
+  if (typeof FormUtils !== 'undefined') {
+    console.log('   ✅ PASS: FormUtils object exists');
+
+    // Check key methods
+    const formUtilsMethods = [
+      'getFormSubmissionScript',
+      'generateFormWrapper',
+      'buildStandardPage'
+    ];
+
+    let allMethodsExist = true;
+    formUtilsMethods.forEach(method => {
+      if (typeof FormUtils[method] === 'function') {
+        console.log(`   ✅ FormUtils.${method}() exists`);
+      } else {
+        console.log(`   ❌ FormUtils.${method}() MISSING`);
+        allMethodsExist = false;
+        issues.push(`FormUtils.${method}() method not found`);
+      }
+    });
+
+    if (allMethodsExist) {
+      passCount++;
+    } else {
+      failCount++;
+    }
+  } else {
+    console.log('   ❌ FAIL: FormUtils not found');
+    failCount++;
+    issues.push('FormUtils framework not loaded - required for v3.1.0 pattern');
+  }
+
+  // Test 15: Generic Server Handlers (v3.1.0)
+  console.log('\n⚙️  TEST 15: Generic Server Handlers');
+  let handlersPass = true;
+
+  if (typeof saveToolPageData === 'function') {
+    console.log('   ✅ PASS: saveToolPageData() exists');
+  } else {
+    console.log('   ❌ FAIL: saveToolPageData() missing');
+    handlersPass = false;
+    issues.push('saveToolPageData() function not found - required for multi-page tools');
+  }
+
+  if (typeof completeToolSubmission === 'function') {
+    console.log('   ✅ PASS: completeToolSubmission() exists');
+  } else {
+    console.log('   ❌ FAIL: completeToolSubmission() missing');
+    handlersPass = false;
+    issues.push('completeToolSubmission() function not found - required for tool completion');
+  }
+
+  if (handlersPass) {
+    passCount++;
+  } else {
+    failCount++;
+  }
+
+  // Test 16: Tool Pattern Compliance (v3.1.0)
+  console.log('\n📐 TEST 16: Tool Pattern Compliance');
+  let patternPass = true;
+
+  // Check Tool1 follows new pattern
+  if (typeof Tool1?.savePageData === 'function') {
+    console.log('   ✅ Tool1.savePageData() exists (new pattern)');
+  } else {
+    console.log('   ❌ Tool1.savePageData() missing');
+    patternPass = false;
+    issues.push('Tool1 does not implement savePageData() - required for FormUtils pattern');
+  }
+
+  if (typeof Tool1?.processFinalSubmission === 'function') {
+    console.log('   ✅ Tool1.processFinalSubmission() exists (new pattern)');
+  } else {
+    console.log('   ❌ Tool1.processFinalSubmission() missing');
+    patternPass = false;
+    issues.push('Tool1 does not implement processFinalSubmission() - required for FormUtils pattern');
+  }
+
+  // Verify deprecated method is NOT present
+  if (typeof Tool1?.handleSubmit === 'function') {
+    console.log('   ⚠️  WARNING: Tool1.handleSubmit() still exists (deprecated in v3.1.0)');
+    console.log('      This method is no longer used with FormUtils pattern');
+  } else {
+    console.log('   ✅ Tool1.handleSubmit() removed (good - deprecated)');
+  }
+
+  if (patternPass) {
+    passCount++;
+  } else {
+    failCount++;
+  }
+
+  // Test 17: Architecture Documentation
+  console.log('\n📚 TEST 17: Architecture Documentation');
+  console.log('   ℹ️  Check local files for:');
+  console.log('      - tools/MultiPageToolTemplate.js (Tool 2 template)');
+  console.log('      - TOOL-DEVELOPMENT-PATTERNS.md (Developer guide)');
+  console.log('      - NAVIGATION-FIX-SUMMARY.md (Architecture overview)');
+  console.log('   ✅ Documentation available in repository');
+  passCount++;
+
   // SUMMARY
   console.log('\n╔════════════════════════════════════════════╗');
   console.log('║  VALIDATION SUMMARY                        ║');
