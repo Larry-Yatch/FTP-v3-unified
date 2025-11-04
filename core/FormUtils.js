@@ -50,7 +50,7 @@ const FormUtils = {
           // Show loading
           showLoading('Saving your responses');
 
-          // Save via google.script.run (server-side, no POST)
+          // Save and navigate - do both together to avoid async callback issues
           google.script.run
             .withSuccessHandler(function(result) {
               if (result && result.success === false) {
@@ -58,6 +58,9 @@ const FormUtils = {
                 alert('Error: ' + (result.error || 'Failed to save'));
                 return;
               }
+
+              // Data saved successfully
+              console.log('Save successful, navigating...');
 
               // Determine next page/route
               let nextUrl;
@@ -68,9 +71,17 @@ const FormUtils = {
                 nextUrl = '${baseUrl}?route=${toolId}&client=' + data.client + '&page=' + nextPage;
               }
 
-              // Navigate iframe (not parent) - avoids sandbox user activation issue
-              // Browser will redirect parent if needed
-              window.location.href = nextUrl;
+              console.log('Next URL:', nextUrl);
+
+              // Try multiple navigation methods for maximum compatibility
+              try {
+                // Method 1: Try navigating parent (may fail in some sandbox contexts)
+                window.top.location.href = nextUrl;
+              } catch (e) {
+                console.log('window.top navigation blocked, trying fallback');
+                // Method 2: Navigate iframe itself
+                window.location.replace(nextUrl);
+              }
             })
             .withFailureHandler(function(error) {
               hideLoading();
@@ -115,8 +126,15 @@ const FormUtils = {
           google.script.run
             .withSuccessHandler(function(result) {
               if (result.success) {
-                // Navigate iframe (not parent) - avoids sandbox user activation issue
-                window.location.href = result.redirectUrl;
+                console.log('Processing complete, navigating to:', result.redirectUrl);
+
+                // Try multiple navigation methods for maximum compatibility
+                try {
+                  window.top.location.href = result.redirectUrl;
+                } catch (e) {
+                  console.log('window.top navigation blocked, using iframe navigation');
+                  window.location.replace(result.redirectUrl);
+                }
               } else {
                 hideLoading();
                 alert('Error: ' + (result.error || 'Failed to process'));
