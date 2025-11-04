@@ -164,16 +164,49 @@ const Router = {
               <label class="form-label">Password</label>
               <input type="password" name="password" placeholder="Enter your password" required>
             </div>
-            <button type="submit" class="btn-primary">Sign In</button>
+            <button type="submit" class="btn-primary" id="loginBtn">
+              <span id="btnText">Sign In</span>
+              <span id="btnSpinner" style="display: none;">
+                <span class="loading-spinner"></span> Loading...
+              </span>
+            </button>
           </form>
-          <p class="muted mt-20">v3.0.0 | Modular Architecture</p>
+          <p class="muted mt-20">v3.0.1 | Modular Architecture</p>
         </div>
+
+        <!-- Loading Overlay -->
+        <div id="loadingOverlay" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(30, 25, 43, 0.95); backdrop-filter: blur(10px); z-index: 10000; display: flex; align-items: center; justify-content: center; flex-direction: column;">
+          <div class="loading-spinner" style="width: 50px; height: 50px; border-width: 5px;"></div>
+          <p style="color: #ad9168; margin-top: 20px; font-family: 'Rubik', sans-serif; font-size: 16px;">Loading your dashboard...</p>
+        </div>
+
         <script>
           document.getElementById('loginForm').addEventListener('submit', function(e) {
             e.preventDefault();
+
             const clientId = e.target.clientId.value;
-            // TODO: Implement authentication
-            window.location.href = '<?= ScriptApp.getService().getUrl() ?>?route=dashboard&client=' + clientId;
+            const btn = document.getElementById('loginBtn');
+            const btnText = document.getElementById('btnText');
+            const btnSpinner = document.getElementById('btnSpinner');
+            const overlay = document.getElementById('loadingOverlay');
+
+            // Show loading state
+            btn.disabled = true;
+            btnText.style.display = 'none';
+            btnSpinner.style.display = 'flex';
+            btnSpinner.style.alignItems = 'center';
+            btnSpinner.style.gap = '10px';
+            btnSpinner.style.justifyContent = 'center';
+
+            // Show overlay after 300ms (if still loading)
+            const overlayTimer = setTimeout(function() {
+              overlay.style.display = 'flex';
+            }, 300);
+
+            // Navigate to dashboard
+            setTimeout(function() {
+              window.location.href = '<?= ScriptApp.getService().getUrl() ?>?route=dashboard&client=' + encodeURIComponent(clientId);
+            }, 100);
           });
         </script>
       </body>
@@ -198,6 +231,19 @@ const Router = {
       <head>
         <title>Financial TruPath - Dashboard</title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+          /* Prevent white flash - load this first */
+          body {
+            background: linear-gradient(135deg, #4b4166, #1e192b);
+            margin: 0;
+            padding: 0;
+            opacity: 0;
+            transition: opacity 0.3s ease-in;
+          }
+          body.loaded {
+            opacity: 1;
+          }
+        </style>
         <?!= include('shared/styles') ?>
       </head>
       <body>
@@ -243,6 +289,18 @@ const Router = {
             </button>
           </div>
         </div>
+
+        <script>
+          // Fade in page once loaded
+          window.addEventListener('load', function() {
+            document.body.classList.add('loaded');
+          });
+
+          // Fallback: show page after 100ms even if not fully loaded
+          setTimeout(function() {
+            document.body.classList.add('loaded');
+          }, 100);
+        </script>
       </body>
       </html>
     `);
