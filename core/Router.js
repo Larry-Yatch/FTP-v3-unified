@@ -286,7 +286,7 @@ const Router = {
               <p class="muted">Begin your financial journey with a comprehensive assessment</p>
               <span class="badge">Ready</span>
               <br><br>
-              <button class="btn-primary" onclick="navigateWithLoading('<?= ScriptApp.getService().getUrl() ?>?route=tool1&client=${clientId || 'TEST001'}', 'Loading Assessment')">
+              <button class="btn-primary" onclick="showLoading('Loading Assessment'); window.location.href='<?= ScriptApp.getService().getUrl() ?>?route=tool1&client=${clientId || 'TEST001'}'">
                 Start Assessment
               </button>
             </div>
