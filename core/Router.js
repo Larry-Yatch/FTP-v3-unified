@@ -211,7 +211,7 @@ const Router = {
 
             // Navigate immediately - overlay stays visible during page load
             setTimeout(function() {
-              window.location.href = '<?= ScriptApp.getService().getUrl() ?>?route=dashboard&client=' + encodeURIComponent(clientId);
+              window.top.location.href = '<?= ScriptApp.getService().getUrl() ?>?route=dashboard&client=' + encodeURIComponent(clientId);
             }, 100);
           });
         </script>
@@ -280,7 +280,7 @@ const Router = {
               <p class="muted">Begin your financial journey with a comprehensive assessment</p>
               <span class="badge">Ready</span>
               <br><br>
-              <button class="btn-primary" onclick="location.href='<?= ScriptApp.getService().getUrl() ?>?route=tool1&client=${clientId || 'TEST001'}'">
+              <button class="btn-primary" onclick="window.top.location.href='<?= ScriptApp.getService().getUrl() ?>?route=tool1&client=${clientId || 'TEST001'}'">
                 Start Assessment
               </button>
             </div>
@@ -295,7 +295,7 @@ const Router = {
           </div>
 
           <div class="text-center mt-20">
-            <button class="btn-secondary" onclick="location.href='<?= ScriptApp.getService().getUrl() ?>?route=login'">
+            <button class="btn-secondary" onclick="window.top.location.href='<?= ScriptApp.getService().getUrl() ?>?route=login'">
               Logout
             </button>
           </div>
