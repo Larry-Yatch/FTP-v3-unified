@@ -1,7 +1,7 @@
 # Financial TruPath v3 - Modular Architecture
 
-**Version:** 3.2.5 (Deploy @33)
-**Status:** ✅ Production Ready - Tool 1 Complete + Two-Path Auth
+**Version:** 3.2.6 (Deploy @34)
+**Status:** ✅ Production Ready - Tool 1 Complete + Optimized Auth
 **Architecture:** Plugin-based with configuration-driven insights
 **Last Updated:** November 4, 2024
 
@@ -155,7 +155,7 @@ See [MIGRATION-PLAN.md](docs/MIGRATION-PLAN.md) for detailed migration strategy.
 
 ## 🔗 Quick Links
 
-- **Production URL (v3.2.5 @33):** https://script.google.com/macros/s/AKfycby2jz_X7tegGyK_yH1sea0ktd6KlvjIEnphrbrJADax3cttBkjNz96mXRkaCyeh-dB2/exec
+- **Production URL (v3.2.6 @34):** https://script.google.com/macros/s/AKfycbwRWkym_TzkbX5jULJJ0PKc0rqtuvdUjqM6rVhTdeL_0egXidur3LZZURnImiqYc6w/exec
 - **Session Handoff:** [docs/SESSION-HANDOFF.md](docs/SESSION-HANDOFF.md) - Start here for current status
 - **GitHub:** https://github.com/Larry-Yatch/FTP-v3-unified
 
