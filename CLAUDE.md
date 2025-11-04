@@ -1,5 +1,17 @@
 # Development Guidelines
 
+## 🎯 Project Context
+
+**Active Project:** Financial-TruPath-v3 (this directory)
+- Current development, modular architecture
+- Plugin-based tool system
+- Configuration-driven insights
+
+**Reference Only:** FTP-v2 (`/Users/Larry/code/FTP-v2`)
+- Legacy system for reference
+- Do NOT make changes to v2
+- Use v2 code patterns as examples only
+
 ## Core Principles
 
 ### Code Quality
