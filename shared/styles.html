@@ -632,6 +632,22 @@ h3 { font-size: 22px; margin-bottom: 15px; }
   /* transform handled by animation system */
 }
 
+.btn-link {
+  background: none;
+  border: none;
+  color: var(--gold);
+  cursor: pointer;
+  font-weight: 500;
+  padding: 8px 0;
+  text-decoration: none;
+  transition: opacity var(--duration-fast) var(--ease-standard);
+}
+
+.btn-link:hover {
+  opacity: 0.8;
+  text-decoration: underline;
+}
+
 /* Tool Cards */
 .tool-card {
   background: linear-gradient(315deg, rgba(173, 145, 104, 0.2) 0%, rgba(30, 25, 43, 0.4) 100%);

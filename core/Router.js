@@ -164,36 +164,108 @@ const Router = {
         <div class="login-container">
           <div class="login-logo">TruPath Financial</div>
           <p class="login-subtitle">Your Journey to Financial Clarity</p>
+
+          <div id="alertBox" class="message error" style="display: none;"></div>
           ${message ? `<div class="message error">${message}</div>` : ''}
-          <form id="loginForm">
-            <div class="form-group">
-              <label class="form-label">Student ID</label>
-              <input type="text" name="clientId" placeholder="Enter your student ID" required>
+
+          <!-- Primary Login Form -->
+          <div id="primaryLogin">
+            <form id="loginForm">
+              <div class="form-group">
+                <label class="form-label">Student ID</label>
+                <input type="text" name="clientId" id="clientId" placeholder="Enter your student ID" required>
+              </div>
+              <button type="submit" class="btn-primary" id="loginBtn">
+                <span id="btnText">Sign In</span>
+                <span id="btnSpinner" style="display: none;">
+                  <span class="loading-spinner"></span> Loading...
+                </span>
+              </button>
+            </form>
+
+            <div style="text-align: center; margin: 20px 0;">
+              <p class="muted" style="margin-bottom: 10px;">— OR —</p>
+              <button type="button" class="btn-secondary" onclick="showBackupLogin()">
+                Can't Remember Your ID?
+              </button>
             </div>
-            <div class="form-group">
-              <label class="form-label">Password</label>
-              <input type="password" name="password" placeholder="Enter your password" required>
-            </div>
-            <button type="submit" class="btn-primary" id="loginBtn">
-              <span id="btnText">Sign In</span>
-              <span id="btnSpinner" style="display: none;">
-                <span class="loading-spinner"></span> Loading...
-              </span>
+          </div>
+
+          <!-- Backup Login Form (hidden initially) -->
+          <div id="backupLogin" style="display: none;">
+            <button onclick="showPrimaryLogin()" class="btn-link" style="margin-bottom: 20px;">
+              ← Back to Student ID login
             </button>
-          </form>
-          <p class="muted mt-20">v3.0.4 | Modular Architecture</p>
+
+            <form id="backupForm">
+              <p class="muted" style="margin-bottom: 20px; font-size: 14px;">
+                Enter your information to look up your Student ID:
+              </p>
+
+              <div class="form-group">
+                <label class="form-label">Full Name</label>
+                <input type="text" id="studentName" name="name" placeholder="Enter your full name">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Email Address (optional)</label>
+                <input type="email" id="studentEmail" name="email" placeholder="Enter your email address">
+              </div>
+
+              <button type="submit" class="btn-primary" id="backupBtn">
+                <span id="backupBtnText">Look Up My Account</span>
+                <span id="backupBtnSpinner" style="display: none;">
+                  <span class="loading-spinner"></span> Searching...
+                </span>
+              </button>
+            </form>
+          </div>
+
+          <p class="muted mt-20">v3.2.5 | Two-Path Authentication</p>
         </div>
 
         <script>
+          // Show/hide alert messages
+          function showAlert(message, isError) {
+            const alertBox = document.getElementById('alertBox');
+            alertBox.textContent = message;
+            alertBox.className = isError ? 'message error' : 'message success';
+            alertBox.style.display = 'block';
+          }
+
+          function hideAlert() {
+            document.getElementById('alertBox').style.display = 'none';
+          }
+
+          // Toggle between primary and backup login
+          function showPrimaryLogin() {
+            document.getElementById('primaryLogin').style.display = 'block';
+            document.getElementById('backupLogin').style.display = 'none';
+            hideAlert();
+          }
+
+          function showBackupLogin() {
+            document.getElementById('primaryLogin').style.display = 'none';
+            document.getElementById('backupLogin').style.display = 'block';
+            hideAlert();
+          }
+
+          // Primary login (Student ID)
           document.getElementById('loginForm').addEventListener('submit', function(e) {
             e.preventDefault();
+            hideAlert();
 
-            const clientId = e.target.clientId.value;
+            const clientId = document.getElementById('clientId').value.trim();
+            if (!clientId) {
+              showAlert('Please enter your Student ID', true);
+              return;
+            }
+
             const btn = document.getElementById('loginBtn');
             const btnText = document.getElementById('btnText');
             const btnSpinner = document.getElementById('btnSpinner');
 
-            // Show button loading state immediately
+            // Show button loading state
             btn.disabled = true;
             btnText.style.display = 'none';
             btnSpinner.style.display = 'inline-flex';
@@ -201,23 +273,108 @@ const Router = {
             btnSpinner.style.gap = '8px';
 
             // Show loading overlay
-            showLoading('Logging in');
+            showLoading('Authenticating');
 
-            // Navigate using document.write pattern (no iframe issues)
+            // Authenticate via server
             google.script.run
-                .withSuccessHandler(function(dashboardHtml) {
-                  document.open();
-                  document.write(dashboardHtml);
-                  document.close();
+                .withSuccessHandler(function(result) {
+                  if (result && result.success) {
+                    // Success - get dashboard
+                    google.script.run
+                        .withSuccessHandler(function(dashboardHtml) {
+                          document.open();
+                          document.write(dashboardHtml);
+                          document.close();
+                        })
+                        .withFailureHandler(function(error) {
+                          hideLoading();
+                          btn.disabled = false;
+                          btnText.style.display = 'inline';
+                          btnSpinner.style.display = 'none';
+                          showAlert('Error loading dashboard: ' + error.message, true);
+                        })
+                        .getDashboardPage(result.clientId);
+                  } else {
+                    hideLoading();
+                    btn.disabled = false;
+                    btnText.style.display = 'inline';
+                    btnSpinner.style.display = 'none';
+                    showAlert(result.error || 'Invalid Student ID', true);
+                  }
                 })
                 .withFailureHandler(function(error) {
                   hideLoading();
                   btn.disabled = false;
                   btnText.style.display = 'inline';
                   btnSpinner.style.display = 'none';
-                  alert('Error loading dashboard: ' + error.message);
+                  showAlert('System error. Please try again.', true);
                 })
-                .getDashboardPage(clientId);
+                .lookupClientById(clientId);
+          });
+
+          // Backup login (Name/Email)
+          document.getElementById('backupForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            hideAlert();
+
+            const name = document.getElementById('studentName').value.trim();
+            const email = document.getElementById('studentEmail').value.trim();
+
+            if (!name && !email) {
+              showAlert('Please enter at least your name or email', true);
+              return;
+            }
+
+            const btn = document.getElementById('backupBtn');
+            const btnText = document.getElementById('backupBtnText');
+            const btnSpinner = document.getElementById('backupBtnSpinner');
+
+            // Show button loading state
+            btn.disabled = true;
+            btnText.style.display = 'none';
+            btnSpinner.style.display = 'inline-flex';
+            btnSpinner.style.alignItems = 'center';
+            btnSpinner.style.gap = '8px';
+
+            // Show loading overlay
+            showLoading('Looking up your account');
+
+            // Lookup via server
+            google.script.run
+                .withSuccessHandler(function(result) {
+                  if (result && result.success) {
+                    // Found - get dashboard
+                    showAlert('Account found! Loading...', false);
+                    google.script.run
+                        .withSuccessHandler(function(dashboardHtml) {
+                          document.open();
+                          document.write(dashboardHtml);
+                          document.close();
+                        })
+                        .withFailureHandler(function(error) {
+                          hideLoading();
+                          btn.disabled = false;
+                          btnText.style.display = 'inline';
+                          btnSpinner.style.display = 'none';
+                          showAlert('Error loading dashboard: ' + error.message, true);
+                        })
+                        .getDashboardPage(result.clientId);
+                  } else {
+                    hideLoading();
+                    btn.disabled = false;
+                    btnText.style.display = 'inline';
+                    btnSpinner.style.display = 'none';
+                    showAlert(result.error || 'No matching account found', true);
+                  }
+                })
+                .withFailureHandler(function(error) {
+                  hideLoading();
+                  btn.disabled = false;
+                  btnText.style.display = 'inline';
+                  btnSpinner.style.display = 'none';
+                  showAlert('System error. Please try again.', true);
+                })
+                .lookupClientByDetails({ name: name, email: email });
           });
         </script>
       </body>
