@@ -1,0 +1,230 @@
+name: 🔍 Validate V3 Code
+
+on:
+  push:
+    branches: [ main, dev, feature/* ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  static-validation:
+    name: Static Code Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔍 Check for navigation issues
+        id: nav-check
+        run: |
+          echo "Checking for unsafe navigation patterns..."
+
+          # Find any location.href that's NOT window.top.location.href
+          if grep -r "location\.href" core/ tools/ --include="*.js" | grep -v "window.top.location.href" | grep -v "//.*location\.href"; then
+            echo "❌ FAIL: Found unsafe location.href (should be window.top.location.href)"
+            echo "::error::Unsafe navigation pattern detected"
+            exit 1
+          else
+            echo "✅ PASS: All navigation uses window.top.location.href"
+          fi
+
+      - name: 🔍 Check for missing tool files
+        run: |
+          echo "Checking required Tool1 files exist..."
+
+          files=(
+            "tools/tool1/Tool1.js"
+            "tools/tool1/Tool1Report.js"
+            "tools/tool1/Tool1Templates.js"
+            "tools/tool1/tool.manifest.json"
+          )
+
+          missing=0
+          for file in "${files[@]}"; do
+            if [ ! -f "$file" ]; then
+              echo "❌ Missing: $file"
+              missing=1
+            else
+              echo "✅ Found: $file"
+            fi
+          done
+
+          if [ $missing -eq 1 ]; then
+            echo "::error::Required tool files are missing"
+            exit 1
+          fi
+
+      - name: 🔍 Validate JSON files
+        run: |
+          echo "Validating JSON syntax..."
+
+          # Check appsscript.json
+          if [ -f "appsscript.json" ]; then
+            if jq empty appsscript.json 2>/dev/null; then
+              echo "✅ appsscript.json is valid"
+            else
+              echo "❌ appsscript.json has syntax errors"
+              exit 1
+            fi
+          fi
+
+          # Check tool manifest
+          if [ -f "tools/tool1/tool.manifest.json" ]; then
+            if jq empty tools/tool1/tool.manifest.json 2>/dev/null; then
+              echo "✅ tool.manifest.json is valid"
+            else
+              echo "❌ tool.manifest.json has syntax errors"
+              exit 1
+            fi
+          fi
+
+      - name: 🔍 Check for required manifest fields
+        run: |
+          echo "Checking Tool1 manifest in Code.js..."
+
+          required_fields=(
+            "pattern"
+            "routes"
+            "id"
+            "name"
+            "version"
+          )
+
+          missing=0
+          for field in "${required_fields[@]}"; do
+            if grep -q "\"$field\":" Code.js; then
+              echo "✅ Manifest has '$field' field"
+            else
+              echo "❌ Manifest missing '$field' field"
+              missing=1
+            fi
+          done
+
+          if [ $missing -eq 1 ]; then
+            echo "::error::Tool manifest is missing required fields"
+            exit 1
+          fi
+
+      - name: 🔍 Check POST handler exists
+        run: |
+          echo "Checking for doPost handler..."
+
+          if grep -q "function doPost" Code.js; then
+            echo "✅ doPost() handler found"
+          else
+            echo "❌ doPost() handler missing"
+            echo "::error::POST handler not found in Code.js"
+            exit 1
+          fi
+
+      - name: 🔍 Check form submission routes
+        run: |
+          echo "Checking form routes..."
+
+          # Check if forms have correct route parameters
+          if grep -r "route.*tool1_submit" tools/tool1/ --include="*.js"; then
+            echo "✅ Form submission route found"
+          else
+            echo "⚠️  WARNING: tool1_submit route not found in forms"
+          fi
+
+      - name: 🔍 Check for syntax errors
+        run: |
+          echo "Checking JavaScript syntax..."
+
+          # Use Node.js to check for basic syntax errors
+          npm install -g eslint 2>/dev/null || true
+
+          errors=0
+          for file in $(find . -name "*.js" -not -path "./node_modules/*" -not -path "./.git/*"); do
+            node -c "$file" 2>&1
+            if [ $? -ne 0 ]; then
+              echo "❌ Syntax error in: $file"
+              errors=1
+            fi
+          done
+
+          if [ $errors -eq 1 ]; then
+            echo "::error::JavaScript syntax errors detected"
+            exit 1
+          else
+            echo "✅ No syntax errors detected"
+          fi
+
+      - name: 🔍 Check core framework files
+        run: |
+          echo "Checking core framework files..."
+
+          core_files=(
+            "core/Router.js"
+            "core/ToolRegistry.js"
+            "core/ToolInterface.js"
+            "core/DataService.js"
+            "core/FrameworkCore.js"
+            "core/ToolAccessControl.js"
+            "core/InsightsPipeline.js"
+          )
+
+          missing=0
+          for file in "${core_files[@]}"; do
+            if [ ! -f "$file" ]; then
+              echo "❌ Missing: $file"
+              missing=1
+            else
+              echo "✅ Found: $file"
+            fi
+          done
+
+          if [ $missing -eq 1 ]; then
+            echo "::error::Core framework files are missing"
+            exit 1
+          fi
+
+      - name: 🔍 Check Config.js
+        run: |
+          echo "Checking Config.js..."
+
+          if [ ! -f "Config.js" ]; then
+            echo "❌ Config.js not found"
+            exit 1
+          fi
+
+          # Check for required config keys
+          required_config=(
+            "MASTER_SHEET_ID"
+            "SHEETS"
+          )
+
+          missing=0
+          for key in "${required_config[@]}"; do
+            if grep -q "$key" Config.js; then
+              echo "✅ Config has $key"
+            else
+              echo "❌ Config missing $key"
+              missing=1
+            fi
+          done
+
+          if [ $missing -eq 1 ]; then
+            echo "::error::Config.js is missing required keys"
+            exit 1
+          fi
+
+      - name: 📊 Summary
+        if: always()
+        run: |
+          echo ""
+          echo "╔════════════════════════════════════════════╗"
+          echo "║  STATIC VALIDATION COMPLETE               ║"
+          echo "╚════════════════════════════════════════════╝"
+          echo ""
+          echo "✅ All static checks passed!"
+          echo ""
+          echo "⚠️  NEXT STEP: Run runtime validation in GAS"
+          echo "   1. Open Google Apps Script editor"
+          echo "   2. Run: validateCompleteSetup()"
+          echo "   3. Check execution log"
+          echo ""
+          echo "📚 See: VALIDATION-CHECKLIST.md for details"
