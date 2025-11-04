@@ -461,7 +461,8 @@ const Tool1 = {
         <script>
           window.top.location.href = '${ScriptApp.getService().getUrl()}?route=tool1&client=${clientId}&page=${nextPage}';
         </script>
-      `);
+      `)
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
     } else {
       // Process final submission
       return this.processFinalSubmission(clientId);
