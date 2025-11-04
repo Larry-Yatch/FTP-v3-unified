@@ -1,0 +1,19 @@
+{
+  "id": "tool1",
+  "version": "1.0.0",
+  "name": "Core Trauma Strategy Assessment",
+  "route": "tool1",
+  "description": "Top-level psychological assessment to identify core trauma strategies",
+  "icon": "🧠",
+  "estimatedTime": "15-20 minutes",
+  "sections": 5,
+  "totalQuestions": 26,
+  "categories": ["FSV", "Control", "Showing", "ExVal", "Fear", "Receiving"],
+  "outputs": {
+    "report": true,
+    "email": true,
+    "insights": true
+  },
+  "dependencies": [],
+  "unlocks": ["tool2"]
+}

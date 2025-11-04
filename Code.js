@@ -18,6 +18,42 @@ function include(filename) {
 }
 
 /**
+ * Register all tools with the framework
+ * This runs on every request to ensure tools are available
+ */
+function registerTools() {
+  try {
+    // Tool 1: Core Trauma Strategy Assessment
+    const tool1Manifest = {
+      id: "tool1",
+      version: "1.0.0",
+      name: "Core Trauma Strategy Assessment",
+      route: "tool1",
+      description: "Top-level psychological assessment to identify core trauma strategies",
+      icon: "🧠",
+      estimatedTime: "15-20 minutes",
+      sections: 5,
+      totalQuestions: 26,
+      categories: ["FSV", "Control", "Showing", "ExVal", "Fear", "Receiving"],
+      outputs: {
+        report: true,
+        email: true,
+        insights: true
+      },
+      dependencies: [],
+      unlocks: ["tool2"]
+    };
+
+    Tool1.manifest = tool1Manifest;
+    ToolRegistry.register('tool1', Tool1, tool1Manifest);
+
+    console.log('Tools registered successfully');
+  } catch (error) {
+    console.error('Error registering tools:', error);
+  }
+}
+
+/**
  * Main entry point - ALL requests come through here
  */
 function doGet(e) {
@@ -31,6 +67,9 @@ function doGet(e) {
         <p>Please update Config.js with correct values.</p>
       `);
     }
+
+    // Register tools
+    registerTools();
 
     // Route the request
     return Router.route(e);
