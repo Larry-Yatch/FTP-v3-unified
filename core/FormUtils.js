@@ -73,15 +73,17 @@ const FormUtils = {
 
               console.log('Next URL:', nextUrl);
 
-              // Try multiple navigation methods for maximum compatibility
-              try {
-                // Method 1: Try navigating parent (may fail in some sandbox contexts)
-                window.top.location.href = nextUrl;
-              } catch (e) {
-                console.log('window.top navigation blocked, trying fallback');
-                // Method 2: Navigate iframe itself
-                window.location.replace(nextUrl);
-              }
+              // Use META refresh tag - doesn't require user activation
+              // This works in sandboxed iframes where JS navigation fails
+              const meta = document.createElement('meta');
+              meta.httpEquiv = 'refresh';
+              meta.content = '0; url=' + nextUrl;
+              document.head.appendChild(meta);
+
+              // Also try direct navigation as backup
+              setTimeout(function() {
+                window.location.href = nextUrl;
+              }, 100);
             })
             .withFailureHandler(function(error) {
               hideLoading();
@@ -128,13 +130,16 @@ const FormUtils = {
               if (result.success) {
                 console.log('Processing complete, navigating to:', result.redirectUrl);
 
-                // Try multiple navigation methods for maximum compatibility
-                try {
-                  window.top.location.href = result.redirectUrl;
-                } catch (e) {
-                  console.log('window.top navigation blocked, using iframe navigation');
-                  window.location.replace(result.redirectUrl);
-                }
+                // Use META refresh tag - doesn't require user activation
+                const meta = document.createElement('meta');
+                meta.httpEquiv = 'refresh';
+                meta.content = '0; url=' + result.redirectUrl;
+                document.head.appendChild(meta);
+
+                // Also try direct navigation as backup
+                setTimeout(function() {
+                  window.location.href = result.redirectUrl;
+                }, 100);
               } else {
                 hideLoading();
                 alert('Error: ' + (result.error || 'Failed to process'));
