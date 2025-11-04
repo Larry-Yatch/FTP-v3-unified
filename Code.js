@@ -279,7 +279,19 @@ function saveToolPageData(toolId, data) {
     tool.savePageData(data.client, parseInt(data.page), data);
 
     Logger.log(`Saved ${toolId} page ${data.page} for ${data.client}`);
-    return { success: true };
+
+    // Return the HTML for the NEXT page instead of just success
+    // This allows client to replace document without navigation
+    const nextPage = parseInt(data.page) + 1;
+    const nextPageHtml = tool.render({
+      clientId: data.client,
+      page: nextPage
+    });
+
+    return {
+      success: true,
+      nextPageHtml: nextPageHtml.getContent()
+    };
 
   } catch (error) {
     Logger.log(`Error saving ${toolId} page data: ${error}`);
@@ -315,20 +327,31 @@ function completeToolSubmission(toolId, data) {
     const clientId = data.client;
     const result = tool.processFinalSubmission(clientId);
 
-    // Tool should return redirect URL
-    if (result && result.redirectUrl) {
-      Logger.log(`Completed ${toolId} for ${clientId}`);
-      return {
-        success: true,
-        redirectUrl: result.redirectUrl
-      };
+    Logger.log(`Completed ${toolId} for ${clientId}`);
+
+    // Instead of returning redirect URL, return the report HTML
+    // Get the report HTML
+    const reportRoute = `${toolId}_report`;
+    let reportHtml;
+
+    if (reportRoute === 'tool1_report' && typeof Tool1Report !== 'undefined') {
+      reportHtml = Tool1Report.render(clientId).getContent();
+    } else {
+      // Fallback - just return success message
+      reportHtml = `
+        <html>
+        <body>
+          <h1>Assessment Complete!</h1>
+          <p>Your results have been saved.</p>
+          <a href="${ScriptApp.getService().getUrl()}?route=dashboard&client=${clientId}">Return to Dashboard</a>
+        </body>
+        </html>
+      `;
     }
 
-    // Default redirect to report page
-    const reportUrl = `${ScriptApp.getService().getUrl()}?route=${toolId}_report&client=${clientId}`;
     return {
       success: true,
-      redirectUrl: reportUrl
+      nextPageHtml: reportHtml
     };
 
   } catch (error) {

@@ -50,7 +50,7 @@ const FormUtils = {
           // Show loading
           showLoading('Saving your responses');
 
-          // Save and navigate - do both together to avoid async callback issues
+          // Save and replace page content (no navigation needed!)
           google.script.run
             .withSuccessHandler(function(result) {
               if (result && result.success === false) {
@@ -60,30 +60,17 @@ const FormUtils = {
               }
 
               // Data saved successfully
-              console.log('Save successful, navigating...');
+              console.log('Save successful, replacing page content...');
 
-              // Determine next page/route
-              let nextUrl;
-              if (nextRoute) {
-                nextUrl = nextRoute;
+              // Server returned HTML for next page - replace current document
+              if (result.nextPageHtml) {
+                document.open();
+                document.write(result.nextPageHtml);
+                document.close();
               } else {
-                const nextPage = parseInt(page) + 1;
-                nextUrl = '${baseUrl}?route=${toolId}&client=' + data.client + '&page=' + nextPage;
+                hideLoading();
+                alert('Error: Server did not return next page HTML');
               }
-
-              console.log('Next URL:', nextUrl);
-
-              // Use META refresh tag - doesn't require user activation
-              // This works in sandboxed iframes where JS navigation fails
-              const meta = document.createElement('meta');
-              meta.httpEquiv = 'refresh';
-              meta.content = '0; url=' + nextUrl;
-              document.head.appendChild(meta);
-
-              // Also try direct navigation as backup
-              setTimeout(function() {
-                window.location.href = nextUrl;
-              }, 100);
             })
             .withFailureHandler(function(error) {
               hideLoading();
@@ -128,18 +115,17 @@ const FormUtils = {
           google.script.run
             .withSuccessHandler(function(result) {
               if (result.success) {
-                console.log('Processing complete, navigating to:', result.redirectUrl);
+                console.log('Processing complete, replacing with report page...');
 
-                // Use META refresh tag - doesn't require user activation
-                const meta = document.createElement('meta');
-                meta.httpEquiv = 'refresh';
-                meta.content = '0; url=' + result.redirectUrl;
-                document.head.appendChild(meta);
-
-                // Also try direct navigation as backup
-                setTimeout(function() {
-                  window.location.href = result.redirectUrl;
-                }, 100);
+                // Server returned HTML for report page - replace current document
+                if (result.nextPageHtml) {
+                  document.open();
+                  document.write(result.nextPageHtml);
+                  document.close();
+                } else {
+                  hideLoading();
+                  alert('Error: Server did not return report HTML');
+                }
               } else {
                 hideLoading();
                 alert('Error: ' + (result.error || 'Failed to process'));
