@@ -54,7 +54,7 @@ function registerTools() {
 }
 
 /**
- * Main entry point - ALL requests come through here
+ * Main entry point for GET requests
  */
 function doGet(e) {
   try {
@@ -81,6 +81,164 @@ function doGet(e) {
       <p>${error.toString()}</p>
       <pre>${error.stack || ''}</pre>
     `);
+  }
+}
+
+/**
+ * Main entry point for POST requests (form submissions)
+ */
+function doPost(e) {
+  try {
+    // Validate configuration
+    const configValidation = validateConfig();
+    if (!configValidation.valid) {
+      return HtmlService.createHtmlOutput(`
+        <h1>Configuration Error</h1>
+        <ul>${configValidation.errors.map(e => `<li>${e}</li>`).join('')}</ul>
+      `);
+    }
+
+    // Register tools
+    registerTools();
+
+    // Handle form submission based on route
+    const route = e.parameter.route;
+
+    if (route === 'tool1_submit') {
+      return Tool1.handleSubmit(e.parameter);
+    }
+
+    // Default: unknown route
+    return HtmlService.createHtmlOutput(`
+      <h1>Error</h1>
+      <p>Unknown POST route: ${route}</p>
+    `);
+
+  } catch (error) {
+    console.error('doPost error:', error);
+    return HtmlService.createHtmlOutput(`
+      <h1>Submission Error</h1>
+      <p>${error.toString()}</p>
+      <pre>${error.stack || ''}</pre>
+    `);
+  }
+}
+
+/**
+ * Generate PDF for Tool 1 report
+ * Called from client-side via google.script.run
+ */
+function generateTool1PDF(clientId) {
+  try {
+    // Get results
+    const results = Tool1Report.getResults(clientId);
+    if (!results) {
+      return { success: false, error: 'No results found' };
+    }
+
+    // Get template
+    const template = Tool1Templates.getTemplate(results.winner);
+    if (!template) {
+      return { success: false, error: 'Template not found' };
+    }
+
+    // Build HTML for PDF
+    const studentName = results.formData.name || 'Student';
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          body { font-family: Arial, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; }
+          h1 { color: #1e192b; border-bottom: 3px solid #ad9168; padding-bottom: 10px; }
+          h2 { color: #ad9168; margin-top: 25px; }
+          h3 { color: #4b4166; margin-top: 20px; }
+          p { line-height: 1.6; color: #333; }
+          ul { margin: 15px 0 15px 25px; }
+          li { margin: 8px 0; }
+          .header { text-align: center; margin-bottom: 30px; }
+          .intro { background: #f5f5f5; padding: 20px; border-left: 4px solid #ad9168; margin: 20px 0; }
+          .scores { margin: 30px 0; }
+          .score-row { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #ddd; }
+          .score-label { font-weight: 600; }
+          .score-value { color: #ad9168; font-weight: 700; font-size: 18px; }
+          .winner { background: #fff8e1; font-weight: 700; }
+          .footer { margin-top: 40px; padding-top: 20px; border-top: 2px solid #ad9168; font-size: 14px; color: #666; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>TruPath Financial</h1>
+          <h2>Core Trauma Strategy Assessment Report</h2>
+          <p><strong>${studentName}</strong></p>
+          <p>${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+        </div>
+
+        <div class="intro">
+          ${Tool1Templates.commonIntro}
+        </div>
+
+        <div class="content">
+          ${template.content}
+        </div>
+
+        <div class="scores">
+          <h3>Raw Scores</h3>
+          <p>The higher numbers indicate stronger strategies used by your subconscious. The raw scores range from -25 to 25.</p>
+
+          <div class="score-row ${results.winner === 'FSV' ? 'winner' : ''}">
+            <span class="score-label">False Self-View:</span>
+            <span class="score-value">${results.scores.FSV}</span>
+          </div>
+          <div class="score-row ${results.winner === 'ExVal' ? 'winner' : ''}">
+            <span class="score-label">External Validation:</span>
+            <span class="score-value">${results.scores.ExVal}</span>
+          </div>
+          <div class="score-row ${results.winner === 'Showing' ? 'winner' : ''}">
+            <span class="score-label">Issues Showing Love:</span>
+            <span class="score-value">${results.scores.Showing}</span>
+          </div>
+          <div class="score-row ${results.winner === 'Receiving' ? 'winner' : ''}">
+            <span class="score-label">Issues Receiving Love:</span>
+            <span class="score-value">${results.scores.Receiving}</span>
+          </div>
+          <div class="score-row ${results.winner === 'Control' ? 'winner' : ''}">
+            <span class="score-label">Control Leading to Isolation:</span>
+            <span class="score-value">${results.scores.Control}</span>
+          </div>
+          <div class="score-row ${results.winner === 'Fear' ? 'winner' : ''}">
+            <span class="score-label">Fear Leading to Isolation:</span>
+            <span class="score-value">${results.scores.Fear}</span>
+          </div>
+        </div>
+
+        <div class="footer">
+          ${Tool1Templates.commonFooter}
+        </div>
+      </body>
+      </html>
+    `;
+
+    // Create blob and convert to PDF
+    const blob = Utilities.newBlob(htmlContent, 'text/html', 'report.html');
+    const pdf = blob.getAs('application/pdf');
+    const base64 = Utilities.base64Encode(pdf.getBytes());
+    const fileName = `TruPath_CoreTraumaStrategy_${studentName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+
+    return {
+      success: true,
+      pdf: base64,
+      fileName: fileName,
+      mimeType: 'application/pdf'
+    };
+
+  } catch (error) {
+    Logger.log(`Error generating PDF: ${error}`);
+    return {
+      success: false,
+      error: error.toString()
+    };
   }
 }
 
