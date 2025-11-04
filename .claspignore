@@ -1,0 +1,16 @@
+# Exclude these
+node_modules/**
+tests/**
+docs/**
+.git/**
+*.md
+package.json
+package-lock.json
+.clasp.json
+.gitignore
+.claspignore
+sheets.js
+debug-sheets.js
+check-sheets.js
+README.md
+GETTING-STARTED.md
