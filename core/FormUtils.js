@@ -68,8 +68,9 @@ const FormUtils = {
                 nextUrl = '${baseUrl}?route=${toolId}&client=' + data.client + '&page=' + nextPage;
               }
 
-              // Navigate with GET (works in iframe)
-              window.top.location.href = nextUrl;
+              // Navigate iframe (not parent) - avoids sandbox user activation issue
+              // Browser will redirect parent if needed
+              window.location.href = nextUrl;
             })
             .withFailureHandler(function(error) {
               hideLoading();
@@ -114,8 +115,8 @@ const FormUtils = {
           google.script.run
             .withSuccessHandler(function(result) {
               if (result.success) {
-                // Navigate to report or next step
-                window.top.location.href = result.redirectUrl;
+                // Navigate iframe (not parent) - avoids sandbox user activation issue
+                window.location.href = result.redirectUrl;
               } else {
                 hideLoading();
                 alert('Error: ' + (result.error || 'Failed to process'));

@@ -129,7 +129,9 @@
   function navigateWithLoading(url, message) {
     showLoading(message || 'Loading');
     setTimeout(function() {
-      window.top.location.href = url;
+      // Use window.location (iframe navigation) to avoid sandbox issues
+      // This works for both iframe and top-level contexts
+      window.location.href = url;
     }, 100);
   }
 </script>
