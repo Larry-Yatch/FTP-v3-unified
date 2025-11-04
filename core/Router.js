@@ -148,9 +148,18 @@ const Router = {
       <head>
         <title>Financial TruPath v3 - Login</title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="theme-color" content="#1e192b">
+        <style>
+          /* Load background FIRST to prevent white flash */
+          html, body {
+            background: linear-gradient(135deg, #4b4166, #1e192b);
+            margin: 0;
+            padding: 0;
+          }
+        </style>
         <?!= include('shared/styles') ?>
       </head>
-      <body>
+      <body id="loginPage">
         <div class="login-container">
           <div class="login-logo">TruPath Financial</div>
           <p class="login-subtitle">Your Journey to Financial Clarity</p>
@@ -171,7 +180,7 @@ const Router = {
               </span>
             </button>
           </form>
-          <p class="muted mt-20">v3.0.2 | Modular Architecture</p>
+          <p class="muted mt-20">v3.0.3 | Modular Architecture</p>
         </div>
 
         <!-- Loading Overlay -->
@@ -202,10 +211,16 @@ const Router = {
               overlay.style.display = 'flex';
             }, 150);
 
-            // Navigate to dashboard (give time for animation)
+            // Fade out page before navigation
+            setTimeout(function() {
+              document.body.style.transition = 'opacity 0.2s ease-out';
+              document.body.style.opacity = '0';
+            }, 400);
+
+            // Navigate to dashboard (give time for fade-out)
             setTimeout(function() {
               window.location.href = '<?= ScriptApp.getService().getUrl() ?>?route=dashboard&client=' + encodeURIComponent(clientId);
-            }, 200);
+            }, 600);
           });
         </script>
       </body>
@@ -230,10 +245,15 @@ const Router = {
       <head>
         <title>Financial TruPath - Dashboard</title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="theme-color" content="#1e192b">
         <style>
-          /* Prevent white flash - load this first */
+          /* Prevent white flash - load this FIRST before anything else */
+          html {
+            background: #1e192b;
+          }
           body {
             background: linear-gradient(135deg, #4b4166, #1e192b);
+            background-attachment: fixed;
             margin: 0;
             padding: 0;
             opacity: 0;
