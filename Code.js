@@ -361,6 +361,41 @@ function completeToolSubmission(toolId, data) {
 }
 
 /**
+ * Get dashboard page HTML (for document.write() navigation pattern)
+ * @param {string} clientId - Client ID
+ * @returns {string} Dashboard HTML
+ */
+function getDashboardPage(clientId) {
+  try {
+    registerTools();
+
+    // Create fake request object for router
+    const fakeRequest = {
+      parameter: {
+        route: 'dashboard',
+        client: clientId
+      }
+    };
+
+    // Get dashboard HTML from router
+    const dashboardOutput = Router.route(fakeRequest);
+    return dashboardOutput.getContent();
+
+  } catch (error) {
+    Logger.log(`Error getting dashboard: ${error}`);
+    return `
+      <html>
+      <body>
+        <h1>Error Loading Dashboard</h1>
+        <p>${error.toString()}</p>
+        <a href="${ScriptApp.getService().getUrl()}?route=dashboard&client=${clientId}">Try Again</a>
+      </body>
+      </html>
+    `;
+  }
+}
+
+/**
  * DEPRECATED: Use saveToolPageData() instead
  * Kept for backward compatibility
  */

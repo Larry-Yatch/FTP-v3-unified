@@ -215,10 +215,10 @@ const FormUtils = {
   /**
    * Generate standard page navigation header
    */
-  generatePageHeader(toolName, page, totalPages, dashboardUrl) {
+  generatePageHeader(toolName, page, totalPages, clientId) {
     return `
       <div class="tool-navigation">
-        <button class="btn-nav" onclick="navigateWithLoading('${dashboardUrl}', 'Loading Dashboard')">
+        <button class="btn-nav" onclick="navigateToDashboard('${clientId}', 'Loading Dashboard')">
           ← Dashboard
         </button>
         <span>Page ${page} of ${totalPages}</span>
@@ -283,7 +283,7 @@ const FormUtils = {
       </head>
       <body>
         <div class="container">
-          ${this.generatePageHeader(toolName, page, totalPages, dashboardUrl)}
+          ${this.generatePageHeader(toolName, page, totalPages, clientId)}
 
           ${this.generateFormWrapper({
             formId: formId,

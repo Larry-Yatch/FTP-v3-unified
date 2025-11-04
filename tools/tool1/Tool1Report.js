@@ -215,7 +215,7 @@ const Tool1Report = {
           }
 
           function backToDashboard() {
-            window.top.location.href = '${ScriptApp.getService().getUrl()}?route=dashboard&client=${clientId}';
+            navigateToDashboard('${clientId}', 'Loading Dashboard');
           }
         </script>
       </body>

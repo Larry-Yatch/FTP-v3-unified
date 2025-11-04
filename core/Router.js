@@ -211,7 +211,19 @@ const Router = {
 
             // Navigate immediately - overlay stays visible during page load
             setTimeout(function() {
-              window.top.location.href = '<?= ScriptApp.getService().getUrl() ?>?route=dashboard&client=' + encodeURIComponent(clientId);
+              // Use document.write navigation pattern (no iframe issues)
+              showLoading('Logging in');
+              google.script.run
+                .withSuccessHandler(function(dashboardHtml) {
+                  document.open();
+                  document.write(dashboardHtml);
+                  document.close();
+                })
+                .withFailureHandler(function(error) {
+                  hideLoading();
+                  alert('Error loading dashboard: ' + error.message);
+                })
+                .getDashboardPage(clientId);
             }, 100);
           });
         </script>
@@ -296,7 +308,7 @@ const Router = {
           </div>
 
           <div class="text-center mt-20">
-            <button class="btn-secondary" onclick="window.top.location.href='<?= ScriptApp.getService().getUrl() ?>?route=login'">
+            <button class="btn-secondary" onclick="window.location.href='<?= ScriptApp.getService().getUrl() ?>?route=login'">
               Logout
             </button>
           </div>

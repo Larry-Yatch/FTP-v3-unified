@@ -125,13 +125,41 @@
     }
   });
 
-  // Show loading on navigation buttons
+  // Navigate to dashboard using document.write() pattern (no iframe navigation!)
+  function navigateToDashboard(clientId, message) {
+    showLoading(message || 'Loading Dashboard');
+
+    google.script.run
+      .withSuccessHandler(function(dashboardHtml) {
+        // Replace current document with dashboard HTML
+        document.open();
+        document.write(dashboardHtml);
+        document.close();
+      })
+      .withFailureHandler(function(error) {
+        hideLoading();
+        console.error('Dashboard navigation error:', error);
+        alert('Error loading dashboard: ' + error.message);
+      })
+      .getDashboardPage(clientId);
+  }
+
+  // DEPRECATED: Old navigation function (causes white screen in iframes)
+  // Use navigateToDashboard() instead
   function navigateWithLoading(url, message) {
-    showLoading(message || 'Loading');
-    setTimeout(function() {
-      // Use window.location (iframe navigation) to avoid sandbox issues
-      // This works for both iframe and top-level contexts
+    console.warn('navigateWithLoading is deprecated - attempting fallback');
+
+    // Try to extract clientId from URL
+    const urlObj = new URL(url, window.location.href);
+    const clientId = urlObj.searchParams.get('client');
+
+    if (clientId && url.includes('dashboard')) {
+      // Use new pattern for dashboard navigation
+      navigateToDashboard(clientId, message);
+    } else {
+      // Fallback for other URLs (will likely fail in iframe)
+      showLoading(message || 'Loading');
       window.location.href = url;
-    }, 100);
+    }
   }
 </script>
