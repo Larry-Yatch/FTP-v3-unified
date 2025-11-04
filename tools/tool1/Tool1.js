@@ -33,11 +33,12 @@ const Tool1 = {
           }
         </style>
         <?!= include('shared/styles') ?>
+        <?!= include('shared/loading-animation') ?>
       </head>
       <body>
         <div class="container">
           <div class="tool-navigation">
-            <button class="btn-nav" onclick="window.top.location.href='<?= baseUrl ?>?route=dashboard&client=<?= clientId ?>'">
+            <button class="btn-nav" onclick="navigateWithLoading('<?= baseUrl ?>?route=dashboard&client=<?= clientId ?>', 'Loading Dashboard')">
               ← Dashboard
             </button>
             <span>Page <?= page ?> of 5</span>

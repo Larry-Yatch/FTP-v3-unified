@@ -256,6 +256,7 @@ const Router = {
           }
         </style>
         <?!= include('shared/styles') ?>
+        <?!= include('shared/loading-animation') ?>
       </head>
       <body>
         <div class="container">
@@ -280,7 +281,7 @@ const Router = {
               <p class="muted">Begin your financial journey with a comprehensive assessment</p>
               <span class="badge">Ready</span>
               <br><br>
-              <button class="btn-primary" onclick="window.top.location.href='<?= ScriptApp.getService().getUrl() ?>?route=tool1&client=${clientId || 'TEST001'}'">
+              <button class="btn-primary" onclick="navigateWithLoading('<?= ScriptApp.getService().getUrl() ?>?route=tool1&client=${clientId || 'TEST001'}', 'Loading Assessment')">
                 Start Assessment
               </button>
             </div>

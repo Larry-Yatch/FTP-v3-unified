@@ -1,0 +1,135 @@
+<style>
+  /* Loading Overlay */
+  .loading-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #4b4166, #1e192b);
+    z-index: 10000;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+  }
+
+  .loading-overlay.active {
+    display: flex;
+  }
+
+  /* Spinner */
+  .loading-spinner {
+    width: 60px;
+    height: 60px;
+    border: 4px solid rgba(173, 145, 104, 0.2);
+    border-top-color: #ad9168;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  /* Loading Text */
+  .loading-text {
+    color: #ad9168;
+    font-size: 18px;
+    font-weight: 500;
+    margin-top: 20px;
+    text-align: center;
+  }
+
+  /* Dots Animation */
+  .loading-dots {
+    display: inline-block;
+    width: 20px;
+  }
+
+  .loading-dots::after {
+    content: '';
+    animation: dots 1.5s steps(4, end) infinite;
+  }
+
+  @keyframes dots {
+    0%, 20% { content: ''; }
+    40% { content: '.'; }
+    60% { content: '..'; }
+    80%, 100% { content: '...'; }
+  }
+
+  /* Progress Ring (optional, for forms) */
+  .loading-progress {
+    width: 80px;
+    height: 80px;
+    position: relative;
+    margin-bottom: 20px;
+  }
+
+  .loading-progress svg {
+    transform: rotate(-90deg);
+  }
+
+  .loading-progress circle {
+    fill: none;
+    stroke: rgba(173, 145, 104, 0.2);
+    stroke-width: 4;
+  }
+
+  .loading-progress circle.progress {
+    stroke: #ad9168;
+    stroke-dasharray: 251;
+    stroke-dashoffset: 251;
+    animation: progress 2s ease-in-out infinite;
+  }
+
+  @keyframes progress {
+    0% { stroke-dashoffset: 251; }
+    50% { stroke-dashoffset: 0; }
+    100% { stroke-dashoffset: -251; }
+  }
+</style>
+
+<!-- Loading Overlay HTML -->
+<div id="loadingOverlay" class="loading-overlay">
+  <div class="loading-spinner"></div>
+  <div class="loading-text">
+    Loading<span class="loading-dots"></span>
+  </div>
+</div>
+
+<script>
+  // Show loading overlay
+  function showLoading(message) {
+    const overlay = document.getElementById('loadingOverlay');
+    const text = overlay.querySelector('.loading-text');
+    if (message) {
+      text.innerHTML = message + '<span class="loading-dots"></span>';
+    }
+    overlay.classList.add('active');
+  }
+
+  // Hide loading overlay
+  function hideLoading() {
+    const overlay = document.getElementById('loadingOverlay');
+    overlay.classList.remove('active');
+  }
+
+  // Show loading on form submit
+  document.addEventListener('submit', function(e) {
+    // Don't show for logout or other quick actions
+    const form = e.target;
+    if (form && !form.classList.contains('no-loading')) {
+      showLoading('Submitting');
+    }
+  });
+
+  // Show loading on navigation buttons
+  function navigateWithLoading(url, message) {
+    showLoading(message || 'Loading');
+    setTimeout(function() {
+      window.top.location.href = url;
+    }, 100);
+  }
+</script>
