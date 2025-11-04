@@ -146,18 +146,27 @@ const Router = {
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Financial TruPath - Login</title>
+        <title>Financial TruPath v3 - Login</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <?!= include('shared/styles') ?>
       </head>
       <body>
         <div class="login-container">
-          <h1>Financial TruPath v3</h1>
-          ${message ? `<div class="message">${message}</div>` : ''}
+          <div class="login-logo">TruPath Financial</div>
+          <p class="login-subtitle">Your Journey to Financial Clarity</p>
+          ${message ? `<div class="message error">${message}</div>` : ''}
           <form id="loginForm">
-            <input type="text" name="clientId" placeholder="Student ID" required>
-            <input type="password" name="password" placeholder="Password" required>
-            <button type="submit">Login</button>
+            <div class="form-group">
+              <label class="form-label">Student ID</label>
+              <input type="text" name="clientId" placeholder="Enter your student ID" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Password</label>
+              <input type="password" name="password" placeholder="Enter your password" required>
+            </div>
+            <button type="submit" class="btn-primary">Sign In</button>
           </form>
+          <p class="muted mt-20">v3.0.0 | Modular Architecture</p>
         </div>
         <script>
           document.getElementById('loginForm').addEventListener('submit', function(e) {
@@ -181,12 +190,66 @@ const Router = {
    * @private
    */
   _createDashboard(params) {
-    // TODO: Implement dashboard
-    return HtmlService.createHtmlOutput(`
-      <h1>Dashboard</h1>
-      <p>Welcome, ${params.client}</p>
-      <p>Dashboard coming soon...</p>
+    const clientId = params.client || params.clientId;
+
+    const template = HtmlService.createTemplate(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Financial TruPath - Dashboard</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <?!= include('shared/styles') ?>
+      </head>
+      <body>
+        <div class="container">
+          <div class="card">
+            <div class="tool-header">
+              <h1>Welcome to TruPath Financial</h1>
+              <p class="muted">Your personalized financial journey dashboard</p>
+            </div>
+            <div class="hr"></div>
+            <div class="tool-meta">
+              <span>Student: ${clientId || 'Unknown'}</span>
+              <span class="badge">v3.0 Active</span>
+            </div>
+          </div>
+
+          <div class="card">
+            <h2>Your Tools</h2>
+            <p class="muted mb-20">Complete each tool in order to unlock the next.</p>
+
+            <div class="tool-card" style="margin-bottom: 15px;">
+              <h3>Tool 1: Orientation Assessment</h3>
+              <p class="muted">Begin your financial journey with a comprehensive assessment</p>
+              <span class="badge">Ready</span>
+              <br><br>
+              <button class="btn-primary" onclick="location.href='<?= ScriptApp.getService().getUrl() ?>?route=tool1&client=${clientId || 'TEST001'}'">
+                Start Assessment
+              </button>
+            </div>
+
+            <div class="tool-card locked" style="margin-bottom: 15px;">
+              <h3>Tool 2: Financial Clarity</h3>
+              <p class="muted">Deep dive into your financial situation</p>
+              <span class="badge">Locked</span>
+            </div>
+
+            <p class="muted mt-20 text-center">More tools will unlock as you progress</p>
+          </div>
+
+          <div class="text-center mt-20">
+            <button class="btn-secondary" onclick="location.href='<?= ScriptApp.getService().getUrl() ?>?route=login'">
+              Logout
+            </button>
+          </div>
+        </div>
+      </body>
+      </html>
     `);
+
+    return template.evaluate()
+      .setTitle('Financial TruPath - Dashboard')
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
   },
 
   /**
