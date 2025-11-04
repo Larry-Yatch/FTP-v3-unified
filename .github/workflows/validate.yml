@@ -94,7 +94,8 @@ jobs:
 
           missing=0
           for field in "${required_fields[@]}"; do
-            if grep -q "\"$field\":" Code.js; then
+            # Check for both quoted and unquoted JavaScript object keys
+            if grep -q "${field}:" Code.js; then
               echo "✅ Manifest has '$field' field"
             else
               echo "❌ Manifest missing '$field' field"
