@@ -158,6 +158,7 @@ const Router = {
           }
         </style>
         <?!= include('shared/styles') ?>
+        <?!= include('shared/loading-animation') ?>
       </head>
       <body id="loginPage">
         <div class="login-container">
@@ -183,12 +184,6 @@ const Router = {
           <p class="muted mt-20">v3.0.4 | Modular Architecture</p>
         </div>
 
-        <!-- Loading Overlay -->
-        <div id="loadingOverlay" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(30, 25, 43, 0.95); backdrop-filter: blur(10px); z-index: 10000; align-items: center; justify-content: center; flex-direction: column;">
-          <div class="loading-spinner" style="width: 50px; height: 50px; border-width: 5px;"></div>
-          <p style="color: #ad9168; margin-top: 20px; font-family: 'Rubik', sans-serif; font-size: 16px;">Loading your dashboard...</p>
-        </div>
-
         <script>
           document.getElementById('loginForm').addEventListener('submit', function(e) {
             e.preventDefault();
@@ -197,7 +192,6 @@ const Router = {
             const btn = document.getElementById('loginBtn');
             const btnText = document.getElementById('btnText');
             const btnSpinner = document.getElementById('btnSpinner');
-            const overlay = document.getElementById('loadingOverlay');
 
             // Show button loading state immediately
             btn.disabled = true;
@@ -206,14 +200,11 @@ const Router = {
             btnSpinner.style.alignItems = 'center';
             btnSpinner.style.gap = '8px';
 
-            // Show full overlay immediately
-            overlay.style.display = 'flex';
+            // Show loading overlay
+            showLoading('Logging in');
 
-            // Navigate immediately - overlay stays visible during page load
-            setTimeout(function() {
-              // Use document.write navigation pattern (no iframe issues)
-              showLoading('Logging in');
-              google.script.run
+            // Navigate using document.write pattern (no iframe issues)
+            google.script.run
                 .withSuccessHandler(function(dashboardHtml) {
                   document.open();
                   document.write(dashboardHtml);
@@ -221,10 +212,12 @@ const Router = {
                 })
                 .withFailureHandler(function(error) {
                   hideLoading();
+                  btn.disabled = false;
+                  btnText.style.display = 'inline';
+                  btnSpinner.style.display = 'none';
                   alert('Error loading dashboard: ' + error.message);
                 })
                 .getDashboardPage(clientId);
-            }, 100);
           });
         </script>
       </body>
