@@ -305,10 +305,19 @@
 - [ ] Different trauma types show different questions
 
 #### Deployment:
-- [ ] Commit code
-- [ ] Push with `clasp push`
-- [ ] Test with different Tool 1 trauma profiles
-- [ ] Document any issues
+- [x] Commit code
+- [x] Push with `clasp push`
+- [x] Test with different Tool 1 trauma profiles
+- [x] Document any issues
+
+**Testing Notes:** All 57 questions working correctly. User testing revealed white flash on back button navigation.
+
+#### Bug Fixes:
+- **White Flash on Back Button** - Fixed in v3.5.1 @81 and v3.5.2 @82
+  - `28d9860` - Added back button to Page 5
+  - `d274102` - Fixed white flash by using document.write() pattern instead of window.location.href
+  - Created `getToolPageHtml()` function in Code.js for smooth page navigation
+  - Back button now uses same pattern as forward navigation (zero white flash)
 
 ---
 
