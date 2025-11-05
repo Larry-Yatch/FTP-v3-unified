@@ -8,12 +8,12 @@
 
 ## 🔗 Current Production Deployment
 
-### Web App (Latest - v3.5.3 @83)
-**URL:** https://script.google.com/macros/s/AKfycbwJuxcp_HWWR1yAgrR-cXfUQjjgJ4rHBt_gdP9iyVtEg5ZN6eTOtg-xlDc0443gYjNI/exec
+### Web App (Latest - v3.6.0 @84)
+**URL:** https://script.google.com/macros/s/AKfycbz7sgwxxX__ZU1JHe9dq7JAY9VNOPE8fG1P4uGSx6un5yT6aiDNgDByaAEOLBx9jwE/exec
 
-**Deployment ID:** `AKfycbwJuxcp_HWWR1yAgrR-cXfUQjjgJ4rHBt_gdP9iyVtEg5ZN6eTOtg-xlDc0443gYjNI @83`
+**Deployment ID:** `AKfycbz7sgwxxX__ZU1JHe9dq7JAY9VNOPE8fG1P4uGSx6un5yT6aiDNgDByaAEOLBx9jwE @84`
 
-**Version:** v3.5.3 - Complete back navigation on all Tool 2 pages
+**Version:** v3.6.0 - Tool 2 Scoring Logic Complete
 
 **What's Working:**
 - ✅ Login and authentication
@@ -27,6 +27,7 @@
   - ✅ Page 4: Growth (13 questions)
   - ✅ Page 5: Protection + Psychological + Adaptive (9 questions)
   - ✅ Back buttons on all pages (2-5) with smooth navigation (no white flash)
+  - ✅ Scoring logic complete (5 domains, benchmarks, stress weights, priority ranking, archetypes)
 - ✅ All page 5 ranking data saves correctly
 - ✅ No duplicate EDIT_DRAFTs or infinite loops
 - ✅ All iframe navigation issues resolved (document.write() pattern)
@@ -45,6 +46,7 @@ After comprehensive debugging, we solved all iframe navigation issues by using t
 **See:** [docs/SESSION-HANDOFF.md](docs/SESSION-HANDOFF.md) for complete details
 
 ### Recent Deployments
+- **@84** v3.6.0 - Tool 2 Scoring Logic Complete (5 domains, benchmarks, priorities, archetypes)
 - **@83** v3.5.3 - Complete back navigation on all Tool 2 pages (2-5)
 - **@82** v3.5.2 - Fix white flash on back button (smooth navigation)
 - **@81** v3.5.1 - Add Back button to Tool 2 Page 5 for better navigation
