@@ -8,12 +8,12 @@
 
 ## 🔗 Current Production Deployment
 
-### Web App (Latest - v3.4.5 @78)
-**URL:** https://script.google.com/macros/s/AKfycbxz4Z25427hi0TqOWaTIaOtcxkz7Vb1iuzyecB96xQm9rNElC0CppFWQrz5blv9kFzR/exec
+### Web App (Latest - v3.4.6 @79)
+**URL:** https://script.google.com/macros/s/AKfycbwJL9aSHFDFyJvbtW-YDD6CrMylFgm8fTlha7oqlNVTNZyyS2jCS1HdeJoOWOhKxUQQ/exec
 
-**Deployment ID:** `AKfycbxz4Z25427hi0TqOWaTIaOtcxkz7Vb1iuzyecB96xQm9rNElC0CppFWQrz5blv9kFzR @78`
+**Deployment ID:** `AKfycbwJL9aSHFDFyJvbtW-YDD6CrMylFgm8fTlha7oqlNVTNZyyS2jCS1HdeJoOWOhKxUQQ @79`
 
-**Version:** v3.4.5 - Tool 2 Page 3 Debt Section (Q25-Q29)
+**Version:** v3.4.6 - Tool 2 Page 3 Complete - Obligations Domain (Q25-Q34)
 
 **What's Working:**
 - ✅ Login and authentication
@@ -22,7 +22,7 @@
 - ✅ Tool 1 edit mode fully functional
 - ✅ Tool 2 Page 1 complete (13 questions - demographics + mindset)
 - ✅ Tool 2 Page 2 complete (11 questions - Money Flow: income + spending)
-- ✅ Tool 2 Page 3 Debt Section (5 questions - debt position)
+- ✅ Tool 2 Page 3 complete (10 questions - Obligations: debt + emergency fund)
 - ✅ All page 5 ranking data saves correctly
 - ✅ No duplicate EDIT_DRAFTs or infinite loops
 - ✅ All iframe navigation issues resolved (document.write() pattern)
@@ -41,6 +41,7 @@ After comprehensive debugging, we solved all iframe navigation issues by using t
 **See:** [docs/SESSION-HANDOFF.md](docs/SESSION-HANDOFF.md) for complete details
 
 ### Recent Deployments
+- **@79** v3.4.6 - Tool 2 Page 3 Complete - Obligations Domain (Q25-Q34)
 - **@78** v3.4.5 - Tool 2 Page 3 Debt Section (Q25-Q29)
 - **@77** v3.4.4 - Tool 2 Page 2 Complete - Money Flow Domain (Q14-Q24)
 - **@76** v3.4.3 - Tool 2 Page 2 Income Section Complete (Q14-Q18)
