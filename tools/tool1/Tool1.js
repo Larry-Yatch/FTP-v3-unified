@@ -8,13 +8,30 @@ const Tool1 = {
 
   /**
    * Render the tool UI
-   * @param {Object} params - {clientId, sessionId, page}
+   * @param {Object} params - {clientId, sessionId, page, editMode, clearDraft}
    * @returns {HtmlOutput}
    */
   render(params) {
     const clientId = params.clientId;
     const page = parseInt(params.page) || 1;
     const baseUrl = ScriptApp.getService().getUrl();
+
+    // Handle URL parameters for immediate navigation (preserves user gesture)
+    const editMode = params.editMode === 'true' || params.editMode === true;
+    const clearDraft = params.clearDraft === 'true' || params.clearDraft === true;
+
+    // Execute actions on page load (after navigation completes with user gesture)
+    if (editMode && page === 1) {
+      // Load response for editing
+      Logger.log(`Edit mode triggered for ${clientId}`);
+      DataService.loadResponseForEditing(clientId, 'tool1');
+    }
+
+    if (clearDraft && page === 1) {
+      // Clear all drafts for fresh start
+      Logger.log(`Clear draft triggered for ${clientId}`);
+      DataService.startFreshAttempt(clientId, 'tool1');
+    }
 
     // Get existing data if resuming
     const existingData = this.getExistingData(clientId);

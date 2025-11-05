@@ -128,7 +128,10 @@ const Router = {
         sessionId: sessionId,
         insights: initResult.insights || [],
         adaptations: initResult.adaptations || {},
-        page: parseInt(params.page) || 1
+        page: parseInt(params.page) || 1,
+        // Pass through URL parameters for immediate navigation actions
+        editMode: params.editMode,
+        clearDraft: params.clearDraft
       };
 
       // Each tool implements its own render() method
@@ -554,59 +557,19 @@ const Router = {
                 .getReportPage(clientId, 'tool1');
             }
 
-            // Edit response - load into form
+            // Edit response - navigate immediately to preserve user gesture
             function editResponse() {
-            showLoading('Loading your responses...');
-            google.script.run
-              .withSuccessHandler(function(result) {
-                // Null check: google.script.run can return null in edge cases
-                if (!result) {
-                  hideLoading();
-                  alert('Error: Server returned no data. Please refresh and try again.');
-                  return;
-                }
+              showLoading('Loading your responses...');
+              // Navigate IMMEDIATELY - async callbacks lose user gesture in iframe
+              window.top.location.href = baseUrl + '?route=tool1&client=' + clientId + '&page=1&editMode=true';
+            }
 
-                if (result.success) {
-                  // Use window.top to break out of document.write() chain
-                  window.top.location.href = baseUrl + '?route=tool1&client=' + clientId + '&page=1';
-                } else {
-                  hideLoading();
-                  alert('Error loading response: ' + result.error);
-                }
-              })
-              .withFailureHandler(function(error) {
-                hideLoading();
-                alert('Error: ' + error.message);
-              })
-              .loadResponseForEditing(clientId, 'tool1');
-          }
-
-          // Retake tool - start fresh
+          // Retake tool - navigate immediately to preserve user gesture
           function retakeTool() {
             if (confirm('Start a completely fresh assessment? This will clear any drafts but keep your previous completed response.')) {
               showLoading('Preparing fresh assessment...');
-              google.script.run
-                .withSuccessHandler(function(result) {
-                  // Null check: google.script.run can return null in edge cases
-                  if (!result) {
-                    hideLoading();
-                    alert('Error: Server returned no data. Please refresh and try again.');
-                    return;
-                  }
-
-                  if (result.success) {
-                    // Use window.top to break out of document.write() chain
-                    window.top.location.href = baseUrl + '?route=tool1&client=' + clientId + '&page=1';
-                  } else {
-                    hideLoading();
-                    alert('Error: ' + result.error);
-                  }
-                })
-                .withFailureHandler(function(error) {
-                  hideLoading();
-                  alert('Error: ' + error.message);
-                })
-                .startFreshAttempt(clientId, 'tool1');
+              // Navigate IMMEDIATELY - async callbacks lose user gesture in iframe
+              window.top.location.href = baseUrl + '?route=tool1&client=' + clientId + '&page=1&clearDraft=true';
             }
           }
 
