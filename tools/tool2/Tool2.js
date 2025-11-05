@@ -194,8 +194,11 @@ const Tool2 = {
     const financialScarcity = data?.financialScarcity || '';
     const moneyRelationship = data?.moneyRelationship || '';
 
-    // Show business stage conditionally
-    const showBusinessStage = employment === 'self-employed' || employment === 'business-owner';
+    // Show business stage conditionally (for any business involvement)
+    const showBusinessStage = employment === 'self-employed' ||
+                               employment === 'business-owner' ||
+                               employment === 'full-time-with-business' ||
+                               employment === 'part-time-with-business';
 
     return `
       <h2>📊 Demographics & Mindset Foundation</h2>
@@ -206,19 +209,19 @@ const Tool2 = {
 
       <div class="form-group">
         <label class="form-label">First and Last Name *</label>
-        <input type="text" name="name" value="${name}" readonly style="background: #f5f5f5; cursor: not-allowed;">
+        <input type="text" name="name" value="${name}" readonly style="background: #f5f5f5; color: #333; cursor: not-allowed;">
         <p class="muted" style="font-size: 12px; margin-top: 5px;">From Tool 1</p>
       </div>
 
       <div class="form-group">
         <label class="form-label">Email Address *</label>
-        <input type="email" name="email" value="${email}" readonly style="background: #f5f5f5; cursor: not-allowed;">
+        <input type="email" name="email" value="${email}" readonly style="background: #f5f5f5; color: #333; cursor: not-allowed;">
         <p class="muted" style="font-size: 12px; margin-top: 5px;">From Tool 1</p>
       </div>
 
       <div class="form-group">
         <label class="form-label">Student Identifier *</label>
-        <input type="text" name="studentId" value="${studentId}" readonly style="background: #f5f5f5; cursor: not-allowed;">
+        <input type="text" name="studentId" value="${studentId}" readonly style="background: #f5f5f5; color: #333; cursor: not-allowed;">
         <p class="muted" style="font-size: 12px; margin-top: 5px;">Your unique ID</p>
       </div>
 
@@ -268,6 +271,8 @@ const Tool2 = {
           <option value="">Select status</option>
           <option value="full-time" ${employment === 'full-time' ? 'selected' : ''}>Full-time employee</option>
           <option value="part-time" ${employment === 'part-time' ? 'selected' : ''}>Part-time employee</option>
+          <option value="full-time-with-business" ${employment === 'full-time-with-business' ? 'selected' : ''}>Full-time employee with business</option>
+          <option value="part-time-with-business" ${employment === 'part-time-with-business' ? 'selected' : ''}>Part-time employee with business</option>
           <option value="self-employed" ${employment === 'self-employed' ? 'selected' : ''}>Self-employed (solopreneur)</option>
           <option value="business-owner" ${employment === 'business-owner' ? 'selected' : ''}>Business owner (with employees)</option>
           <option value="unemployed" ${employment === 'unemployed' ? 'selected' : ''}>Unemployed (seeking work)</option>
@@ -356,7 +361,13 @@ const Tool2 = {
           const businessStageGroup = document.getElementById('businessStageGroup');
           const businessStageSelect = document.getElementById('businessStageSelect');
 
-          if (employment === 'self-employed' || employment === 'business-owner') {
+          // Show business stage for any employment with business involvement
+          const hasBusinessInvolvement = employment === 'self-employed' ||
+                                          employment === 'business-owner' ||
+                                          employment === 'full-time-with-business' ||
+                                          employment === 'part-time-with-business';
+
+          if (hasBusinessInvolvement) {
             businessStageGroup.style.display = 'block';
             businessStageSelect.setAttribute('required', 'required');
           } else {
