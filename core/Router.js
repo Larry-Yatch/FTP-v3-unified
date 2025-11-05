@@ -674,16 +674,9 @@ const Router = {
           }
 
           function editTool2Response() {
-            showLoading('Loading Assessment');
-            google.script.run
-              .withSuccessHandler(function() {
-                window.top.location.href = '${baseUrl}?route=tool2&client=${clientId}&page=1&editMode=true';
-              })
-              .withFailureHandler(function(error) {
-                alert('Error loading for edit: ' + error.message);
-                hideLoading();
-              })
-              .loadResponseForEditing('${clientId}', 'tool2');
+            showLoading('Loading your responses...');
+            // Navigate IMMEDIATELY - async callbacks lose user gesture in iframe
+            window.top.location.href = '${baseUrl}?route=tool2&client=${clientId}&page=1&editMode=true';
           }
 
           function retakeTool2() {
