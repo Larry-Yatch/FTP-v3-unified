@@ -574,29 +574,97 @@ const Tool2 = {
   },
 
   /**
-   * PAGE 3: PLACEHOLDER - False Self Section
-   * TODO: Implement actual questions from v2 False Self tool
+   * PAGE 3: Obligations Domain - Debt Section
+   * Q25-Q29: Debt clarity and stress
    */
   renderPage3Content(data, clientId) {
-    return `
-      <h2>🎭 False Self Assessment</h2>
-      <p class="muted mb-20">Section 2 of 3: Understanding authentic vs. false self</p>
+    // Extract existing data with defaults
+    const debtClarity = data.debtClarity || '';
+    const debtTrending = data.debtTrending || '';
+    const debtReview = data.debtReview || '';
+    const debtStress = data.debtStress || '';
+    const currentDebts = data.currentDebts || '';
 
-      <div class="insight-box" style="background: #e0f2fe; border-left: 4px solid #0284c7;">
-        <p><strong>📝 Content Placeholder</strong></p>
-        <p>Tomorrow: Add False Self questions from v2 tool</p>
+    return `
+      <h2>⚖️ Obligations Domain - Debt Position</h2>
+      <p class="muted mb-20">Understanding your debt awareness and stress levels (5 questions)</p>
+
+      <!-- Debt Clarity Questions -->
+      <h3 style="margin-top: 30px;">Debt Position</h3>
+
+      <div class="form-group">
+        <label class="form-label">Q25. What level of clarity do you hold on your debt? *</label>
+        <select name="debtClarity" required>
+          <option value="">Select a response</option>
+          <option value="-5" ${debtClarity === '-5' ? 'selected' : ''}>-5: Complete avoidance, no idea what I owe</option>
+          <option value="-4" ${debtClarity === '-4' ? 'selected' : ''}>-4: Major avoidance, vague dread</option>
+          <option value="-3" ${debtClarity === '-3' ? 'selected' : ''}>-3: Only know when denied credit</option>
+          <option value="-2" ${debtClarity === '-2' ? 'selected' : ''}>-2: Rough idea, very disorganized</option>
+          <option value="-1" ${debtClarity === '-1' ? 'selected' : ''}>-1: Vague awareness, no system</option>
+          <option value="1" ${debtClarity === '1' ? 'selected' : ''}>+1: Monthly check-ins, basic tracking</option>
+          <option value="2" ${debtClarity === '2' ? 'selected' : ''}>+2: Organized list, aware of totals</option>
+          <option value="3" ${debtClarity === '3' ? 'selected' : ''}>+3: Organized, reviewed monthly</option>
+          <option value="4" ${debtClarity === '4' ? 'selected' : ''}>+4: Strategic tracking with payoff plan</option>
+          <option value="5" ${debtClarity === '5' ? 'selected' : ''}>+5: Complete clarity, optimized payoff strategy</option>
+        </select>
       </div>
 
       <div class="form-group">
-        <label class="form-label">Sample Question 1 *</label>
-        <select name="fs_q1" required>
+        <label class="form-label">Q26. Is your total debt trending up or down? *</label>
+        <select name="debtTrending" required>
           <option value="">Select a response</option>
-          <option value="1">Strongly Disagree</option>
-          <option value="2">Disagree</option>
-          <option value="3">Neutral</option>
-          <option value="4">Agree</option>
-          <option value="5">Strongly Agree</option>
+          <option value="-5" ${debtTrending === '-5' ? 'selected' : ''}>-5: Rapidly increasing, losing control</option>
+          <option value="-4" ${debtTrending === '-4' ? 'selected' : ''}>-4: Steadily increasing, concerning</option>
+          <option value="-3" ${debtTrending === '-3' ? 'selected' : ''}>-3: Slowly increasing</option>
+          <option value="-2" ${debtTrending === '-2' ? 'selected' : ''}>-2: Mostly stagnant, slight increase</option>
+          <option value="-1" ${debtTrending === '-1' ? 'selected' : ''}>-1: Stagnant for 6+ months</option>
+          <option value="1" ${debtTrending === '1' ? 'selected' : ''}>+1: Slowly decreasing</option>
+          <option value="2" ${debtTrending === '2' ? 'selected' : ''}>+2: Steadily decreasing</option>
+          <option value="3" ${debtTrending === '3' ? 'selected' : ''}>+3: Rapidly decreasing, clear progress</option>
+          <option value="4" ${debtTrending === '4' ? 'selected' : ''}>+4: Nearly eliminated</option>
+          <option value="5" ${debtTrending === '5' ? 'selected' : ''}>+5: Zero debt or debt-free</option>
         </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Q27. How often do you review your debt position? *</label>
+        <select name="debtReview" required>
+          <option value="">Select a response</option>
+          <option value="-5" ${debtReview === '-5' ? 'selected' : ''}>-5: Never, complete avoidance</option>
+          <option value="-4" ${debtReview === '-4' ? 'selected' : ''}>-4: Rarely, only in crisis</option>
+          <option value="-3" ${debtReview === '-3' ? 'selected' : ''}>-3: Only when there's a problem</option>
+          <option value="-2" ${debtReview === '-2' ? 'selected' : ''}>-2: Sporadic, no pattern</option>
+          <option value="-1" ${debtReview === '-1' ? 'selected' : ''}>-1: Occasionally check balance</option>
+          <option value="1" ${debtReview === '1' ? 'selected' : ''}>+1: Monthly glance at totals</option>
+          <option value="2" ${debtReview === '2' ? 'selected' : ''}>+2: Monthly basic review</option>
+          <option value="3" ${debtReview === '3' ? 'selected' : ''}>+3: Monthly strategic review with plan</option>
+          <option value="4" ${debtReview === '4' ? 'selected' : ''}>+4: Weekly tracking, active payoff</option>
+          <option value="5" ${debtReview === '5' ? 'selected' : ''}>+5: Continuous monitoring, optimized strategy</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Q28. What is your stress level around debt? *</label>
+        <select name="debtStress" required>
+          <option value="">Select a response</option>
+          <option value="-5" ${debtStress === '-5' ? 'selected' : ''}>-5: Crushing anxiety, constant fear, affects daily life</option>
+          <option value="-4" ${debtStress === '-4' ? 'selected' : ''}>-4: Severe stress, frequent panic</option>
+          <option value="-3" ${debtStress === '-3' ? 'selected' : ''}>-3: High stress, major worry</option>
+          <option value="-2" ${debtStress === '-2' ? 'selected' : ''}>-2: Regular stress and concern</option>
+          <option value="-1" ${debtStress === '-1' ? 'selected' : ''}>-1: Occasional worry</option>
+          <option value="1" ${debtStress === '1' ? 'selected' : ''}>+1: Aware but not stressed</option>
+          <option value="2" ${debtStress === '2' ? 'selected' : ''}>+2: Comfortable with repayment plan</option>
+          <option value="3" ${debtStress === '3' ? 'selected' : ''}>+3: Confident in strategy</option>
+          <option value="4" ${debtStress === '4' ? 'selected' : ''}>+4: Minimal stress, clear path</option>
+          <option value="5" ${debtStress === '5' ? 'selected' : ''}>+5: No debt stress (zero debt or well-managed)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Q29. List your current debts *</label>
+        <p class="muted" style="font-size: 13px; margin-bottom: 10px;">List each debt type separated by commas. Include approximate amounts if comfortable.</p>
+        <p class="muted" style="font-size: 12px; margin-bottom: 10px; font-style: italic;">Example: Credit card ($8,000), student loans ($35,000), car loan ($12,000), personal loan ($5,000), medical debt ($2,500)</p>
+        <textarea name="currentDebts" rows="4" required placeholder="List your current debts here...">${currentDebts}</textarea>
       </div>
     `;
   },
