@@ -22,6 +22,25 @@ const Tool2 = {
     const page = parseInt(params.page) || 1;
     const baseUrl = ScriptApp.getService().getUrl();
 
+    // CRITICAL: Handle URL parameters for navigation (preserves user gesture)
+    const editMode = params.editMode === 'true' || params.editMode === true;
+    const clearDraft = params.clearDraft === 'true' || params.clearDraft === true;
+
+    // Execute actions on page 1 AFTER navigation completes (with user gesture)
+    // NOTE: We do NOT call loadResponseForEditing() here anymore
+    // It's already called from the dashboard/report before navigation
+    // Calling it twice creates duplicate EDIT_DRAFTs!
+
+    if (editMode && page === 1) {
+      Logger.log(`Edit mode detected for ${clientId} - EDIT_DRAFT should already exist`);
+    }
+
+    if (clearDraft && page === 1) {
+      // Clear all drafts for fresh start
+      Logger.log(`Clear draft triggered for ${clientId}`);
+      DataService.startFreshAttempt(clientId, 'tool2');
+    }
+
     // Get existing data if resuming
     const existingData = this.getExistingData(clientId);
 
@@ -52,20 +71,93 @@ const Tool2 = {
    * Route to appropriate page content
    */
   renderPageContent(page, existingData, clientId) {
+    let content = '';
+
+    // Add edit mode banner if editing previous response
+    if (existingData && existingData._editMode) {
+      const originalDate = existingData._originalTimestamp ?
+        new Date(existingData._originalTimestamp).toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        }) : 'previous submission';
+
+      content += `
+        <div class="edit-mode-banner" style="
+          background: rgba(173, 145, 104, 0.1);
+          border: 2px solid #ad9168;
+          border-radius: 10px;
+          padding: 15px 20px;
+          margin-bottom: 30px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        ">
+          <div>
+            <strong style="color: #ad9168; font-size: 16px;">✏️ Edit Mode</strong>
+            <p style="margin: 5px 0 0 0; color: #fff; font-size: 14px;">
+              You're editing your response from ${originalDate}
+            </p>
+          </div>
+          <button
+            type="button"
+            onclick="cancelEdit()"
+            style="
+              background: transparent;
+              color: #ad9168;
+              border: 1px solid #ad9168;
+              padding: 8px 16px;
+              border-radius: 6px;
+              cursor: pointer;
+              font-size: 14px;
+              transition: all 0.3s;
+            "
+            onmouseover="this.style.background='rgba(173, 145, 104, 0.1)'"
+            onmouseout="this.style.background='transparent'"
+          >
+            Cancel Edit
+          </button>
+        </div>
+
+        <script>
+          function cancelEdit() {
+            if (confirm('Cancel editing and discard changes?')) {
+              google.script.run
+                .withSuccessHandler(function() {
+                  window.location.href = '${ScriptApp.getService().getUrl()}?route=dashboard&client=${clientId}';
+                })
+                .withFailureHandler(function(error) {
+                  alert('Error canceling edit: ' + error.message);
+                })
+                .cancelEditDraft('${clientId}', 'tool2');
+            }
+          }
+        </script>
+      `;
+    }
+
+    // Add page-specific content
     switch(page) {
       case 1:
-        return this.renderPage1Content(existingData, clientId);
+        content += this.renderPage1Content(existingData, clientId);
+        break;
       case 2:
-        return this.renderPage2Content(existingData, clientId);
+        content += this.renderPage2Content(existingData, clientId);
+        break;
       case 3:
-        return this.renderPage3Content(existingData, clientId);
+        content += this.renderPage3Content(existingData, clientId);
+        break;
       case 4:
-        return this.renderPage4Content(existingData, clientId);
+        content += this.renderPage4Content(existingData, clientId);
+        break;
       case 5:
-        return this.renderPage5Content(existingData, clientId);
+        content += this.renderPage5Content(existingData, clientId);
+        break;
       default:
-        return '<p class="error">Invalid page number</p>';
+        content += '<p class="error">Invalid page number</p>';
     }
+
+    return content;
   },
 
   /**
@@ -281,9 +373,21 @@ const Tool2 = {
 
   /**
    * Get existing data for a client (from draft storage)
+   * CRITICAL: Check DataService first for ResponseManager compatibility
    */
   getExistingData(clientId) {
     try {
+      // FIRST: Check for active draft from ResponseManager (EDIT_DRAFT or DRAFT)
+      if (typeof DataService !== 'undefined') {
+        const activeDraft = DataService.getActiveDraft(clientId, 'tool2');
+
+        if (activeDraft && (activeDraft.status === 'EDIT_DRAFT' || activeDraft.status === 'DRAFT')) {
+          Logger.log(`Found active draft with status: ${activeDraft.status}`);
+          return activeDraft.data;
+        }
+      }
+
+      // FALLBACK: Legacy PropertiesService (for backward compatibility)
       const userProperties = PropertiesService.getUserProperties();
       const draftKey = `tool2_draft_${clientId}`;
       const draftData = userProperties.getProperty(draftKey);
@@ -300,7 +404,6 @@ const Tool2 = {
   /**
    * REQUIRED: Process final submission
    * Must return {redirectUrl: '...'}
-   * TODO: Implement actual scoring/analysis logic tomorrow
    */
   processFinalSubmission(clientId) {
     try {
@@ -311,20 +414,31 @@ const Tool2 = {
         throw new Error('No data found. Please start the assessment again.');
       }
 
+      // Check if this is an edit or new submission
+      const isEditMode = allData._editMode === true;
+
+      Logger.log(`Processing ${isEditMode ? 'edited' : 'new'} submission for ${clientId}`);
+
       // Process data (calculate scores, analyze, etc.)
       // TODO: Implement actual processing logic
       const results = this.processResults(allData);
 
-      // Save to RESPONSES sheet
-      this.saveToResponses(clientId, allData, results);
+      // CRITICAL: Use DataService.saveToolResponse() - handles Is_Latest column
+      DataService.saveToolResponse(clientId, 'tool2', {
+        data: allData,
+        results: results,
+        timestamp: new Date().toISOString()
+      });
 
-      // Unlock next tool
-      ToolAccessControl.adminUnlockTool(
-        clientId,
-        'tool3',
-        'system',
-        'Auto-unlocked after Tool 2 completion'
-      );
+      // Unlock next tool (only on new submission, not edit)
+      if (!isEditMode) {
+        ToolAccessControl.adminUnlockTool(
+          clientId,
+          'tool3',
+          'system',
+          'Auto-unlocked after Tool 2 completion'
+        );
+      }
 
       // Return redirect URL for client-side navigation
       const reportUrl = `${ScriptApp.getService().getUrl()}?route=tool2_report&client=${clientId}`;
@@ -364,44 +478,34 @@ const Tool2 = {
   },
 
   /**
-   * Save final results to RESPONSES sheet
+   * DEPRECATED: Do not use this method!
+   * Use DataService.saveToolResponse() instead (see processFinalSubmission above)
+   *
+   * Why? DataService.saveToolResponse():
+   * - Handles Is_Latest column correctly (7 columns, not 6)
+   * - Marks old versions as Is_Latest = false
+   * - Sets new version as Is_Latest = true
+   * - Manages version cleanup
+   * - Prevents data integrity issues
+   *
+   * Bug reference: Deploy @58 (ec82987)
    */
-  saveToResponses(clientId, formData, results) {
-    try {
-      const ss = SpreadsheetApp.openById(CONFIG.MASTER_SHEET_ID);
-      const responseSheet = ss.getSheetByName(CONFIG.SHEETS.RESPONSES);
-
-      const row = [
-        new Date().toISOString(),     // Timestamp
-        clientId,                     // Client_ID
-        'tool2',                      // Tool_ID
-        JSON.stringify({              // Data (JSON)
-          formData: formData,
-          results: results
-        }),
-        '1.0.0',                      // Version
-        'COMPLETED'                   // Status
-      ];
-
-      responseSheet.appendRow(row);
-      SpreadsheetApp.flush();
-
-      Logger.log(`Saved Tool 2 results for ${clientId}`);
-    } catch (error) {
-      Logger.log(`Error saving to responses: ${error}`);
-      throw error;
-    }
-  }
 };
 
 /**
- * IMPLEMENTATION CHECKLIST FOR TOMORROW:
+ * PHASE 1 COMPLETE: Core structure updated with critical patterns ✅
  *
- * 1. [ ] Review v2 Financial Clarity questions and port to Page 1-2
- * 2. [ ] Review v2 False Self questions and port to Page 3
- * 3. [ ] Review v2 External Validation questions and port to Page 4
- * 4. [ ] Implement scoring logic in processResults()
- * 5. [ ] Create report templates in Tool2Report.js
- * 6. [ ] Test with TEST001 user
- * 7. [ ] Deploy and verify
+ * What was added:
+ * - ✅ Edit mode & clearDraft URL parameter handling in render()
+ * - ✅ Edit mode banner in renderPageContent()
+ * - ✅ DataService.getActiveDraft() check in getExistingData()
+ * - ✅ Edit mode detection in processFinalSubmission()
+ * - ✅ Using DataService.saveToolResponse() instead of manual saves
+ *
+ * NEXT STEPS:
+ * - Phase 2a: Implement Page 1 (demographics + mindset - 13 questions)
+ * - Phase 2b: Implement Page 2 (Money Flow - 11 questions)
+ * - Phase 2c: Implement Page 3 (Obligations - 11 questions)
+ * - Phase 2d: Implement Page 4 (Growth - 13 questions)
+ * - Phase 2e: Implement Page 5 (Protection + Psychological + Adaptive - 11 questions)
  */
