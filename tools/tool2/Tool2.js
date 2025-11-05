@@ -763,28 +763,89 @@ const Tool2 = {
   },
 
   /**
-   * PAGE 4: PLACEHOLDER - External Validation Section
-   * TODO: Implement actual questions from v2 External Validation tool
+   * PAGE 4: Growth Domain - Savings Section
+   * Q35-Q38: Savings clarity and stress
    */
   renderPage4Content(data, clientId) {
-    return `
-      <h2>⭐ External Validation Assessment</h2>
-      <p class="muted mb-20">Section 3 of 3: Understanding external validation patterns</p>
+    // Extract existing data with defaults
+    const savingsLevel = data.savingsLevel || '';
+    const savingsRegularity = data.savingsRegularity || '';
+    const savingsClarity = data.savingsClarity || '';
+    const savingsStress = data.savingsStress || '';
 
-      <div class="insight-box" style="background: #f3e8ff; border-left: 4px solid #9333ea;">
-        <p><strong>📝 Content Placeholder</strong></p>
-        <p>Tomorrow: Add External Validation questions from v2 tool</p>
+    return `
+      <h2>📈 Growth Domain - Savings</h2>
+      <p class="muted mb-20">Understanding your savings awareness and stress levels (4 questions)</p>
+
+      <!-- Savings Questions -->
+      <h3 style="margin-top: 30px;">Savings</h3>
+
+      <div class="form-group">
+        <label class="form-label">Q35. What level of savings do you maintain beyond your emergency fund? *</label>
+        <p class="muted" style="font-size: 13px; margin-bottom: 10px;">Don't include your emergency fund in this answer. This is money saved for goals, planned purchases, or general cushion.</p>
+        <select name="savingsLevel" required>
+          <option value="">Select a response</option>
+          <option value="-5" ${savingsLevel === '-5' ? 'selected' : ''}>-5: Zero savings beyond emergency fund (or no emergency fund either)</option>
+          <option value="-4" ${savingsLevel === '-4' ? 'selected' : ''}>-4: Under $1,000 in additional savings</option>
+          <option value="-3" ${savingsLevel === '-3' ? 'selected' : ''}>-3: Less than 1 month income in savings</option>
+          <option value="-2" ${savingsLevel === '-2' ? 'selected' : ''}>-2: 1-2 months income</option>
+          <option value="-1" ${savingsLevel === '-1' ? 'selected' : ''}>-1: 2-3 months income</option>
+          <option value="1" ${savingsLevel === '1' ? 'selected' : ''}>+1: 3-4 months income</option>
+          <option value="2" ${savingsLevel === '2' ? 'selected' : ''}>+2: 4-6 months income</option>
+          <option value="3" ${savingsLevel === '3' ? 'selected' : ''}>+3: 6-9 months income</option>
+          <option value="4" ${savingsLevel === '4' ? 'selected' : ''}>+4: 9-12 months income</option>
+          <option value="5" ${savingsLevel === '5' ? 'selected' : ''}>+5: 12+ months income in savings</option>
+        </select>
       </div>
 
       <div class="form-group">
-        <label class="form-label">Sample Question 1 *</label>
-        <select name="ev_q1" required>
+        <label class="form-label">Q36. How regularly do you contribute to savings? *</label>
+        <select name="savingsRegularity" required>
           <option value="">Select a response</option>
-          <option value="1">Strongly Disagree</option>
-          <option value="2">Disagree</option>
-          <option value="3">Neutral</option>
-          <option value="4">Agree</option>
-          <option value="5">Strongly Agree</option>
+          <option value="-5" ${savingsRegularity === '-5' ? 'selected' : ''}>-5: Never, withdrawing instead</option>
+          <option value="-4" ${savingsRegularity === '-4' ? 'selected' : ''}>-4: Rarely, almost never</option>
+          <option value="-3" ${savingsRegularity === '-3' ? 'selected' : ''}>-3: Very rarely</option>
+          <option value="-2" ${savingsRegularity === '-2' ? 'selected' : ''}>-2: Sporadic, no pattern</option>
+          <option value="-1" ${savingsRegularity === '-1' ? 'selected' : ''}>-1: When I remember or have extra</option>
+          <option value="1" ${savingsRegularity === '1' ? 'selected' : ''}>+1: Trying, but inconsistent</option>
+          <option value="2" ${savingsRegularity === '2' ? 'selected' : ''}>+2: Most months, not automatic</option>
+          <option value="3" ${savingsRegularity === '3' ? 'selected' : ''}>+3: Consistent monthly contributions</option>
+          <option value="4" ${savingsRegularity === '4' ? 'selected' : ''}>+4: Automatic, regular, intentional</option>
+          <option value="5" ${savingsRegularity === '5' ? 'selected' : ''}>+5: Automatic, maxed out, strategic</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Q37. What level of clarity do you maintain on savings? *</label>
+        <select name="savingsClarity" required>
+          <option value="">Select a response</option>
+          <option value="-5" ${savingsClarity === '-5' ? 'selected' : ''}>-5: No idea, mixed with everything else</option>
+          <option value="-4" ${savingsClarity === '-4' ? 'selected' : ''}>-4: Vague sense, very unclear</option>
+          <option value="-3" ${savingsClarity === '-3' ? 'selected' : ''}>-3: Multiple accounts, unclear purpose</option>
+          <option value="-2" ${savingsClarity === '-2' ? 'selected' : ''}>-2: Know approximate balance</option>
+          <option value="-1" ${savingsClarity === '-1' ? 'selected' : ''}>-1: Separate but don't track</option>
+          <option value="1" ${savingsClarity === '1' ? 'selected' : ''}>+1: Track balance, vague purpose</option>
+          <option value="2" ${savingsClarity === '2' ? 'selected' : ''}>+2: Track regularly, general goals</option>
+          <option value="3" ${savingsClarity === '3' ? 'selected' : ''}>+3: Track regularly, clear purpose</option>
+          <option value="4" ${savingsClarity === '4' ? 'selected' : ''}>+4: Monthly planning, specific goals</option>
+          <option value="5" ${savingsClarity === '5' ? 'selected' : ''}>+5: Strategic allocation, optimized for goals</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Q38. What is your stress level around savings? *</label>
+        <select name="savingsStress" required>
+          <option value="">Select a response</option>
+          <option value="-5" ${savingsStress === '-5' ? 'selected' : ''}>-5: Constant anxiety about lack of savings</option>
+          <option value="-4" ${savingsStress === '-4' ? 'selected' : ''}>-4: High stress, feel financially vulnerable</option>
+          <option value="-3" ${savingsStress === '-3' ? 'selected' : ''}>-3: Significant worry about insufficient savings</option>
+          <option value="-2" ${savingsStress === '-2' ? 'selected' : ''}>-2: Regular concern about saving enough</option>
+          <option value="-1" ${savingsStress === '-1' ? 'selected' : ''}>-1: Occasional worry</option>
+          <option value="1" ${savingsStress === '1' ? 'selected' : ''}>+1: Generally comfortable with savings</option>
+          <option value="2" ${savingsStress === '2' ? 'selected' : ''}>+2: Mostly confident in savings trajectory</option>
+          <option value="3" ${savingsStress === '3' ? 'selected' : ''}>+3: Confident in savings strategy</option>
+          <option value="4" ${savingsStress === '4' ? 'selected' : ''}>+4: Very confident, good cushion</option>
+          <option value="5" ${savingsStress === '5' ? 'selected' : ''}>+5: Zero stress, ample savings, secure</option>
         </select>
       </div>
     `;
