@@ -8,12 +8,12 @@
 
 ## 🔗 Current Production Deployment
 
-### Web App (Latest - v3.7.4 @89)
-**URL:** https://script.google.com/macros/s/AKfycbyywoEFL-yoqpr2J7CMkOgBEwI2c5tb2FaII6U1J7tISXmkwGMZnXIHNKG3jnshSeDr/exec
+### Web App (Latest - v3.7.5 @91)
+**URL:** https://script.google.com/macros/s/AKfycbwU1ejYE1NmOa1iNjMvCyTkvFrYbK4B1BQB5sgW6UOTs44SCqksaIqio0_dkZxNy5ke/exec
 
-**Deployment ID:** `AKfycbyywoEFL-yoqpr2J7CMkOgBEwI2c5tb2FaII6U1J7tISXmkwGMZnXIHNKG3jnshSeDr @89`
+**Deployment ID:** `AKfycbwU1ejYE1NmOa1iNjMvCyTkvFrYbK4B1BQB5sgW6UOTs44SCqksaIqio0_dkZxNy5ke @91`
 
-**Version:** v3.7.4 - Bug Fix: Tool 2 Edit Mode Data Not Saving
+**Version:** v3.7.5 - Bug Fix: Edit Mode Data Priority (PropertiesService over EDIT_DRAFT)
 
 **What's Working:**
 - ✅ Login and authentication
@@ -50,6 +50,7 @@ After comprehensive debugging, we solved all iframe navigation issues by using t
 **See:** [docs/SESSION-HANDOFF.md](docs/SESSION-HANDOFF.md) for complete details
 
 ### Recent Deployments
+- **@91** v3.7.5 - 🐛 Bug Fix: Edit mode data priority (PropertiesService first, EDIT_DRAFT fallback)
 - **@89** v3.7.4 - 🐛 Bug Fix: Tool 2 Edit mode data not saving (create EDIT_DRAFT on page load)
 - **@88** v3.7.3 - 🐛 Bug Fix: Tool 2 Edit button iframe navigation error (remove async call, navigate immediately)
 - **@87** v3.7.2 - 🐛 Bug Fix: Normalize -5 to +5 scale to 0-10 for accurate scoring (fixes negative domain scores)
