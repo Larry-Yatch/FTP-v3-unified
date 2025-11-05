@@ -6,6 +6,12 @@ These scripts were used for one-time fixes during v3 development. They are archi
 
 ## Scripts
 
+### `cleanup-edit-drafts.js`
+**Purpose:** Remove orphaned EDIT_DRAFT rows from RESPONSES sheet
+**Fixed:** Infinite edit loop bug
+**Date Fixed:** November 4, 2025 (@68-@69)
+**Status:** ✅ Ran once - bug fixed, EDIT_DRAFTs cleaned up
+
 ### `fix-is-latest-column.js`
 **Purpose:** Added Is_Latest column to RESPONSES sheet and populated it
 **Fixed:** Missing Is_Latest tracking
