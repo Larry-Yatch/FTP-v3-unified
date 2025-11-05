@@ -1156,6 +1156,22 @@ const Tool2 = {
       <p class="muted" style="font-size: 13px; margin-bottom: 20px;">Based on your Financial Trauma Assessment, these questions help us understand your specific patterns.</p>
 
       ${this.renderAdaptiveQuestions(topTrauma, adaptiveScale, adaptiveImpact)}
+
+      <!-- Navigation: Back to Page 4 -->
+      <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
+        <button type="button" class="btn-secondary" onclick="goBackToPage4('${clientId}')" style="margin-right: 10px;">
+          ← Back to Page 4
+        </button>
+      </div>
+
+      <script>
+        function goBackToPage4(clientId) {
+          showLoading('Loading Page 4');
+          const baseUrl = '${ScriptApp.getService().getUrl()}';
+          const url = baseUrl + '?route=tool2&client=' + clientId + '&page=4';
+          window.location.href = url;
+        }
+      </script>
     `;
   },
 
