@@ -387,8 +387,8 @@ const Tool2 = {
   },
 
   /**
-   * PAGE 2: Money Flow Domain - Income Section
-   * Q14-Q18: Income clarity and stress
+   * PAGE 2: Money Flow Domain - Income & Spending
+   * Q14-Q24: Income and spending clarity and stress
    */
   renderPage2Content(data, clientId) {
     // Extract existing data with defaults
@@ -397,10 +397,16 @@ const Tool2 = {
     const incomeConsistency = data.incomeConsistency || '';
     const incomeStress = data.incomeStress || '';
     const incomeSources = data.incomeSources || '';
+    const spendingClarity = data.spendingClarity || '';
+    const spendingConsistency = data.spendingConsistency || '';
+    const spendingReview = data.spendingReview || '';
+    const spendingStress = data.spendingStress || '';
+    const majorExpenses = data.majorExpenses || '';
+    const wastefulSpending = data.wastefulSpending || '';
 
     return `
-      <h2>💰 Money Flow Domain - Income</h2>
-      <p class="muted mb-20">Understanding your income awareness and stress levels (5 questions)</p>
+      <h2>💰 Money Flow Domain</h2>
+      <p class="muted mb-20">Understanding your income and spending awareness (11 questions)</p>
 
       <!-- Income Clarity Questions -->
       <h3 style="margin-top: 30px;">Income Clarity</h3>
@@ -478,6 +484,91 @@ const Tool2 = {
         <p class="muted" style="font-size: 13px; margin-bottom: 10px;">List each source of income separated by commas. Include employment, self-employment, side hustles, rental income, investments, etc.</p>
         <p class="muted" style="font-size: 12px; margin-bottom: 10px; font-style: italic;">Example: Salary from ABC Corp, rental property income, freelance consulting, dividend income</p>
         <textarea name="incomeSources" rows="4" required placeholder="List your income sources here...">${incomeSources}</textarea>
+      </div>
+
+      <!-- Spending Clarity Questions -->
+      <h3 style="margin-top: 40px;">Spending Clarity</h3>
+
+      <div class="form-group">
+        <label class="form-label">Q19. What level of clarity do you hold on your spending? *</label>
+        <select name="spendingClarity" required>
+          <option value="">Select a response</option>
+          <option value="-5" ${spendingClarity === '-5' ? 'selected' : ''}>-5: Never pay attention, complete avoidance</option>
+          <option value="-4" ${spendingClarity === '-4' ? 'selected' : ''}>-4: Rarely aware, high avoidance</option>
+          <option value="-3" ${spendingClarity === '-3' ? 'selected' : ''}>-3: Only notice when there's a problem</option>
+          <option value="-2" ${spendingClarity === '-2' ? 'selected' : ''}>-2: Vague awareness, no tracking</option>
+          <option value="-1" ${spendingClarity === '-1' ? 'selected' : ''}>-1: General sense, no details</option>
+          <option value="1" ${spendingClarity === '1' ? 'selected' : ''}>+1: Monthly check-ins, loose tracking</option>
+          <option value="2" ${spendingClarity === '2' ? 'selected' : ''}>+2: Organized by broad categories</option>
+          <option value="3" ${spendingClarity === '3' ? 'selected' : ''}>+3: Detailed categories, reviewed monthly</option>
+          <option value="4" ${spendingClarity === '4' ? 'selected' : ''}>+4: Granular tracking, proactive</option>
+          <option value="5" ${spendingClarity === '5' ? 'selected' : ''}>+5: Complete visibility, zero surprises</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Q20. How consistent is your monthly spending? *</label>
+        <select name="spendingConsistency" required>
+          <option value="">Select a response</option>
+          <option value="-5" ${spendingConsistency === '-5' ? 'selected' : ''}>-5: Chaotic, unpredictable, increasing debt</option>
+          <option value="-4" ${spendingConsistency === '-4' ? 'selected' : ''}>-4: Very variable, often excessive</option>
+          <option value="-3" ${spendingConsistency === '-3' ? 'selected' : ''}>-3: Variable and often over budget</option>
+          <option value="-2" ${spendingConsistency === '-2' ? 'selected' : ''}>-2: Inconsistent, hard to predict</option>
+          <option value="-1" ${spendingConsistency === '-1' ? 'selected' : ''}>-1: Variable but staying afloat</option>
+          <option value="1" ${spendingConsistency === '1' ? 'selected' : ''}>+1: Relatively predictable</option>
+          <option value="2" ${spendingConsistency === '2' ? 'selected' : ''}>+2: Consistent within ranges</option>
+          <option value="3" ${spendingConsistency === '3' ? 'selected' : ''}>+3: Very consistent, planned</option>
+          <option value="4" ${spendingConsistency === '4' ? 'selected' : ''}>+4: Highly controlled, intentional</option>
+          <option value="5" ${spendingConsistency === '5' ? 'selected' : ''}>+5: Perfectly controlled, always saving</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Q21. How detailed is your spending review? *</label>
+        <select name="spendingReview" required>
+          <option value="">Select a response</option>
+          <option value="-5" ${spendingReview === '-5' ? 'selected' : ''}>-5: Never look at spending</option>
+          <option value="-4" ${spendingReview === '-4' ? 'selected' : ''}>-4: Rarely review</option>
+          <option value="-3" ${spendingReview === '-3' ? 'selected' : ''}>-3: Only look when account is low</option>
+          <option value="-2" ${spendingReview === '-2' ? 'selected' : ''}>-2: Quick glance at balance</option>
+          <option value="-1" ${spendingReview === '-1' ? 'selected' : ''}>-1: Check monthly totals only</option>
+          <option value="1" ${spendingReview === '1' ? 'selected' : ''}>+1: Review category totals</option>
+          <option value="2" ${spendingReview === '2' ? 'selected' : ''}>+2: Review major categories monthly</option>
+          <option value="3" ${spendingReview === '3' ? 'selected' : ''}>+3: Detailed monthly review</option>
+          <option value="4" ${spendingReview === '4' ? 'selected' : ''}>+4: Weekly detailed reviews</option>
+          <option value="5" ${spendingReview === '5' ? 'selected' : ''}>+5: Track every transaction, optimize continuously</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Q22. What is your stress level around spending? *</label>
+        <select name="spendingStress" required>
+          <option value="">Select a response</option>
+          <option value="-5" ${spendingStress === '-5' ? 'selected' : ''}>-5: Constant guilt, shame, and anxiety</option>
+          <option value="-4" ${spendingStress === '-4' ? 'selected' : ''}>-4: High stress most of the time</option>
+          <option value="-3" ${spendingStress === '-3' ? 'selected' : ''}>-3: Frequently stressed and worried</option>
+          <option value="-2" ${spendingStress === '-2' ? 'selected' : ''}>-2: Regular worry about spending</option>
+          <option value="-1" ${spendingStress === '-1' ? 'selected' : ''}>-1: Occasional guilt or concern</option>
+          <option value="1" ${spendingStress === '1' ? 'selected' : ''}>+1: Generally comfortable</option>
+          <option value="2" ${spendingStress === '2' ? 'selected' : ''}>+2: Mostly confident</option>
+          <option value="3" ${spendingStress === '3' ? 'selected' : ''}>+3: Confident in spending choices</option>
+          <option value="4" ${spendingStress === '4' ? 'selected' : ''}>+4: Calm and intentional</option>
+          <option value="5" ${spendingStress === '5' ? 'selected' : ''}>+5: Zero stress, complete confidence</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Q23. List your major expense categories *</label>
+        <p class="muted" style="font-size: 13px; margin-bottom: 10px;">List your biggest spending areas separated by commas.</p>
+        <p class="muted" style="font-size: 12px; margin-bottom: 10px; font-style: italic;">Example: Mortgage/rent, groceries, transportation, insurance, debt payments, healthcare, childcare, entertainment, dining out</p>
+        <textarea name="majorExpenses" rows="4" required placeholder="List your major expense categories here...">${majorExpenses}</textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Q24. What spending do you consider wasteful or want to reduce? *</label>
+        <p class="muted" style="font-size: 13px; margin-bottom: 10px;">Be honest about spending that doesn't align with your values or goals.</p>
+        <p class="muted" style="font-size: 12px; margin-bottom: 10px; font-style: italic;">Example: Unused gym membership, impulse online shopping, excessive dining out, unused subscriptions, convenience spending</p>
+        <textarea name="wastefulSpending" rows="4" required placeholder="Describe wasteful spending you want to reduce...">${wastefulSpending}</textarea>
       </div>
     `;
   },
