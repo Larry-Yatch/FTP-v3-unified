@@ -136,6 +136,41 @@ const ToolN = {  // ← RENAME THIS
       `;
     });
 
+    // BEST PRACTICE: Add back navigation button
+    html += `
+      <!-- Navigation: Back to Page 1 -->
+      <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
+        <button type="button" class="btn-secondary" onclick="goBackToPage1('${clientId}')">
+          ← Back to Page 1
+        </button>
+      </div>
+
+      <script>
+        function goBackToPage1(clientId) {
+          showLoading('Loading Page 1');
+
+          // Use document.write() pattern (no white flash!)
+          google.script.run
+            .withSuccessHandler(function(pageHtml) {
+              if (pageHtml) {
+                document.open();
+                document.write(pageHtml);
+                document.close();
+              } else {
+                hideLoading();
+                alert('Error loading Page 1');
+              }
+            })
+            .withFailureHandler(function(error) {
+              hideLoading();
+              console.error('Navigation error:', error);
+              alert('Error loading Page 1: ' + error.message);
+            })
+            .getToolPageHtml('toolN', clientId, 1);  // ← CUSTOMIZE: change toolN
+        }
+      </script>
+    `;
+
     return html;
   },
 
@@ -154,6 +189,38 @@ const ToolN = {  // ← RENAME THIS
       </div>
 
       <p class="muted">Click Submit to complete your assessment.</p>
+
+      <!-- BEST PRACTICE: Add back navigation button on final page too -->
+      <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
+        <button type="button" class="btn-secondary" onclick="goBackToPage2('${clientId}')">
+          ← Back to Page 2
+        </button>
+      </div>
+
+      <script>
+        function goBackToPage2(clientId) {
+          showLoading('Loading Page 2');
+
+          // Use document.write() pattern (no white flash!)
+          google.script.run
+            .withSuccessHandler(function(pageHtml) {
+              if (pageHtml) {
+                document.open();
+                document.write(pageHtml);
+                document.close();
+              } else {
+                hideLoading();
+                alert('Error loading Page 2');
+              }
+            })
+            .withFailureHandler(function(error) {
+              hideLoading();
+              console.error('Navigation error:', error);
+              alert('Error loading Page 2: ' + error.message);
+            })
+            .getToolPageHtml('toolN', clientId, 2);  // ← CUSTOMIZE: change toolN
+        }
+      </script>
     `;
   },
 

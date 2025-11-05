@@ -1,8 +1,8 @@
 # Tool Development Patterns - Financial TruPath v3
 
-**Version:** 1.1
-**Last Updated:** November 4, 2024
-**Status:** ✅ Production Ready - All Navigation Issues Resolved
+**Version:** 1.2
+**Last Updated:** November 5, 2025
+**Status:** ✅ Production Ready - All Navigation Issues Resolved + Back Navigation Pattern Added
 
 ---
 
@@ -429,14 +429,76 @@ google.script.run
   .getDashboardPage(clientId);
 ```
 
+### **Back Navigation Pattern (NEW - v3.5.3)**
+
+**Best Practice:** Add back buttons to all pages except Page 1 for better UX.
+
+For each page (2-N), add a back button at the bottom of the page content:
+
+```javascript
+// Add to each page's renderPageXContent() method (before closing backtick):
+<!-- Navigation: Back to Page X -->
+<div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
+  <button type="button" class="btn-secondary" onclick="goBackToPageX('${clientId}')">
+    ← Back to Page X
+  </button>
+</div>
+
+<script>
+  function goBackToPageX(clientId) {
+    showLoading('Loading Page X');
+
+    // Use document.write() pattern (no white flash!)
+    google.script.run
+      .withSuccessHandler(function(pageHtml) {
+        if (pageHtml) {
+          document.open();
+          document.write(pageHtml);
+          document.close();
+        } else {
+          hideLoading();
+          alert('Error loading Page X');
+        }
+      })
+      .withFailureHandler(function(error) {
+        hideLoading();
+        console.error('Navigation error:', error);
+        alert('Error loading Page X: ' + error.message);
+      })
+      .getToolPageHtml('tool2', clientId, X);
+  }
+</script>
+```
+
+**Key Requirements:**
+1. ✅ Use `getToolPageHtml()` from Code.js (not `window.location.href`)
+2. ✅ Each page gets its own `goBackToPageX()` function
+3. ✅ All draft data is automatically preserved on back navigation
+4. ✅ Zero white flash using document.write() pattern
+5. ✅ Loading animation shows during navigation
+
+**Benefits:**
+- Users can freely review and change previous answers
+- Reduces anxiety about "missing something"
+- Significantly improves perceived UX quality
+- Consistent with modern form expectations
+
+**DO NOT USE:**
+- ❌ `window.location.href = url` (causes white flash)
+- ❌ `history.back()` (doesn't reload form data)
+- ❌ Manual URL manipulation (breaks in iframe)
+
 ## 🧪 **Testing Checklist**
 
 Before deploying a new tool:
 
 - [ ] **Required includes** present (styles + loading-animation)
 - [ ] **Page 1** loads correctly
-- [ ] **Page 1 → 2** navigation works
-- [ ] **All pages** can be navigated
+- [ ] **Page 1 → 2** forward navigation works
+- [ ] **Page 2 → 1** back navigation works (smooth, no white flash)
+- [ ] **All pages** can be navigated forward
+- [ ] **All pages (2-N)** have back buttons that work smoothly
+- [ ] **Back navigation** preserves all draft data
 - [ ] **Dashboard button** works from all pages
 - [ ] **Final page** submits successfully
 - [ ] **Report page** displays results
@@ -447,7 +509,7 @@ Before deploying a new tool:
 - [ ] **RESPONSES sheet** receives data
 - [ ] **Zero console errors** - check browser console
 - [ ] **Zero warnings** - especially no deprecation warnings
-- [ ] **Loading indicators** show on all navigation
+- [ ] **Loading indicators** show on all navigation (forward AND backward)
 
 ---
 
