@@ -1642,7 +1642,7 @@ const Tool2 = {
    */
   calculateDomainScores(data) {
     return {
-      // Money Flow: Q14-Q24 (11 scale questions, max 55 points)
+      // Money Flow: 8 scale questions, max 80 points (normalized 0-10 scale)
       // Includes: Q14-Q17 (income), Q19-Q22 (spending)
       // Excludes: Q18 (income sources text), Q23-Q24 (spending text)
       moneyFlow: this.sumScaleQuestions(data, [
@@ -1650,7 +1650,7 @@ const Tool2 = {
         'spendingClarity', 'spendingConsistency', 'spendingReview', 'spendingStress'
       ]),
 
-      // Obligations: Q25-Q34 (10 scale questions, max 50 points)
+      // Obligations: 9 scale questions, max 90 points (normalized 0-10 scale)
       // Includes: Q25-Q28 (debt), Q30-Q34 (emergency fund)
       // Excludes: Q29 (debts text)
       obligations: this.sumScaleQuestions(data, [
@@ -1659,13 +1659,13 @@ const Tool2 = {
         'emergencyFundReplenishment', 'emergencyFundStress'
       ]),
 
-      // Liquidity: Q35-Q38 (4 scale questions, max 20 points)
+      // Liquidity: 4 scale questions, max 40 points (normalized 0-10 scale)
       // All savings questions are scales
       liquidity: this.sumScaleQuestions(data, [
         'savingsLevel', 'savingsRegularity', 'savingsClarity', 'savingsStress'
       ]),
 
-      // Growth: Q39-Q47 (9 scale questions, max 45 points)
+      // Growth: 8 scale questions, max 80 points (normalized 0-10 scale)
       // Includes: Q39-Q42 (investments), Q44-Q47 (retirement)
       // Excludes: Q43 (investment types text)
       growth: this.sumScaleQuestions(data, [
@@ -1673,7 +1673,7 @@ const Tool2 = {
         'retirementAccounts', 'retirementFunding', 'retirementConfidence', 'retirementStress'
       ]),
 
-      // Protection: Q48-Q51 (4 scale questions, max 20 points)
+      // Protection: 4 scale questions, max 40 points (normalized 0-10 scale)
       // All insurance questions are scales
       protection: this.sumScaleQuestions(data, [
         'insurancePolicies', 'insuranceClarity', 'insuranceConfidence', 'insuranceStress'
@@ -1682,13 +1682,26 @@ const Tool2 = {
   },
 
   /**
-   * Helper: Sum scale question values
+   * Helper: Normalize scale values from -5 to +5 range to 0-10 range
+   * Original scale: -5, -4, -3, -2, -1, +1, +2, +3, +4, +5 (no zero)
+   * Normalized scale: 0, 1, 2, 3, 4, 6, 7, 8, 9, 10
+   */
+  normalizeScaleValue(value) {
+    const parsed = parseFloat(value);
+    if (isNaN(parsed)) return 0;
+
+    // Add 5 to shift range: -5 becomes 0, +5 becomes 10
+    return parsed + 5;
+  },
+
+  /**
+   * Helper: Sum scale question values (normalized to 0-10 range)
    */
   sumScaleQuestions(data, questionKeys) {
     let total = 0;
     questionKeys.forEach(key => {
-      const value = parseFloat(data[key]) || 0;
-      total += value;
+      const normalized = this.normalizeScaleValue(data[key]);
+      total += normalized;
     });
     return total;
   },
@@ -1699,11 +1712,11 @@ const Tool2 = {
    */
   applyBenchmarks(domainScores) {
     const maxScores = {
-      moneyFlow: 40,    // 8 questions × 5 max points
-      obligations: 45,  // 9 questions × 5 max points
-      liquidity: 20,    // 4 questions × 5 max points
-      growth: 40,       // 8 questions × 5 max points
-      protection: 20    // 4 questions × 5 max points
+      moneyFlow: 80,    // 8 questions × 10 max points (normalized from -5 to +5)
+      obligations: 90,  // 9 questions × 10 max points
+      liquidity: 40,    // 4 questions × 10 max points
+      growth: 80,       // 8 questions × 10 max points
+      protection: 40    // 4 questions × 10 max points
     };
 
     const benchmarks = {};
