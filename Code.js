@@ -411,6 +411,8 @@ function completeToolSubmission(toolId, data) {
 
     if (reportRoute === 'tool1_report' && typeof Tool1Report !== 'undefined') {
       reportHtml = Tool1Report.render(clientId).getContent();
+    } else if (reportRoute === 'tool2_report' && typeof Tool2Report !== 'undefined') {
+      reportHtml = Tool2Report.render(clientId).getContent();
     } else {
       // Fallback - just return success message
       reportHtml = `
