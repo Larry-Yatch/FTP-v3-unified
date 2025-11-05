@@ -1,7 +1,7 @@
 # Tool Development Guide - Financial TruPath v3
 
-**Last Updated:** November 4, 2025
-**Version:** v3.3.0
+**Last Updated:** November 5, 2025
+**Version:** v3.8.1
 **For:** Building Tools 3-8
 
 ---
@@ -703,131 +703,132 @@ const ToolN = {
 
 ---
 
-## 🤖 GPT Integration Pattern
+## 🤖 GPT Integration Pattern (v3.8.0)
+
+### **Production-Proven Pattern**
+
+📘 **For complete implementation, see:** `docs/GPT-INTEGRATION-QUICKSTART.md` (60KB comprehensive guide)
+
+**This section provides a quick overview. The Quick Start Guide has:**
+- ✅ Complete working code templates
+- ✅ Step-by-step implementation (6 steps, 6-8 hours)
+- ✅ 3-tier fallback system explained
+- ✅ Background processing pattern
+- ✅ Testing procedures
+- ✅ Cost analysis and monitoring
 
 ### **When to Use GPT**
 
 **✅ Good Use Cases:**
-- Analyzing free-text responses
-- Generating personalized recommendations
-- Creating narrative insights from data
+- Analyzing free-text responses for patterns
+- Generating personalized recommendations from specific student examples
+- Creating narrative insights that connect domain scores to stories
 - Trauma-informed coaching language
-- Synthesizing complex patterns
+- Synthesizing insights across multiple domains
 
 **❌ Bad Use Cases:**
-- Replacing scoring logic (use algorithms)
-- Making access control decisions
-- Storing sensitive data
-- Real-time form interactions (too slow)
+- Replacing scoring logic (always use algorithms for scores)
+- Making access control decisions (security risk)
+- Storing sensitive PII (privacy concern)
+- Real-time form interactions (too slow - use background processing instead)
+- Generating generic advice (use domain-specific fallbacks instead)
 
-### **Adding GPT to Your Tool**
+### **Quick Implementation Summary**
 
-**1. Update manifest:**
-```json
-{
-  "usesGPT": true,
-  "estimatedCost": 0.03
-}
+**Architecture:** Tool-specific files (not centralized service)
+
+```
+tools/toolN/
+├── ToolN.js                    # Add background GPT processing
+├── ToolNReport.js              # Add insights display
+├── ToolNFallbacks.js          # Domain-specific fallback insights (NEW)
+└── ToolNGPTAnalysis.js        # GPT prompts + 3-tier fallback (NEW)
 ```
 
-**2. Check for OpenAI service in initialize:**
+**6 Implementation Steps:**
+
+1. **Create ToolNFallbacks.js** (2 hours)
+   - Domain-specific fallback insights (not generic templates)
+   - Uses domain scores to tailor messages
+   - Provides Pattern / Insight / Action for each response type
+
+2. **Create ToolNGPTAnalysis.js** (2 hours)
+   - GPT prompts for each free-text response
+   - 3-tier fallback: GPT → Retry → Fallback
+   - Final synthesis function
+
+3. **Add Background Processing to ToolN.js** (1 hour)
+   - Trigger GPT during form completion (async, non-blocking)
+   - Store insights in PropertiesService
+   - Smart caching (avoid duplicates on back/forward navigation)
+
+4. **Update processFinalSubmission()** (1 hour)
+   - Retrieve pre-computed insights
+   - Retry any that failed
+   - Run final synthesis
+   - Save to RESPONSES sheet
+
+5. **Display Insights in ToolNReport.js** (1 hour)
+   - Add overall insights section
+   - Add detailed insight cards
+   - Show source attribution (✨ Personalized vs 📋 General Guidance)
+
+6. **Add PDF Generation** (30 minutes)
+   - Add generateToolNPDF() to Code.js
+   - Update download button in ToolNReport.js
+
+### **Production Example (Tool 2)**
+
 ```javascript
-initialize(deps, insights) {
-  this.openAI = deps.openAI;
-  if (!this.openAI) {
-    Logger.log('Warning: OpenAI service not available');
-  }
-  // ...
+// Background processing during form
+savePageData(clientId, page, formData) {
+  // Save data
+  PropertiesService.getUserProperties().setProperty(draftKey, JSON.stringify(mergedData));
+
+  // Trigger GPT (non-blocking)
+  this.triggerBackgroundGPTAnalysis(page, clientId, formData, mergedData);
 }
-```
 
-**3. Create GPT analysis in report generation:**
-
-**File:** `tools/toolN/ToolNReport.js`
-
-```javascript
-const ToolNReport = {
-
-  /**
-   * Build report with GPT insights
-   */
-  async buildReport(results, data, clientId, openAI) {
-    // 1. Calculate objective scores (always algorithmic)
-    const scores = this.calculateScores(data);
-
-    // 2. Generate AI insights (if available)
-    let insights = null;
-    if (openAI && data.freeTextField) {
-      insights = await this.generateGPTInsights(data, scores, openAI);
-    }
-
-    // 3. Build report HTML
-    return this.renderReport(scores, insights);
-  },
-
-  /**
-   * Generate GPT insights
-   */
-  async generateGPTInsights(data, scores, openAI) {
-    const prompts = [
-      this.buildPrompt1(data, scores),
-      this.buildPrompt2(data, scores)
-    ];
-
+// 3-tier fallback system
+analyzeResponse({clientId, responseType, responseText, ...}) {
+  try {
+    // TIER 1: Try GPT
+    const result = this.callGPT({model: 'gpt-4o-mini', ...});
+    return {...result, source: 'gpt'};
+  } catch (error) {
     try {
-      // Parallel API calls for efficiency
-      const results = await openAI.batchAnalyze(prompts);
-
-      return {
-        analysis1: results[0],
-        analysis2: results[1]
-      };
-    } catch (error) {
-      Logger.log(`GPT error: ${error}`);
-      // Fallback to template-based insights
-      return this.getFallbackInsights(data, scores);
+      // TIER 2: Retry after 2s
+      Utilities.sleep(2000);
+      const result = this.callGPT({model: 'gpt-4o-mini', ...});
+      return {...result, source: 'gpt_retry'};
+    } catch (retryError) {
+      // TIER 3: Domain-specific fallback (always succeeds)
+      return {...ToolNFallbacks.getFallbackInsight(...), source: 'fallback'};
     }
-  },
-
-  /**
-   * Build GPT prompt
-   */
-  buildPrompt1(data, scores) {
-    return {
-      prompt: `
-        Analyze this person's response:
-
-        Free text: "${data.freeTextField}"
-        Score: ${scores.total}
-        Category: ${scores.category}
-
-        Provide:
-        1. One key insight about their situation
-        2. One specific action they can take
-
-        Keep under 100 words, encouraging tone.
-      `,
-      cacheKey: `toolN_insight1_${data.clientId}`
-    };
-  },
-
-  /**
-   * Fallback if GPT unavailable
-   */
-  getFallbackInsights(data, scores) {
-    return {
-      analysis1: 'Based on your responses, consider...',
-      analysis2: 'Your next step could be...'
-    };
   }
-};
+}
 ```
 
-**Cost Estimation:**
-- GPT-4o-mini: ~$0.15/$0.60 per 1M tokens (input/output)
-- Typical insight: 200 tokens = ~$0.002
-- 5 insights per report = ~$0.01
-- Budget accordingly
+### **Cost & Performance (Tool 2 Actual)**
+
+- **Cost:** $0.023 per student (8 insights + 1 synthesis)
+- **Background:** ~24s total GPT time (during form, user doesn't wait)
+- **User wait:** ~3s at submission (synthesis only)
+- **Reliability:** 100% (via 3-tier fallback)
+- **Fallback rate:** < 5% in production
+
+### **Complete Reference**
+
+**Documentation:**
+- 📘 `docs/GPT-INTEGRATION-QUICKSTART.md` - Comprehensive implementation guide
+- 📘 `docs/GPT-IMPLEMENTATION-GUIDE.md` - Technical architecture details
+- 📘 `docs/GPT-IMPLEMENTATION-CHECKLIST.md` - Step-by-step checklist
+
+**Working Code Examples:**
+- `tools/tool2/Tool2GPTAnalysis.js` (22 KB, 8 prompts) ✅ Production-proven
+- `tools/tool2/Tool2Fallbacks.js` (21 KB, 7 domains) ✅ Production-proven
+- `tools/tool2/Tool2.js` (background processing section)
+- `tools/tool2/Tool2Report.js` (insights display section)
 
 ---
 

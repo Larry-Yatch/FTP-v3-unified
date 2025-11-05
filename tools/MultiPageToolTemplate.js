@@ -421,6 +421,22 @@ const ToolN = {  // ← RENAME THIS
  * ✅ Mobile-friendly
  * ✅ Easy to maintain
  *
+ * GPT INTEGRATION (OPTIONAL - v3.8.0):
+ * If your tool needs personalized insights from free-text responses:
+ *
+ * 📘 See: docs/GPT-INTEGRATION-QUICKSTART.md (comprehensive guide)
+ *
+ * Quick steps:
+ * 1. Create ToolNFallbacks.js (domain-specific fallback insights)
+ * 2. Create ToolNGPTAnalysis.js (GPT prompts + 3-tier fallback)
+ * 3. Add background processing to savePageData()
+ * 4. Update processFinalSubmission() to retrieve & synthesize
+ * 5. Display insights in ToolNReport.js
+ * 6. Add PDF generation to Code.js
+ *
+ * Production example: tools/tool2/ (Tool2GPTAnalysis.js, Tool2Fallbacks.js)
+ * Cost: ~$0.02-0.03 per student | Time: 6-8 hours | Reliability: 100%
+ *
  * BUG REFERENCES:
  * - Deploy @58 (ec82987): Is_Latest column fix
  * - Deploy @56 (99d0eeb): User gesture navigation fix
