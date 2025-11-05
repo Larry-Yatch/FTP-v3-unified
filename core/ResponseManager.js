@@ -342,12 +342,25 @@ const ResponseManager = {
     try {
       Logger.log(`Submitting edited response: ${clientId} / ${toolId}`);
 
-      // Remove edit mode metadata
+      // DIAGNOSTIC: Log what we're receiving
+      Logger.log(`Data structure keys: ${JSON.stringify(Object.keys(data || {}))}`);
+      Logger.log(`Has formData? ${!!data.formData}`);
+      Logger.log(`Has scores? ${!!data.scores}`);
+      Logger.log(`Has winner? ${!!data.winner}`);
+      Logger.log(`Winner value: ${data.winner}`);
+
+      // Remove edit mode metadata from formData (not top level!)
       const cleanData = { ...data };
-      delete cleanData._editMode;
-      delete cleanData._originalTimestamp;
-      delete cleanData._originalResponseId;
-      delete cleanData._editStarted;
+      if (cleanData.formData) {
+        cleanData.formData = { ...cleanData.formData };
+        delete cleanData.formData._editMode;
+        delete cleanData.formData._originalTimestamp;
+        delete cleanData.formData._originalResponseId;
+        delete cleanData.formData._editStarted;
+      }
+
+      Logger.log(`After cleanup - winner: ${cleanData.winner}`);
+      Logger.log(`After cleanup - data: ${JSON.stringify(cleanData).substring(0, 200)}`);
 
       // Mark all previous versions as not latest
       this._markAsNotLatest(clientId, toolId);
