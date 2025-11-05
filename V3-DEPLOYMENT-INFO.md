@@ -8,12 +8,12 @@
 
 ## 🔗 Current Production Deployment
 
-### Web App (Latest - v3.7.0 @85)
-**URL:** https://script.google.com/macros/s/AKfycbxOZjeJU1Op-TimlBjfhEDX6f_FIY0R6br5Vs9AUWeS1Okd3-eyZRH--zKJUPVSw1v2/exec
+### Web App (Latest - v3.7.1 @86)
+**URL:** https://script.google.com/macros/s/AKfycbznpV-6gHR2cuxH-WhqN_hui7jRpRNEQaK4yD23qQvX7BeJ639dPMbEkQgtmvRpbaEo/exec
 
-**Deployment ID:** `AKfycbxOZjeJU1Op-TimlBjfhEDX6f_FIY0R6br5Vs9AUWeS1Okd3-eyZRH--zKJUPVSw1v2 @85`
+**Deployment ID:** `AKfycbznpV-6gHR2cuxH-WhqN_hui7jRpRNEQaK4yD23qQvX7BeJ639dPMbEkQgtmvRpbaEo @86`
 
-**Version:** v3.7.0 - Tool 2 Report Complete (Step 11)
+**Version:** v3.7.1 - Bug Fix: Tool 2 Report Now Displays After Submission
 
 **What's Working:**
 - ✅ Login and authentication
@@ -50,6 +50,7 @@ After comprehensive debugging, we solved all iframe navigation issues by using t
 **See:** [docs/SESSION-HANDOFF.md](docs/SESSION-HANDOFF.md) for complete details
 
 ### Recent Deployments
+- **@86** v3.7.1 - 🐛 Bug Fix: Tool 2 Report rendering (Code.js missing Tool2Report conditional)
 - **@85** v3.7.0 - Tool 2 Report Complete (Step 11) - 835 lines, domain cards, progress bars, archetypes, priority ranking
 - **@84** v3.6.0 - Tool 2 Scoring Logic Complete (5 domains, benchmarks, priorities, archetypes)
 - **@83** v3.5.3 - Complete back navigation on all Tool 2 pages (2-5)
