@@ -705,12 +705,72 @@ if (typeof DataService !== 'undefined') {
 
 ## ⏳ Phase 2e: GPT Integration (NOT STARTED)
 
-It's very important that before we move on to this step, we do a thorough analysis of our legacy GPT calls so we can implement our best practices. 
+**IMPORTANT:** Before starting Step 14, you MUST analyze the legacy v2 GPT implementation to understand patterns, costs, and best practices.
+
+### **📚 Required Reading Before Step 14:**
+
+1. **Implementation Tracker (this document)**
+   - **File:** `docs/TOOL2-IMPLEMENTATION-TRACKER.md`
+   - **Key Sections:**
+     - Bug Fixes Log (@86-@91) - Critical patterns learned
+     - Notes & Learnings - Design decisions and patterns
+     - All 57 questions are implemented and working
+
+2. **Legacy Scoring Algorithm**
+   - **File:** `docs/TOOL2-LEGACY-CLARITY-SCORING-ALGORITHM.md`
+   - **Purpose:** Understand v2's scoring, stress weights, cohort comparison, and domain prioritization
+   - **Key Sections:**
+     - Part 6: Insight Generation (Current System) - lines 195-214
+     - Shows how v2 generates insights (template-based, no GPT yet)
+     - Domain-pair analysis for Growth Archetype
+     - Recommendations for v3 (lines 285-366)
+
+3. **Question Master List**
+   - **File:** `docs/TOOL2-QUESTION-MASTER-LIST.md`
+   - **Purpose:** Complete list of all 57 questions with context
+   - **Key Info:** 8 free-text fields that need GPT analysis (Q18, Q23, Q24, Q29, Q43, Q52, Q56a-f)
+
+4. **Readiness Analysis**
+   - **File:** `docs/TOOL2-READINESS-ANALYSIS.md`
+   - **Purpose:** Original implementation plan and design decisions
+   - **Useful for:** Understanding overall tool structure and rationale
+
+5. **Legacy Backend Code**
+   - **Files to analyze:**
+     - `tools/tool2/Tool2Report.js` (current v3 report, no GPT yet)
+     - Legacy v2 Apps Script backend (if available in repo or Git history)
+   - **What to look for:**
+     - How v2 generated personalized insights
+     - GPT prompt patterns used (if any)
+     - Cost per report
+     - Error handling strategies
+     - Caching implementation
+
+6. **Tool 1 Implementation** (for patterns)
+   - **File:** `tools/tool1/Tool1.js`
+   - Check if Tool 1 uses any GPT analysis
+   - Learn from existing v3 patterns
+   - Reuse OpenAI service integration if exists
+
+### **🔍 Analysis Checklist (Complete Before Coding):**
+
+- [ ] Document v2's GPT usage patterns
+- [ ] Calculate legacy cost per report
+- [ ] Identify which insights were GPT vs template-based
+- [ ] Review prompt engineering best practices
+- [ ] Check if v3 has OpenAI service already integrated
+- [ ] Plan cost-effective strategy (GPT-4o-mini vs GPT-4)
+- [ ] Design caching strategy to avoid duplicate API calls
+- [ ] Plan error handling (what if GPT fails?)
+- [ ] Design fallback templates for each free-text field
+
+---
 
 ### **Step 14: Add GPT Analysis** ⏳ **NOT STARTED**
 
-**Estimated Time:** 1 hour
+**Estimated Time:** 2-3 hours (includes legacy analysis + implementation)
 **Status:** ⏳ **NOT STARTED**
+**Prerequisites:** Complete "Required Reading" section above
 
 #### Tasks:
 - [ ] Add OpenAI API integration (if not already in core)
@@ -779,21 +839,46 @@ It's very important that before we move on to this step, we do a thorough analys
 
 ---
 
-## 🎯 Next Session Checklist
+## 🎯 Starting Point for Next Session
 
-Before starting next session:
-1. [ ] Read this tracker document
-2. [ ] Check last deployment version
-3. [ ] Review any bugs in tracking section
-4. [ ] Identify next incomplete step
-5. [ ] Start implementation!
+### **If continuing with Phase 2e (GPT Integration):**
+
+**READ FIRST (in this order):**
+1. ✅ This tracker document (TOOL2-IMPLEMENTATION-TRACKER.md) - Current status
+2. ✅ Phase 2e "Required Reading" section above - 6 reference documents
+3. ✅ Complete "Analysis Checklist" - Document findings before coding
+4. ✅ TOOL-DEVELOPMENT-GUIDE.md Section on GPT Integration - Best practices
+
+**THEN START:**
+- Step 14: Add GPT Analysis (see Phase 2e above)
+- Current code state: All 57 questions working, scoring complete, report displays
+- Current version: v3.7.5 @91 (Production)
+- Next deployment will be: v3.8.0 @92
+
+**KEY QUESTIONS TO ANSWER:**
+1. Does v3 already have OpenAI service integrated?
+2. What was v2's GPT cost per report?
+3. Which insights are worth GPT vs template-based?
+4. How should we cache GPT results?
+5. What's the fallback if GPT fails?
 
 ---
 
-**Last Updated:** November 5, 2025 3:00 AM
+### **If working on something else:**
+
+**Quick Status Check:**
+1. [ ] Read this tracker document
+2. [ ] Check last deployment version (v3.7.5 @91)
+3. [ ] Review bug fixes log (@86-@91) - Critical patterns learned
+4. [ ] Check "Production Status" section - What's working
+5. [ ] Identify which phase/step you're working on
+
+---
+
+**Last Updated:** November 5, 2025 3:30 AM
 **Current Version:** v3.7.5 @91 (Production)
 **Current Step:** ✅ **Steps 11-13 Complete - All Critical Bugs Fixed!**
-**Next Action:** User acceptance testing, then Step 14 (GPT integration)
+**Next Action:** Phase 2e Step 14 (GPT integration) - Read required docs first!
 
 ---
 
