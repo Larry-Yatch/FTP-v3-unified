@@ -1678,26 +1678,41 @@ const Tool2 = {
    */
   getExistingData(clientId) {
     try {
-      // FIRST: Check PropertiesService (has live page changes)
+      // FIRST: Check for active draft from ResponseManager (EDIT_DRAFT or DRAFT)
+      // This ensures we get complete data when editing
+      if (typeof DataService !== 'undefined') {
+        const activeDraft = DataService.getActiveDraft(clientId, 'tool2');
+
+        if (activeDraft && (activeDraft.status === 'EDIT_DRAFT' || activeDraft.status === 'DRAFT')) {
+          Logger.log(`Found active draft with status: ${activeDraft.status}`);
+          
+          // If we have an EDIT_DRAFT, merge with any PropertiesService updates
+          // This preserves both the complete data AND any current session changes
+          const userProperties = PropertiesService.getUserProperties();
+          const draftKey = `tool2_draft_${clientId}`;
+          const sessionData = userProperties.getProperty(draftKey);
+          
+          if (sessionData && activeDraft.status === 'EDIT_DRAFT') {
+            // Merge session data on top of EDIT_DRAFT data
+            const mergedData = Object.assign({}, activeDraft.data, JSON.parse(sessionData));
+            Logger.log(`Merged EDIT_DRAFT with session updates for ${clientId}`);
+            return mergedData;
+          }
+          
+          return activeDraft.data;
+        }
+      }
+      
+      // FALLBACK: Check PropertiesService for new drafts (not edits)
       const userProperties = PropertiesService.getUserProperties();
       const draftKey = `tool2_draft_${clientId}`;
       const draftData = userProperties.getProperty(draftKey);
 
       if (draftData) {
-        Logger.log(`Found PropertiesService draft for ${clientId} (live page data)`);
+        Logger.log(`Found PropertiesService draft for ${clientId} (new draft)`);
         return JSON.parse(draftData);
       }
-
-      // FALLBACK: Check for active draft from ResponseManager (EDIT_DRAFT or DRAFT)
-      // This is used when first loading edit mode, before any page changes
-      if (typeof DataService !== 'undefined') {
-        const activeDraft = DataService.getActiveDraft(clientId, 'tool2');
-
-        if (activeDraft && (activeDraft.status === 'EDIT_DRAFT' || activeDraft.status === 'DRAFT')) {
-          Logger.log(`Found active draft with status: ${activeDraft.status} (initial data)`);
-          return activeDraft.data;
-        }
-      }
+      
     } catch (error) {
       Logger.log(`Error getting existing data: ${error}`);
     }
