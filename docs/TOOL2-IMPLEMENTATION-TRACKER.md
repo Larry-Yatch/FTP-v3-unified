@@ -547,6 +547,8 @@
 
 ## ⏳ Phase 2e: GPT Integration (NOT STARTED)
 
+It's very important that before we move on to this step, we do a thorough analysis of our legacy GPT calls so we can implement our best practices. 
+
 ### **Step 14: Add GPT Analysis** ⏳ **NOT STARTED**
 
 **Estimated Time:** 1 hour
