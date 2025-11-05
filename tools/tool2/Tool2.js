@@ -1608,28 +1608,180 @@ const Tool2 = {
   },
 
   /**
-   * Process results (PLACEHOLDER)
-   * TODO: Implement actual scoring/analysis logic tomorrow
+   * Process results - Calculate domain scores, benchmarks, priorities, archetype
    */
   processResults(data) {
-    // TODO: Calculate actual scores for each section
-    // For now, just placeholder calculations
+    // Step 1: Calculate raw domain scores
+    const domainScores = this.calculateDomainScores(data);
+
+    // Step 2: Apply benchmarks (High/Med/Low)
+    const benchmarks = this.applyBenchmarks(domainScores);
+
+    // Step 3: Apply stress weights
+    const weightedScores = this.applyStressWeights(domainScores);
+
+    // Step 4: Sort by priority (lowest weighted score = highest priority)
+    const priorityList = this.sortByPriority(weightedScores);
+
+    // Step 5: Determine growth archetype
+    const archetype = this.determineArchetype(priorityList);
 
     return {
-      financialClarity: {
-        score: 0, // TODO: Calculate from fc_* questions
-        level: 'To be calculated'
-      },
-      falseSelf: {
-        score: 0, // TODO: Calculate from fs_* questions
-        level: 'To be calculated'
-      },
-      externalValidation: {
-        score: 0, // TODO: Calculate from ev_* questions
-        level: 'To be calculated'
-      },
+      domainScores: domainScores,
+      benchmarks: benchmarks,
+      weightedScores: weightedScores,
+      priorityList: priorityList,
+      archetype: archetype,
       timestamp: new Date().toISOString()
     };
+  },
+
+  /**
+   * Calculate raw scores for all 5 domains
+   * Each domain sums its scale questions (excluding free-text)
+   */
+  calculateDomainScores(data) {
+    return {
+      // Money Flow: Q14-Q24 (11 scale questions, max 55 points)
+      // Includes: Q14-Q17 (income), Q19-Q22 (spending)
+      // Excludes: Q18 (income sources text), Q23-Q24 (spending text)
+      moneyFlow: this.sumScaleQuestions(data, [
+        'incomeClarity', 'incomeSufficiency', 'incomeConsistency', 'incomeStress',
+        'spendingClarity', 'spendingConsistency', 'spendingReview', 'spendingStress'
+      ]),
+
+      // Obligations: Q25-Q34 (10 scale questions, max 50 points)
+      // Includes: Q25-Q28 (debt), Q30-Q34 (emergency fund)
+      // Excludes: Q29 (debts text)
+      obligations: this.sumScaleQuestions(data, [
+        'debtClarity', 'debtTrending', 'debtReview', 'debtStress',
+        'emergencyFundMaintenance', 'emergencyFundMonths', 'emergencyFundFrequency',
+        'emergencyFundReplenishment', 'emergencyFundStress'
+      ]),
+
+      // Liquidity: Q35-Q38 (4 scale questions, max 20 points)
+      // All savings questions are scales
+      liquidity: this.sumScaleQuestions(data, [
+        'savingsLevel', 'savingsRegularity', 'savingsClarity', 'savingsStress'
+      ]),
+
+      // Growth: Q39-Q47 (9 scale questions, max 45 points)
+      // Includes: Q39-Q42 (investments), Q44-Q47 (retirement)
+      // Excludes: Q43 (investment types text)
+      growth: this.sumScaleQuestions(data, [
+        'investmentActivity', 'investmentClarity', 'investmentConfidence', 'investmentStress',
+        'retirementAccounts', 'retirementFunding', 'retirementConfidence', 'retirementStress'
+      ]),
+
+      // Protection: Q48-Q51 (4 scale questions, max 20 points)
+      // All insurance questions are scales
+      protection: this.sumScaleQuestions(data, [
+        'insurancePolicies', 'insuranceClarity', 'insuranceConfidence', 'insuranceStress'
+      ])
+    };
+  },
+
+  /**
+   * Helper: Sum scale question values
+   */
+  sumScaleQuestions(data, questionKeys) {
+    let total = 0;
+    questionKeys.forEach(key => {
+      const value = parseFloat(data[key]) || 0;
+      total += value;
+    });
+    return total;
+  },
+
+  /**
+   * Apply absolute benchmarks to convert raw scores to High/Medium/Low
+   * High: 60% or above, Medium: 20-59%, Low: Below 20%
+   */
+  applyBenchmarks(domainScores) {
+    const maxScores = {
+      moneyFlow: 40,    // 8 questions × 5 max points
+      obligations: 45,  // 9 questions × 5 max points
+      liquidity: 20,    // 4 questions × 5 max points
+      growth: 40,       // 8 questions × 5 max points
+      protection: 20    // 4 questions × 5 max points
+    };
+
+    const benchmarks = {};
+
+    Object.keys(domainScores).forEach(domain => {
+      const score = domainScores[domain];
+      const maxScore = maxScores[domain];
+      const percentage = (score / maxScore) * 100;
+
+      let level;
+      if (percentage >= 60) {
+        level = 'High';
+      } else if (percentage >= 20) {
+        level = 'Medium';
+      } else {
+        level = 'Low';
+      }
+
+      benchmarks[domain] = {
+        raw: score,
+        max: maxScore,
+        percentage: Math.round(percentage),
+        level: level
+      };
+    });
+
+    return benchmarks;
+  },
+
+  /**
+   * Apply stress weights to domain scores
+   * Money Flow: 5, Obligations: 4, Liquidity: 2, Growth: 1, Protection: 1
+   */
+  applyStressWeights(domainScores) {
+    const stressWeights = {
+      moneyFlow: 5,     // Highest - daily decisions, visible to others
+      obligations: 4,   // High - constant pressure, fear
+      liquidity: 2,     // Medium - safety anxiety
+      growth: 1,        // Low - less immediate
+      protection: 1     // Low - background concern
+    };
+
+    const weighted = {};
+
+    Object.keys(domainScores).forEach(domain => {
+      weighted[domain] = domainScores[domain] * stressWeights[domain];
+    });
+
+    return weighted;
+  },
+
+  /**
+   * Sort domains by weighted score (lowest = highest priority)
+   */
+  sortByPriority(weightedScores) {
+    return Object.keys(weightedScores)
+      .sort((a, b) => weightedScores[a] - weightedScores[b])
+      .map(domain => ({
+        domain: domain,
+        weightedScore: weightedScores[domain]
+      }));
+  },
+
+  /**
+   * Determine growth archetype based on highest priority domain
+   */
+  determineArchetype(priorityList) {
+    const topDomain = priorityList[0].domain;
+
+    const archetypes = {
+      moneyFlow: 'Money Flow Optimizer',
+      obligations: 'Debt Freedom Builder',
+      liquidity: 'Security Seeker',
+      growth: 'Wealth Architect',
+      protection: 'Protection Planner'
+    };
+
+    return archetypes[topDomain] || 'Financial Clarity Seeker';
   },
 
   /**
