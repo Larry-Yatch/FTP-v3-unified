@@ -763,8 +763,8 @@ const Tool2 = {
   },
 
   /**
-   * PAGE 4: Growth Domain - Savings Section
-   * Q35-Q38: Savings clarity and stress
+   * PAGE 4: Growth Domain - Savings, Investments, Retirement
+   * Q35-Q47: Growth clarity and stress
    */
   renderPage4Content(data, clientId) {
     // Extract existing data with defaults
@@ -772,10 +772,19 @@ const Tool2 = {
     const savingsRegularity = data.savingsRegularity || '';
     const savingsClarity = data.savingsClarity || '';
     const savingsStress = data.savingsStress || '';
+    const investmentActivity = data.investmentActivity || '';
+    const investmentClarity = data.investmentClarity || '';
+    const investmentConfidence = data.investmentConfidence || '';
+    const investmentStress = data.investmentStress || '';
+    const investmentTypes = data.investmentTypes || '';
+    const retirementAccounts = data.retirementAccounts || '';
+    const retirementFunding = data.retirementFunding || '';
+    const retirementConfidence = data.retirementConfidence || '';
+    const retirementStress = data.retirementStress || '';
 
     return `
-      <h2>📈 Growth Domain - Savings</h2>
-      <p class="muted mb-20">Understanding your savings awareness and stress levels (4 questions)</p>
+      <h2>📈 Growth Domain</h2>
+      <p class="muted mb-20">Understanding your savings, investments, and retirement awareness (13 questions)</p>
 
       <!-- Savings Questions -->
       <h3 style="margin-top: 30px;">Savings</h3>
@@ -846,6 +855,155 @@ const Tool2 = {
           <option value="3" ${savingsStress === '3' ? 'selected' : ''}>+3: Confident in savings strategy</option>
           <option value="4" ${savingsStress === '4' ? 'selected' : ''}>+4: Very confident, good cushion</option>
           <option value="5" ${savingsStress === '5' ? 'selected' : ''}>+5: Zero stress, ample savings, secure</option>
+        </select>
+      </div>
+
+      <!-- Investments Questions -->
+      <h3 style="margin-top: 40px;">Investments</h3>
+
+      <div class="form-group">
+        <label class="form-label">Q39. Do you invest outside your own business? *</label>
+        <select name="investmentActivity" required>
+          <option value="">Select a response</option>
+          <option value="-5" ${investmentActivity === '-5' ? 'selected' : ''}>-5: Never, no investments, don't understand them</option>
+          <option value="-4" ${investmentActivity === '-4' ? 'selected' : ''}>-4: Thought about it, never started</option>
+          <option value="-3" ${investmentActivity === '-3' ? 'selected' : ''}>-3: Once or twice, no follow-through</option>
+          <option value="-2" ${investmentActivity === '-2' ? 'selected' : ''}>-2: Very randomly, no strategy</option>
+          <option value="-1" ${investmentActivity === '-1' ? 'selected' : ''}>-1: Occasionally, no real plan</option>
+          <option value="1" ${investmentActivity === '1' ? 'selected' : ''}>+1: Starting, basic strategy</option>
+          <option value="2" ${investmentActivity === '2' ? 'selected' : ''}>+2: Regular, developing strategy</option>
+          <option value="3" ${investmentActivity === '3' ? 'selected' : ''}>+3: Consistent, solid strategy</option>
+          <option value="4" ${investmentActivity === '4' ? 'selected' : ''}>+4: Strategic, diversified, intentional</option>
+          <option value="5" ${investmentActivity === '5' ? 'selected' : ''}>+5: Optimized portfolio, sophisticated strategy</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Q40. What level of clarity do you maintain on investments? *</label>
+        <select name="investmentClarity" required>
+          <option value="">Select a response</option>
+          <option value="-5" ${investmentClarity === '-5' ? 'selected' : ''}>-5: None (or no investments)</option>
+          <option value="-4" ${investmentClarity === '-4' ? 'selected' : ''}>-4: Have some, no idea how they're doing</option>
+          <option value="-3" ${investmentClarity === '-3' ? 'selected' : ''}>-3: Know amount invested, nothing else</option>
+          <option value="-2" ${investmentClarity === '-2' ? 'selected' : ''}>-2: Vague awareness, rarely check</option>
+          <option value="-1" ${investmentClarity === '-1' ? 'selected' : ''}>-1: Annual review at best</option>
+          <option value="1" ${investmentClarity === '1' ? 'selected' : ''}>+1: Semi-annual reviews</option>
+          <option value="2" ${investmentClarity === '2' ? 'selected' : ''}>+2: Quarterly check-ins</option>
+          <option value="3" ${investmentClarity === '3' ? 'selected' : ''}>+3: Monthly tracking</option>
+          <option value="4" ${investmentClarity === '4' ? 'selected' : ''}>+4: Regular monitoring, adjusting strategy</option>
+          <option value="5" ${investmentClarity === '5' ? 'selected' : ''}>+5: Complete clarity, optimized, rebalanced regularly</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Q41. How confident are you in your investment strategy? *</label>
+        <select name="investmentConfidence" required>
+          <option value="">Select a response</option>
+          <option value="-5" ${investmentConfidence === '-5' ? 'selected' : ''}>-5: No confidence (or no investments)</option>
+          <option value="-4" ${investmentConfidence === '-4' ? 'selected' : ''}>-4: Major doubts, feel lost</option>
+          <option value="-3" ${investmentConfidence === '-3' ? 'selected' : ''}>-3: Hope for the best, not confident</option>
+          <option value="-2" ${investmentConfidence === '-2' ? 'selected' : ''}>-2: Unsure, questioning choices</option>
+          <option value="-1" ${investmentConfidence === '-1' ? 'selected' : ''}>-1: Trying, but not confident</option>
+          <option value="1" ${investmentConfidence === '1' ? 'selected' : ''}>+1: Moving in right direction, too slow</option>
+          <option value="2" ${investmentConfidence === '2' ? 'selected' : ''}>+2: Somewhat confident</option>
+          <option value="3" ${investmentConfidence === '3' ? 'selected' : ''}>+3: Pretty confident, on track</option>
+          <option value="4" ${investmentConfidence === '4' ? 'selected' : ''}>+4: Very confident, solid plan</option>
+          <option value="5" ${investmentConfidence === '5' ? 'selected' : ''}>+5: 100% confident in reaching goals</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Q42. What is your stress level around investments? *</label>
+        <select name="investmentStress" required>
+          <option value="">Select a response</option>
+          <option value="-5" ${investmentStress === '-5' ? 'selected' : ''}>-5: Constant anxiety, afraid to invest or afraid of losses</option>
+          <option value="-4" ${investmentStress === '-4' ? 'selected' : ''}>-4: High stress about investment decisions</option>
+          <option value="-3" ${investmentStress === '-3' ? 'selected' : ''}>-3: Significant worry about performance or lack of investments</option>
+          <option value="-2" ${investmentStress === '-2' ? 'selected' : ''}>-2: Regular concern about investment strategy</option>
+          <option value="-1" ${investmentStress === '-1' ? 'selected' : ''}>-1: Occasional worry</option>
+          <option value="1" ${investmentStress === '1' ? 'selected' : ''}>+1: Generally comfortable with investments</option>
+          <option value="2" ${investmentStress === '2' ? 'selected' : ''}>+2: Mostly confident in approach</option>
+          <option value="3" ${investmentStress === '3' ? 'selected' : ''}>+3: Confident in investment decisions</option>
+          <option value="4" ${investmentStress === '4' ? 'selected' : ''}>+4: Very confident, minimal stress</option>
+          <option value="5" ${investmentStress === '5' ? 'selected' : ''}>+5: Zero stress, trust the process, long-term mindset</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Q43. List your main investment types *</label>
+        <p class="muted" style="font-size: 13px; margin-bottom: 10px;">List your investment types separated by commas. Include approximate amounts if comfortable.</p>
+        <p class="muted" style="font-size: 12px; margin-bottom: 10px; font-style: italic;">Example: 401k ($50k), Roth IRA ($25k), taxable brokerage ($15k), rental property, index funds, individual stocks, cryptocurrency</p>
+        <textarea name="investmentTypes" rows="4" required placeholder="List your main investment types here...">${investmentTypes}</textarea>
+      </div>
+
+      <!-- Retirement Questions -->
+      <h3 style="margin-top: 40px;">Retirement</h3>
+
+      <div class="form-group">
+        <label class="form-label">Q44. What retirement accounts do you maintain? *</label>
+        <select name="retirementAccounts" required>
+          <option value="">Select a response</option>
+          <option value="-5" ${retirementAccounts === '-5' ? 'selected' : ''}>-5: No retirement accounts, no plan</option>
+          <option value="-4" ${retirementAccounts === '-4' ? 'selected' : ''}>-4: Aware I should, but nothing started</option>
+          <option value="-3" ${retirementAccounts === '-3' ? 'selected' : ''}>-3: One account, someone else manages, don't track</option>
+          <option value="-2" ${retirementAccounts === '-2' ? 'selected' : ''}>-2: One account, rarely review</option>
+          <option value="-1" ${retirementAccounts === '-1' ? 'selected' : ''}>-1: One account, sporadic contributions</option>
+          <option value="1" ${retirementAccounts === '1' ? 'selected' : ''}>+1: One account, regular contributions</option>
+          <option value="2" ${retirementAccounts === '2' ? 'selected' : ''}>+2: Multiple accounts, managing myself</option>
+          <option value="3" ${retirementAccounts === '3' ? 'selected' : ''}>+3: Multiple accounts, strategic approach</option>
+          <option value="4" ${retirementAccounts === '4' ? 'selected' : ''}>+4: Optimizing multiple account types</option>
+          <option value="5" ${retirementAccounts === '5' ? 'selected' : ''}>+5: Maximized all available (401k, IRA, HSA, etc.)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Q45. How regularly and fully do you fund retirement accounts? *</label>
+        <select name="retirementFunding" required>
+          <option value="">Select a response</option>
+          <option value="-5" ${retirementFunding === '-5' ? 'selected' : ''}>-5: Never fund, no contributions</option>
+          <option value="-4" ${retirementFunding === '-4' ? 'selected' : ''}>-4: Contributed a few times total, stopped</option>
+          <option value="-3" ${retirementFunding === '-3' ? 'selected' : ''}>-3: Very rarely, sporadic</option>
+          <option value="-2" ${retirementFunding === '-2' ? 'selected' : ''}>-2: Occasionally, well below capacity</option>
+          <option value="-1" ${retirementFunding === '-1' ? 'selected' : ''}>-1: Inconsistent, partial contributions</option>
+          <option value="1" ${retirementFunding === '1' ? 'selected' : ''}>+1: Regular but not fully funding</option>
+          <option value="2" ${retirementFunding === '2' ? 'selected' : ''}>+2: Regular, funding to employer match</option>
+          <option value="3" ${retirementFunding === '3' ? 'selected' : ''}>+3: Regular, beyond employer match</option>
+          <option value="4" ${retirementFunding === '4' ? 'selected' : ''}>+4: Automatic, near-maximum contributions</option>
+          <option value="5" ${retirementFunding === '5' ? 'selected' : ''}>+5: Automatic, maxed out all accounts</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Q46. How confident are you in your retirement strategy? *</label>
+        <select name="retirementConfidence" required>
+          <option value="">Select a response</option>
+          <option value="-5" ${retirementConfidence === '-5' ? 'selected' : ''}>-5: No confidence, expect to work forever</option>
+          <option value="-4" ${retirementConfidence === '-4' ? 'selected' : ''}>-4: Very low confidence, major anxiety</option>
+          <option value="-3" ${retirementConfidence === '-3' ? 'selected' : ''}>-3: Hoping for luck or inheritance</option>
+          <option value="-2" ${retirementConfidence === '-2' ? 'selected' : ''}>-2: Uncertain, worried</option>
+          <option value="-1" ${retirementConfidence === '-1' ? 'selected' : ''}>-1: Trying but unsure if it's enough</option>
+          <option value="1" ${retirementConfidence === '1' ? 'selected' : ''}>+1: Slow progress, long road ahead</option>
+          <option value="2" ${retirementConfidence === '2' ? 'selected' : ''}>+2: Decent progress, need to do more</option>
+          <option value="3" ${retirementConfidence === '3' ? 'selected' : ''}>+3: Pretty sure I'll get there</option>
+          <option value="4" ${retirementConfidence === '4' ? 'selected' : ''}>+4: Very confident, on solid track</option>
+          <option value="5" ${retirementConfidence === '5' ? 'selected' : ''}>+5: 100% confident, retirement secured</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Q47. What is your stress level around retirement preparedness? *</label>
+        <select name="retirementStress" required>
+          <option value="">Select a response</option>
+          <option value="-5" ${retirementStress === '-5' ? 'selected' : ''}>-5: Constant anxiety, fear of working forever or poverty in old age</option>
+          <option value="-4" ${retirementStress === '-4' ? 'selected' : ''}>-4: High stress about retirement security</option>
+          <option value="-3" ${retirementStress === '-3' ? 'selected' : ''}>-3: Significant worry about retirement readiness</option>
+          <option value="-2" ${retirementStress === '-2' ? 'selected' : ''}>-2: Regular concern about retirement preparation</option>
+          <option value="-1" ${retirementStress === '-1' ? 'selected' : ''}>-1: Occasional worry</option>
+          <option value="1" ${retirementStress === '1' ? 'selected' : ''}>+1: Generally hopeful about retirement</option>
+          <option value="2" ${retirementStress === '2' ? 'selected' : ''}>+2: Mostly confident in retirement trajectory</option>
+          <option value="3" ${retirementStress === '3' ? 'selected' : ''}>+3: Confident in retirement plan</option>
+          <option value="4" ${retirementStress === '4' ? 'selected' : ''}>+4: Very confident, on track</option>
+          <option value="5" ${retirementStress === '5' ? 'selected' : ''}>+5: Zero stress, retirement secured, clear path</option>
         </select>
       </div>
     `;
