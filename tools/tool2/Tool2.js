@@ -27,12 +27,12 @@ const Tool2 = {
     const clearDraft = params.clearDraft === 'true' || params.clearDraft === true;
 
     // Execute actions on page 1 AFTER navigation completes (with user gesture)
-    // NOTE: We do NOT call loadResponseForEditing() here anymore
-    // It's already called from the dashboard/report before navigation
-    // Calling it twice creates duplicate EDIT_DRAFTs!
+    // Call loadResponseForEditing to create EDIT_DRAFT from COMPLETED response
+    // This happens AFTER navigation so we preserve user gesture (no iframe errors)
 
     if (editMode && page === 1) {
-      Logger.log(`Edit mode detected for ${clientId} - EDIT_DRAFT should already exist`);
+      Logger.log(`Edit mode detected for ${clientId} - creating EDIT_DRAFT`);
+      DataService.loadResponseForEditing(clientId, 'tool2');
     }
 
     if (clearDraft && page === 1) {
