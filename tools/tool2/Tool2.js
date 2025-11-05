@@ -387,29 +387,97 @@ const Tool2 = {
   },
 
   /**
-   * PAGE 2: PLACEHOLDER - Financial Clarity Continued
-   * TODO: Add more Financial Clarity questions
+   * PAGE 2: Money Flow Domain - Income Section
+   * Q14-Q18: Income clarity and stress
    */
   renderPage2Content(data, clientId) {
-    return `
-      <h2>📊 Financial Clarity - Part 2</h2>
-      <p class="muted mb-20">Continuing financial perspective assessment</p>
+    // Extract existing data with defaults
+    const incomeClarity = data.incomeClarity || '';
+    const incomeSufficiency = data.incomeSufficiency || '';
+    const incomeConsistency = data.incomeConsistency || '';
+    const incomeStress = data.incomeStress || '';
+    const incomeSources = data.incomeSources || '';
 
-      <div class="insight-box" style="background: #fff8e1; border-left: 4px solid #f59e0b;">
-        <p><strong>📝 Content Placeholder</strong></p>
-        <p>Tomorrow: Add more Financial Clarity questions</p>
+    return `
+      <h2>💰 Money Flow Domain - Income</h2>
+      <p class="muted mb-20">Understanding your income awareness and stress levels (5 questions)</p>
+
+      <!-- Income Clarity Questions -->
+      <h3 style="margin-top: 30px;">Income Clarity</h3>
+
+      <div class="form-group">
+        <label class="form-label">Q14. What level of clarity do you hold on your income? *</label>
+        <select name="incomeClarity" required>
+          <option value="">Select a response</option>
+          <option value="-5" ${incomeClarity === '-5' ? 'selected' : ''}>-5: Never pay attention, completely avoid it</option>
+          <option value="-4" ${incomeClarity === '-4' ? 'selected' : ''}>-4: Rarely look, high avoidance</option>
+          <option value="-3" ${incomeClarity === '-3' ? 'selected' : ''}>-3: Only look when there's a problem</option>
+          <option value="-2" ${incomeClarity === '-2' ? 'selected' : ''}>-2: Occasional awareness, no structure</option>
+          <option value="-1" ${incomeClarity === '-1' ? 'selected' : ''}>-1: Check if there's enough, but no tracking</option>
+          <option value="1" ${incomeClarity === '1' ? 'selected' : ''}>+1: Monthly review, somewhat organized</option>
+          <option value="2" ${incomeClarity === '2' ? 'selected' : ''}>+2: Organized, reviewed regularly</option>
+          <option value="3" ${incomeClarity === '3' ? 'selected' : ''}>+3: Structured, assessed monthly</option>
+          <option value="4" ${incomeClarity === '4' ? 'selected' : ''}>+4: Crystal clear, forecasting</option>
+          <option value="5" ${incomeClarity === '5' ? 'selected' : ''}>+5: Optimized tracking, strategic planning</option>
+        </select>
       </div>
 
       <div class="form-group">
-        <label class="form-label">Sample Question 3 *</label>
-        <select name="fc_q3" required>
+        <label class="form-label">Q15. How sufficient is your current income? *</label>
+        <select name="incomeSufficiency" required>
           <option value="">Select a response</option>
-          <option value="1">Strongly Disagree</option>
-          <option value="2">Disagree</option>
-          <option value="3">Neutral</option>
-          <option value="4">Agree</option>
-          <option value="5">Strongly Agree</option>
+          <option value="-5" ${incomeSufficiency === '-5' ? 'selected' : ''}>-5: Completely insufficient for basic needs</option>
+          <option value="-4" ${incomeSufficiency === '-4' ? 'selected' : ''}>-4: Severely insufficient</option>
+          <option value="-3" ${incomeSufficiency === '-3' ? 'selected' : ''}>-3: Covers some needs, not all</option>
+          <option value="-2" ${incomeSufficiency === '-2' ? 'selected' : ''}>-2: Barely covers basic needs</option>
+          <option value="-1" ${incomeSufficiency === '-1' ? 'selected' : ''}>-1: Covers needs, no flexibility</option>
+          <option value="1" ${incomeSufficiency === '1' ? 'selected' : ''}>+1: Covers needs and basic wants</option>
+          <option value="2" ${incomeSufficiency === '2' ? 'selected' : ''}>+2: Comfortable, some saving</option>
+          <option value="3" ${incomeSufficiency === '3' ? 'selected' : ''}>+3: Covers needs, wants, building savings</option>
+          <option value="4" ${incomeSufficiency === '4' ? 'selected' : ''}>+4: More than sufficient, strong savings</option>
+          <option value="5" ${incomeSufficiency === '5' ? 'selected' : ''}>+5: Abundant, building wealth</option>
         </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Q16. How consistent is your monthly income? *</label>
+        <select name="incomeConsistency" required>
+          <option value="">Select a response</option>
+          <option value="-5" ${incomeConsistency === '-5' ? 'selected' : ''}>-5: Completely unpredictable, causes crisis</option>
+          <option value="-4" ${incomeConsistency === '-4' ? 'selected' : ''}>-4: Highly variable, major stress</option>
+          <option value="-3" ${incomeConsistency === '-3' ? 'selected' : ''}>-3: Variable and inconsistent, stressful</option>
+          <option value="-2" ${incomeConsistency === '-2' ? 'selected' : ''}>-2: Inconsistent, difficult to plan</option>
+          <option value="-1" ${incomeConsistency === '-1' ? 'selected' : ''}>-1: Variable but usually sufficient</option>
+          <option value="1" ${incomeConsistency === '1' ? 'selected' : ''}>+1: Relatively consistent, manageable</option>
+          <option value="2" ${incomeConsistency === '2' ? 'selected' : ''}>+2: Consistent with minor variations</option>
+          <option value="3" ${incomeConsistency === '3' ? 'selected' : ''}>+3: Very consistent, reliable</option>
+          <option value="4" ${incomeConsistency === '4' ? 'selected' : ''}>+4: Stable with predictable variations</option>
+          <option value="5" ${incomeConsistency === '5' ? 'selected' : ''}>+5: Perfectly stable, always excess</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Q17. What is your stress level around income? *</label>
+        <select name="incomeStress" required>
+          <option value="">Select a response</option>
+          <option value="-5" ${incomeStress === '-5' ? 'selected' : ''}>-5: Constant anxiety and fear about income</option>
+          <option value="-4" ${incomeStress === '-4' ? 'selected' : ''}>-4: High stress most of the time</option>
+          <option value="-3" ${incomeStress === '-3' ? 'selected' : ''}>-3: Frequently stressed and worried</option>
+          <option value="-2" ${incomeStress === '-2' ? 'selected' : ''}>-2: Regular stress about income</option>
+          <option value="-1" ${incomeStress === '-1' ? 'selected' : ''}>-1: Occasional worry</option>
+          <option value="1" ${incomeStress === '1' ? 'selected' : ''}>+1: Generally calm about income</option>
+          <option value="2" ${incomeStress === '2' ? 'selected' : ''}>+2: Mostly confident</option>
+          <option value="3" ${incomeStress === '3' ? 'selected' : ''}>+3: Confident and calm</option>
+          <option value="4" ${incomeStress === '4' ? 'selected' : ''}>+4: Very confident, minimal stress</option>
+          <option value="5" ${incomeStress === '5' ? 'selected' : ''}>+5: Zero stress, complete confidence in income</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Q18. List your income sources *</label>
+        <p class="muted" style="font-size: 13px; margin-bottom: 10px;">List each source of income separated by commas. Include employment, self-employment, side hustles, rental income, investments, etc.</p>
+        <p class="muted" style="font-size: 12px; margin-bottom: 10px; font-style: italic;">Example: Salary from ABC Corp, rental property income, freelance consulting, dividend income</p>
+        <textarea name="incomeSources" rows="4" required placeholder="List your income sources here...">${incomeSources}</textarea>
       </div>
     `;
   },
