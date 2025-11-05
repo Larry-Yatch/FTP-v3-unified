@@ -316,6 +316,216 @@ function generateTool1PDF(clientId) {
 }
 
 /**
+ * Generate PDF for Tool 2 Financial Clarity Report
+ * @param {string} clientId - Client ID
+ * @returns {object} {success, pdf, fileName, mimeType} or {success: false, error}
+ */
+function generateTool2PDF(clientId) {
+  try {
+    // Get results
+    const results = Tool2Report.getResults(clientId);
+    if (!results) {
+      return { success: false, error: 'No results found' };
+    }
+
+    // Extract data
+    const studentName = results.formData?.name || 'Student';
+    const domainScores = results.results?.domainScores || {};
+    const archetype = results.results?.archetype || 'Financial Clarity Seeker';
+    const priorityList = results.results?.priorityList || [];
+    const gptInsights = results.gptInsights || {};
+    const overallInsight = results.overallInsight || {};
+
+    // Helper to format domain scores as percentages
+    const formatScore = (score) => Math.round(score) + '%';
+
+    // Helper to format GPT insights section
+    const formatInsightCard = (title, insight) => {
+      if (!insight || !insight.pattern) return '';
+
+      const sourceLabel = insight.source === 'fallback' ? '📋 General Guidance' : '✨ Personalized';
+
+      return `
+        <div style="background: #f9f9f9; border-left: 4px solid #ad9168; padding: 20px; margin: 20px 0; page-break-inside: avoid;">
+          <div style="text-align: right; font-size: 12px; color: #666; margin-bottom: 10px;">${sourceLabel}</div>
+          <h3 style="color: #ad9168; margin-bottom: 15px;">${title}</h3>
+          <div style="margin: 15px 0;">
+            <strong style="color: #ad9168; text-transform: uppercase; font-size: 12px;">Pattern:</strong>
+            <p style="margin: 5px 0;">${insight.pattern}</p>
+          </div>
+          <div style="margin: 15px 0;">
+            <strong style="color: #ad9168; text-transform: uppercase; font-size: 12px;">Insight:</strong>
+            <p style="margin: 5px 0;">${insight.insight}</p>
+          </div>
+          <div style="background: #fff8e1; padding: 15px; margin: 15px 0; border-left: 3px solid #ad9168;">
+            <strong style="color: #ad9168; text-transform: uppercase; font-size: 12px;">Next Step:</strong>
+            <p style="margin: 5px 0; font-weight: 600;">${insight.action}</p>
+          </div>
+        </div>
+      `;
+    };
+
+    // Build HTML for PDF
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          body { font-family: Arial, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; line-height: 1.6; color: #333; }
+          h1 { color: #1e192b; border-bottom: 3px solid #ad9168; padding-bottom: 10px; margin-bottom: 5px; }
+          h2 { color: #ad9168; margin-top: 30px; margin-bottom: 15px; page-break-after: avoid; }
+          h3 { color: #4b4166; margin-top: 20px; }
+          p { margin: 10px 0; }
+          ul, ol { margin: 15px 0 15px 25px; }
+          li { margin: 8px 0; }
+          .header { text-align: center; margin-bottom: 30px; }
+          .intro { background: #f5f5f5; padding: 20px; border-left: 4px solid #ad9168; margin: 20px 0; }
+          .domain-card { background: #f9f9f9; padding: 20px; margin: 15px 0; border-radius: 8px; border-left: 4px solid #ad9168; page-break-inside: avoid; }
+          .score-value { font-size: 32px; font-weight: 700; color: #ad9168; }
+          .archetype-box { background: linear-gradient(135deg, #1e192b 0%, #4b4166 100%); color: white; padding: 30px; text-align: center; margin: 30px 0; border-radius: 10px; page-break-inside: avoid; }
+          .archetype-icon { font-size: 48px; margin-bottom: 15px; }
+          .archetype-name { font-size: 24px; font-weight: 700; margin-bottom: 10px; }
+          .priority-item { background: #f9f9f9; padding: 15px; margin: 10px 0; border-left: 4px solid #ad9168; }
+          .footer { margin-top: 40px; padding-top: 20px; border-top: 2px solid #ad9168; font-size: 14px; color: #666; text-align: center; }
+          @media print {
+            body { padding: 20px; }
+            .page-break { page-break-before: always; }
+          }
+        </style>
+      </head>
+      <body>
+        <!-- Header -->
+        <div class="header">
+          <h1>TruPath Financial</h1>
+          <h2 style="margin-top: 0;">Financial Clarity & Values Assessment Report</h2>
+          <p><strong>${studentName}</strong></p>
+          <p>${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+        </div>
+
+        <!-- Intro -->
+        <div class="intro">
+          <p>Thank you for completing the Financial Clarity & Values Assessment with TruPath. This report provides insight into your current financial clarity across five key domains, helping you understand where you're thriving and where focused attention could create the most impact.</p>
+        </div>
+
+        <!-- Growth Archetype -->
+        <div class="archetype-box">
+          <div class="archetype-icon">🎯</div>
+          <div class="archetype-name">${archetype}</div>
+          <p style="font-size: 16px; line-height: 1.6;">${Tool2Report.getArchetypeDescription(archetype)}</p>
+        </div>
+
+        <!-- Domain Scores -->
+        <h2>Your Financial Clarity Scores</h2>
+        <p>These scores reflect your clarity and confidence across five financial domains. Higher scores indicate stronger clarity, while lower scores suggest areas where focused attention could be beneficial.</p>
+
+        <div class="domain-card">
+          <h3>💰 Money Flow</h3>
+          <div class="score-value">${formatScore(domainScores.moneyFlow || 0)}</div>
+          <p>Understanding of income sources, spending patterns, and cash flow management.</p>
+        </div>
+
+        <div class="domain-card">
+          <h3>📊 Obligations</h3>
+          <div class="score-value">${formatScore(domainScores.obligations || 0)}</div>
+          <p>Clarity about debt, repayment strategies, and emergency fund preparedness.</p>
+        </div>
+
+        <div class="domain-card">
+          <h3>💧 Liquidity</h3>
+          <div class="score-value">${formatScore(domainScores.liquidity || 0)}</div>
+          <p>Awareness of available cash, accessibility, and short-term financial flexibility.</p>
+        </div>
+
+        <div class="domain-card">
+          <h3>📈 Growth</h3>
+          <div class="score-value">${formatScore(domainScores.growth || 0)}</div>
+          <p>Understanding of savings, investments, and long-term wealth-building strategies.</p>
+        </div>
+
+        <div class="domain-card">
+          <h3>🛡️ Protection</h3>
+          <div class="score-value">${formatScore(domainScores.protection || 0)}</div>
+          <p>Awareness of insurance coverage and risk management strategies.</p>
+        </div>
+
+        <!-- Priority Focus Areas -->
+        <div class="page-break"></div>
+        <h2>Priority Focus Areas</h2>
+        <p>Based on stress-weighted analysis, here are your domains ranked by potential impact:</p>
+        ${priorityList.map((item, idx) => `
+          <div class="priority-item">
+            <strong>${idx + 1}. ${item.domain}</strong> - ${formatScore(item.score)}
+            <p style="margin: 5px 0; font-size: 14px; color: #666;">Focus on this area for ${item.tier} impact</p>
+          </div>
+        `).join('')}
+
+        <!-- Overall GPT Insights -->
+        ${overallInsight.overview ? `
+          <div class="page-break"></div>
+          <h2>Your Financial Clarity Journey</h2>
+          ${overallInsight.overview.split('\n\n').map(p => `<p>${p}</p>`).join('')}
+
+          ${overallInsight.topPatterns ? `
+            <h3>Key Patterns</h3>
+            <ul>
+              ${overallInsight.topPatterns.split('\n').filter(line => line.trim().startsWith('-')).map(line => `<li>${line.substring(1).trim()}</li>`).join('')}
+            </ul>
+          ` : ''}
+
+          ${overallInsight.priorityActions ? `
+            <h3>Your Next Steps</h3>
+            <ol>
+              ${overallInsight.priorityActions.split('\n').filter(line => /^\d+\./.test(line.trim())).map(line => `<li>${line.replace(/^\d+\.\s*/, '').trim()}</li>`).join('')}
+            </ol>
+          ` : ''}
+        ` : ''}
+
+        <!-- Detailed GPT Insights -->
+        ${Object.keys(gptInsights).length > 0 ? `
+          <div class="page-break"></div>
+          <h2>Personalized Insights</h2>
+          ${gptInsights.income_sources ? formatInsightCard('💰 Income Sources', gptInsights.income_sources) : ''}
+          ${gptInsights.major_expenses ? formatInsightCard('📊 Major Expenses', gptInsights.major_expenses) : ''}
+          ${gptInsights.wasteful_spending ? formatInsightCard('🎯 Spending Patterns', gptInsights.wasteful_spending) : ''}
+          ${gptInsights.debt_list ? formatInsightCard('📉 Debt Management', gptInsights.debt_list) : ''}
+          ${gptInsights.investments ? formatInsightCard('📈 Investment Strategy', gptInsights.investments) : ''}
+          ${gptInsights.emotions ? formatInsightCard('💭 Emotional Relationship with Money', gptInsights.emotions) : ''}
+          ${gptInsights.adaptive_trauma ? formatInsightCard('🌱 Growth Opportunities', gptInsights.adaptive_trauma) : ''}
+        ` : ''}
+
+        <!-- Footer -->
+        <div class="footer">
+          <p>This assessment is the beginning of your financial clarity journey. Use these insights to guide conversations with your financial advisor and to set priorities for improving your financial confidence and well-being.</p>
+          <p style="margin-top: 20px;"><strong>TruPath Financial</strong><br>Generated: ${new Date().toLocaleDateString()}</p>
+        </div>
+      </body>
+      </html>
+    `;
+
+    // Create blob and convert to PDF
+    const blob = Utilities.newBlob(htmlContent, 'text/html', 'report.html');
+    const pdf = blob.getAs('application/pdf');
+    const base64 = Utilities.base64Encode(pdf.getBytes());
+    const fileName = `TruPath_FinancialClarity_${studentName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+
+    return {
+      success: true,
+      pdf: base64,
+      fileName: fileName,
+      mimeType: 'application/pdf'
+    };
+
+  } catch (error) {
+    Logger.log(`Error generating Tool 2 PDF: ${error}`);
+    return {
+      success: false,
+      error: error.toString()
+    };
+  }
+}
+
+/**
  * GENERIC: Save tool page data (called from client via google.script.run)
  * Works for ANY tool that implements savePageData()
  *

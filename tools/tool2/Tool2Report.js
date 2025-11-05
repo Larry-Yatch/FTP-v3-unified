@@ -226,9 +226,38 @@ const Tool2Report = {
             }
 
             function downloadPDF() {
-              alert('PDF download will be implemented in Step 12. For now, use your browser\\'s Print function (Ctrl/Cmd + P) and select "Save as PDF".');
-              // TODO: Implement in Step 12
-              // google.script.run.generateTool2PDF(clientId);
+              const btn = event.target;
+              btn.disabled = true;
+              btn.textContent = 'Generating PDF...';
+              document.getElementById('loadingOverlay').style.display = 'flex';
+
+              google.script.run
+                .withSuccessHandler(function(result) {
+                  if (result.success) {
+                    // Create download link
+                    const link = document.createElement('a');
+                    link.href = 'data:application/pdf;base64,' + result.pdf;
+                    link.download = result.fileName;
+                    link.click();
+
+                    btn.disabled = false;
+                    btn.textContent = '📥 Download PDF Report';
+                    document.getElementById('loadingOverlay').style.display = 'none';
+                    alert('PDF downloaded successfully!');
+                  } else {
+                    alert('Error generating PDF: ' + result.error);
+                    btn.disabled = false;
+                    btn.textContent = '📥 Download PDF Report';
+                    document.getElementById('loadingOverlay').style.display = 'none';
+                  }
+                })
+                .withFailureHandler(function(error) {
+                  alert('Error: ' + error.message);
+                  btn.disabled = false;
+                  btn.textContent = '📥 Download PDF Report';
+                  document.getElementById('loadingOverlay').style.display = 'none';
+                })
+                .generateTool2PDF(clientId);
             }
 
             function backToDashboard() {
