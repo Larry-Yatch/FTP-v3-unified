@@ -1167,9 +1167,25 @@ const Tool2 = {
       <script>
         function goBackToPage4(clientId) {
           showLoading('Loading Page 4');
-          const baseUrl = '${ScriptApp.getService().getUrl()}';
-          const url = baseUrl + '?route=tool2&client=' + clientId + '&page=4';
-          window.location.href = url;
+
+          // Use document.write() pattern (no white flash!)
+          google.script.run
+            .withSuccessHandler(function(pageHtml) {
+              if (pageHtml) {
+                document.open();
+                document.write(pageHtml);
+                document.close();
+              } else {
+                hideLoading();
+                alert('Error loading Page 4');
+              }
+            })
+            .withFailureHandler(function(error) {
+              hideLoading();
+              console.error('Navigation error:', error);
+              alert('Error loading Page 4: ' + error.message);
+            })
+            .getToolPageHtml('tool2', clientId, 4);
         }
       </script>
     `;

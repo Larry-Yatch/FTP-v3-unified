@@ -507,6 +507,44 @@ function getReportPage(clientId, toolId) {
 }
 
 /**
+ * Get specific tool page HTML (for back/forward navigation without white flash)
+ * @param {string} toolId - Tool identifier (e.g., 'tool2')
+ * @param {string} clientId - Client ID
+ * @param {number} page - Page number to load
+ * @returns {string} Tool page HTML
+ */
+function getToolPageHtml(toolId, clientId, page) {
+  try {
+    registerTools();
+
+    // Create fake request object for router
+    const fakeRequest = {
+      parameter: {
+        route: toolId,
+        client: clientId,
+        page: page.toString()
+      }
+    };
+
+    // Get page HTML from router
+    const pageOutput = Router.route(fakeRequest);
+    return pageOutput.getContent();
+
+  } catch (error) {
+    Logger.log(`Error getting ${toolId} page ${page}: ${error}`);
+    return `
+      <html>
+      <body style="background: #1e192b; color: white; font-family: sans-serif; padding: 40px;">
+        <h1>Error Loading Page</h1>
+        <p>${error.toString()}</p>
+        <a href="${ScriptApp.getService().getUrl()}?route=dashboard&client=${clientId}" style="color: #ad9168;">Back to Dashboard</a>
+      </body>
+      </html>
+    `;
+  }
+}
+
+/**
  * OPTIMIZED: Authenticate and get dashboard in one call (faster login)
  * @param {string} clientId - Student ID
  * @returns {Object} Result with dashboard HTML or error
