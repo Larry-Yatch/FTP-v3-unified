@@ -329,12 +329,13 @@ const Tool1Report = {
 
               google.script.run
                 .withSuccessHandler(function(result) {
-                  if (result.success) {
+                  if (result && result.success) {
                     // Use window.top to break out of document.write() chain
-                    window.top.location.href = baseUrl + '?route=tool1&client=' + clientId + '&page=1';
+                    // CRITICAL: Add editMode=true to trigger edit mode in Tool1.render()
+                    window.top.location.href = baseUrl + '?route=tool1&client=' + clientId + '&page=1&editMode=true';
                   } else {
                     hideLoading();
-                    alert('Error loading response: ' + result.error);
+                    alert('Error loading response: ' + (result ? result.error : 'No response'));
                   }
                 })
                 .withFailureHandler(function(error) {

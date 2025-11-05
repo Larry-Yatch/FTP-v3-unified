@@ -536,24 +536,38 @@ const Tool1 = {
    */
   getExistingData(clientId) {
     try {
+      let data = null;
+
       // First check if there's an EDIT_DRAFT in RESPONSES sheet
       if (typeof DataService !== 'undefined') {
         const activeDraft = DataService.getActiveDraft(clientId, 'tool1');
 
         if (activeDraft && (activeDraft.status === 'EDIT_DRAFT' || activeDraft.status === 'DRAFT')) {
           Logger.log(`Found active draft with status: ${activeDraft.status}`);
-          return activeDraft.data;
+          data = activeDraft.data;
         }
       }
 
-      // Fallback to PropertiesService (legacy draft system)
+      // CRITICAL: Also check PropertiesService and merge (for page 5 data in edit mode)
+      // When editing, page 5 data gets saved to PropertiesService but EDIT_DRAFT is in RESPONSES
       const userProperties = PropertiesService.getUserProperties();
       const draftKey = `tool1_draft_${clientId}`;
-      const draftData = userProperties.getProperty(draftKey);
+      const propData = userProperties.getProperty(draftKey);
 
-      if (draftData) {
-        return JSON.parse(draftData);
+      if (propData) {
+        const parsedPropData = JSON.parse(propData);
+
+        if (data) {
+          // Merge: PropertiesService data takes precedence (has latest page 5 data)
+          Logger.log(`Merging PropertiesService data with EDIT_DRAFT`);
+          data = { ...data, ...parsedPropData };
+        } else {
+          // No EDIT_DRAFT, use PropertiesService data
+          data = parsedPropData;
+        }
       }
+
+      return data;
     } catch (error) {
       Logger.log(`Error getting existing data: ${error}`);
     }
@@ -579,11 +593,18 @@ const Tool1 = {
 
       Logger.log(`Processing ${isEditMode ? 'edited' : 'new'} submission for ${clientId}`);
 
+      // DIAGNOSTIC: Log allData structure
+      Logger.log(`allData keys: ${JSON.stringify(Object.keys(allData || {}))}`);
+      Logger.log(`allData has thought_fsv? ${!!allData.thought_fsv}`);
+      Logger.log(`allData has feeling_fsv? ${!!allData.feeling_fsv}`);
+
       // Calculate scores
       const scores = this.calculateScores(allData);
+      Logger.log(`Calculated scores: ${JSON.stringify(scores)}`);
 
       // Determine winner
       const winner = this.determineWinner(scores, allData);
+      Logger.log(`Determined winner: ${winner}`);
 
       // Prepare data package
       const dataPackage = {
@@ -591,6 +612,8 @@ const Tool1 = {
         scores: scores,
         winner: winner
       };
+
+      Logger.log(`dataPackage has winner? ${!!dataPackage.winner}, value: ${dataPackage.winner}`);
 
       // Save based on mode
       if (isEditMode && typeof DataService !== 'undefined') {
