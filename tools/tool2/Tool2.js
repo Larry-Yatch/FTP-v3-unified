@@ -1010,36 +1010,138 @@ const Tool2 = {
   },
 
   /**
-   * PAGE 5: Review & Submit
-   * TODO: Add summary of all three sections
+   * PAGE 5: Protection + Psychological + Adaptive
+   * Q48-Q54: Protection and psychological base questions (no adaptive yet)
    */
   renderPage5Content(data, clientId) {
+    // Extract existing data with defaults
+    const insurancePolicies = data.insurancePolicies || '';
+    const insuranceClarity = data.insuranceClarity || '';
+    const insuranceConfidence = data.insuranceConfidence || '';
+    const insuranceStress = data.insuranceStress || '';
+    const financialEmotions = data.financialEmotions || '';
+    const primaryObstacle = data.primaryObstacle || '';
+    const goalConfidence = data.goalConfidence || '';
+
     return `
-      <h2>📋 Review & Submit</h2>
-      <p class="muted mb-20">Please review your responses and submit when ready.</p>
+      <h2>🛡️ Protection + Psychological</h2>
+      <p class="muted mb-20">Understanding your insurance protection and financial psychology (7 questions)</p>
 
-      <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
-        <h3 style="margin-top: 0;">Assessment Summary</h3>
+      <!-- Insurance Protection Questions -->
+      <h3 style="margin-top: 30px;">Insurance Protection</h3>
 
-        <div style="margin: 15px 0;">
-          <strong>📊 Financial Clarity:</strong> ${this.countSectionQuestions(data, 'fc')} questions completed
-        </div>
-
-        <div style="margin: 15px 0;">
-          <strong>🎭 False Self:</strong> ${this.countSectionQuestions(data, 'fs')} questions completed
-        </div>
-
-        <div style="margin: 15px 0;">
-          <strong>⭐ External Validation:</strong> ${this.countSectionQuestions(data, 'ev')} questions completed
-        </div>
+      <div class="form-group">
+        <label class="form-label">Q48. What insurance policies do you maintain? *</label>
+        <select name="insurancePolicies" required>
+          <option value="">Select a response</option>
+          <option value="-5" ${insurancePolicies === '-5' ? 'selected' : ''}>-5: None, even required by law</option>
+          <option value="-4" ${insurancePolicies === '-4' ? 'selected' : ''}>-4: Only what's absolutely forced (car if have one)</option>
+          <option value="-3" ${insurancePolicies === '-3' ? 'selected' : ''}>-3: Only legally required, minimal coverage</option>
+          <option value="-2" ${insurancePolicies === '-2' ? 'selected' : ''}>-2: Required policies, basic coverage levels</option>
+          <option value="-1" ${insurancePolicies === '-1' ? 'selected' : ''}>-1: Required policies, appropriate levels</option>
+          <option value="1" ${insurancePolicies === '1' ? 'selected' : ''}>+1: All necessary, sufficient coverage</option>
+          <option value="2" ${insurancePolicies === '2' ? 'selected' : ''}>+2: Necessary plus some supplemental</option>
+          <option value="3" ${insurancePolicies === '3' ? 'selected' : ''}>+3: Comprehensive coverage (includes disability, umbrella)</option>
+          <option value="4" ${insurancePolicies === '4' ? 'selected' : ''}>+4: Sophisticated coverage, wealth protection</option>
+          <option value="5" ${insurancePolicies === '5' ? 'selected' : ''}>+5: Optimized insurance strategy, family wealth planning</option>
+        </select>
       </div>
 
-      <div class="insight-box" style="background: #dcfce7; border-left: 4px solid #16a34a;">
-        <p><strong>✅ Ready to Submit</strong></p>
-        <p>Your comprehensive assessment will generate a detailed report with personalized insights.</p>
+      <div class="form-group">
+        <label class="form-label">Q49. What level of clarity do you have on your coverage? *</label>
+        <select name="insuranceClarity" required>
+          <option value="">Select a response</option>
+          <option value="-5" ${insuranceClarity === '-5' ? 'selected' : ''}>-5: No idea what I have or need</option>
+          <option value="-4" ${insuranceClarity === '-4' ? 'selected' : ''}>-4: Know I have "insurance," nothing else</option>
+          <option value="-3" ${insuranceClarity === '-3' ? 'selected' : ''}>-3: Know I have it, don't know details</option>
+          <option value="-2" ${insuranceClarity === '-2' ? 'selected' : ''}>-2: Know basic coverage types</option>
+          <option value="-1" ${insuranceClarity === '-1' ? 'selected' : ''}>-1: Know coverage amounts</option>
+          <option value="1" ${insuranceClarity === '1' ? 'selected' : ''}>+1: Know coverage and deductibles</option>
+          <option value="2" ${insuranceClarity === '2' ? 'selected' : ''}>+2: Know coverage, deductibles, exclusions</option>
+          <option value="3" ${insuranceClarity === '3' ? 'selected' : ''}>+3: Understand all policy details</option>
+          <option value="4" ${insuranceClarity === '4' ? 'selected' : ''}>+4: Regularly review and optimize</option>
+          <option value="5" ${insuranceClarity === '5' ? 'selected' : ''}>+5: Complete clarity, strategically designed</option>
+        </select>
       </div>
 
-      <p class="muted">Click Submit to complete your assessment and view your report.</p>
+      <div class="form-group">
+        <label class="form-label">Q50. How confident are you in your insurance protection? *</label>
+        <select name="insuranceConfidence" required>
+          <option value="">Select a response</option>
+          <option value="-5" ${insuranceConfidence === '-5' ? 'selected' : ''}>-5: No confidence, will be ruined if something happens</option>
+          <option value="-4" ${insuranceConfidence === '-4' ? 'selected' : ''}>-4: Very worried, major gaps</option>
+          <option value="-3" ${insuranceConfidence === '-3' ? 'selected' : ''}>-3: Little confidence, likely underinsured</option>
+          <option value="-2" ${insuranceConfidence === '-2' ? 'selected' : ''}>-2: Uncertain, might be okay</option>
+          <option value="-1" ${insuranceConfidence === '-1' ? 'selected' : ''}>-1: Hope I'm covered</option>
+          <option value="1" ${insuranceConfidence === '1' ? 'selected' : ''}>+1: Probably okay for normal events</option>
+          <option value="2" ${insuranceConfidence === '2' ? 'selected' : ''}>+2: Generally confident</option>
+          <option value="3" ${insuranceConfidence === '3' ? 'selected' : ''}>+3: Covered for most problems</option>
+          <option value="4" ${insuranceConfidence === '4' ? 'selected' : ''}>+4: Very confident, well-protected</option>
+          <option value="5" ${insuranceConfidence === '5' ? 'selected' : ''}>+5: 100% confident for any situation</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Q51. What is your stress level around insurance and protection? *</label>
+        <select name="insuranceStress" required>
+          <option value="">Select a response</option>
+          <option value="-5" ${insuranceStress === '-5' ? 'selected' : ''}>-5: Constant fear about catastrophic uninsured events</option>
+          <option value="-4" ${insuranceStress === '-4' ? 'selected' : ''}>-4: High anxiety about lack of protection</option>
+          <option value="-3" ${insuranceStress === '-3' ? 'selected' : ''}>-3: Significant worry about coverage gaps</option>
+          <option value="-2" ${insuranceStress === '-2' ? 'selected' : ''}>-2: Regular concern about insurance adequacy</option>
+          <option value="-1" ${insuranceStress === '-1' ? 'selected' : ''}>-1: Occasional worry</option>
+          <option value="1" ${insuranceStress === '1' ? 'selected' : ''}>+1: Generally feel protected</option>
+          <option value="2" ${insuranceStress === '2' ? 'selected' : ''}>+2: Mostly confident in coverage</option>
+          <option value="3" ${insuranceStress === '3' ? 'selected' : ''}>+3: Confident in protection strategy</option>
+          <option value="4" ${insuranceStress === '4' ? 'selected' : ''}>+4: Very confident, well-insured</option>
+          <option value="5" ${insuranceStress === '5' ? 'selected' : ''}>+5: Zero stress, comprehensive protection, secure</option>
+        </select>
+      </div>
+
+      <!-- Psychological Clarity Section -->
+      <h3 style="margin-top: 40px;">Psychological Clarity</h3>
+
+      <div class="form-group">
+        <label class="form-label">Q52. What emotions arise when you think about reviewing your finances? *</label>
+        <p class="muted" style="font-size: 13px; margin-bottom: 10px;">Be honest about the emotions that come up. There are no wrong answers.</p>
+        <p class="muted" style="font-size: 12px; margin-bottom: 10px; font-style: italic;">Example: Anxiety, guilt, fear, shame, excitement, confidence, overwhelm, dread, hope, paralysis, empowerment, avoidance, etc.</p>
+        <textarea name="financialEmotions" rows="4" required placeholder="Describe the emotions you feel...">${financialEmotions}</textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Q53. What is your PRIMARY obstacle to gaining financial clarity? *</label>
+        <select name="primaryObstacle" required>
+          <option value="">Select your primary obstacle</option>
+          <option value="lack-of-time" ${primaryObstacle === 'lack-of-time' ? 'selected' : ''}>Lack of time / too busy</option>
+          <option value="overwhelming-complexity" ${primaryObstacle === 'overwhelming-complexity' ? 'selected' : ''}>Overwhelming complexity, don't know where to start</option>
+          <option value="emotional-avoidance" ${primaryObstacle === 'emotional-avoidance' ? 'selected' : ''}>Emotional avoidance (fear, shame, anxiety)</option>
+          <option value="lack-of-knowledge" ${primaryObstacle === 'lack-of-knowledge' ? 'selected' : ''}>Lack of knowledge or skills</option>
+          <option value="inconsistent-income" ${primaryObstacle === 'inconsistent-income' ? 'selected' : ''}>Inconsistent income makes planning impossible</option>
+          <option value="too-much-debt" ${primaryObstacle === 'too-much-debt' ? 'selected' : ''}>Too much debt to face</option>
+          <option value="past-trauma" ${primaryObstacle === 'past-trauma' ? 'selected' : ''}>Past financial trauma or mistakes</option>
+          <option value="dont-trust-myself" ${primaryObstacle === 'dont-trust-myself' ? 'selected' : ''}>Don't trust myself with money</option>
+          <option value="fear-of-discovery" ${primaryObstacle === 'fear-of-discovery' ? 'selected' : ''}>Fear of what I'll discover</option>
+          <option value="partner-resistance" ${primaryObstacle === 'partner-resistance' ? 'selected' : ''}>Partner/spouse doesn't want to discuss it</option>
+          <option value="other" ${primaryObstacle === 'other' ? 'selected' : ''}>Other</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Q54. How confident are you in achieving your financial goals? *</label>
+        <select name="goalConfidence" required>
+          <option value="">Select a response</option>
+          <option value="-5" ${goalConfidence === '-5' ? 'selected' : ''}>-5: No chance, feels completely impossible</option>
+          <option value="-4" ${goalConfidence === '-4' ? 'selected' : ''}>-4: Extremely unlikely</option>
+          <option value="-3" ${goalConfidence === '-3' ? 'selected' : ''}>-3: Long shot, probably won't happen</option>
+          <option value="-2" ${goalConfidence === '-2' ? 'selected' : ''}>-2: Unlikely without major changes</option>
+          <option value="-1" ${goalConfidence === '-1' ? 'selected' : ''}>-1: Possible but unlikely</option>
+          <option value="1" ${goalConfidence === '1' ? 'selected' : ''}>+1: Maybe, if things go right</option>
+          <option value="2" ${goalConfidence === '2' ? 'selected' : ''}>+2: Decent chance</option>
+          <option value="3" ${goalConfidence === '3' ? 'selected' : ''}>+3: Probably will get there</option>
+          <option value="4" ${goalConfidence === '4' ? 'selected' : ''}>+4: Very likely, on track</option>
+          <option value="5" ${goalConfidence === '5' ? 'selected' : ''}>+5: 100% certain, will absolutely achieve them</option>
+        </select>
+      </div>
     `;
   },
 
