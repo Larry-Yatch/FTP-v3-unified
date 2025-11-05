@@ -1310,26 +1310,12 @@ const Tool2 = {
 
           const responseData = JSON.parse(data[i][responseCol]);
 
-          // Extract trauma scores from Tool 1
-          const traumaScores = {
-            FSV: Math.abs(parseFloat(responseData.fsvScore) || 0),
-            Control: Math.abs(parseFloat(responseData.controlScore) || 0),
-            ExVal: Math.abs(parseFloat(responseData.exValScore) || 0),
-            Fear: Math.abs(parseFloat(responseData.fearScore) || 0),
-            Receiving: Math.abs(parseFloat(responseData.receivingScore) || 0),
-            Showing: Math.abs(parseFloat(responseData.showingScore) || 0)
-          };
-
-          // Find top trauma (highest absolute score)
-          let topTrauma = 'FSV';
-          let maxScore = traumaScores.FSV;
-
-          for (const [trauma, score] of Object.entries(traumaScores)) {
-            if (score > maxScore) {
-              maxScore = score;
-              topTrauma = trauma;
-            }
-          }
+          // Extract trauma scores and winner from Tool 1
+          // Tool1 saves data as: {formData: {...}, scores: {...}, winner: "..."}
+          const traumaScores = responseData.scores || {};
+          const topTrauma = responseData.winner || 'FSV';
+          
+          Logger.log(`Tool1 data found for ${clientId} - Winner: ${topTrauma}, Scores: ${JSON.stringify(traumaScores)}`);
 
           return { topTrauma, traumaScores };
         }
