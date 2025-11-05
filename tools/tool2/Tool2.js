@@ -574,8 +574,8 @@ const Tool2 = {
   },
 
   /**
-   * PAGE 3: Obligations Domain - Debt Section
-   * Q25-Q29: Debt clarity and stress
+   * PAGE 3: Obligations Domain - Debt & Emergency Fund
+   * Q25-Q34: Debt and emergency fund clarity and stress
    */
   renderPage3Content(data, clientId) {
     // Extract existing data with defaults
@@ -584,10 +584,15 @@ const Tool2 = {
     const debtReview = data.debtReview || '';
     const debtStress = data.debtStress || '';
     const currentDebts = data.currentDebts || '';
+    const emergencyFundMaintenance = data.emergencyFundMaintenance || '';
+    const emergencyFundMonths = data.emergencyFundMonths || '';
+    const emergencyFundFrequency = data.emergencyFundFrequency || '';
+    const emergencyFundReplenishment = data.emergencyFundReplenishment || '';
+    const emergencyFundStress = data.emergencyFundStress || '';
 
     return `
-      <h2>⚖️ Obligations Domain - Debt Position</h2>
-      <p class="muted mb-20">Understanding your debt awareness and stress levels (5 questions)</p>
+      <h2>⚖️ Obligations Domain</h2>
+      <p class="muted mb-20">Understanding your debt and emergency fund awareness (10 questions)</p>
 
       <!-- Debt Clarity Questions -->
       <h3 style="margin-top: 30px;">Debt Position</h3>
@@ -665,6 +670,94 @@ const Tool2 = {
         <p class="muted" style="font-size: 13px; margin-bottom: 10px;">List each debt type separated by commas. Include approximate amounts if comfortable.</p>
         <p class="muted" style="font-size: 12px; margin-bottom: 10px; font-style: italic;">Example: Credit card ($8,000), student loans ($35,000), car loan ($12,000), personal loan ($5,000), medical debt ($2,500)</p>
         <textarea name="currentDebts" rows="4" required placeholder="List your current debts here...">${currentDebts}</textarea>
+      </div>
+
+      <!-- Emergency Fund Questions -->
+      <h3 style="margin-top: 40px;">Emergency Fund</h3>
+
+      <div class="form-group">
+        <label class="form-label">Q30. Do you maintain a separate emergency fund? *</label>
+        <select name="emergencyFundMaintenance" required>
+          <option value="">Select a response</option>
+          <option value="-5" ${emergencyFundMaintenance === '-5' ? 'selected' : ''}>-5: No fund, no awareness, no plan</option>
+          <option value="-4" ${emergencyFundMaintenance === '-4' ? 'selected' : ''}>-4: Aware I should, but nothing set aside</option>
+          <option value="-3" ${emergencyFundMaintenance === '-3' ? 'selected' : ''}>-3: Mental number, not actually separate</option>
+          <option value="-2" ${emergencyFundMaintenance === '-2' ? 'selected' : ''}>-2: Track amount within checking, not separate</option>
+          <option value="-1" ${emergencyFundMaintenance === '-1' ? 'selected' : ''}>-1: Separate tracking, same account</option>
+          <option value="1" ${emergencyFundMaintenance === '1' ? 'selected' : ''}>+1: Separate account, access it frequently</option>
+          <option value="2" ${emergencyFundMaintenance === '2' ? 'selected' : ''}>+2: Separate account, occasional access</option>
+          <option value="3" ${emergencyFundMaintenance === '3' ? 'selected' : ''}>+3: Separate account, rare access</option>
+          <option value="4" ${emergencyFundMaintenance === '4' ? 'selected' : ''}>+4: Separate account, only real emergencies</option>
+          <option value="5" ${emergencyFundMaintenance === '5' ? 'selected' : ''}>+5: Fully funded, sacred, untouchable except true crisis</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Q31. How many months of expenses does your emergency fund cover? *</label>
+        <select name="emergencyFundMonths" required>
+          <option value="">Select a response</option>
+          <option value="-5" ${emergencyFundMonths === '-5' ? 'selected' : ''}>-5: Zero months, no fund</option>
+          <option value="-4" ${emergencyFundMonths === '-4' ? 'selected' : ''}>-4: Less than 2 weeks</option>
+          <option value="-3" ${emergencyFundMonths === '-3' ? 'selected' : ''}>-3: Less than 1 month</option>
+          <option value="-2" ${emergencyFundMonths === '-2' ? 'selected' : ''}>-2: 1 month</option>
+          <option value="-1" ${emergencyFundMonths === '-1' ? 'selected' : ''}>-1: 1-2 months</option>
+          <option value="1" ${emergencyFundMonths === '1' ? 'selected' : ''}>+1: 2-3 months</option>
+          <option value="2" ${emergencyFundMonths === '2' ? 'selected' : ''}>+2: 3-4 months</option>
+          <option value="3" ${emergencyFundMonths === '3' ? 'selected' : ''}>+3: 4-6 months</option>
+          <option value="4" ${emergencyFundMonths === '4' ? 'selected' : ''}>+4: 6-9 months</option>
+          <option value="5" ${emergencyFundMonths === '5' ? 'selected' : ''}>+5: 9+ months</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Q32. How often do you tap into your emergency fund? *</label>
+        <select name="emergencyFundFrequency" required>
+          <option value="">Select a response</option>
+          <option value="-5" ${emergencyFundFrequency === '-5' ? 'selected' : ''}>-5: Multiple times per month (not emergencies)</option>
+          <option value="-4" ${emergencyFundFrequency === '-4' ? 'selected' : ''}>-4: Weekly or bi-weekly</option>
+          <option value="-3" ${emergencyFundFrequency === '-3' ? 'selected' : ''}>-3: Monthly</option>
+          <option value="-2" ${emergencyFundFrequency === '-2' ? 'selected' : ''}>-2: Every other month</option>
+          <option value="-1" ${emergencyFundFrequency === '-1' ? 'selected' : ''}>-1: Every few months</option>
+          <option value="1" ${emergencyFundFrequency === '1' ? 'selected' : ''}>+1: Quarterly</option>
+          <option value="2" ${emergencyFundFrequency === '2' ? 'selected' : ''}>+2: 2-3 times per year</option>
+          <option value="3" ${emergencyFundFrequency === '3' ? 'selected' : ''}>+3: Once per year</option>
+          <option value="4" ${emergencyFundFrequency === '4' ? 'selected' : ''}>+4: Every few years</option>
+          <option value="5" ${emergencyFundFrequency === '5' ? 'selected' : ''}>+5: Rarely or never (truly only emergencies)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Q33. How quickly can you replenish your emergency fund after use? *</label>
+        <select name="emergencyFundReplenishment" required>
+          <option value="">Select a response</option>
+          <option value="-5" ${emergencyFundReplenishment === '-5' ? 'selected' : ''}>-5: Cannot replenish, goes deeper in debt</option>
+          <option value="-4" ${emergencyFundReplenishment === '-4' ? 'selected' : ''}>-4: Many months, very painful</option>
+          <option value="-3" ${emergencyFundReplenishment === '-3' ? 'selected' : ''}>-3: Several months, difficult</option>
+          <option value="-2" ${emergencyFundReplenishment === '-2' ? 'selected' : ''}>-2: 2-3 months, challenging</option>
+          <option value="-1" ${emergencyFundReplenishment === '-1' ? 'selected' : ''}>-1: 1-2 months, manageable</option>
+          <option value="1" ${emergencyFundReplenishment === '1' ? 'selected' : ''}>+1: 3-4 weeks</option>
+          <option value="2" ${emergencyFundReplenishment === '2' ? 'selected' : ''}>+2: 2-3 weeks</option>
+          <option value="3" ${emergencyFundReplenishment === '3' ? 'selected' : ''}>+3: 1-2 weeks</option>
+          <option value="4" ${emergencyFundReplenishment === '4' ? 'selected' : ''}>+4: Within days</option>
+          <option value="5" ${emergencyFundReplenishment === '5' ? 'selected' : ''}>+5: Immediately or single paycheck</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Q34. What is your stress level around emergency preparedness? *</label>
+        <select name="emergencyFundStress" required>
+          <option value="">Select a response</option>
+          <option value="-5" ${emergencyFundStress === '-5' ? 'selected' : ''}>-5: Constant fear, paralyzing anxiety about unexpected expenses</option>
+          <option value="-4" ${emergencyFundStress === '-4' ? 'selected' : ''}>-4: High anxiety, frequently worried</option>
+          <option value="-3" ${emergencyFundStress === '-3' ? 'selected' : ''}>-3: Significant worry about "what if" scenarios</option>
+          <option value="-2" ${emergencyFundStress === '-2' ? 'selected' : ''}>-2: Regular concern about preparedness</option>
+          <option value="-1" ${emergencyFundStress === '-1' ? 'selected' : ''}>-1: Occasional worry</option>
+          <option value="1" ${emergencyFundStress === '1' ? 'selected' : ''}>+1: Somewhat confident</option>
+          <option value="2" ${emergencyFundStress === '2' ? 'selected' : ''}>+2: Generally prepared</option>
+          <option value="3" ${emergencyFundStress === '3' ? 'selected' : ''}>+3: Feel prepared for most situations</option>
+          <option value="4" ${emergencyFundStress === '4' ? 'selected' : ''}>+4: Very confident, well-prepared</option>
+          <option value="5" ${emergencyFundStress === '5' ? 'selected' : ''}>+5: Complete confidence, zero fear, rock-solid security</option>
+        </select>
       </div>
     `;
   },
