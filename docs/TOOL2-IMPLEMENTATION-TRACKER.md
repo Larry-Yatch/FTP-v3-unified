@@ -650,6 +650,59 @@
 
 ---
 
+### **Bug Fix @91 (v3.7.5): Edit Mode Data Priority Wrong**
+**Date:** November 5, 2025
+**Commit:** `9c114d3`
+**Severity:** Critical
+
+**Symptom:** In edit mode, changed answers on any page would submit correctly, but RESPONSES sheet would show old (original) answers instead of new (edited) answers.
+
+**Root Cause:** In `Tool2.js` function `getExistingData()` (lines 1533-1559), data priority was backwards:
+1. **First:** Checked RESPONSES sheet EDIT_DRAFT (contained initial/old data from when edit started)
+2. **Second:** Checked PropertiesService (contained live page changes as user edited)
+
+Since EDIT_DRAFT was found first, it returned immediately with old data, never checking PropertiesService where the live changes were stored.
+
+**Data Flow Problem:**
+```
+User clicks "Edit Answers" → EDIT_DRAFT created with original data ✅
+User changes Page 1 answers → Saved to PropertiesService ✅
+User submits → getExistingData() checked EDIT_DRAFT first → returned original data ❌
+Final submission → Saved original data, not edited data ❌
+```
+
+**Fix:** Reversed the priority order in `getExistingData()`:
+```javascript
+// FIRST: Check PropertiesService (has live page changes)
+const userProperties = PropertiesService.getUserProperties();
+const draftKey = `tool2_draft_${clientId}`;
+const draftData = userProperties.getProperty(draftKey);
+
+if (draftData) {
+  Logger.log(`Found PropertiesService draft (live page data)`);
+  return JSON.parse(draftData);
+}
+
+// FALLBACK: Check for active draft from ResponseManager (EDIT_DRAFT or DRAFT)
+// This is used when first loading edit mode, before any page changes
+if (typeof DataService !== 'undefined') {
+  const activeDraft = DataService.getActiveDraft(clientId, 'tool2');
+  if (activeDraft && (activeDraft.status === 'EDIT_DRAFT' || activeDraft.status === 'DRAFT')) {
+    Logger.log(`Found active draft (initial data)`);
+    return activeDraft.data;
+  }
+}
+```
+
+**Result:** PropertiesService (live changes) now takes priority over EDIT_DRAFT (initial snapshot). Edit mode saves correctly! ✅
+
+**Important Pattern:** This pattern applies to ALL tools with edit mode:
+- **PropertiesService = live session data** (changes as user edits pages)
+- **EDIT_DRAFT = initial snapshot** (copied from COMPLETED when edit started)
+- **Priority must be: Live data first, snapshot second**
+
+---
+
 ## ⏳ Phase 2e: GPT Integration (NOT STARTED)
 
 It's very important that before we move on to this step, we do a thorough analysis of our legacy GPT calls so we can implement our best practices. 
@@ -738,7 +791,7 @@ Before starting next session:
 ---
 
 **Last Updated:** November 5, 2025 3:00 AM
-**Current Version:** v3.7.4 @89 (Production)
+**Current Version:** v3.7.5 @91 (Production)
 **Current Step:** ✅ **Steps 11-13 Complete - All Critical Bugs Fixed!**
 **Next Action:** User acceptance testing, then Step 14 (GPT integration)
 
@@ -751,18 +804,19 @@ Before starting next session:
 **Phase 2d:** ✅ **REPORT COMPLETE** (835 lines, domain cards, progress bars, archetype display)
 **Phase 2e:** ⏳ **GPT INTEGRATION** (Not started - requires legacy analysis first)
 
-**Production Status:** 🚀 **LIVE at v3.7.4 @89**
+**Production Status:** 🚀 **LIVE at v3.7.5 @91**
 - All 57 questions functional
 - Scoring system operational (normalized -5 to +5 scale)
 - Report displays after submission
-- Edit mode fully functional (data saves correctly)
+- Edit mode fully functional (data priority fixed)
 - Ready for user acceptance testing
 
-**Bug Fixes Applied (v3.7.1 - v3.7.4):**
+**Bug Fixes Applied (v3.7.1 - v3.7.5):**
 1. ✅ @86 v3.7.1: Report rendering (added Tool2Report conditional in Code.js)
 2. ✅ @87 v3.7.2: Score normalization (-5 to +5 → 0-10, fixed negative scores)
 3. ✅ @88 v3.7.3: Edit button iframe error (navigate immediately, preserve user gesture)
-4. ✅ @89 v3.7.4: Edit mode data saving (create EDIT_DRAFT on page load)
+4. ✅ @89 v3.7.4: Edit mode EDIT_DRAFT creation (call loadResponseForEditing on page load)
+5. ✅ @91 v3.7.5: Edit mode data priority (PropertiesService first, EDIT_DRAFT second)
 
 **What's Left:**
 1. ✅ Step 11: Report structure (DONE)

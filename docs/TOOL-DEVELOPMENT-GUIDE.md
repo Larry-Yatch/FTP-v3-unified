@@ -174,30 +174,35 @@ google.script.run
 
 ---
 
-### **5. Check for EDIT_DRAFT in getExistingData()**
+### **5. Correct Data Priority in getExistingData()**
 
-**Updated pattern for ResponseManager compatibility:**
+**CRITICAL:** PropertiesService must be checked FIRST, then EDIT_DRAFT as fallback.
+
+**Updated pattern (v3.7.5+):**
 
 ```javascript
 getExistingData(clientId) {
   try {
-    // FIRST: Check for active draft from ResponseManager
-    if (typeof DataService !== 'undefined') {
-      const activeDraft = DataService.getActiveDraft(clientId, this.id);
-
-      if (activeDraft && (activeDraft.status === 'EDIT_DRAFT' || activeDraft.status === 'DRAFT')) {
-        Logger.log(`Found active draft with status: ${activeDraft.status}`);
-        return activeDraft.data;
-      }
-    }
-
-    // FALLBACK: Legacy PropertiesService (for backward compatibility)
+    // FIRST: Check PropertiesService (has live page changes)
+    // This is temporary session storage that updates as user edits pages
     const userProperties = PropertiesService.getUserProperties();
     const draftKey = `${this.id}_draft_${clientId}`;
     const draftData = userProperties.getProperty(draftKey);
 
     if (draftData) {
+      Logger.log(`Found PropertiesService draft for ${clientId} (live page data)`);
       return JSON.parse(draftData);
+    }
+
+    // FALLBACK: Check for active draft from ResponseManager (EDIT_DRAFT or DRAFT)
+    // This is the initial snapshot when edit mode started, before any page changes
+    if (typeof DataService !== 'undefined') {
+      const activeDraft = DataService.getActiveDraft(clientId, this.id);
+
+      if (activeDraft && (activeDraft.status === 'EDIT_DRAFT' || activeDraft.status === 'DRAFT')) {
+        Logger.log(`Found active draft with status: ${activeDraft.status} (initial data)`);
+        return activeDraft.data;
+      }
     }
   } catch (error) {
     Logger.log(`Error getting existing data: ${error}`);
@@ -206,11 +211,20 @@ getExistingData(clientId) {
 }
 ```
 
-**Why This Matters:**
-- ✅ Supports edit mode (EDIT_DRAFT status)
-- ✅ Supports in-progress drafts (DRAFT status)
-- ✅ Falls back to legacy method if needed
-- ✅ Prevents data loss
+**Why This Order Matters:**
+- ✅ **PropertiesService = live session data** (changes as user edits pages)
+- ✅ **EDIT_DRAFT = initial snapshot** (copied from COMPLETED when edit started)
+- ✅ **Priority must be: Live data first, snapshot second**
+- ❌ **Reversed order = edit changes lost!** (Bug @91)
+
+**Data Flow in Edit Mode:**
+1. User clicks "Edit Answers" → EDIT_DRAFT created with original data
+2. User edits Page 1 → Changes saved to PropertiesService
+3. User clicks "Next" → Changes saved to PropertiesService (cumulative)
+4. User submits → **getExistingData() must return PropertiesService data (live changes)**
+5. Submission saves → PropertiesService data becomes new COMPLETED row
+
+**Bug Fixed:** Deploy @91 (9c114d3) - Reversed priority order to prevent data loss
 
 ---
 
@@ -222,7 +236,7 @@ getExistingData(clientId) {
 | Navigate in async callback | Navigate immediately with URL params |
 | Skip editMode/clearDraft params | Check params in render(), execute on page 1 |
 | Assume result exists | Check `if (!result)` in all handlers |
-| Only check PropertiesService | Check DataService.getActiveDraft() first |
+| Check EDIT_DRAFT first | Check PropertiesService first (live data priority!) |
 | Unlock tools when editing | Check `!isEditMode` before unlock |
 
 ---
@@ -512,27 +526,34 @@ const ToolN = {
 
   /**
    * Get existing data for resume/draft
-   * CRITICAL: Check DataService first for ResponseManager compatibility
+   * CRITICAL: Check PropertiesService FIRST (live page data), EDIT_DRAFT second (initial snapshot)
    */
   getExistingData(clientId) {
     try {
-      // FIRST: Check for active draft from ResponseManager (EDIT_DRAFT or DRAFT)
+      // FIRST: Check PropertiesService (has live page changes)
+      const userProperties = PropertiesService.getUserProperties();
+      const draftKey = `${this.id}_draft_${clientId}`;
+      const draftData = userProperties.getProperty(draftKey);
+
+      if (draftData) {
+        Logger.log(`Found PropertiesService draft for ${clientId} (live page data)`);
+        return JSON.parse(draftData);
+      }
+
+      // FALLBACK: Check for active draft from ResponseManager (EDIT_DRAFT or DRAFT)
+      // This is used when first loading edit mode, before any page changes
       if (typeof DataService !== 'undefined') {
         const activeDraft = DataService.getActiveDraft(clientId, this.id);
 
         if (activeDraft && (activeDraft.status === 'EDIT_DRAFT' || activeDraft.status === 'DRAFT')) {
-          Logger.log(`Found active draft with status: ${activeDraft.status}`);
+          Logger.log(`Found active draft with status: ${activeDraft.status} (initial data)`);
           return activeDraft.data;
         }
       }
-
-      // FALLBACK: Legacy check (for backward compatibility)
-      const response = this.dataService?.getToolResponse(clientId, this.id);
-      return response?.draft || response?.data || {};
     } catch (error) {
       Logger.log(`Error getting existing data: ${error}`);
-      return {};
     }
+    return null;
   },
 
   /**
@@ -1231,28 +1252,30 @@ When building a new tool:
 ### **Implementation Steps:**
 
 #### **Step 1: Update `getExistingData()`**
-Check for EDIT_DRAFT before PropertiesService:
+**CRITICAL:** Check PropertiesService FIRST (live page data), EDIT_DRAFT second (initial snapshot):
 
 ```javascript
 getExistingData(clientId) {
   try {
-    // First check for EDIT_DRAFT from ResponseManager
-    if (typeof DataService !== 'undefined') {
-      const activeDraft = DataService.getActiveDraft(clientId, 'toolN');
-
-      if (activeDraft && (activeDraft.status === 'EDIT_DRAFT' || activeDraft.status === 'DRAFT')) {
-        Logger.log(`Found active draft with status: ${activeDraft.status}`);
-        return activeDraft.data;
-      }
-    }
-
-    // Fallback to PropertiesService (legacy)
+    // FIRST: Check PropertiesService (has live page changes)
     const userProperties = PropertiesService.getUserProperties();
     const draftKey = `toolN_draft_${clientId}`;
     const draftData = userProperties.getProperty(draftKey);
 
     if (draftData) {
+      Logger.log(`Found PropertiesService draft for ${clientId} (live page data)`);
       return JSON.parse(draftData);
+    }
+
+    // FALLBACK: Check for EDIT_DRAFT from ResponseManager
+    // This is used when first loading edit mode, before any page changes
+    if (typeof DataService !== 'undefined') {
+      const activeDraft = DataService.getActiveDraft(clientId, 'toolN');
+
+      if (activeDraft && (activeDraft.status === 'EDIT_DRAFT' || activeDraft.status === 'DRAFT')) {
+        Logger.log(`Found active draft with status: ${activeDraft.status} (initial data)`);
+        return activeDraft.data;
+      }
     }
   } catch (error) {
     Logger.log(`Error getting existing data: ${error}`);
@@ -1260,6 +1283,8 @@ getExistingData(clientId) {
   return null;
 }
 ```
+
+**Why This Order:** PropertiesService contains live changes as user edits pages. EDIT_DRAFT is only the initial snapshot. Always prioritize live data! (Bug Fix @91)
 
 #### **Step 2: Add Edit Banner to `renderPageContent()`**
 Show banner when in edit mode:
