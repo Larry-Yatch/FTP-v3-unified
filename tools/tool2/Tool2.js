@@ -1011,7 +1011,7 @@ const Tool2 = {
 
   /**
    * PAGE 5: Protection + Psychological + Adaptive
-   * Q48-Q54: Protection and psychological base questions (no adaptive yet)
+   * Q48-Q56: Protection, psychological, and trauma-adaptive questions
    */
   renderPage5Content(data, clientId) {
     // Extract existing data with defaults
@@ -1023,9 +1023,17 @@ const Tool2 = {
     const primaryObstacle = data.primaryObstacle || '';
     const goalConfidence = data.goalConfidence || '';
 
+    // Get Tool 1 trauma data to determine adaptive questions
+    const tool1Data = this.getTool1TraumaData(clientId);
+    const topTrauma = tool1Data.topTrauma || 'FSV'; // Default to FSV if no Tool 1 data
+
+    // Extract adaptive question data
+    const adaptiveScale = data.adaptiveScale || '';
+    const adaptiveImpact = data.adaptiveImpact || '';
+
     return `
       <h2>🛡️ Protection + Psychological</h2>
-      <p class="muted mb-20">Understanding your insurance protection and financial psychology (7 questions)</p>
+      <p class="muted mb-20">Understanding your insurance protection and financial psychology (9 questions)</p>
 
       <!-- Insurance Protection Questions -->
       <h3 style="margin-top: 30px;">Insurance Protection</h3>
@@ -1141,6 +1149,198 @@ const Tool2 = {
           <option value="4" ${goalConfidence === '4' ? 'selected' : ''}>+4: Very likely, on track</option>
           <option value="5" ${goalConfidence === '5' ? 'selected' : ''}>+5: 100% certain, will absolutely achieve them</option>
         </select>
+      </div>
+
+      <!-- Adaptive Trauma Questions (Based on Tool 1) -->
+      <h3 style="margin-top: 40px;">Deeper Understanding</h3>
+      <p class="muted" style="font-size: 13px; margin-bottom: 20px;">Based on your Financial Trauma Assessment, these questions help us understand your specific patterns.</p>
+
+      ${this.renderAdaptiveQuestions(topTrauma, adaptiveScale, adaptiveImpact)}
+    `;
+  },
+
+  /**
+   * Helper: Get Tool 1 trauma data to determine top trauma category
+   */
+  getTool1TraumaData(clientId) {
+    try {
+      // Query Tool 1 responses for this client
+      const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName('RESPONSES');
+      const data = sheet.getDataRange().getValues();
+      const headers = data[0];
+
+      // Find Tool 1 response for this client (most recent, Is_Latest = true)
+      const toolIdCol = headers.indexOf('Tool_ID');
+      const clientCol = headers.indexOf('Client_ID');
+      const isLatestCol = headers.indexOf('Is_Latest');
+      const responseCol = headers.indexOf('Response_Data');
+
+      for (let i = data.length - 1; i >= 1; i--) {
+        if (data[i][toolIdCol] === 'tool1' &&
+            data[i][clientCol] === clientId &&
+            data[i][isLatestCol] === true) {
+
+          const responseData = JSON.parse(data[i][responseCol]);
+
+          // Extract trauma scores from Tool 1
+          const traumaScores = {
+            FSV: Math.abs(parseFloat(responseData.fsvScore) || 0),
+            Control: Math.abs(parseFloat(responseData.controlScore) || 0),
+            ExVal: Math.abs(parseFloat(responseData.exValScore) || 0),
+            Fear: Math.abs(parseFloat(responseData.fearScore) || 0),
+            Receiving: Math.abs(parseFloat(responseData.receivingScore) || 0),
+            Showing: Math.abs(parseFloat(responseData.showingScore) || 0)
+          };
+
+          // Find top trauma (highest absolute score)
+          let topTrauma = 'FSV';
+          let maxScore = traumaScores.FSV;
+
+          for (const [trauma, score] of Object.entries(traumaScores)) {
+            if (score > maxScore) {
+              maxScore = score;
+              topTrauma = trauma;
+            }
+          }
+
+          return { topTrauma, traumaScores };
+        }
+      }
+    } catch (e) {
+      Logger.log('Error getting Tool 1 trauma data: ' + e.message);
+    }
+
+    // Default if no Tool 1 data found
+    return { topTrauma: 'FSV', traumaScores: {} };
+  },
+
+  /**
+   * Helper: Render adaptive questions based on top trauma category
+   */
+  renderAdaptiveQuestions(topTrauma, adaptiveScale, adaptiveImpact) {
+    const questions = {
+      FSV: {
+        label: 'Q55. How much do you hide your true financial situation from others?',
+        scale: [
+          '-5: Complete transparency, totally open',
+          '-4: Very honest, rarely hide anything',
+          '-3: Mostly honest, minor omissions',
+          '-2: Some selective sharing',
+          '-1: General honesty, some privacy',
+          '+1: Some hiding to protect my image',
+          '+2: Regular hiding of problems',
+          '+3: Significant hiding, fear judgment',
+          '+4: Major deception, living a financial lie',
+          '+5: Total hiding, no one knows the truth'
+        ],
+        impactLabel: 'Q56. How does hiding your financial situation negatively impact your life?',
+        impactPrompt: 'Reflect on the consequences of not being transparent about your finances. Consider stress, isolation, missed help opportunities, relationship strain, etc.'
+      },
+      Control: {
+        label: 'Q55. How much does lack of financial control create anxiety for you?',
+        scale: [
+          '-5: Zero anxiety, completely comfortable with uncertainty',
+          '-4: Very little anxiety',
+          '-3: Minor discomfort with uncertainty',
+          '-2: Some discomfort',
+          '-1: Occasional anxiety',
+          '+1: Regular mild anxiety',
+          '+2: Frequent anxiety about control',
+          '+3: Significant anxiety, need to control',
+          '+4: Major anxiety, feels unsafe',
+          '+5: Paralyzing fear, losing control = crisis'
+        ],
+        impactLabel: 'Q56. How does your need for financial control negatively impact your life?',
+        impactPrompt: 'Reflect on how controlling tendencies affect you. Consider stress, rigidity, relationship conflicts, missed opportunities, decision paralysis, etc.'
+      },
+      ExVal: {
+        label: 'Q55. How much do others\' opinions about your money affect your financial decisions?',
+        scale: [
+          '-5: Zero influence, completely autonomous',
+          '-4: Very little influence',
+          '-3: Slight awareness, minimal impact',
+          '-2: Some awareness, rare influence',
+          '-1: Occasional influence',
+          '+1: Moderate influence on some decisions',
+          '+2: Regular influence',
+          '+3: Significant influence, hard to resist',
+          '+4: Major influence, drives many decisions',
+          '+5: Completely driven by others\' opinions'
+        ],
+        impactLabel: 'Q56. How does seeking external validation around money negatively impact your life?',
+        impactPrompt: 'Reflect on how others\' opinions shape your financial choices. Consider overspending, status seeking, hiding problems, authentic self suppression, etc.'
+      },
+      Fear: {
+        label: 'Q55. How much does financial fear paralyze your decision-making?',
+        scale: [
+          '-5: Never paralyzed, always take action',
+          '-4: Rarely hesitate, action-oriented',
+          '-3: Occasionally pause, but move forward',
+          '-2: Sometimes hesitate briefly',
+          '-1: Minor hesitation, usually overcome it',
+          '+1: Sometimes freeze, delay decisions',
+          '+2: Frequently hesitate, slow to act',
+          '+3: Often paralyzed, hard to move forward',
+          '+4: Usually frozen, rarely take action',
+          '+5: Constantly paralyzed, can\'t make decisions'
+        ],
+        impactLabel: 'Q56. How does financial fear negatively impact your life?',
+        impactPrompt: 'Reflect on how fear holds you back financially. Consider missed opportunities, avoidance, inaction, relationship strain, lost time, etc.'
+      },
+      Receiving: {
+        label: 'Q55. How comfortable are you receiving help or support around money?',
+        scale: [
+          '-5: Extremely uncomfortable, refuse all help',
+          '-4: Very uncomfortable, major resistance',
+          '-3: Uncomfortable, prefer to do it alone',
+          '-2: Uncomfortable but open if necessary',
+          '-1: Slightly uncomfortable receiving help',
+          '+1: Neutral, can accept if offered',
+          '+2: Generally comfortable',
+          '+3: Comfortable, willing to ask',
+          '+4: Very comfortable, seek support',
+          '+5: Completely comfortable, embrace collaboration'
+        ],
+        impactLabel: 'Q56. How does difficulty receiving help around money negatively impact your life?',
+        impactPrompt: 'Reflect on how resistance to receiving affects you financially. Consider isolation, struggling alone, pride, missed guidance, slower progress, etc.'
+      },
+      Showing: {
+        label: 'Q55. How much do you sacrifice your financial security to serve or help others?',
+        scale: [
+          '-5: Never sacrifice, always prioritize my needs',
+          '-4: Rarely sacrifice',
+          '-3: Occasionally help, within limits',
+          '-2: Sometimes give, protect myself',
+          '-1: Balance helping with self-care',
+          '+1: Often help others, sometimes at my expense',
+          '+2: Regularly sacrifice for others',
+          '+3: Frequently sacrifice, even when I shouldn\'t',
+          '+4: Almost always put others first',
+          '+5: Always sacrifice my security for others'
+        ],
+        impactLabel: 'Q56. How does over-serving others financially negatively impact your life?',
+        impactPrompt: 'Reflect on the cost of prioritizing others over your financial health. Consider resentment, depletion, inability to meet own goals, enablement, etc.'
+      }
+    };
+
+    const q = questions[topTrauma] || questions.FSV;
+
+    return `
+      <div class="form-group">
+        <label class="form-label">${q.label} *</label>
+        <select name="adaptiveScale" required>
+          <option value="">Select a response</option>
+          ${q.scale.map((option, idx) => {
+            const value = idx < 5 ? (-5 + idx) : (idx - 4);
+            return `<option value="${value}" ${adaptiveScale == value ? 'selected' : ''}>${option}</option>`;
+          }).join('\n          ')}
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">${q.impactLabel} *</label>
+        <p class="muted" style="font-size: 13px; margin-bottom: 10px;">${q.impactPrompt}</p>
+        <textarea name="adaptiveImpact" rows="4" required placeholder="Share your thoughts...">${adaptiveImpact}</textarea>
       </div>
     `;
   },
