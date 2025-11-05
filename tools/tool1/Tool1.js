@@ -21,10 +21,12 @@ const Tool1 = {
     const clearDraft = params.clearDraft === 'true' || params.clearDraft === true;
 
     // Execute actions on page load (after navigation completes with user gesture)
+    // NOTE: We do NOT call loadResponseForEditing() here anymore
+    // It's already called from the report page before navigation
+    // Calling it twice creates duplicate EDIT_DRAFTs!
+
     if (editMode && page === 1) {
-      // Load response for editing
-      Logger.log(`Edit mode triggered for ${clientId}`);
-      DataService.loadResponseForEditing(clientId, 'tool1');
+      Logger.log(`Edit mode detected for ${clientId} - EDIT_DRAFT should already exist`);
     }
 
     if (clearDraft && page === 1) {
