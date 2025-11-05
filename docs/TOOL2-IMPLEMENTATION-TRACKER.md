@@ -278,22 +278,24 @@
 
 ---
 
-### **Step 9: Page 5 - Add Adaptive Trauma Questions** ⏳ **NOT STARTED**
+### **Step 9: Page 5 - Add Adaptive Trauma Questions** ✅ **COMPLETE**
 
 **Estimated Time:** 1 hour
-**Status:** ⏳ **NOT STARTED**
+**Status:** ✅ **COMPLETE**
+**Completed:** November 5, 2025
+**Commit:** `602d11c` - feat: Complete Tool 2 - Add Adaptive Trauma Questions (Q55-Q56)
 
 #### Tasks:
-- [ ] Query Tool 1 trauma scores for client
-- [ ] Identify top 1 trauma category (highest absolute value)
-- [ ] Implement conditional rendering for Q55-Q56:
-  - [ ] If FSV: Q55a (hiding) + Q56a (impact of hiding)
-  - [ ] If Control: Q55b (control anxiety) + Q56b (impact)
-  - [ ] If ExVal: Q55c (external influence) + Q56c (impact)
-  - [ ] If Fear: Q55d (paralysis) + Q56d (impact)
-  - [ ] If Receiving: Q55e (discomfort receiving) + Q56e (impact)
-  - [ ] If Showing: Q55f (over-serving) + Q56f (impact)
-- [ ] Store which adaptive questions were shown
+- [x] Query Tool 1 trauma scores for client
+- [x] Identify top 1 trauma category (highest absolute value)
+- [x] Implement conditional rendering for Q55-Q56:
+  - [x] If FSV: Q55a (hiding) + Q56a (impact of hiding)
+  - [x] If Control: Q55b (control anxiety) + Q56b (impact)
+  - [x] If ExVal: Q55c (external influence) + Q56c (impact)
+  - [x] If Fear: Q55d (paralysis) + Q56d (impact)
+  - [x] If Receiving: Q55e (discomfort receiving) + Q56e (impact)
+  - [x] If Showing: Q55f (over-serving) + Q56f (impact)
+- [x] Store which adaptive questions were shown
 
 #### Test Checklist:
 - [ ] Correct trauma questions show based on Tool 1 data
