@@ -1487,6 +1487,158 @@ const Tool2 = {
     return count;
   },
 
+  // ============================================================
+  // GPT BACKGROUND PROCESSING FUNCTIONS (NEW)
+  // ============================================================
+
+  /**
+   * Trigger background GPT analysis for page with free-text responses
+   */
+  triggerBackgroundGPTAnalysis(page, clientId, formData, allData) {
+    const triggers = {
+      2: [
+        {field: 'q18_income_sources', type: 'income_sources'},
+        {field: 'q23_major_expenses', type: 'major_expenses'},
+        {field: 'q24_wasteful_spending', type: 'wasteful_spending'}
+      ],
+      3: [
+        {field: 'q29_debt_list', type: 'debt_list'}
+      ],
+      4: [
+        {field: 'q43_investment_types', type: 'investments'}
+      ],
+      5: [
+        {field: 'q52_emotions', type: 'emotions'},
+        {field: this.getAdaptiveTraumaField(allData), type: 'adaptive_trauma'}
+      ]
+    };
+
+    const pageTriggers = triggers[page] || [];
+
+    pageTriggers.forEach(trigger => {
+      if (formData[trigger.field]) {
+        this.analyzeResponseInBackground(
+          clientId,
+          trigger.type,
+          formData[trigger.field],
+          allData
+        );
+      }
+    });
+  },
+
+  /**
+   * Analyze single response in background (non-blocking)
+   */
+  analyzeResponseInBackground(clientId, responseType, responseText, allData) {
+    try {
+      // CRITICAL: Check if we already have this insight (avoid duplicates on back/forward navigation)
+      const existingInsights = this.getExistingInsights(clientId);
+      if (existingInsights[responseType] && !existingInsights[`${responseType}_error`]) {
+        Logger.log(`✓ Insight already exists for ${responseType}, skipping GPT call`);
+        return;
+      }
+
+      const domainScores = this.getPartialDomainScores(allData);
+
+      const insight = Tool2GPTAnalysis.analyzeResponse({
+        clientId,
+        responseType,
+        responseText,
+        previousInsights: existingInsights,
+        formData: allData,
+        domainScores
+      });
+
+      // Store result in PropertiesService
+      const insightKey = `tool2_gpt_${clientId}`;
+      existingInsights[responseType] = insight;
+      existingInsights[`${responseType}_timestamp`] = new Date().toISOString();
+
+      PropertiesService.getUserProperties().setProperty(
+        insightKey,
+        JSON.stringify(existingInsights)
+      );
+
+      Logger.log(`✅ Background GPT complete: ${clientId} - ${responseType}`);
+
+    } catch (error) {
+      Logger.log(`⚠️ Background GPT failed: ${clientId} - ${responseType}: ${error.message}`);
+
+      // Store error for retry at submission
+      const insightKey = `tool2_gpt_${clientId}`;
+      const existingInsights = this.getExistingInsights(clientId) || {};
+      existingInsights[`${responseType}_error`] = {
+        message: error.message,
+        timestamp: new Date().toISOString()
+      };
+
+      PropertiesService.getUserProperties().setProperty(
+        insightKey,
+        JSON.stringify(existingInsights)
+      );
+    }
+  },
+
+  /**
+   * Get existing GPT insights from PropertiesService
+   */
+  getExistingInsights(clientId) {
+    const insightKey = `tool2_gpt_${clientId}`;
+    const stored = PropertiesService.getUserProperties().getProperty(insightKey);
+    return stored ? JSON.parse(stored) : {};
+  },
+
+  /**
+   * Get partial domain scores (for background analysis before submission)
+   */
+  getPartialDomainScores(formData) {
+    // Return best estimate of domain scores from partial data
+    // These don't have to be perfect - just guide the fallback logic
+    return {
+      moneyFlow: 50,      // Placeholder
+      obligations: 50,
+      liquidity: 50,
+      growth: 50,
+      protection: 50
+    };
+  },
+
+  /**
+   * Get adaptive trauma field name based on Tool 1 data
+   */
+  getAdaptiveTraumaField(formData) {
+    // Detect which Q55/Q56 was shown
+    if (formData.q55a_fsv_hiding) return 'q55a_fsv_hiding';
+    if (formData.q55b_control_anxiety) return 'q55b_control_anxiety';
+    if (formData.q55c_exval_influence) return 'q55c_exval_influence';
+    if (formData.q55d_fear_paralysis) return 'q55d_fear_paralysis';
+    if (formData.q55e_receiving_discomfort) return 'q55e_receiving_discomfort';
+    if (formData.q55f_showing_overserving) return 'q55f_showing_overserving';
+    return 'q55b_control_anxiety';  // Default
+  },
+
+  /**
+   * Get response text for a given insight type
+   */
+  getResponseTextForKey(key, formData) {
+    const mapping = {
+      income_sources: 'q18_income_sources',
+      major_expenses: 'q23_major_expenses',
+      wasteful_spending: 'q24_wasteful_spending',
+      debt_list: 'q29_debt_list',
+      investments: 'q43_investment_types',
+      emotions: 'q52_emotions',
+      adaptive_trauma: this.getAdaptiveTraumaField(formData)
+    };
+
+    return formData[mapping[key]] || '';
+  },
+
+  // ============================================================
+  // END GPT BACKGROUND PROCESSING FUNCTIONS
+  // ============================================================
+
   /**
    * REQUIRED: Save page data (called by saveToolPageData in Code.js)
    * Stores draft in PropertiesService for auto-resume
@@ -1520,6 +1672,10 @@ const Tool2 = {
       userProperties.setProperty(draftKey, JSON.stringify(draftData));
 
       Logger.log(`Saved tool2 page ${page} data for ${clientId}`);
+
+      // NEW: Trigger background GPT analysis for free-text responses
+      this.triggerBackgroundGPTAnalysis(page, clientId, formData, draftData);
+
     } catch (error) {
       Logger.log(`Error saving page data: ${error}`);
       throw error;
@@ -1577,15 +1733,75 @@ const Tool2 = {
       Logger.log(`Processing ${isEditMode ? 'edited' : 'new'} submission for ${clientId}`);
 
       // Process data (calculate scores, analyze, etc.)
-      // TODO: Implement actual processing logic
       const results = this.processResults(allData);
+
+      // ============================================================
+      // NEW: GPT INSIGHTS PROCESSING
+      // ============================================================
+
+      // Step 1: Retrieve pre-computed GPT insights
+      const gptInsights = this.getExistingInsights(clientId);
+
+      // Step 2: Check for missing or failed insights
+      const requiredInsights = [
+        'income_sources',
+        'major_expenses',
+        'wasteful_spending',
+        'debt_list',
+        'investments',
+        'emotions',
+        'adaptive_trauma'
+      ];
+
+      const missingInsights = requiredInsights.filter(key =>
+        !gptInsights[key] || gptInsights[`${key}_error`]
+      );
+
+      // Step 3: Run missing analyses synchronously (only if needed)
+      if (missingInsights.length > 0) {
+        Logger.log(`⚠️ Missing ${missingInsights.length} insights, running now...`);
+
+        missingInsights.forEach(key => {
+          const responseText = this.getResponseTextForKey(key, allData);
+
+          if (responseText) {
+            const insight = Tool2GPTAnalysis.analyzeResponse({
+              clientId,
+              responseType: key,
+              responseText,
+              previousInsights: gptInsights,
+              formData: allData,
+              domainScores: results.domainScores
+            });
+
+            gptInsights[key] = insight;
+          }
+        });
+      }
+
+      // Step 4: Run final synthesis (1 call, fast with pre-computed insights)
+      const overallInsight = Tool2GPTAnalysis.synthesizeOverall(
+        clientId,
+        gptInsights,
+        results.domainScores
+      );
+
+      // ============================================================
+      // END GPT INSIGHTS PROCESSING
+      // ============================================================
 
       // CRITICAL: Use DataService.saveToolResponse() - handles Is_Latest column
       DataService.saveToolResponse(clientId, 'tool2', {
         data: allData,
         results: results,
+        gptInsights: gptInsights,           // NEW: Include GPT insights
+        overallInsight: overallInsight,     // NEW: Include synthesis
         timestamp: new Date().toISOString()
       });
+
+      // Clean up PropertiesService (NEW)
+      PropertiesService.getUserProperties().deleteProperty(`tool2_draft_${clientId}`);
+      PropertiesService.getUserProperties().deleteProperty(`tool2_gpt_${clientId}`);
 
       // Unlock next tool (only on new submission, not edit)
       if (!isEditMode) {

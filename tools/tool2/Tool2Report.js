@@ -54,16 +54,21 @@ const Tool2Report = {
       const clientIdCol = headers.indexOf('Client_ID');
       const toolIdCol = headers.indexOf('Tool_ID');
       const dataCol = headers.indexOf('Data') !== -1 ? headers.indexOf('Data') : headers.indexOf('Version');
+      const isLatestCol = headers.indexOf('Is_Latest');
 
-      // Find most recent Tool 2 result for this client
+      // Find most recent Tool 2 result for this client (check Is_Latest first)
       for (let i = data.length - 1; i >= 1; i--) {
-        if (data[i][clientIdCol] === clientId && data[i][toolIdCol] === 'tool2') {
+        if (data[i][clientIdCol] === clientId &&
+            data[i][toolIdCol] === 'tool2' &&
+            data[i][isLatestCol] === true) {
           const resultData = JSON.parse(data[i][dataCol]);
           return {
             clientId: clientId,
             results: resultData.results,
             data: resultData.data,
-            formData: resultData.data || resultData.formData // Handle both formats
+            formData: resultData.data || resultData.formData, // Handle both formats
+            gptInsights: resultData.gptInsights || {},        // NEW: Include GPT insights
+            overallInsight: resultData.overallInsight || {}   // NEW: Include synthesis
           };
         }
       }
@@ -87,6 +92,8 @@ const Tool2Report = {
     const benchmarks = results.results?.benchmarks || {};
     const archetype = results.results?.archetype || 'Financial Clarity Seeker';
     const priorityList = results.results?.priorityList || [];
+    const gptInsights = results.gptInsights || {};        // NEW: GPT insights
+    const overallInsight = results.overallInsight || {};  // NEW: Synthesis
 
     return `
       <!DOCTYPE html>
@@ -150,6 +157,12 @@ const Tool2Report = {
               <p>Based on stress-weighted analysis, here are your domains ranked by potential impact:</p>
               ${this.buildPriorityList(priorityList, benchmarks)}
             </div>
+
+            <!-- NEW: Overall GPT Insights -->
+            ${this.buildOverallInsights(overallInsight)}
+
+            <!-- NEW: Detailed GPT Insights by Domain -->
+            ${this.buildDetailedInsights(gptInsights)}
 
             <!-- Footer -->
             <div class="footer-section">
@@ -360,6 +373,131 @@ const Tool2Report = {
 
     return descriptions[archetype] || descriptions['Financial Clarity Seeker'];
   },
+
+  // ============================================================
+  // GPT INSIGHTS DISPLAY FUNCTIONS (NEW)
+  // ============================================================
+
+  /**
+   * Build overall insights section
+   */
+  buildOverallInsights(overallInsight) {
+    if (!overallInsight.overview) return '';
+
+    return `
+      <section class="overall-insights">
+        <h2>Your Financial Clarity Journey</h2>
+
+        <div class="overview">
+          ${this.formatParagraphs(overallInsight.overview)}
+        </div>
+
+        ${overallInsight.topPatterns ? `
+          <div class="top-patterns">
+            <h3>Key Patterns</h3>
+            ${this.formatBulletList(overallInsight.topPatterns)}
+          </div>
+        ` : ''}
+
+        ${overallInsight.priorityActions ? `
+          <div class="priority-actions">
+            <h3>Your Next Steps</h3>
+            ${this.formatNumberedList(overallInsight.priorityActions)}
+          </div>
+        ` : ''}
+      </section>
+    `;
+  },
+
+  /**
+   * Build detailed insights by domain
+   */
+  buildDetailedInsights(gptInsights) {
+    if (Object.keys(gptInsights).length === 0) return '';
+
+    const insightSections = [
+      {key: 'income_sources', title: '💰 Income Sources'},
+      {key: 'major_expenses', title: '📊 Major Expenses'},
+      {key: 'wasteful_spending', title: '🎯 Spending Patterns'},
+      {key: 'debt_list', title: '📉 Debt Management'},
+      {key: 'investments', title: '📈 Investment Strategy'},
+      {key: 'emotions', title: '💭 Emotional Relationship with Money'},
+      {key: 'adaptive_trauma', title: '🌱 Growth Opportunities'}
+    ];
+
+    let html = '<section class="detailed-insights"><h2>Personalized Insights</h2>';
+
+    insightSections.forEach(section => {
+      const insight = gptInsights[section.key];
+      if (insight && insight.pattern) {
+        html += this.buildInsightCard(section.title, insight);
+      }
+    });
+
+    html += '</section>';
+    return html;
+  },
+
+  /**
+   * Build single insight card
+   */
+  buildInsightCard(title, insight) {
+    const sourceTag = insight.source === 'fallback'
+      ? '<span class="source-tag fallback">📋 General Guidance</span>'
+      : '<span class="source-tag gpt">✨ Personalized</span>';
+
+    return `
+      <div class="insight-card">
+        ${sourceTag}
+        <h3>${title}</h3>
+
+        <div class="insight-section">
+          <strong>Pattern:</strong>
+          <p>${insight.pattern}</p>
+        </div>
+
+        <div class="insight-section">
+          <strong>Insight:</strong>
+          <p>${insight.insight}</p>
+        </div>
+
+        <div class="insight-section action">
+          <strong>Next Step:</strong>
+          <p>${insight.action}</p>
+        </div>
+      </div>
+    `;
+  },
+
+  /**
+   * Format paragraphs with proper spacing
+   */
+  formatParagraphs(text) {
+    if (!text) return '';
+    return text.split('\n\n').map(p => `<p>${p}</p>`).join('');
+  },
+
+  /**
+   * Format bullet list
+   */
+  formatBulletList(text) {
+    if (!text) return '';
+    const items = text.split('\n').filter(line => line.trim().startsWith('-'));
+    return '<ul>' + items.map(item => `<li>${item.substring(1).trim()}</li>`).join('') + '</ul>';
+  },
+
+  /**
+   * Format numbered list
+   */
+  formatNumberedList(text) {
+    if (!text) return '';
+    const items = text.split('\n').filter(line => /^\d+\./.test(line.trim()));
+    return '<ol>' + items.map(item => `<li>${item.replace(/^\d+\.\s*/, '').trim()}</li>`).join('') + '</ol>';
+  },
+
+  // ============================================================
+  // END GPT INSIGHTS DISPLAY FUNCTIONS
+  // ============================================================
 
   /**
    * CSS styles for report
@@ -797,6 +935,124 @@ const Tool2Report = {
         40% { content: '.'; }
         60% { content: '..'; }
         80%, 100% { content: '...'; }
+      }
+
+      /* GPT Insights Styling (NEW) */
+      .overall-insights, .detailed-insights {
+        margin: 40px 0;
+        padding: 30px;
+        background: linear-gradient(135deg, rgba(30, 25, 43, 0.4), rgba(30, 25, 43, 0.2));
+        border-radius: 15px;
+        border: 1px solid rgba(173, 145, 104, 0.2);
+      }
+
+      .overall-insights h2, .detailed-insights h2 {
+        color: #ad9168;
+        font-size: 28px;
+        margin-bottom: 20px;
+        font-family: 'Radley', serif;
+      }
+
+      .overview {
+        margin-bottom: 30px;
+        line-height: 1.8;
+      }
+
+      .overview p {
+        margin: 15px 0;
+      }
+
+      .top-patterns, .priority-actions {
+        margin-top: 25px;
+      }
+
+      .top-patterns h3, .priority-actions h3 {
+        color: #ad9168;
+        font-size: 20px;
+        margin-bottom: 15px;
+      }
+
+      .top-patterns ul, .priority-actions ol {
+        margin: 15px 0;
+        padding-left: 25px;
+      }
+
+      .top-patterns li, .priority-actions li {
+        margin: 10px 0;
+        line-height: 1.6;
+      }
+
+      .insight-card {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 12px;
+        padding: 25px;
+        margin: 20px 0;
+        border-left: 4px solid #ad9168;
+        position: relative;
+      }
+
+      .insight-card h3 {
+        color: #fff;
+        font-size: 20px;
+        margin-bottom: 20px;
+        padding-right: 120px;
+      }
+
+      .source-tag {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        font-size: 12px;
+        padding: 6px 12px;
+        border-radius: 12px;
+        background: rgba(173, 145, 104, 0.2);
+        color: #ad9168;
+        font-weight: 500;
+      }
+
+      .source-tag.gpt {
+        background: rgba(76, 175, 80, 0.2);
+        color: #4CAF50;
+      }
+
+      .source-tag.fallback {
+        background: rgba(173, 145, 104, 0.2);
+        color: #ad9168;
+      }
+
+      .insight-section {
+        margin: 15px 0;
+      }
+
+      .insight-section strong {
+        color: #ad9168;
+        display: block;
+        margin-bottom: 8px;
+        font-size: 14px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .insight-section p {
+        line-height: 1.7;
+        color: #e0e0e0;
+      }
+
+      .insight-section.action {
+        background: rgba(173, 145, 104, 0.1);
+        padding: 15px;
+        border-radius: 8px;
+        border-left: 3px solid #ad9168;
+        margin-top: 20px;
+      }
+
+      .insight-section.action strong {
+        color: #ad9168;
+      }
+
+      .insight-section.action p {
+        color: #fff;
+        font-weight: 500;
       }
 
       /* Responsive Design */
