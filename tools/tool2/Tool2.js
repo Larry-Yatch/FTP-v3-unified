@@ -161,42 +161,216 @@ const Tool2 = {
   },
 
   /**
-   * PAGE 1: PLACEHOLDER - Financial Clarity Section
-   * TODO: Implement actual questions from v2 Financial Clarity tool
+   * PAGE 1: Demographics & Mindset Foundation (13 questions)
    */
   renderPage1Content(data, clientId) {
+    // Get Tool 1 data for pre-filling Q1-Q3
+    let tool1Data = null;
+    try {
+      const tool1Response = DataService.getLatestResponse(clientId, 'tool1');
+      if (tool1Response && tool1Response.data) {
+        tool1Data = tool1Response.data;
+      }
+    } catch (e) {
+      Logger.log('Could not load Tool 1 data for pre-fill: ' + e);
+    }
+
+    // Pre-fill values
+    const name = data?.name || tool1Data?.name || '';
+    const email = data?.email || tool1Data?.email || '';
+    const studentId = clientId;
+
+    // Demographics
+    const age = data?.age || '';
+    const marital = data?.marital || '';
+    const dependents = data?.dependents || '';
+    const living = data?.living || '';
+    const employment = data?.employment || '';
+    const incomeStreams = data?.incomeStreams || '';
+    const businessStage = data?.businessStage || '';
+
+    // Mindset
+    const holisticScarcity = data?.holisticScarcity || '';
+    const financialScarcity = data?.financialScarcity || '';
+    const moneyRelationship = data?.moneyRelationship || '';
+
+    // Show business stage conditionally
+    const showBusinessStage = employment === 'self-employed' || employment === 'business-owner';
+
     return `
-      <h2>📊 Financial Clarity Assessment</h2>
-      <p class="muted mb-20">Section 1 of 3: Understanding your financial perspective</p>
+      <h2>📊 Demographics & Mindset Foundation</h2>
+      <p class="muted mb-20">Help us understand your life stage and financial perspective (13 questions)</p>
 
-      <div class="insight-box" style="background: #fff8e1; border-left: 4px solid #f59e0b;">
-        <p><strong>📝 Content Placeholder</strong></p>
-        <p>Tomorrow: Add Financial Clarity questions from v2 tool</p>
+      <!-- Identity (Pre-filled from Tool 1) -->
+      <h3 style="margin-top: 30px;">Identity</h3>
+
+      <div class="form-group">
+        <label class="form-label">First and Last Name *</label>
+        <input type="text" name="name" value="${name}" readonly style="background: #f5f5f5; cursor: not-allowed;">
+        <p class="muted" style="font-size: 12px; margin-top: 5px;">From Tool 1</p>
       </div>
 
       <div class="form-group">
-        <label class="form-label">Sample Question 1 *</label>
-        <select name="fc_q1" required>
-          <option value="">Select a response</option>
-          <option value="1">Strongly Disagree</option>
-          <option value="2">Disagree</option>
-          <option value="3">Neutral</option>
-          <option value="4">Agree</option>
-          <option value="5">Strongly Agree</option>
+        <label class="form-label">Email Address *</label>
+        <input type="email" name="email" value="${email}" readonly style="background: #f5f5f5; cursor: not-allowed;">
+        <p class="muted" style="font-size: 12px; margin-top: 5px;">From Tool 1</p>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Student Identifier *</label>
+        <input type="text" name="studentId" value="${studentId}" readonly style="background: #f5f5f5; cursor: not-allowed;">
+        <p class="muted" style="font-size: 12px; margin-top: 5px;">Your unique ID</p>
+      </div>
+
+      <!-- Life Stage Context -->
+      <h3 style="margin-top: 40px;">Life Stage Context</h3>
+
+      <div class="form-group">
+        <label class="form-label">Q4. What is your age? *</label>
+        <input type="number" name="age" value="${age}" min="18" max="100" required placeholder="Enter your age">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Q5. Marital/Relationship Status *</label>
+        <select name="marital" required>
+          <option value="">Select status</option>
+          <option value="single" ${marital === 'single' ? 'selected' : ''}>Single</option>
+          <option value="dating" ${marital === 'dating' ? 'selected' : ''}>Dating/partnered</option>
+          <option value="married" ${marital === 'married' ? 'selected' : ''}>Married/domestic partnership</option>
+          <option value="divorced" ${marital === 'divorced' ? 'selected' : ''}>Divorced/separated</option>
+          <option value="widowed" ${marital === 'widowed' ? 'selected' : ''}>Widowed</option>
         </select>
       </div>
 
       <div class="form-group">
-        <label class="form-label">Sample Question 2 *</label>
-        <select name="fc_q2" required>
-          <option value="">Select a response</option>
-          <option value="1">Strongly Disagree</option>
-          <option value="2">Disagree</option>
-          <option value="3">Neutral</option>
-          <option value="4">Agree</option>
-          <option value="5">Strongly Agree</option>
+        <label class="form-label">Q6. How many dependents do you have? *</label>
+        <p class="muted" style="font-size: 13px; margin-bottom: 10px;">Count children, elderly parents, or anyone financially dependent on you. Enter 0 if none.</p>
+        <input type="number" name="dependents" value="${dependents}" min="0" max="20" required placeholder="Enter number (0 if none)">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Q7. Living Situation *</label>
+        <select name="living" required>
+          <option value="">Select situation</option>
+          <option value="rent" ${living === 'rent' ? 'selected' : ''}>Rent apartment/house</option>
+          <option value="own-mortgage" ${living === 'own-mortgage' ? 'selected' : ''}>Own home (with mortgage)</option>
+          <option value="own-paid" ${living === 'own-paid' ? 'selected' : ''}>Own home (paid off)</option>
+          <option value="family" ${living === 'family' ? 'selected' : ''}>Living with family/friends (no rent)</option>
         </select>
       </div>
+
+      <!-- Employment & Income Context -->
+      <h3 style="margin-top: 40px;">Employment & Income Context</h3>
+
+      <div class="form-group">
+        <label class="form-label">Q8. Employment Status *</label>
+        <select name="employment" id="employmentSelect" required onchange="toggleBusinessStage()">
+          <option value="">Select status</option>
+          <option value="full-time" ${employment === 'full-time' ? 'selected' : ''}>Full-time employee</option>
+          <option value="part-time" ${employment === 'part-time' ? 'selected' : ''}>Part-time employee</option>
+          <option value="self-employed" ${employment === 'self-employed' ? 'selected' : ''}>Self-employed (solopreneur)</option>
+          <option value="business-owner" ${employment === 'business-owner' ? 'selected' : ''}>Business owner (with employees)</option>
+          <option value="unemployed" ${employment === 'unemployed' ? 'selected' : ''}>Unemployed (seeking work)</option>
+          <option value="retired" ${employment === 'retired' ? 'selected' : ''}>Retired</option>
+          <option value="not-working" ${employment === 'not-working' ? 'selected' : ''}>Not working by choice</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Q9. How many additional income streams do you have beyond your primary source? *</label>
+        <p class="muted" style="font-size: 13px; margin-bottom: 10px;">Enter 0 if you have only one income source. Count side hustles, rental income, dividends, etc.</p>
+        <input type="number" name="incomeStreams" value="${incomeStreams}" min="0" max="10" required placeholder="Enter number (0 if none)">
+      </div>
+
+      <div class="form-group" id="businessStageGroup" style="display: ${showBusinessStage ? 'block' : 'none'};">
+        <label class="form-label">Q10. If Business Owner: Business Stage *</label>
+        <select name="businessStage" id="businessStageSelect">
+          <option value="">Select stage</option>
+          <option value="idea" ${businessStage === 'idea' ? 'selected' : ''}>Idea/planning stage</option>
+          <option value="startup" ${businessStage === 'startup' ? 'selected' : ''}>Startup (0-2 years, pre-revenue)</option>
+          <option value="early" ${businessStage === 'early' ? 'selected' : ''}>Early stage (generating revenue, not profitable)</option>
+          <option value="growth" ${businessStage === 'growth' ? 'selected' : ''}>Growth stage (profitable, scaling)</option>
+          <option value="established" ${businessStage === 'established' ? 'selected' : ''}>Established (stable, predictable)</option>
+        </select>
+      </div>
+
+      <!-- Mindset Baseline -->
+      <h3 style="margin-top: 40px;">Mindset Baseline</h3>
+
+      <div class="form-group">
+        <label class="form-label">Q11. Where do you fall on your holistic scarcity versus abundance mindset? *</label>
+        <p class="muted" style="font-size: 13px; margin-bottom: 10px;">In all domains of your life: love, money, food, friendship, safety</p>
+        <select name="holisticScarcity" required>
+          <option value="">Select a response</option>
+          <option value="-5" ${holisticScarcity === '-5' ? 'selected' : ''}>-5: Full scarcity all the time in all areas of my life</option>
+          <option value="-4" ${holisticScarcity === '-4' ? 'selected' : ''}>-4: Extreme scarcity in most areas</option>
+          <option value="-3" ${holisticScarcity === '-3' ? 'selected' : ''}>-3: Scarcity and fear in most areas</option>
+          <option value="-2" ${holisticScarcity === '-2' ? 'selected' : ''}>-2: Scarcity more often than not</option>
+          <option value="-1" ${holisticScarcity === '-1' ? 'selected' : ''}>-1: Scarcity but I know it is not real</option>
+          <option value="1" ${holisticScarcity === '1' ? 'selected' : ''}>+1: I will be ok</option>
+          <option value="2" ${holisticScarcity === '2' ? 'selected' : ''}>+2: Hopeful, moving toward abundance</option>
+          <option value="3" ${holisticScarcity === '3' ? 'selected' : ''}>+3: Abundance but sometimes I block it</option>
+          <option value="4" ${holisticScarcity === '4' ? 'selected' : ''}>+4: Strong abundance most of the time</option>
+          <option value="5" ${holisticScarcity === '5' ? 'selected' : ''}>+5: I experience abundance in all areas all the time</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Q12. Where do you fall on your financial scarcity versus abundance mindset? *</label>
+        <select name="financialScarcity" required>
+          <option value="">Select a response</option>
+          <option value="-5" ${financialScarcity === '-5' ? 'selected' : ''}>-5: Full financial scarcity and fear all the time</option>
+          <option value="-4" ${financialScarcity === '-4' ? 'selected' : ''}>-4: Constant financial anxiety</option>
+          <option value="-3" ${financialScarcity === '-3' ? 'selected' : ''}>-3: Financial scarcity based on it being too hard for me</option>
+          <option value="-2" ${financialScarcity === '-2' ? 'selected' : ''}>-2: Often feel financial scarcity</option>
+          <option value="-1" ${financialScarcity === '-1' ? 'selected' : ''}>-1: Financial scarcity but I know it is not real</option>
+          <option value="1" ${financialScarcity === '1' ? 'selected' : ''}>+1: I will be ok financially</option>
+          <option value="2" ${financialScarcity === '2' ? 'selected' : ''}>+2: Moving toward financial abundance</option>
+          <option value="3" ${financialScarcity === '3' ? 'selected' : ''}>+3: Financial abundance but sometimes I block it</option>
+          <option value="4" ${financialScarcity === '4' ? 'selected' : ''}>+4: Strong financial abundance most of the time</option>
+          <option value="5" ${financialScarcity === '5' ? 'selected' : ''}>+5: I experience financial abundance all the time</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Q13. How would you describe your relationship with Money? *</label>
+        <select name="moneyRelationship" required>
+          <option value="">Select a response</option>
+          <option value="-5" ${moneyRelationship === '-5' ? 'selected' : ''}>-5: Constant combat</option>
+          <option value="-4" ${moneyRelationship === '-4' ? 'selected' : ''}>-4: Frequent conflict and stress</option>
+          <option value="-3" ${moneyRelationship === '-3' ? 'selected' : ''}>-3: Relatively consistent fear</option>
+          <option value="-2" ${moneyRelationship === '-2' ? 'selected' : ''}>-2: Often troubled</option>
+          <option value="-1" ${moneyRelationship === '-1' ? 'selected' : ''}>-1: Troubled but getting better</option>
+          <option value="1" ${moneyRelationship === '1' ? 'selected' : ''}>+1: Ok</option>
+          <option value="2" ${moneyRelationship === '2' ? 'selected' : ''}>+2: Generally positive</option>
+          <option value="3" ${moneyRelationship === '3' ? 'selected' : ''}>+3: Good</option>
+          <option value="4" ${moneyRelationship === '4' ? 'selected' : ''}>+4: Very good</option>
+          <option value="5" ${moneyRelationship === '5' ? 'selected' : ''}>+5: Great</option>
+        </select>
+      </div>
+
+      <script>
+        // Toggle business stage visibility based on employment selection
+        function toggleBusinessStage() {
+          const employment = document.getElementById('employmentSelect').value;
+          const businessStageGroup = document.getElementById('businessStageGroup');
+          const businessStageSelect = document.getElementById('businessStageSelect');
+
+          if (employment === 'self-employed' || employment === 'business-owner') {
+            businessStageGroup.style.display = 'block';
+            businessStageSelect.setAttribute('required', 'required');
+          } else {
+            businessStageGroup.style.display = 'none';
+            businessStageSelect.removeAttribute('required');
+            businessStageSelect.value = ''; // Clear selection
+          }
+        }
+
+        // Run on page load to set initial state
+        document.addEventListener('DOMContentLoaded', function() {
+          toggleBusinessStage();
+        });
+      </script>
     `;
   },
 
