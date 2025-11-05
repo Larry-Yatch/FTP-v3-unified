@@ -582,8 +582,13 @@ const Tool1 = {
 
         Logger.log('Edited response submitted successfully');
       } else {
-        // Save new response to RESPONSES sheet (traditional method)
-        this.saveToResponses(clientId, allData, scores, winner);
+        // Save new response to RESPONSES sheet using DataService
+        // DataService handles Is_Latest flag and marks old responses as not latest
+        const saveResult = DataService.saveToolResponse(clientId, 'tool1', dataPackage, 'COMPLETED');
+
+        if (!saveResult.success) {
+          throw new Error(saveResult.error || 'Failed to save response');
+        }
 
         Logger.log('New response submitted successfully');
       }
@@ -701,33 +706,12 @@ const Tool1 = {
   },
 
   /**
-   * Save final results to RESPONSES sheet
+   * DEPRECATED: This method has been removed.
+   * Use DataService.saveToolResponse() instead.
+   *
+   * DataService properly handles:
+   * - Is_Latest flag (7th column)
+   * - Marking old responses as not latest
+   * - Version control and cleanup
    */
-  saveToResponses(clientId, data, scores, winner) {
-    try {
-      const ss = SpreadsheetApp.openById(CONFIG.MASTER_SHEET_ID);
-      const responseSheet = ss.getSheetByName(CONFIG.SHEETS.RESPONSES);
-
-      const row = [
-        new Date().toISOString(),           // Timestamp
-        clientId,                           // Client_ID
-        'tool1',                            // Tool_ID
-        JSON.stringify({                    // Data (JSON)
-          formData: data,
-          scores: scores,
-          winner: winner
-        }),
-        '1.0.0',                           // Version
-        'COMPLETED'                        // Status
-      ];
-
-      responseSheet.appendRow(row);
-      SpreadsheetApp.flush();
-
-      Logger.log(`Saved Tool 1 results for ${clientId} - Winner: ${winner}`);
-    } catch (error) {
-      Logger.log(`Error saving to responses: ${error}`);
-      throw error;
-    }
-  }
 };
