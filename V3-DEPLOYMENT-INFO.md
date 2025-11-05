@@ -1,24 +1,27 @@
 # Financial TruPath v3 - Deployment Information
 
-**Status:** ✅ Production Ready - Tool 1 Complete, Navigation Rock-Solid
+**Status:** ✅ Production Ready - Tool 1 Complete with Edit Mode Fixed
 
-**Last Updated:** November 4, 2024
+**Last Updated:** November 4, 2025
 
 ---
 
 ## 🔗 Current Production Deployment
 
-### Web App (Latest - v3.2.4 @31)
-**URL:** https://script.google.com/macros/s/AKfycbxzDw3QvKblDKx8Ic_pQYUZVKNk6zoKXgX-WG0QufRe5a2DiJlb0JJs4iG9NYSGIf3S/exec
+### Web App (Latest - v3.3.2 @69)
+**URL:** https://script.google.com/macros/s/AKfycbxoeCLfgyFlpZonGL2fqxPQegeGm9v9sr6AIcqmVPo7dnZCPlJMeqohi8rCt8Ug1hwo/exec
 
-**Deployment ID:** `AKfycbxzDw3QvKblDKx8Ic_pQYUZVKNk6zoKXgX-WG0QufRe5a2DiJlb0JJs4iG9NYSGIf3S @31`
+**Deployment ID:** `AKfycbxoeCLfgyFlpZonGL2fqxPQegeGm9v9sr6AIcqmVPo7dnZCPlJMeqohi8rCt8Ug1hwo @69`
 
-**Version:** v3.2.4 - Remove deprecation warning from dashboard tool button
+**Version:** v3.3.2 - Tool 1 Edit Mode Complete (All Bugs Fixed)
 
 **What's Working:**
 - ✅ Login and authentication
 - ✅ Dashboard with tool navigation
 - ✅ Tool 1 complete (all 5 pages + report + PDF)
+- ✅ Tool 1 edit mode fully functional
+- ✅ All page 5 ranking data saves correctly
+- ✅ No duplicate EDIT_DRAFTs or infinite loops
 - ✅ All iframe navigation issues resolved (document.write() pattern)
 - ✅ Zero console errors or warnings
 - ✅ Loading animations on all navigation
@@ -35,11 +38,15 @@ After comprehensive debugging, we solved all iframe navigation issues by using t
 **See:** [docs/SESSION-HANDOFF.md](docs/SESSION-HANDOFF.md) for complete details
 
 ### Recent Deployments
+- **@69** v3.3.2 - FINAL: Simplified edit flow (dashboard only)
+- **@68** v3.3.2 - Stop infinite edit loop (delete EDIT_DRAFTs on submit)
+- **@67** v3.3.2 - Merge PropertiesService data for page 5 rankings
+- **@65** v3.3.1 - Fix metadata cleanup in submitEditedResponse
+- **@63** v3.3.1 - CRITICAL: Save page 5 data before final submission
+- **@60** v3.3.0 - Fix page 5 dropdown population in edit mode
+- **@58** v3.3.0 - Use DataService for Is_Latest handling
 - **@31** v3.2.4 - Fix deprecation warning
-- **@30** v3.2.3 - Include loading-animation in Tool1Report
-- **@28** v3.2.2 - Include loading-animation in login page
 - **@27** v3.2.1 - CRITICAL: Eliminate ALL iframe navigation issues
-- **@2** v3.0.1 - TruPath Brand Identity Applied
 - **@1** v3.0.0 - Initial Foundation Deployment
 
 ### Google Sheets Database
