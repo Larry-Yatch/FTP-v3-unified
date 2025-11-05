@@ -98,11 +98,14 @@ const Tool1 = {
         <script>
           function cancelEdit() {
             if (confirm('Cancel editing and discard changes?')) {
+              showLoading('Canceling edit...');
               google.script.run
                 .withSuccessHandler(function() {
-                  window.location.href = '${ScriptApp.getService().getUrl()}?route=dashboard&client=${clientId}';
+                  // Use navigateToDashboard to avoid iframe issues
+                  navigateToDashboard('${clientId}', 'Loading Dashboard');
                 })
                 .withFailureHandler(function(error) {
+                  hideLoading();
                   alert('Error canceling edit: ' + error.message);
                 })
                 .cancelEditDraft('${clientId}', 'tool1');
@@ -331,14 +334,14 @@ const Tool1 = {
     `;
 
     thoughts.forEach(t => {
-      const selected = data?.[t.name] || '';
+      const selected = data?.[t.name] ? String(data[t.name]) : '';
       html += `
         <div class="form-group">
           <label class="form-label">${t.text} *</label>
           <select name="${t.name}" class="ranking-select thought-ranking" onchange="updateRankingOptions()" required>
             <option value="">Select rank (1-10)</option>
             ${Array.from({length: 10}, (_, i) => i + 1).map(rank =>
-              `<option value="${rank}" ${selected == rank ? 'selected' : ''}>${rank}</option>`
+              `<option value="${rank}" ${selected === String(rank) ? 'selected' : ''}>${rank}</option>`
             ).join('')}
           </select>
         </div>
@@ -351,14 +354,14 @@ const Tool1 = {
     `;
 
     feelings.forEach(f => {
-      const selected = data?.[f.name] || '';
+      const selected = data?.[f.name] ? String(data[f.name]) : '';
       html += `
         <div class="form-group">
           <label class="form-label">${f.text} *</label>
           <select name="${f.name}" class="ranking-select feeling-ranking" onchange="updateRankingOptions()" required>
             <option value="">Select rank (1-10)</option>
             ${Array.from({length: 10}, (_, i) => i + 1).map(rank =>
-              `<option value="${rank}" ${selected == rank ? 'selected' : ''}>${rank}</option>`
+              `<option value="${rank}" ${selected === String(rank) ? 'selected' : ''}>${rank}</option>`
             ).join('')}
           </select>
         </div>

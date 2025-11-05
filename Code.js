@@ -461,6 +461,42 @@ function getDashboardPage(clientId) {
 }
 
 /**
+ * Get report page HTML for document.write() navigation
+ * @param {string} clientId - Student ID
+ * @param {string} toolId - Tool identifier (e.g., 'tool1')
+ * @returns {string} Report HTML
+ */
+function getReportPage(clientId, toolId) {
+  try {
+    registerTools();
+
+    // Create fake request object for router
+    const fakeRequest = {
+      parameter: {
+        route: `${toolId}_report`,
+        client: clientId
+      }
+    };
+
+    // Get report HTML from router
+    const reportOutput = Router.route(fakeRequest);
+    return reportOutput.getContent();
+
+  } catch (error) {
+    Logger.log(`Error getting report: ${error}`);
+    return `
+      <html>
+      <body style="background: #1e192b; color: white; font-family: sans-serif; padding: 40px;">
+        <h1>Error Loading Report</h1>
+        <p>${error.toString()}</p>
+        <a href="${ScriptApp.getService().getUrl()}?route=dashboard&client=${clientId}" style="color: #ad9168;">Back to Dashboard</a>
+      </body>
+      </html>
+    `;
+  }
+}
+
+/**
  * OPTIMIZED: Authenticate and get dashboard in one call (faster login)
  * @param {string} clientId - Student ID
  * @returns {Object} Result with dashboard HTML or error

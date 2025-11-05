@@ -411,7 +411,7 @@ const Router = {
           <p class="muted" style="margin-bottom: 10px;">Completed on ${completedDate}</p>
 
           <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px;">
-            <button class="btn-primary" onclick="window.location.href='${baseUrl}?route=tool1_report&client=${clientId}'">
+            <button class="btn-primary" onclick="viewReport()">
               📊 View Report
             </button>
             <button class="btn-secondary" onclick="editResponse()">
@@ -436,7 +436,7 @@ const Router = {
           </p>
 
           <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px;">
-            <button class="btn-primary" onclick="window.location.href='${baseUrl}?route=tool1&client=${clientId}&page=1'">
+            <button class="btn-primary" onclick="showLoading('Loading Assessment'); window.location.href='${baseUrl}?route=tool1&client=${clientId}&page=1'">
               ▶️ Continue
             </button>
             <button class="btn-secondary" onclick="cancelDraft()">
@@ -517,18 +517,45 @@ const Router = {
           </div>
 
           <div class="text-center mt-20">
-            <button class="btn-secondary" onclick="window.location.href='${baseUrl}?route=login'">
+            <button class="btn-secondary" onclick="logout()">
               Logout
             </button>
           </div>
         </div>
 
         <script>
-          const baseUrl = '${baseUrl}';
-          const clientId = '${clientId}';
+          (function() {
+            const baseUrl = '${baseUrl}';
+            const clientId = '${clientId}';
 
-          // Edit response - load into form
-          function editResponse() {
+            // Make functions global so onclick handlers can access them
+            window.viewReport = viewReport;
+            window.editResponse = editResponse;
+            window.retakeTool = retakeTool;
+            window.cancelDraft = cancelDraft;
+            window.logout = logout;
+
+            // View report - navigate using document.write() pattern
+            function viewReport() {
+              showLoading('Loading Report');
+
+              google.script.run
+                .withSuccessHandler(function(reportHtml) {
+                  // Replace current document with report HTML
+                  document.open();
+                  document.write(reportHtml);
+                  document.close();
+                })
+                .withFailureHandler(function(error) {
+                  hideLoading();
+                  console.error('Report navigation error:', error);
+                  alert('Error loading report: ' + error.message);
+                })
+                .getReportPage(clientId, 'tool1');
+            }
+
+            // Edit response - load into form
+            function editResponse() {
             showLoading('Loading your responses...');
             google.script.run
               .withSuccessHandler(function(result) {
@@ -574,7 +601,8 @@ const Router = {
               google.script.run
                 .withSuccessHandler(function(result) {
                   if (result.success) {
-                    window.location.reload();
+                    // Use navigateToDashboard instead of reload to avoid iframe issues
+                    navigateToDashboard(clientId, 'Refreshing Dashboard');
                   } else {
                     hideLoading();
                     alert('Error: ' + result.error);
@@ -588,6 +616,15 @@ const Router = {
             }
           }
 
+          // Logout - navigate to login using document.write pattern
+          function logout() {
+            showLoading('Logging out');
+
+            // For logout, we actually want to do a full page reload to clear all state
+            // Use window.location.replace to avoid iframe issues
+            window.top.location.replace(baseUrl + '?route=login');
+          }
+
           // Fade in page once loaded
           window.addEventListener('load', function() {
             document.body.classList.add('loaded');
@@ -597,6 +634,7 @@ const Router = {
           setTimeout(function() {
             document.body.classList.add('loaded');
           }, 100);
+          })(); // End IIFE
         </script>
       </body>
       </html>

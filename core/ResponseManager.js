@@ -14,6 +14,22 @@
 const ResponseManager = {
 
   /**
+   * Helper: Check if value is "true" (handles case insensitivity and boolean)
+   * @private
+   */
+  _isTrue(value) {
+    return value === 'true' || value === 'TRUE' || value === true;
+  },
+
+  /**
+   * Helper: Check if value is "false" (handles case insensitivity and boolean)
+   * @private
+   */
+  _isFalse(value) {
+    return value === 'false' || value === 'FALSE' || value === false || value === '' || value === null || value === undefined;
+  },
+
+  /**
    * Get the latest response for a client/tool (regardless of status)
    * @param {string} clientId - Client/student ID
    * @param {string} toolId - Tool identifier
@@ -44,7 +60,7 @@ const ResponseManager = {
         for (let i = data.length - 1; i >= 1; i--) {
           if (data[i][clientIdCol] === clientId &&
               data[i][toolIdCol] === toolId &&
-              data[i][isLatestCol] === 'true') {
+              this._isTrue(data[i][isLatestCol])) {
             return this._parseResponseRow(data[i], headers);
           }
         }
@@ -110,7 +126,7 @@ const ResponseManager = {
         if (data[i][clientIdCol] === clientId &&
             data[i][toolIdCol] === toolId &&
             data[i][statusCol] === 'COMPLETED' &&
-            (isLatestCol === -1 || data[i][isLatestCol] === 'false')) {
+            (isLatestCol === -1 || this._isFalse(data[i][isLatestCol]))) {
           const timestamp = new Date(data[i][timestampCol]);
           if (!previousTimestamp || timestamp > previousTimestamp) {
             previousTimestamp = timestamp;
@@ -230,9 +246,23 @@ const ResponseManager = {
         };
       }
 
+      // Extract form data if it's nested (Tool1 structure: {formData, scores, winner})
+      // Otherwise use the entire response data
+      let formFields;
+      if (responseData.formData) {
+        // Tool1 pattern: data is nested under formData
+        formFields = responseData.formData;
+      } else if (responseData.data) {
+        // Alternative pattern: data nested under data
+        formFields = responseData.data;
+      } else {
+        // Flat structure: use as-is
+        formFields = responseData;
+      }
+
       // Create edit draft with metadata
       const editDraftData = {
-        ...responseData,
+        ...formFields,  // Spread the actual form fields (not the wrapper)
         _editMode: true,
         _originalTimestamp: latest.timestamp,
         _originalResponseId: latest.timestamp, // Using timestamp as ID for now
@@ -460,7 +490,7 @@ const ResponseManager = {
       } else if (header === 'Version') {
         obj.version = row[index];
       } else if (header === 'Is_Latest') {
-        obj.isLatest = row[index] === 'true';
+        obj.isLatest = this._isTrue(row[index]);
       }
     });
 
@@ -491,7 +521,7 @@ const ResponseManager = {
       for (let i = 1; i < data.length; i++) {
         if (data[i][clientIdCol] === clientId &&
             data[i][toolIdCol] === toolId &&
-            data[i][isLatestCol] === 'true') {
+            this._isTrue(data[i][isLatestCol])) {
           sheet.getRange(i + 1, isLatestCol + 1).setValue('false');
         }
       }

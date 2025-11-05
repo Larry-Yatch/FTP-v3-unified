@@ -100,10 +100,74 @@ const Tool1Report = {
         <meta name="theme-color" content="#1e192b">
         <style>
           ${this.getReportStyles()}
+
+          /* Loading Overlay Styles */
+          .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #4b4166, #1e192b);
+            z-index: 10000;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+          }
+
+          .loading-overlay.active {
+            display: flex;
+          }
+
+          .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(173, 145, 104, 0.2);
+            border-top-color: #ad9168;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+          }
+
+          @keyframes spin {
+            to { transform: rotate(360deg); }
+          }
+
+          .loading-text {
+            color: #ad9168;
+            font-size: 18px;
+            font-weight: 500;
+            margin-top: 20px;
+            text-align: center;
+          }
+
+          .loading-dots {
+            display: inline-block;
+            width: 20px;
+          }
+
+          .loading-dots::after {
+            content: '';
+            animation: dots 1.5s steps(4, end) infinite;
+          }
+
+          @keyframes dots {
+            0%, 20% { content: ''; }
+            40% { content: '.'; }
+            60% { content: '..'; }
+            80%, 100% { content: '...'; }
+          }
         </style>
-        <?!= include('shared/loading-animation') ?>
       </head>
       <body>
+        <!-- Loading Overlay -->
+        <div id="loadingOverlay" class="loading-overlay">
+          <div class="loading-spinner"></div>
+          <div class="loading-text">
+            Loading<span class="loading-dots"></span>
+          </div>
+        </div>
+
         <div class="report-container">
           <!-- Header with logo -->
           <div class="report-header">
@@ -181,8 +245,48 @@ const Tool1Report = {
         </div>
 
         <script>
-          const baseUrl = '<?= ScriptApp.getService().getUrl() ?>';
-          const clientId = '${clientId}';
+          (function() {
+            const baseUrl = '<?= ScriptApp.getService().getUrl() ?>';
+            const clientId = '${clientId}';
+
+            // Make functions global for onclick handlers
+            window.downloadPDF = downloadPDF;
+            window.editResponse = editResponse;
+            window.backToDashboard = backToDashboard;
+
+            // Loading overlay functions
+            function showLoading(message) {
+            const overlay = document.getElementById('loadingOverlay');
+            const text = overlay.querySelector('.loading-text');
+            if (message) {
+              text.innerHTML = message + '<span class="loading-dots"></span>';
+            }
+            overlay.classList.add('active');
+          }
+
+          function hideLoading() {
+            const overlay = document.getElementById('loadingOverlay');
+            overlay.classList.remove('active');
+          }
+
+          // Navigate to dashboard using document.write() pattern (no iframe issues)
+          function navigateToDashboard(clientId, message) {
+            showLoading(message || 'Loading Dashboard');
+
+            google.script.run
+              .withSuccessHandler(function(dashboardHtml) {
+                // Replace current document with dashboard HTML
+                document.open();
+                document.write(dashboardHtml);
+                document.close();
+              })
+              .withFailureHandler(function(error) {
+                hideLoading();
+                console.error('Dashboard navigation error:', error);
+                alert('Error loading dashboard: ' + error.message);
+              })
+              .getDashboardPage(clientId);
+          }
 
           function downloadPDF() {
             const btn = event.target;
@@ -243,6 +347,7 @@ const Tool1Report = {
           function backToDashboard() {
             navigateToDashboard(clientId, 'Loading Dashboard');
           }
+          })(); // End IIFE
         </script>
       </body>
       </html>
