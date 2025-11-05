@@ -8,12 +8,12 @@
 
 ## 🔗 Current Production Deployment
 
-### Web App (Latest - v3.7.1 @86)
-**URL:** https://script.google.com/macros/s/AKfycbznpV-6gHR2cuxH-WhqN_hui7jRpRNEQaK4yD23qQvX7BeJ639dPMbEkQgtmvRpbaEo/exec
+### Web App (Latest - v3.7.2 @87)
+**URL:** https://script.google.com/macros/s/AKfycbxlMjP-Xh7_Kbn4ICcInYWxrh4TnB_MikVBjqnQSlubuvIwNqdSrbgn3Zqxc3-V1ZLf/exec
 
-**Deployment ID:** `AKfycbznpV-6gHR2cuxH-WhqN_hui7jRpRNEQaK4yD23qQvX7BeJ639dPMbEkQgtmvRpbaEo @86`
+**Deployment ID:** `AKfycbxlMjP-Xh7_Kbn4ICcInYWxrh4TnB_MikVBjqnQSlubuvIwNqdSrbgn3Zqxc3-V1ZLf @87`
 
-**Version:** v3.7.1 - Bug Fix: Tool 2 Report Now Displays After Submission
+**Version:** v3.7.2 - Bug Fix: Normalize -5 to +5 Scale for Accurate Scoring
 
 **What's Working:**
 - ✅ Login and authentication
@@ -50,6 +50,7 @@ After comprehensive debugging, we solved all iframe navigation issues by using t
 **See:** [docs/SESSION-HANDOFF.md](docs/SESSION-HANDOFF.md) for complete details
 
 ### Recent Deployments
+- **@87** v3.7.2 - 🐛 Bug Fix: Normalize -5 to +5 scale to 0-10 for accurate scoring (fixes negative domain scores)
 - **@86** v3.7.1 - 🐛 Bug Fix: Tool 2 Report rendering (Code.js missing Tool2Report conditional)
 - **@85** v3.7.0 - Tool 2 Report Complete (Step 11) - 835 lines, domain cards, progress bars, archetypes, priority ranking
 - **@84** v3.6.0 - Tool 2 Scoring Logic Complete (5 domains, benchmarks, priorities, archetypes)
