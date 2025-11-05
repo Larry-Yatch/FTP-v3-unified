@@ -18,15 +18,15 @@ const Tool2GPTAnalysis = {
    * @param {object} params - Analysis parameters
    * @returns {object} Insight with source attribution
    */
-  analyzeResponse({clientId, responseType, responseText, previousInsights, formData, domainScores}) {
+  analyzeResponse({clientId, responseType, responseText, previousInsights, formData, domainScores, traumaData}) {
     // ============================================================
     // TIER 1: Try GPT Analysis
     // ============================================================
     try {
       Logger.log(`[TIER 1] Attempting GPT: ${clientId} - ${responseType}`);
 
-      const systemPrompt = this.getPromptForType(responseType, previousInsights);
-      const userPrompt = this.buildUserPrompt(responseText, previousInsights);
+      const systemPrompt = this.getPromptForType(responseType, previousInsights, traumaData);
+      const userPrompt = this.buildUserPrompt(responseText, previousInsights, traumaData);
 
       const result = this.callGPT({
         systemPrompt,
@@ -94,7 +94,8 @@ const Tool2GPTAnalysis = {
         const fallback = Tool2Fallbacks.getFallbackInsight(
           responseType,
           formData,
-          domainScores
+          domainScores,
+          traumaData  // NEW: Pass trauma data to fallbacks
         );
 
         this.logFallbackUsage(clientId, responseType, retryError.message);
@@ -184,15 +185,15 @@ const Tool2GPTAnalysis = {
   /**
    * Get system prompt for response type
    */
-  getPromptForType(responseType, previousInsights) {
+  getPromptForType(responseType, previousInsights, traumaData) {
     const prompts = {
-      income_sources: this.getIncomeSourcesPrompt(previousInsights),
-      major_expenses: this.getMajorExpensesPrompt(previousInsights),
-      wasteful_spending: this.getWastefulSpendingPrompt(previousInsights),
-      debt_list: this.getDebtListPrompt(previousInsights),
-      investments: this.getInvestmentsPrompt(previousInsights),
-      emotions: this.getEmotionsPrompt(previousInsights),
-      adaptive_trauma: this.getAdaptiveTraumaPrompt(previousInsights)
+      income_sources: this.getIncomeSourcesPrompt(previousInsights, traumaData),
+      major_expenses: this.getMajorExpensesPrompt(previousInsights, traumaData),
+      wasteful_spending: this.getWastefulSpendingPrompt(previousInsights, traumaData),
+      debt_list: this.getDebtListPrompt(previousInsights, traumaData),
+      investments: this.getInvestmentsPrompt(previousInsights, traumaData),
+      emotions: this.getEmotionsPrompt(previousInsights, traumaData),
+      adaptive_trauma: this.getAdaptiveTraumaPrompt(previousInsights, traumaData)
     };
 
     return prompts[responseType] || this.getGenericPrompt();
@@ -201,8 +202,18 @@ const Tool2GPTAnalysis = {
   /**
    * Build user prompt with context
    */
-  buildUserPrompt(responseText, previousInsights) {
+  buildUserPrompt(responseText, previousInsights, traumaData) {
     let prompt = '';
+    
+    // Add trauma context if available
+    if (traumaData && traumaData.topTrauma) {
+      prompt += `Trauma Assessment Context:\n`;
+      prompt += `- Primary Pattern: ${traumaData.topTrauma}\n`;
+      if (traumaData.traumaScores) {
+        prompt += `- Score: ${traumaData.traumaScores[traumaData.topTrauma] || 0}\n`;
+      }
+      prompt += '\n';
+    }
 
     // Add previous insights as context (if available)
     if (previousInsights && Object.keys(previousInsights).length > 0) {
@@ -221,47 +232,97 @@ const Tool2GPTAnalysis = {
   },
 
   // ============================================================
+  // TRAUMA CONTEXT HELPER
+  // ============================================================
+  
+  /**
+   * Get trauma-specific context for prompts
+   */
+  getTraumaContext(traumaData) {
+    if (!traumaData || !traumaData.topTrauma) {
+      return '';
+    }
+    
+    const contexts = {
+      FSV: `This person uses False Self-View as protection, often hiding their true financial situation. They may minimize successes or exaggerate struggles. Look for patterns of self-deprecation, identity masks, or downplaying their true financial reality.`,
+      
+      Control: `This person seeks control to manage anxiety. They may over-detail finances or show rigidity. Look for perfectionism, micromanagement, overwhelm from too many details, or catastrophizing about losing control.`,
+      
+      ExVal: `This person seeks external validation for financial decisions. They may reference others' opinions frequently. Look for people-pleasing, status-seeking, comparison to others, or decision paralysis without approval.`,
+      
+      Fear: `This person experiences financial paralysis from fear. They may avoid specifics or show analysis paralysis. Look for vague language, future catastrophizing, frozen inaction, or avoiding financial reality.`,
+      
+      Receiving: `This person struggles to receive help or financial support. They may minimize problems or reject assistance. Look for isolation, excessive self-reliance, pride, or "I should handle this alone" patterns.`,
+      
+      Showing: `This person over-gives financially at their own expense. They may focus on others' needs over their own. Look for self-sacrifice, financial enabling of others, guilt about self-care, or depleting themselves to help others.`
+    };
+    
+    return contexts[traumaData.topTrauma] || '';
+  },
+  
+  /**
+   * Get trauma-informed action guidance
+   */
+  getTraumaHealingFocus(traumaType) {
+    const healing = {
+      FSV: `transparency and authentic self-expression`,
+      Control: `flexibility and trust in uncertainty`,
+      ExVal: `internal values clarification and self-trust`,
+      Fear: `small, safe steps to build confidence`,
+      Receiving: `gradual openness to support and help`,
+      Showing: `balance between giving and self-care`
+    };
+    
+    return healing[traumaType] || 'self-awareness and growth';
+  },
+
+  // ============================================================
   // PROMPT FUNCTIONS - One for each response type
   // ============================================================
 
   /**
    * Income sources prompt (Q18)
    */
-  getIncomeSourcesPrompt(previousInsights) {
+  getIncomeSourcesPrompt(previousInsights, traumaData) {
+    const traumaContext = this.getTraumaContext(traumaData);
+    const healingFocus = traumaData?.topTrauma ? this.getTraumaHealingFocus(traumaData.topTrauma) : '';
+    
     return `
 You are a financial clarity expert analyzing a student's income sources.
+
+${traumaContext ? `TRAUMA CONTEXT: ${traumaContext}\n` : ''}
 
 **CRITICAL**: Reference the student's exact words and specific examples from
 their response. Ground your insights in what THEY said, not generic advice.
 
 Analyze their response for:
-1. Pattern: What pattern emerges from their specific income sources?
-2. Insight: What does this reveal about their income clarity and stability?
-3. Action: One concrete step based on THEIR situation (not generic advice)
+1. Pattern: What pattern emerges from their specific income sources?${traumaData?.topTrauma ? ` How might their ${traumaData.topTrauma} pattern influence how they describe or relate to their income?` : ''}
+2. Insight: What does this reveal about their income clarity and stability?${traumaData?.topTrauma ? ` Consider how their trauma pattern affects their relationship with income.` : ''}
+3. Action: One concrete step based on THEIR situation${healingFocus ? ` that supports ${healingFocus}` : ''} (not generic advice)
 
 Consider:
 - Number of income sources (diversification vs simplicity)
 - Predictability and consistency
 - Clarity about amounts and timing
-- Active vs passive income mix
+- Active vs passive income mix${traumaData?.topTrauma === 'FSV' ? '\n- Whether they\'re minimizing or hiding income success' : ''}${traumaData?.topTrauma === 'Control' ? '\n- Signs of over-control or anxiety about income variability' : ''}${traumaData?.topTrauma === 'ExVal' ? '\n- Income choices driven by others\' opinions or status' : ''}
 
 Return plain-text only:
 
 Pattern:
-(One sentence identifying the key pattern)
+(One sentence identifying the key pattern${traumaData?.topTrauma ? `, considering their ${traumaData.topTrauma} pattern` : ''})
 
 Insight:
-(One sentence about what this means for their financial clarity)
+(One sentence about what this means for their financial clarity${traumaData?.topTrauma ? ` and trauma healing` : ''})
 
 Action:
-(One specific, actionable step based on their situation)
+(One specific, actionable step${healingFocus ? ` that promotes ${healingFocus}` : ''})
     `.trim();
   },
 
   /**
    * Major expenses prompt (Q23)
    */
-  getMajorExpensesPrompt(previousInsights) {
+  getMajorExpensesPrompt(previousInsights, traumaData) {
     return `
 You are a financial clarity expert analyzing a student's major expense categories.
 
@@ -297,7 +358,7 @@ Action:
   /**
    * Wasteful spending prompt (Q24)
    */
-  getWastefulSpendingPrompt(previousInsights) {
+  getWastefulSpendingPrompt(previousInsights, traumaData) {
     return `
 You are a financial clarity expert analyzing a student's wasteful spending patterns.
 
@@ -333,7 +394,7 @@ Action:
   /**
    * Debt list prompt (Q29)
    */
-  getDebtListPrompt(previousInsights) {
+  getDebtListPrompt(previousInsights, traumaData) {
     return `
 You are a financial clarity expert analyzing a student's debt situation.
 
@@ -369,7 +430,7 @@ Action:
   /**
    * Investments prompt (Q43)
    */
-  getInvestmentsPrompt(previousInsights) {
+  getInvestmentsPrompt(previousInsights, traumaData) {
     return `
 You are a financial clarity expert analyzing a student's investment strategy.
 
@@ -405,7 +466,7 @@ Action:
   /**
    * Emotions prompt (Q52)
    */
-  getEmotionsPrompt(previousInsights) {
+  getEmotionsPrompt(previousInsights, traumaData) {
     return `
 You are a financial clarity expert analyzing a student's emotional relationship with financial review.
 
@@ -441,7 +502,7 @@ Action:
   /**
    * Adaptive trauma prompt (Q55/Q56 - varies by trauma type)
    */
-  getAdaptiveTraumaPrompt(previousInsights) {
+  getAdaptiveTraumaPrompt(previousInsights, traumaData) {
     return `
 You are a financial trauma expert analyzing a student's adaptive trauma response.
 
@@ -512,9 +573,22 @@ Action:
   /**
    * Synthesize overall insights from all individual analyses
    */
-  synthesizeOverall(clientId, allInsights, domainScores) {
+  synthesizeOverall(clientId, allInsights, domainScores, traumaData) {
+    const traumaContext = this.getTraumaContext(traumaData);
+    const healingFocus = traumaData?.topTrauma ? this.getTraumaHealingFocus(traumaData.topTrauma) : '';
+    
+    const traumaIntegration = traumaData?.topTrauma ? `
+
+PRIMARY TRAUMA PATTERN: ${traumaData.topTrauma}
+Trauma Score: ${traumaData.traumaScores?.[traumaData.topTrauma] || 'Unknown'}
+
+${traumaContext}
+
+This ${traumaData.topTrauma} pattern is the lens through which they experience money. Every financial behavior is influenced by this core protective strategy. Your synthesis must show how their financial patterns and their ${traumaData.topTrauma} pattern are interconnected.` : '';
+    
     const systemPrompt = `
 You are synthesizing a comprehensive Financial Clarity report for a student.
+${traumaIntegration}
 
 Domain Scores (0-100%):
 - Money Flow: ${domainScores.moneyFlow}%
@@ -527,27 +601,28 @@ Individual Insights:
 ${JSON.stringify(allInsights, null, 2)}
 
 Create a cohesive narrative that:
-- Connects numeric scores to personal stories
-- Identifies top 2-3 patterns across domains
-- Provides 3-5 prioritized actions
+- ${traumaData?.topTrauma ? `Shows how their ${traumaData.topTrauma} pattern manifests in each financial domain` : 'Connects numeric scores to personal stories'}
+- Identifies how patterns reinforce each other${traumaData?.topTrauma ? ` and maintain the ${traumaData.topTrauma} protection` : ''}
+- Provides trauma-informed actions that support ${healingFocus || 'growth and healing'}
 - References specific examples from their responses
+- Frames change as safety-building, not fixing brokenness
 
 Return plain-text only:
 
 Overview:
-(2-3 paragraphs connecting scores to stories and identifying key themes)
+(2-3 paragraphs showing how their ${traumaData?.topTrauma || 'core'} pattern shapes their entire financial life, connecting scores to stories with compassion)
 
 Top Patterns:
-- Pattern 1: [Most significant pattern across domains]
-- Pattern 2: [Secondary pattern or reinforcing behavior]
-- Pattern 3: [Opportunity or strength to leverage]
+- Pattern 1: [How ${traumaData?.topTrauma || 'their pattern'} shows up most strongly in finances]
+- Pattern 2: [Secondary pattern that reinforces the primary protection]
+- Pattern 3: [Strength or resource that can support healing]
 
 Priority Actions:
-1. [Action based on lowest domain score - specific to their situation]
-2. [Action based on most impactful pattern - references their examples]
-3. [Action for building momentum - leverages their strengths]
-4. [Action for emotional/psychological support - addresses feelings they shared]
-5. [Action for long-term transformation - connects to their values]
+1. [Gentle action for the lowest domain that honors their ${traumaData?.topTrauma || 'pattern'}]
+2. [Small step toward ${healingFocus || 'healing'} that feels safe]
+3. [Action that builds on existing strengths or successes]
+4. [Self-compassion practice specific to their ${traumaData?.topTrauma || 'pattern'}]
+5. [Long-term vision that connects financial clarity to ${healingFocus || 'deeper healing'}]
 
 STOP after Priority Actions. Do not add conclusions or additional text.
     `.trim();
@@ -577,7 +652,7 @@ STOP after Priority Actions. Do not add conclusions or additional text.
 
     } catch (error) {
       Logger.log(`❌ [SYNTHESIS] Failed: ${error.message}, using fallback`);
-      return this.getGenericSynthesis(domainScores);
+      return this.getGenericSynthesis(domainScores, traumaData);
     }
   },
 
@@ -595,7 +670,7 @@ STOP after Priority Actions. Do not add conclusions or additional text.
   /**
    * Generic synthesis fallback
    */
-  getGenericSynthesis(domainScores) {
+  getGenericSynthesis(domainScores, traumaData) {
     const lowest = this.findLowestDomain(domainScores);
     const highest = this.findHighestDomain(domainScores);
 

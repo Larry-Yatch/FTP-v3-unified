@@ -276,4 +276,8 @@ function unlockToolForStudent(clientId, toolId) {
  * - Unlock all tools for demo: Run unlockToolForStudent 8 times (tool1-tool8)
  * - Check why tool is locked: checkStudentAccess('STUDENT_ID')
  * - Reset student access: Delete rows from TOOL_ACCESS, run initializeStudentAccess
+ *
+ * DATA MIGRATION:
+ * - Preview legacy Tool 1 migration: previewLegacyTool1Migration()
+ * - Run legacy Tool 1 migration: runLegacyTool1Migration()
  */

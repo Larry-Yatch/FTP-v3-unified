@@ -1540,6 +1540,9 @@ const Tool2 = {
       }
 
       const domainScores = this.getPartialDomainScores(allData);
+      
+      // NEW: Get Tool1 trauma data for enhanced personalization
+      const traumaData = this.getTool1TraumaData(clientId);
 
       const insight = Tool2GPTAnalysis.analyzeResponse({
         clientId,
@@ -1547,7 +1550,8 @@ const Tool2 = {
         responseText,
         previousInsights: existingInsights,
         formData: allData,
-        domainScores
+        domainScores,
+        traumaData  // NEW: Pass trauma data to GPT analysis
       });
 
       // Store result in PropertiesService
@@ -1757,7 +1761,10 @@ const Tool2 = {
         !gptInsights[key] || gptInsights[`${key}_error`]
       );
 
-      // Step 3: Run missing analyses synchronously (only if needed)
+      // Step 3: Get Tool1 trauma data for enhanced personalization
+      const traumaData = this.getTool1TraumaData(clientId);
+
+      // Step 4: Run missing analyses synchronously (only if needed)
       if (missingInsights.length > 0) {
         Logger.log(`⚠️ Missing ${missingInsights.length} insights, running now...`);
 
@@ -1771,7 +1778,8 @@ const Tool2 = {
               responseText,
               previousInsights: gptInsights,
               formData: allData,
-              domainScores: results.domainScores
+              domainScores: results.domainScores,
+              traumaData  // NEW: Pass trauma data
             });
 
             gptInsights[key] = insight;
@@ -1779,11 +1787,12 @@ const Tool2 = {
         });
       }
 
-      // Step 4: Run final synthesis (1 call, fast with pre-computed insights)
+      // Step 5: Run final synthesis (1 call, fast with pre-computed insights)
       const overallInsight = Tool2GPTAnalysis.synthesizeOverall(
         clientId,
         gptInsights,
-        results.domainScores
+        results.domainScores,
+        traumaData  // NEW: Pass trauma data to synthesis
       );
 
       // ============================================================

@@ -1,0 +1,560 @@
+/**
+ * AdminMigration.js - One-time migration of legacy Tool 1 data
+ *
+ * Migrates v2 Tool 1 responses to v3 RESPONSES sheet format
+ * Run once via Admin menu: "Admin Tools > Migrate Legacy Tool 1"
+ *
+ * LOGIC: Start with Students sheet (destination), lookup legacy data for each student
+ */
+
+const AdminMigration = {
+  // Legacy spreadsheet ID
+  LEGACY_SHEET_ID: '15O-RORGetKX7XEU228REyinUCtXP-d3y6rt_XQSCKZM',
+
+  /**
+   * Main migration function - with preview mode
+   * @param {boolean} previewOnly - If true, only shows first 5 records without writing
+   * @returns {Object} Migration result
+   */
+  migrateLegacyTool1(previewOnly = false) {
+    try {
+      Logger.log(`=== Starting Legacy Tool 1 Migration (Preview: ${previewOnly}) ===`);
+
+      // Step 1: Get active students from Students sheet (DESTINATION)
+      const activeStudents = this.getActiveStudents();
+      Logger.log(`Found ${activeStudents.length} active students in destination`);
+
+      // Step 2: Build legacy data lookup (email → most recent record)
+      const legacyLookup = this.buildLegacyLookup();
+      Logger.log(`Found ${legacyLookup.size} unique legacy records`);
+
+      // Step 3: Check existing Tool 1 responses to avoid duplicates
+      const existingTool1 = this.getExistingTool1ClientIds();
+      Logger.log(`Found ${existingTool1.size} existing Tool 1 responses`);
+
+      // Step 4: Process each active student
+      const results = {
+        totalStudents: activeStudents.length,
+        processed: 0,
+        skipped: 0,
+        errors: 0,
+        details: []
+      };
+
+      const studentsToProcess = previewOnly ? activeStudents.slice(0, 5) : activeStudents;
+
+      studentsToProcess.forEach((student, index) => {
+        try {
+          const clientId = student.clientId;
+          const email = student.email.toLowerCase().trim();
+          const name = student.name;
+
+          // Check if student already has Tool 1 data
+          if (!previewOnly && existingTool1.has(clientId)) {
+            results.skipped++;
+            results.details.push({
+              clientId: clientId,
+              name: name,
+              email: email,
+              status: 'skipped',
+              reason: 'Tool 1 already completed'
+            });
+            Logger.log(`⚠️ Skipped: ${clientId} (${name}) - already has Tool 1 data`);
+            return;
+          }
+
+          // Look up legacy data for this student
+          if (!legacyLookup.has(email)) {
+            results.skipped++;
+            results.details.push({
+              clientId: clientId,
+              name: name,
+              email: email,
+              status: 'skipped',
+              reason: 'No legacy data found for this email'
+            });
+            Logger.log(`⚠️ Skipped: ${clientId} (${name}) - no legacy data`);
+            return;
+          }
+
+          const legacyRecord = legacyLookup.get(email);
+
+          // Transform data to v3 format
+          const v3Data = this.transformLegacyRecord(legacyRecord);
+
+          // Calculate scores and winner (using Tool1 logic)
+          const scores = this.calculateScores(v3Data.formData);
+          const winner = this.determineWinner(scores, v3Data.formData);
+
+          const dataPackage = {
+            formData: v3Data.formData,
+            scores: scores,
+            winner: winner
+          };
+
+          // Preview mode: just log, don't write
+          if (previewOnly) {
+            results.processed++;
+            results.details.push({
+              clientId: clientId,
+              name: name,
+              email: email,
+              status: 'preview',
+              scores: scores,
+              winner: winner,
+              timestamp: legacyRecord.timestamp
+            });
+            Logger.log(`✓ Preview: ${clientId} (${name}) - Winner: ${winner}`);
+          } else {
+            // Write to RESPONSES sheet
+            DataService.saveToolResponse(clientId, 'tool1', dataPackage, 'COMPLETED');
+
+            results.processed++;
+            results.details.push({
+              clientId: clientId,
+              name: name,
+              email: email,
+              status: 'migrated',
+              winner: winner,
+              timestamp: legacyRecord.timestamp
+            });
+            Logger.log(`✓ Migrated: ${clientId} (${name}) - Winner: ${winner}`);
+          }
+
+        } catch (error) {
+          results.errors++;
+          results.details.push({
+            clientId: student.clientId,
+            name: student.name,
+            email: student.email,
+            status: 'error',
+            error: error.toString()
+          });
+          Logger.log(`❌ Error processing ${student.clientId}: ${error}`);
+        }
+      });
+
+      // Summary
+      Logger.log(`=== Migration ${previewOnly ? 'Preview' : 'Complete'} ===`);
+      Logger.log(`Total Students: ${results.totalStudents}`);
+      Logger.log(`Processed: ${results.processed}`);
+      Logger.log(`Skipped: ${results.skipped}`);
+      Logger.log(`Errors: ${results.errors}`);
+
+      return results;
+
+    } catch (error) {
+      Logger.log(`Fatal migration error: ${error}`);
+      throw error;
+    }
+  },
+
+  /**
+   * Get active students from Students sheet (DESTINATION)
+   * @returns {Array<Object>} Array of {clientId, name, email}
+   */
+  getActiveStudents() {
+    try {
+      const sheet = SpreadsheetApp.openById(CONFIG.MASTER_SHEET_ID)
+        .getSheetByName(CONFIG.SHEETS.STUDENTS);
+
+      if (!sheet) {
+        throw new Error('Students sheet not found');
+      }
+
+      const data = sheet.getDataRange().getValues();
+      const students = [];
+
+      // Skip header row
+      for (let i = 1; i < data.length; i++) {
+        const clientId = data[i][0]; // Column A: Client_ID
+        const name = data[i][1];     // Column B: Name
+        const email = data[i][2];    // Column C: Email
+        const status = data[i][3];   // Column D: Status
+
+        if (clientId && email && status === 'active') {
+          students.push({
+            clientId: clientId,
+            name: name,
+            email: email
+          });
+        }
+      }
+
+      return students;
+
+    } catch (error) {
+      Logger.log(`Error getting active students: ${error}`);
+      throw error;
+    }
+  },
+
+  /**
+   * Build legacy data lookup: email → most recent record
+   * Handles multiple submissions per email (takes latest by timestamp)
+   * @returns {Map<string, Object>} Email to legacy record map
+   */
+  buildLegacyLookup() {
+    try {
+      const legacySheet = SpreadsheetApp.openById(this.LEGACY_SHEET_ID);
+      const sheet = legacySheet.getSheets()[0]; // First sheet
+      const data = sheet.getDataRange().getValues();
+
+      const lookup = new Map();
+
+      // Skip header (row 0) and admin/category row (row 1)
+      // Data starts at row 2 (index 2)
+      for (let i = 2; i < data.length; i++) {
+        const row = data[i];
+
+        // Skip empty rows
+        if (!row[0]) continue;
+
+        const email = String(row[0]).toLowerCase().trim();
+        const timestamp = row[1];
+
+        // Skip invalid emails
+        if (!email || email === 'admin') continue;
+
+        const record = {
+          email: email,
+          timestamp: timestamp,
+          name: row[2],
+          // Questions (columns 3-20: indices 3-20)
+          q3: row[3],   // FSV
+          q4: row[4],   // FSV
+          q5: row[5],   // FSV
+          q17: row[6],  // Control
+          q18: row[7],  // Control
+          q19: row[8],  // Control
+          q10: row[9],  // Showing
+          q11: row[10], // Showing
+          q12: row[11], // Showing
+          q6: row[12],  // ExVal
+          q7: row[13],  // ExVal
+          q8: row[14],  // ExVal
+          q20: row[15], // Fear
+          q21: row[16], // Fear
+          q22: row[17], // Fear
+          q13: row[18], // Receiving
+          q14: row[19], // Receiving
+          q15: row[20], // Receiving
+          // Thought rankings (columns 21-25: indices 21-25)
+          thought_fsv: row[21],
+          thought_control: row[22],
+          thought_showing: row[23],
+          thought_exval: row[24],
+          thought_fear: row[25]
+        };
+
+        // If email already exists, keep the most recent one
+        if (lookup.has(email)) {
+          const existing = lookup.get(email);
+          const existingDate = new Date(existing.timestamp);
+          const newDate = new Date(timestamp);
+
+          // Only replace if newer
+          if (newDate > existingDate) {
+            lookup.set(email, record);
+            Logger.log(`Updated: ${email} with newer submission (${timestamp})`);
+          }
+        } else {
+          lookup.set(email, record);
+        }
+      }
+
+      return lookup;
+
+    } catch (error) {
+      Logger.log(`Error building legacy lookup: ${error}`);
+      throw new Error(`Failed to read legacy spreadsheet: ${error}`);
+    }
+  },
+
+  /**
+   * Get Client_IDs that already have Tool 1 responses
+   * @returns {Set<string>} Set of Client_IDs with existing Tool 1 data
+   */
+  getExistingTool1ClientIds() {
+    try {
+      const sheet = SpreadsheetApp.openById(CONFIG.MASTER_SHEET_ID)
+        .getSheetByName(CONFIG.SHEETS.RESPONSES);
+
+      if (!sheet) {
+        return new Set();
+      }
+
+      const data = sheet.getDataRange().getValues();
+      const existingClients = new Set();
+
+      // Skip header row
+      for (let i = 1; i < data.length; i++) {
+        const clientId = data[i][1]; // Column B: Client_ID
+        const toolId = data[i][2];   // Column C: Tool_ID
+        const isLatest = data[i][6]; // Column G: Is_Latest
+
+        if (toolId === 'tool1' && isLatest === 'true') {
+          existingClients.add(clientId);
+        }
+      }
+
+      return existingClients;
+
+    } catch (error) {
+      Logger.log(`Error getting existing Tool 1 clients: ${error}`);
+      return new Set();
+    }
+  },
+
+  /**
+   * Transform legacy record to v3 format
+   * @param {Object} record - Legacy record
+   * @returns {Object} v3 formatted data
+   */
+  transformLegacyRecord(record) {
+    // Generate feeling rankings from thought rankings
+    // Strategy: Use thought rankings as proxy (they're correlated)
+    const feelingRankings = this.generateFeelingRankings(record);
+
+    return {
+      formData: {
+        name: record.name,
+        email: record.email,
+        // Questions (already mapped correctly)
+        q3: String(record.q3),
+        q4: String(record.q4),
+        q5: String(record.q5),
+        q6: String(record.q6),
+        q7: String(record.q7),
+        q8: String(record.q8),
+        q10: String(record.q10),
+        q11: String(record.q11),
+        q12: String(record.q12),
+        q13: String(record.q13),
+        q14: String(record.q14),
+        q15: String(record.q15),
+        q17: String(record.q17),
+        q18: String(record.q18),
+        q19: String(record.q19),
+        q20: String(record.q20),
+        q21: String(record.q21),
+        q22: String(record.q22),
+        // Thought rankings
+        thought_fsv: String(record.thought_fsv),
+        thought_exval: String(record.thought_exval),
+        thought_showing: String(record.thought_showing),
+        thought_receiving: String(record.thought_receiving || 6), // Default if missing
+        thought_control: String(record.thought_control),
+        thought_fear: String(record.thought_fear),
+        // Feeling rankings (generated)
+        feeling_fsv: String(feelingRankings.feeling_fsv),
+        feeling_exval: String(feelingRankings.feeling_exval),
+        feeling_showing: String(feelingRankings.feeling_showing),
+        feeling_receiving: String(feelingRankings.feeling_receiving),
+        feeling_control: String(feelingRankings.feeling_control),
+        feeling_fear: String(feelingRankings.feeling_fear),
+        // Metadata
+        _migrated: true,
+        _originalTimestamp: record.timestamp,
+        _migratedAt: new Date().toISOString()
+      }
+    };
+  },
+
+  /**
+   * Generate feeling rankings from thought rankings
+   * Use same ranking as thoughts (reasonable proxy for migration)
+   * @param {Object} record - Legacy record
+   * @returns {Object} Feeling rankings
+   */
+  generateFeelingRankings(record) {
+    return {
+      feeling_fsv: record.thought_fsv,
+      feeling_exval: record.thought_exval,
+      feeling_showing: record.thought_showing,
+      feeling_receiving: record.thought_receiving || 6, // Default if missing
+      feeling_control: record.thought_control,
+      feeling_fear: record.thought_fear
+    };
+  },
+
+  /**
+   * Calculate scores (copied from Tool1.js)
+   * @param {Object} data - Form data
+   * @returns {Object} Scores for all 6 categories
+   */
+  calculateScores(data) {
+    // Helper: Normalize thought ranking (1-10) to (-5 to +5)
+    const normalizeThought = (rank) => {
+      const r = parseInt(rank);
+      if (r >= 1 && r <= 5) return r - 6;  // 1→-5, 2→-4, ..., 5→-1
+      if (r >= 6 && r <= 10) return r - 5; // 6→1, 7→2, ..., 10→5
+      return 0;
+    };
+
+    // FSV: Q3, Q4, Q5 + thought_fsv
+    const fsvStatements = parseInt(data.q3 || 0) + parseInt(data.q4 || 0) + parseInt(data.q5 || 0);
+    const fsvThought = normalizeThought(data.thought_fsv || 0);
+    const fsvScore = fsvStatements + (2 * fsvThought);
+
+    // ExVal: Q6, Q7, Q8 + thought_exval
+    const exValStatements = parseInt(data.q6 || 0) + parseInt(data.q7 || 0) + parseInt(data.q8 || 0);
+    const exValThought = normalizeThought(data.thought_exval || 0);
+    const exValScore = exValStatements + (2 * exValThought);
+
+    // Showing: Q10, Q11, Q12 + thought_showing
+    const showingStatements = parseInt(data.q10 || 0) + parseInt(data.q11 || 0) + parseInt(data.q12 || 0);
+    const showingThought = normalizeThought(data.thought_showing || 0);
+    const showingScore = showingStatements + (2 * showingThought);
+
+    // Receiving: Q13, Q14, Q15 + thought_receiving
+    const receivingStatements = parseInt(data.q13 || 0) + parseInt(data.q14 || 0) + parseInt(data.q15 || 0);
+    const receivingThought = normalizeThought(data.thought_receiving || 0);
+    const receivingScore = receivingStatements + (2 * receivingThought);
+
+    // Control: Q17, Q18, Q19 + thought_control
+    const controlStatements = parseInt(data.q17 || 0) + parseInt(data.q18 || 0) + parseInt(data.q19 || 0);
+    const controlThought = normalizeThought(data.thought_control || 0);
+    const controlScore = controlStatements + (2 * controlThought);
+
+    // Fear: Q20, Q21, Q22 + thought_fear
+    const fearStatements = parseInt(data.q20 || 0) + parseInt(data.q21 || 0) + parseInt(data.q22 || 0);
+    const fearThought = normalizeThought(data.thought_fear || 0);
+    const fearScore = fearStatements + (2 * fearThought);
+
+    return {
+      FSV: fsvScore,
+      ExVal: exValScore,
+      Showing: showingScore,
+      Receiving: receivingScore,
+      Control: controlScore,
+      Fear: fearScore
+    };
+  },
+
+  /**
+   * Determine winner (copied from Tool1.js)
+   * @param {Object} scores - Calculated scores
+   * @param {Object} data - Form data (for tie-breaker)
+   * @returns {string} Winner category
+   */
+  determineWinner(scores, data) {
+    const categories = ['FSV', 'ExVal', 'Showing', 'Receiving', 'Control', 'Fear'];
+    const feelingFields = {
+      'FSV': 'feeling_fsv',
+      'ExVal': 'feeling_exval',
+      'Showing': 'feeling_showing',
+      'Receiving': 'feeling_receiving',
+      'Control': 'feeling_control',
+      'Fear': 'feeling_fear'
+    };
+
+    // Find max score
+    const maxScore = Math.max(...Object.values(scores));
+
+    // Find all categories with max score
+    const tied = categories.filter(cat => scores[cat] === maxScore);
+
+    // If no tie, return winner
+    if (tied.length === 1) {
+      return tied[0];
+    }
+
+    // Tie-breaker: Use highest feeling ranking
+    let winner = tied[0];
+    let highestFeeling = parseInt(data[feelingFields[tied[0]]] || 0);
+
+    for (let i = 1; i < tied.length; i++) {
+      const cat = tied[i];
+      const feeling = parseInt(data[feelingFields[cat]] || 0);
+      if (feeling > highestFeeling) {
+        highestFeeling = feeling;
+        winner = cat;
+      }
+    }
+
+    return winner;
+  }
+};
+
+/**
+ * Menu functions to be called from Apps Script UI
+ */
+
+function previewLegacyTool1Migration() {
+  const ui = SpreadsheetApp.getUi();
+
+  try {
+    const result = AdminMigration.migrateLegacyTool1(true);
+
+    let message = `PREVIEW MODE - No data written\n\n`;
+    message += `Total students in destination: ${result.totalStudents}\n`;
+    message += `Will process: ${result.processed}\n`;
+    message += `Will skip: ${result.skipped}\n`;
+    message += `Errors: ${result.errors}\n\n`;
+    message += `First 5 records:\n\n`;
+
+    result.details.slice(0, 5).forEach(detail => {
+      if (detail.status === 'preview') {
+        message += `✓ ${detail.clientId} - ${detail.name}\n`;
+        message += `  Winner: ${detail.winner}\n`;
+        message += `  Scores: FSV=${detail.scores.FSV}, ExVal=${detail.scores.ExVal}\n\n`;
+      } else if (detail.status === 'skipped') {
+        message += `⚠️ ${detail.clientId} - ${detail.name}\n`;
+        message += `  Reason: ${detail.reason}\n\n`;
+      }
+    });
+
+    message += `\nCheck logs for full details.`;
+
+    ui.alert('Migration Preview', message, ui.ButtonSet.OK);
+
+  } catch (error) {
+    ui.alert('Preview Error', `Failed to preview migration:\n${error}`, ui.ButtonSet.OK);
+  }
+}
+
+function runLegacyTool1Migration() {
+  const ui = SpreadsheetApp.getUi();
+
+  // Confirmation dialog
+  const response = ui.alert(
+    'Confirm Migration',
+    'This will migrate legacy Tool 1 data to v3 format.\n\n' +
+    'This action will:\n' +
+    '- Process active students from Students sheet\n' +
+    '- Look up their legacy Tool 1 data\n' +
+    '- Skip students who already have Tool 1 data\n' +
+    '- Write to RESPONSES sheet\n\n' +
+    'Continue?',
+    ui.ButtonSet.YES_NO
+  );
+
+  if (response !== ui.Button.YES) {
+    ui.alert('Migration Cancelled', 'No data was modified.', ui.ButtonSet.OK);
+    return;
+  }
+
+  try {
+    const result = AdminMigration.migrateLegacyTool1(false);
+
+    let message = `Migration Complete!\n\n`;
+    message += `Total students: ${result.totalStudents}\n`;
+    message += `Migrated: ${result.processed}\n`;
+    message += `Skipped: ${result.skipped}\n`;
+    message += `Errors: ${result.errors}\n\n`;
+
+    if (result.errors > 0) {
+      message += `⚠️ Some records had errors. Check logs for details.`;
+    } else if (result.processed > 0) {
+      message += `✓ All records migrated successfully!`;
+    } else {
+      message += `ℹ️ No new records to migrate.`;
+    }
+
+    ui.alert('Migration Complete', message, ui.ButtonSet.OK);
+
+  } catch (error) {
+    ui.alert('Migration Error', `Failed to run migration:\n${error}`, ui.ButtonSet.OK);
+  }
+}

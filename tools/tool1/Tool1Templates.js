@@ -298,8 +298,8 @@ const Tool1Templates = {
       <p>Regards,<br>The TruPath Team</p>
 
       <p style="margin-top: 20px; font-size: 14px; color: #94a3b8;">
-        <strong>PS:</strong> If you have any questions, contact your facilitator or Sarah Last, the TruPath Program Manager.<br>
-        info@TruPathMastery.com
+        <strong>PS:</strong> If you have any questions, contact your facilitator or The TruPath Team.<br>
+        admin@trupathmastery.com
       </p>
     </div>
   `

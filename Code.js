@@ -18,6 +18,28 @@ function include(filename) {
 }
 
 /**
+ * Creates custom menu when spreadsheet opens
+ */
+function onOpen() {
+  const ui = SpreadsheetApp.getUi();
+  ui.createMenu('🔧 Admin Tools')
+    .addItem('📊 Preview Legacy Tool 1 Migration', 'previewLegacyTool1Migration')
+    .addItem('✅ Run Legacy Tool 1 Migration', 'runLegacyTool1Migration')
+    .addSeparator()
+    .addItem('📋 List All Students', 'menuListStudents')
+    .addToUi();
+}
+
+/**
+ * Menu helper for listing students
+ */
+function menuListStudents() {
+  listStudents();
+  const ui = SpreadsheetApp.getUi();
+  ui.alert('Students Listed', 'Check the execution log (View → Logs) for the full list.', ui.ButtonSet.OK);
+}
+
+/**
  * Register all tools with the framework
  * This runs on every request to ensure tools are available
  */
@@ -960,6 +982,89 @@ function addDefaultInsightMappings() {
   } catch (error) {
     console.error('Error adding mappings:', error);
     return { success: false, error: error.toString() };
+  }
+}
+
+// ========================================
+// TESTING FUNCTIONS
+// ========================================
+
+/**
+ * Test Tool2 GPT integration with Tool1 trauma data
+ */
+function testTool2GPTWithTraumaData() {
+  try {
+    const testClientId = 'TEST_TRAUMA_GPT_' + new Date().getTime();
+    
+    // Simulate Tool1 trauma data
+    const traumaData = {
+      topTrauma: 'FSV',
+      traumaScores: {
+        FSV: 75,
+        Control: 45,
+        ExVal: 30,
+        Fear: 20,
+        Receiving: 35,
+        Showing: 40
+      }
+    };
+    
+    // Test data
+    const testFormData = {
+      q18_income_sources: 'I work as a freelance designer but I don\'t really make that much. Just getting by.',
+      q23_major_expenses: 'Rent, food, basic stuff. Nothing fancy.',
+      q52_emotions: 'I feel ashamed about money. Like I should be doing better.'
+    };
+    
+    Logger.log('Testing Tool2 GPT with trauma data...');
+    Logger.log('Test Client: ' + testClientId);
+    Logger.log('Primary Trauma: ' + traumaData.topTrauma);
+    
+    // Test individual analysis with trauma context
+    const incomeInsight = Tool2GPTAnalysis.analyzeResponse({
+      clientId: testClientId,
+      responseType: 'income_sources',
+      responseText: testFormData.q18_income_sources,
+      previousInsights: {},
+      formData: testFormData,
+      domainScores: {moneyFlow: 35, obligations: 45, liquidity: 30, growth: 25, protection: 40},
+      traumaData: traumaData
+    });
+    
+    Logger.log('\nIncome Insight:');
+    Logger.log('Source: ' + incomeInsight.source);
+    Logger.log('Pattern: ' + incomeInsight.pattern);
+    Logger.log('Insight: ' + incomeInsight.insight);
+    Logger.log('Action: ' + incomeInsight.action);
+    
+    // Test synthesis with trauma data
+    const synthesis = Tool2GPTAnalysis.synthesizeOverall(
+      testClientId,
+      {income_sources: incomeInsight},
+      {moneyFlow: 35, obligations: 45, liquidity: 30, growth: 25, protection: 40},
+      traumaData
+    );
+    
+    Logger.log('\nSynthesis Overview:');
+    Logger.log(synthesis.overview || 'No overview generated');
+    
+    Logger.log('\n✅ Test completed successfully');
+    
+    // Clean up test data
+    PropertiesService.getUserProperties().deleteProperty(`tool2_gpt_${testClientId}`);
+    
+    return {
+      success: true,
+      insights: incomeInsight,
+      synthesis: synthesis
+    };
+    
+  } catch (error) {
+    Logger.log('❌ Test failed: ' + error.toString());
+    return {
+      success: false,
+      error: error.toString()
+    };
   }
 }
 

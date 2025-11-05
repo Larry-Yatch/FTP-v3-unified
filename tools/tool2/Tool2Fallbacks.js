@@ -10,18 +10,19 @@
 const Tool2Fallbacks = {
 
   /**
-   * Get fallback insight based on domain scores
+   * Get fallback insight based on domain scores and trauma data
    * @param {string} responseType - Type of response (income_sources, major_expenses, etc.)
    * @param {object} formData - All form data
    * @param {object} domainScores - Calculated domain scores (0-100%)
+   * @param {object} traumaData - Tool1 trauma assessment data
    * @returns {object} Fallback insight {pattern, insight, action}
    */
-  getFallbackInsight(responseType, formData, domainScores) {
+  getFallbackInsight(responseType, formData, domainScores, traumaData) {
     const fallbacks = {
       income_sources: {
-        pattern: this.getIncomePattern(formData.q18_income_sources, domainScores),
-        insight: this.getIncomeInsight(formData.q18_income_sources, domainScores),
-        action: this.getIncomeAction(formData.q18_income_sources, domainScores)
+        pattern: this.getIncomePattern(formData.q18_income_sources, domainScores, traumaData),
+        insight: this.getIncomeInsight(formData.q18_income_sources, domainScores, traumaData),
+        action: this.getIncomeAction(formData.q18_income_sources, domainScores, traumaData)
       },
       major_expenses: {
         pattern: this.getExpensePattern(formData.q23_major_expenses, domainScores),
@@ -49,9 +50,9 @@ const Tool2Fallbacks = {
         action: this.getEmotionAction(formData.q52_emotions, domainScores)
       },
       adaptive_trauma: {
-        pattern: this.getTraumaPattern(formData, domainScores),
-        insight: this.getTraumaInsight(formData, domainScores),
-        action: this.getTraumaAction(formData, domainScores)
+        pattern: this.getTraumaPattern(formData, domainScores, traumaData),
+        insight: this.getTraumaInsight(formData, domainScores, traumaData),
+        action: this.getTraumaAction(formData, domainScores, traumaData)
       }
     };
 
@@ -62,22 +63,35 @@ const Tool2Fallbacks = {
   // INCOME SOURCES FALLBACKS (Q18)
   // ============================================================
 
-  getIncomePattern(response, scores) {
+  getIncomePattern(response, scores, traumaData) {
     const moneyFlowScore = scores.moneyFlow || 0;
     const responseLength = (response || '').length;
+    const topTrauma = traumaData?.topTrauma;
+    
+    // Add trauma-specific patterns
+    const traumaPatterns = {
+      FSV: "which may reflect a tendency to minimize or hide your true financial capabilities",
+      Control: "suggesting a need for control and predictability in income sources",
+      ExVal: "potentially influenced by what others consider acceptable or successful",
+      Fear: "showing possible avoidance of fully engaging with income opportunities",
+      Receiving: "with potential difficulty accepting or acknowledging all income sources",
+      Showing: "possibly focused more on serving others than securing your own income"
+    };
+    
+    const traumaSuffix = topTrauma ? ` ${traumaPatterns[topTrauma]}` : '';
 
     if (responseLength < 50) {
-      return "Your income structure appears straightforward with limited detail provided about income sources.";
+      return `Your income structure appears straightforward with limited detail provided${traumaSuffix}.`;
     } else if (moneyFlowScore < 30) {
-      return "Your income clarity score suggests there may be inconsistency or uncertainty in your income streams.";
+      return `Your income clarity score suggests uncertainty in your income streams${traumaSuffix}.`;
     } else if (moneyFlowScore >= 60) {
-      return "Your income clarity score indicates a solid understanding of your income sources and their reliability.";
+      return `Your income clarity indicates solid understanding of your income sources${traumaSuffix}.`;
     } else {
-      return "Your income structure shows moderate clarity with room to strengthen your understanding of income patterns.";
+      return `Your income structure shows moderate clarity with room for growth${traumaSuffix}.`;
     }
   },
 
-  getIncomeInsight(response, scores) {
+  getIncomeInsight(response, scores, traumaData) {
     const moneyFlowScore = scores.moneyFlow || 0;
 
     if (moneyFlowScore < 30) {
@@ -89,7 +103,7 @@ const Tool2Fallbacks = {
     }
   },
 
-  getIncomeAction(response, scores) {
+  getIncomeAction(response, scores, traumaData) {
     const moneyFlowScore = scores.moneyFlow || 0;
 
     if (moneyFlowScore < 30) {
@@ -320,7 +334,7 @@ const Tool2Fallbacks = {
   // ADAPTIVE TRAUMA FALLBACKS (Q55/Q56)
   // ============================================================
 
-  getTraumaPattern(formData, scores) {
+  getTraumaPattern(formData, scores, traumaData) {
     const traumaType = this.detectTraumaType(formData);
     const avgScore = this.calculateAverageScore(scores);
 
@@ -336,7 +350,7 @@ const Tool2Fallbacks = {
     return patterns[traumaType] || patterns.control;
   },
 
-  getTraumaInsight(formData, scores) {
+  getTraumaInsight(formData, scores, traumaData) {
     const traumaType = this.detectTraumaType(formData);
     const avgScore = this.calculateAverageScore(scores);
 
@@ -352,7 +366,7 @@ const Tool2Fallbacks = {
     return insights[traumaType] || insights.control;
   },
 
-  getTraumaAction(formData, scores) {
+  getTraumaAction(formData, scores, traumaData) {
     const traumaType = this.detectTraumaType(formData);
     const avgScore = this.calculateAverageScore(scores);
 
