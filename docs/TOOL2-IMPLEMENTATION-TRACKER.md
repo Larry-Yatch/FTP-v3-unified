@@ -192,17 +192,19 @@
 
 ---
 
-### **Step 6: Page 4 - Add Investments Section** ⏳ **NOT STARTED**
+### **Step 6: Page 4 - Add Investments Section** ✅ **COMPLETE**
 
 **Estimated Time:** 30 minutes
-**Status:** ⏳ **NOT STARTED**
+**Status:** ✅ **COMPLETE**
+**Completed:** November 5, 2025
+**Commit:** `611130d` - feat: Complete Tool 2 Page 4 - Growth Domain (Q35-Q47)
 
 #### Tasks:
-- [ ] Add Q39: Investment activity (-5 to +5)
-- [ ] Add Q40: Investment clarity (-5 to +5)
-- [ ] Add Q41: Investment confidence (-5 to +5)
-- [ ] Add Q42: Investment stress level (-5 to +5)
-- [ ] Add Q43: List investment types (paragraph text)
+- [x] Add Q39: Investment activity (-5 to +5)
+- [x] Add Q40: Investment clarity (-5 to +5)
+- [x] Add Q41: Investment confidence (-5 to +5)
+- [x] Add Q42: Investment stress level (-5 to +5)
+- [x] Add Q43: List investment types (paragraph text)
 
 #### Test Checklist:
 - [ ] All 9 questions on Page 4 render (savings + investments)
@@ -211,8 +213,8 @@
 - [ ] Navigate forward to Page 5
 
 #### Deployment:
-- [ ] Commit code
-- [ ] Push with `clasp push`
+- [x] Commit code
+- [x] Push with `clasp push`
 - [ ] Test in production
 - [ ] Document any issues
 
