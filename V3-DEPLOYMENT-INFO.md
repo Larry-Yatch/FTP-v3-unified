@@ -8,14 +8,14 @@
 
 ## 🔗 Current Production Deployment
 
-### Web App (Latest - v3.8.0 @92) 🎉
-**URL:** https://script.google.com/macros/s/AKfycbwJ_9DJCj2iQeHGpAoCfeixV_ORPa4RwZ4Pt5DEMQ5MtktHdercWeESLZaZQFvIdQNF/exec
+### Web App (Latest - v3.8.1 @94) 🎉
+**URL:** https://script.google.com/macros/s/AKfycbxPEpFXM7y0uvr6SufwA4dMmC34SfA8cBsbCSVRqoK7hTD_g07zHKKFv354WhdAyEpN/exec
 
-**Deployment ID:** `AKfycbwJ_9DJCj2iQeHGpAoCfeixV_ORPa4RwZ4Pt5DEMQ5MtktHdercWeESLZaZQFvIdQNF @92`
+**Deployment ID:** `AKfycbxPEpFXM7y0uvr6SufwA4dMmC34SfA8cBsbCSVRqoK7hTD_g07zHKKFv354WhdAyEpN @94`
 
-**Version:** v3.8.0 - Tool 2 GPT Integration Complete (Background Processing + 3-Tier Fallback)
+**Version:** v3.8.1 - Tool 2 PDF Download Complete
 
-**Git Commit:** `78b9a03`
+**Git Commit:** `7bb13e5`
 
 **What's Working:**
 - ✅ Login and authentication
@@ -35,10 +35,12 @@
   - ✅ **NEW: 3-tier fallback system (GPT → Retry → Domain-specific fallbacks)**
   - ✅ **NEW: Duplicate GPT call prevention (on back/forward navigation)**
   - ✅ **NEW: Beautiful insights display with source attribution**
+  - ✅ **NEW: PDF download with all GPT insights included** 📥
 - ✅ Tool 2 Report displays domain scores with color-coded progress bars
 - ✅ Growth archetype with personalized descriptions (6 archetypes)
 - ✅ Priority ranking with stress-weighted analysis
 - ✅ **GPT-powered personalized insights** (cost: ~$0.023/student, speed: ~3s wait)
+- ✅ **PDF export** with professional formatting
 - ✅ All page 5 ranking data saves correctly
 - ✅ No duplicate EDIT_DRAFTs or infinite loops
 - ✅ All iframe navigation issues resolved (document.write() pattern)
