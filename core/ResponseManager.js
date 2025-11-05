@@ -246,19 +246,39 @@ const ResponseManager = {
         };
       }
 
+      // DIAGNOSTIC: Log original response structure
+      Logger.log(`=== ResponseManager.loadResponseForEditing DIAGNOSTIC ===`);
+      Logger.log(`Original responseData keys: ${JSON.stringify(Object.keys(responseData || {}))}`);
+      Logger.log(`Has formData? ${!!responseData.formData}`);
+      Logger.log(`Has scores? ${!!responseData.scores}`);
+      Logger.log(`Has winner? ${!!responseData.winner}`);
+
+      if (responseData.formData) {
+        Logger.log(`formData keys: ${JSON.stringify(Object.keys(responseData.formData || {}))}`);
+        Logger.log(`formData.thought_fsv: ${responseData.formData.thought_fsv}`);
+        Logger.log(`formData.feeling_fsv: ${responseData.formData.feeling_fsv}`);
+      }
+
       // Extract form data if it's nested (Tool1 structure: {formData, scores, winner})
       // Otherwise use the entire response data
       let formFields;
       if (responseData.formData) {
         // Tool1 pattern: data is nested under formData
         formFields = responseData.formData;
+        Logger.log(`Using nested formData extraction`);
       } else if (responseData.data) {
         // Alternative pattern: data nested under data
         formFields = responseData.data;
+        Logger.log(`Using nested data extraction`);
       } else {
         // Flat structure: use as-is
         formFields = responseData;
+        Logger.log(`Using flat structure`);
       }
+
+      Logger.log(`formFields keys after extraction: ${JSON.stringify(Object.keys(formFields || {}))}`);
+      Logger.log(`formFields.thought_fsv: ${formFields.thought_fsv}`);
+      Logger.log(`formFields.feeling_fsv: ${formFields.feeling_fsv}`);
 
       // Create edit draft with metadata
       const editDraftData = {
@@ -268,6 +288,10 @@ const ResponseManager = {
         _originalResponseId: latest.timestamp, // Using timestamp as ID for now
         _editStarted: new Date().toISOString()
       };
+
+      Logger.log(`editDraftData keys after spread: ${JSON.stringify(Object.keys(editDraftData || {}))}`);
+      Logger.log(`editDraftData.thought_fsv: ${editDraftData.thought_fsv}`);
+      Logger.log(`editDraftData.feeling_fsv: ${editDraftData.feeling_fsv}`);
 
       // Save as EDIT_DRAFT in RESPONSES sheet
       const ss = SpreadsheetApp.openById(CONFIG.MASTER_SHEET_ID);

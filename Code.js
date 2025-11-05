@@ -388,8 +388,18 @@ function completeToolSubmission(toolId, data) {
       return { success: false, error: `Tool ${toolId} does not support final submission` };
     }
 
-    // Call tool's final submission handler
+    // CRITICAL: Save the final page data BEFORE processing
+    // submitFinalPage() passes form data but it was never being saved!
+    // This caused page 5 rankings to be missing from saved responses.
     const clientId = data.client;
+    const page = parseInt(data.page) || 5;  // Default to last page if not specified
+
+    if (typeof tool.savePageData === 'function') {
+      Logger.log(`Saving final page ${page} data before processing`);
+      tool.savePageData(clientId, page, data);
+    }
+
+    // Call tool's final submission handler
     const result = tool.processFinalSubmission(clientId);
 
     Logger.log(`Completed ${toolId} for ${clientId}`);
