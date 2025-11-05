@@ -559,6 +559,13 @@ const Router = {
             showLoading('Loading your responses...');
             google.script.run
               .withSuccessHandler(function(result) {
+                // Null check: google.script.run can return null in edge cases
+                if (!result) {
+                  hideLoading();
+                  alert('Error: Server returned no data. Please refresh and try again.');
+                  return;
+                }
+
                 if (result.success) {
                   // Use window.top to break out of document.write() chain
                   window.top.location.href = baseUrl + '?route=tool1&client=' + clientId + '&page=1';
@@ -580,6 +587,13 @@ const Router = {
               showLoading('Preparing fresh assessment...');
               google.script.run
                 .withSuccessHandler(function(result) {
+                  // Null check: google.script.run can return null in edge cases
+                  if (!result) {
+                    hideLoading();
+                    alert('Error: Server returned no data. Please refresh and try again.');
+                    return;
+                  }
+
                   if (result.success) {
                     // Use window.top to break out of document.write() chain
                     window.top.location.href = baseUrl + '?route=tool1&client=' + clientId + '&page=1';
@@ -602,6 +616,13 @@ const Router = {
               showLoading('Canceling draft...');
               google.script.run
                 .withSuccessHandler(function(result) {
+                  // Null check: google.script.run can return null in edge cases
+                  if (!result) {
+                    hideLoading();
+                    alert('Error: Server returned no data. Please refresh and try again.');
+                    return;
+                  }
+
                   if (result.success) {
                     // Use navigateToDashboard instead of reload to avoid iframe issues
                     navigateToDashboard(clientId, 'Refreshing Dashboard');
