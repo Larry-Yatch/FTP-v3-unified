@@ -204,16 +204,6 @@ const Tool2GPTAnalysis = {
    */
   buildUserPrompt(responseText, previousInsights, traumaData) {
     let prompt = '';
-    
-    // Add trauma context if available
-    if (traumaData && traumaData.topTrauma) {
-      prompt += `Trauma Assessment Context:\n`;
-      prompt += `- Primary Pattern: ${traumaData.topTrauma}\n`;
-      if (traumaData.traumaScores) {
-        prompt += `- Score: ${traumaData.traumaScores[traumaData.topTrauma] || 0}\n`;
-      }
-      prompt += '\n';
-    }
 
     // Add previous insights as context (if available)
     if (previousInsights && Object.keys(previousInsights).length > 0) {
@@ -284,38 +274,34 @@ const Tool2GPTAnalysis = {
    * Income sources prompt (Q18)
    */
   getIncomeSourcesPrompt(previousInsights, traumaData) {
-    const traumaContext = this.getTraumaContext(traumaData);
-    const healingFocus = traumaData?.topTrauma ? this.getTraumaHealingFocus(traumaData.topTrauma) : '';
-    
     return `
 You are a financial clarity expert analyzing a student's income sources.
-
-${traumaContext ? `TRAUMA CONTEXT: ${traumaContext}\n` : ''}
 
 **CRITICAL**: Reference the student's exact words and specific examples from
 their response. Ground your insights in what THEY said, not generic advice.
 
 Analyze their response for:
-1. Pattern: What pattern emerges from their specific income sources?${traumaData?.topTrauma ? ` How might their ${traumaData.topTrauma} pattern influence how they describe or relate to their income?` : ''}
-2. Insight: What does this reveal about their income clarity and stability?${traumaData?.topTrauma ? ` Consider how their trauma pattern affects their relationship with income.` : ''}
-3. Action: One concrete step based on THEIR situation${healingFocus ? ` that supports ${healingFocus}` : ''} (not generic advice)
+1. Pattern: What pattern emerges from their specific income sources?
+2. Insight: What does this reveal about their income clarity and stability?
+3. Action: One concrete step based on THEIR situation (not generic advice)
 
 Consider:
 - Number of income sources (diversification vs simplicity)
 - Predictability and consistency
 - Clarity about amounts and timing
-- Active vs passive income mix${traumaData?.topTrauma === 'FSV' ? '\n- Whether they\'re minimizing or hiding income success' : ''}${traumaData?.topTrauma === 'Control' ? '\n- Signs of over-control or anxiety about income variability' : ''}${traumaData?.topTrauma === 'ExVal' ? '\n- Income choices driven by others\' opinions or status' : ''}
+- Active vs passive income mix
+- Any emotional patterns in how they describe their income
 
 Return plain-text only:
 
 Pattern:
-(One sentence identifying the key pattern${traumaData?.topTrauma ? `, considering their ${traumaData.topTrauma} pattern` : ''})
+(One sentence identifying the key pattern in their income structure)
 
 Insight:
-(One sentence about what this means for their financial clarity${traumaData?.topTrauma ? ` and trauma healing` : ''})
+(One sentence about what this means for their financial clarity)
 
 Action:
-(One specific, actionable step${healingFocus ? ` that promotes ${healingFocus}` : ''})
+(One specific, actionable step based on their situation)
     `.trim();
   },
 
@@ -504,40 +490,40 @@ Action:
    */
   getAdaptiveTraumaPrompt(previousInsights, traumaData) {
     return `
-You are a financial trauma expert analyzing a student's adaptive trauma response.
+You are a financial clarity expert analyzing a student's reflection on emotional patterns.
 
-**CRITICAL**: This is their most vulnerable share. Reference their exact words
-with care and respect. This is about THEIR specific trauma pattern, not generic advice.
+**CRITICAL**: This is a vulnerable share. Reference their exact words
+with care and respect. This is about THEIR specific experience, not generic advice.
 
-${previousInsights && Object.keys(previousInsights).length > 0 ? 'Connect this trauma pattern to all the financial behaviors you\'ve identified.' : ''}
+${previousInsights && Object.keys(previousInsights).length > 0 ? 'Gently connect this to the financial behaviors you\'ve identified, if relevant.' : ''}
 
 Analyze their response for:
-1. Pattern: What specific trauma-driven pattern do they describe?
-2. Insight: What is this pattern protecting them from or helping them avoid?
-3. Action: One gentle, trauma-informed step to begin shifting this pattern
+1. Pattern: What emotional or behavioral pattern do they describe in their financial life?
+2. Insight: What might this pattern be helping them manage or avoid?
+3. Action: One gentle, practical step to begin shifting this pattern
 
 Consider:
-- The protective function of this pattern (what did it help them survive?)
-- How this pattern shows up across their financial life
-- The cost of continuing this pattern vs the risk of changing it
-- A safe, small step that honors their pace
+- How this pattern shows up in their financial behaviors
+- What need or protection this pattern might be serving
+- A realistic, compassionate action step that honors where they are
+- Keep the focus on financial empowerment, not therapy
 
-**Trauma-informed approach:**
-- Validate the pattern as adaptive (it helped at one time)
-- Acknowledge the courage it takes to recognize and shift it
-- Offer small, safe actions (not dramatic changes)
-- Connect to self-compassion and worthiness
+**Compassionate approach:**
+- Acknowledge patterns with understanding (behaviors made sense at one time)
+- Recognize the courage it takes to see and shift patterns
+- Offer small, practical actions (not dramatic changes)
+- Frame changes as building financial confidence and clarity
 
 Return plain-text only:
 
 Pattern:
-(One sentence identifying the trauma pattern with compassion)
+(One sentence identifying the behavioral or emotional pattern in their financial life)
 
 Insight:
-(One sentence about what this pattern protected them from)
+(One sentence about what this pattern might be helping them manage)
 
 Action:
-(One gentle, specific step to begin healing this pattern)
+(One gentle, specific step toward greater financial clarity and confidence)
     `.trim();
   },
 
@@ -574,21 +560,15 @@ Action:
    * Synthesize overall insights from all individual analyses
    */
   synthesizeOverall(clientId, allInsights, domainScores, traumaData) {
-    const traumaContext = this.getTraumaContext(traumaData);
-    const healingFocus = traumaData?.topTrauma ? this.getTraumaHealingFocus(traumaData.topTrauma) : '';
-    
-    const traumaIntegration = traumaData?.topTrauma ? `
+    // Softer trauma context - background awareness, not primary lens
+    const traumaBackground = traumaData?.topTrauma ? `
 
-PRIMARY TRAUMA PATTERN: ${traumaData.topTrauma}
-Trauma Score: ${traumaData.traumaScores?.[traumaData.topTrauma] || 'Unknown'}
+BACKGROUND CONTEXT (do not over-emphasize):
+This person has a ${traumaData.topTrauma} pattern that MAY influence some financial behaviors. Keep this as gentle background awareness - don't make the entire report about this pattern. Focus primarily on their financial clarity, with trauma awareness as subtle subtext when relevant.` : '';
 
-${traumaContext}
-
-This ${traumaData.topTrauma} pattern is the lens through which they experience money. Every financial behavior is influenced by this core protective strategy. Your synthesis must show how their financial patterns and their ${traumaData.topTrauma} pattern are interconnected.` : '';
-    
     const systemPrompt = `
 You are synthesizing a comprehensive Financial Clarity report for a student.
-${traumaIntegration}
+${traumaBackground}
 
 Domain Scores (0-100%):
 - Money Flow: ${domainScores.moneyFlow}%
@@ -601,28 +581,31 @@ Individual Insights:
 ${JSON.stringify(allInsights, null, 2)}
 
 Create a cohesive narrative that:
-- ${traumaData?.topTrauma ? `Shows how their ${traumaData.topTrauma} pattern manifests in each financial domain` : 'Connects numeric scores to personal stories'}
-- Identifies how patterns reinforce each other${traumaData?.topTrauma ? ` and maintain the ${traumaData.topTrauma} protection` : ''}
-- Provides trauma-informed actions that support ${healingFocus || 'growth and healing'}
-- References specific examples from their responses
-- Frames change as safety-building, not fixing brokenness
+- Focuses PRIMARILY on their financial clarity journey (scores, behaviors, patterns)
+- Connects numeric scores to their personal stories and specific examples
+- Identifies practical financial patterns and opportunities for improvement
+- ${traumaData?.topTrauma ? `Gently acknowledges (but doesn't over-emphasize) how emotional patterns may influence some financial behaviors` : 'Notes emotional or behavioral patterns when relevant'}
+- Provides actionable steps that feel empowering and practical, not clinical or therapy-focused
+- Uses warm, encouraging language focused on growth and capability
+
+**IMPORTANT**: This is a financial clarity report, not a trauma assessment. Keep the tone focused on practical financial insights with compassionate awareness of emotional factors.
 
 Return plain-text only:
 
 Overview:
-(2-3 paragraphs showing how their ${traumaData?.topTrauma || 'core'} pattern shapes their entire financial life, connecting scores to stories with compassion)
+(2-3 paragraphs focused on their financial clarity journey - connecting scores to their actual financial behaviors and patterns. ${traumaData?.topTrauma ? `If relevant, gently note how emotional patterns may play a role, but keep the primary focus on finances.` : 'Note emotional factors naturally when they emerge from the data.'})
 
 Top Patterns:
-- Pattern 1: [How ${traumaData?.topTrauma || 'their pattern'} shows up most strongly in finances]
-- Pattern 2: [Secondary pattern that reinforces the primary protection]
-- Pattern 3: [Strength or resource that can support healing]
+- Pattern 1: [Most significant financial pattern or clarity gap - focus on the financial behavior itself]
+- Pattern 2: [Secondary financial pattern or strength that's notable]
+- Pattern 3: [Resource, strength, or positive pattern they can build on]
 
 Priority Actions:
-1. [Gentle action for the lowest domain that honors their ${traumaData?.topTrauma || 'pattern'}]
-2. [Small step toward ${healingFocus || 'healing'} that feels safe]
+1. [Practical action for their lowest domain - specific and actionable]
+2. [Action that addresses a key financial behavior or pattern identified]
 3. [Action that builds on existing strengths or successes]
-4. [Self-compassion practice specific to their ${traumaData?.topTrauma || 'pattern'}]
-5. [Long-term vision that connects financial clarity to ${healingFocus || 'deeper healing'}]
+4. [Action that supports emotional or mindset shift around money, if relevant]
+5. [Longer-term financial goal or practice that supports overall clarity]
 
 STOP after Priority Actions. Do not add conclusions or additional text.
     `.trim();
