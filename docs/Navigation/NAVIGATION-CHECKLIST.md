@@ -66,8 +66,13 @@ Before building a new tool, review these rules:
 ### **Phase 2: Navigation Implementation**
 
 #### **4. Dashboard Integration (Router.js)**
+
+**CRITICAL: User Gesture Preservation**
+❌ **Do NOT use async callbacks for navigation** - they lose user gesture!
+✅ **Navigate IMMEDIATELY from click handler** - preserves user gesture
+
 ```javascript
-// ✅ CORRECT: View Report Button
+// ✅ CORRECT: View Report Button (uses document.write)
 function viewReport() {
   showLoading('Loading Report');
   google.script.run
@@ -76,44 +81,123 @@ function viewReport() {
       document.write(reportHtml);
       document.close();
     })
+    .withFailureHandler(function(error) {
+      hideLoading();
+      alert('Error: ' + error.message);
+    })
     .getReportPage(clientId, 'toolN');
+}
+
+// ✅ CORRECT: Edit Response Button (navigate immediately)
+function editResponse() {
+  showLoading('Loading your responses...');
+  // Navigate IMMEDIATELY - preserves user gesture
+  window.top.location.href = baseUrl + '?route=toolN&client=' + clientId + '&page=1&editMode=true';
+}
+
+// ✅ CORRECT: Start Fresh Button (navigate immediately)
+function retakeTool() {
+  if (confirm('Start a completely fresh assessment?')) {
+    showLoading('Preparing fresh assessment...');
+    // Navigate IMMEDIATELY - preserves user gesture
+    window.top.location.href = baseUrl + '?route=toolN&client=' + clientId + '&page=1&clearDraft=true';
+  }
 }
 ```
 
 **Checklist:**
 - [ ] View Report button uses `getReportPage()` + `document.write()`
-- [ ] Edit Response button uses `loadResponseForEditing()` + `window.location.href`
-- [ ] Start Fresh button uses `startFreshAttempt()` + `window.location.href`
+- [ ] Edit Response: Navigate immediately with `?editMode=true` parameter
+- [ ] Start Fresh: Navigate immediately with `?clearDraft=true` parameter
 - [ ] All buttons show loading indicators
+- [ ] NO async `google.script.run` before navigation (loses gesture!)
 
-#### **5. Report Page Navigation**
+#### **5. Tool Module URL Parameter Handling (tools/toolN/ToolN.js)**
+
+Handle immediate navigation parameters on page load:
+
+```javascript
+render(params) {
+  const clientId = params.clientId;
+  const page = parseInt(params.page) || 1;
+
+  // Check for immediate navigation actions
+  const editMode = params.editMode === 'true' || params.editMode === true;
+  const clearDraft = params.clearDraft === 'true' || params.clearDraft === true;
+
+  // Execute actions on page load (after navigation with user gesture)
+  if (editMode && page === 1) {
+    Logger.log(`Edit mode triggered for ${clientId}`);
+    DataService.loadResponseForEditing(clientId, 'toolN');
+  }
+
+  if (clearDraft && page === 1) {
+    Logger.log(`Clear draft triggered for ${clientId}`);
+    DataService.startFreshAttempt(clientId, 'toolN');
+  }
+
+  // Continue with normal render...
+  const existingData = this.getExistingData(clientId);
+  // ...
+}
+```
+
+**Checklist:**
+- [ ] Check `params.editMode` on load → Call `loadResponseForEditing()`
+- [ ] Check `params.clearDraft` on load → Call `startFreshAttempt()`
+- [ ] Only execute on page 1
+- [ ] Log action for debugging
+
+#### **6. Router Pass-Through (core/Router.js)**
+
+Ensure Router passes URL parameters to tool:
+
+```javascript
+const renderParams = {
+  clientId: clientId,
+  sessionId: sessionId,
+  insights: initResult.insights || [],
+  adaptations: initResult.adaptations || {},
+  page: parseInt(params.page) || 1,
+  // Pass through URL parameters for immediate navigation actions
+  editMode: params.editMode,
+  clearDraft: params.clearDraft
+};
+```
+
+**Checklist:**
+- [ ] Router passes `editMode` param to tool
+- [ ] Router passes `clearDraft` param to tool
+
+#### **7. Report Page Navigation**
 ```javascript
 // ✅ CORRECT: Return to Dashboard
 <button onclick="navigateToDashboard('${clientId}', 'Loading Dashboard')">
   Return to Dashboard
 </button>
 
-// ✅ CORRECT: Edit Response
+// ✅ CORRECT: Edit Response (navigate immediately)
 <button onclick="editResponse()">Edit Answers</button>
 <script>
-function editResponse() {
-  showLoading('Loading form...');
-  google.script.run
-    .withSuccessHandler(function(result) {
-      if (result.success) {
-        window.location.href = baseUrl + '?route=toolN&client=' + clientId;
-      }
-    })
-    .loadResponseForEditing(clientId, 'toolN');
-}
+  (function() {
+    const baseUrl = '<?= baseUrl ?>';
+    const clientId = '<?= clientId ?>';
+
+    window.editResponse = function() {
+      showLoading('Loading form...');
+      // Navigate IMMEDIATELY - preserves user gesture
+      window.top.location.href = baseUrl + '?route=toolN&client=' + clientId + '&page=1&editMode=true';
+    };
+  })();
 </script>
 ```
 
 **Checklist:**
 - [ ] "Return to Dashboard" uses `navigateToDashboard()`
-- [ ] "Edit Response" uses `loadResponseForEditing()` → `window.location.href`
+- [ ] "Edit Response" navigates immediately with `?editMode=true`
 - [ ] All navigation wrapped in IIFE
 - [ ] No `setTimeout()` before navigation
+- [ ] NO async callbacks for navigation
 
 #### **6. Form Page Navigation**
 
@@ -261,6 +345,17 @@ Run the validation script: `validateNavigationPatterns()`
 - [ ] All `google.script.run` calls have `withFailureHandler()`
 - [ ] Failures call `hideLoading()`
 
+### **Null Safety (CRITICAL)**
+- [ ] **ALWAYS check for null** in `google.script.run` success handlers
+- [ ] google.script.run can return `null` in edge cases (timing, serialization)
+- [ ] Pattern: `if (!result) { hideLoading(); alert('Error...'); return; }`
+
+### **User Gesture Preservation (CRITICAL)**
+- [ ] **NO async callbacks before navigation** - they lose user gesture
+- [ ] Navigate IMMEDIATELY from click handlers using `window.top.location.href`
+- [ ] Pass actions as URL parameters (`?editMode=true`, `?clearDraft=true`)
+- [ ] Execute server actions AFTER navigation completes
+
 ---
 
 ## 🧪 Testing Protocol
@@ -387,6 +482,71 @@ google.script.run
 
 ---
 
+### **❌ WRONG: Missing Null Check** (CRITICAL)
+```javascript
+google.script.run
+  .withSuccessHandler(function(result) {
+    if (result.success) { ... }  // ❌ Crashes if result is null
+  })
+  .someServerFunction();
+```
+
+### **✅ CORRECT: Always Check for Null**
+```javascript
+google.script.run
+  .withSuccessHandler(function(result) {
+    // ALWAYS check for null first
+    if (!result) {
+      hideLoading();
+      alert('Error: Server returned no data. Please refresh and try again.');
+      return;
+    }
+
+    if (result.success) { ... }  // ✅ Safe
+  })
+  .someServerFunction();
+```
+
+**Why:** `google.script.run` can return `null` due to timing conflicts, serialization issues, or large objects.
+
+---
+
+### **❌ WRONG: Async Callback Loses User Gesture** (CRITICAL)
+```javascript
+function retakeTool() {
+  google.script.run
+    .withSuccessHandler(function(result) {
+      // ❌ User gesture expired - Chrome blocks navigation!
+      window.top.location.href = url;  // SecurityError: no user activation
+    })
+    .startFreshAttempt(...);
+}
+```
+
+### **✅ CORRECT: Navigate Immediately**
+```javascript
+// Navigate IMMEDIATELY (preserves user gesture)
+function retakeTool() {
+  if (confirm('Start fresh?')) {
+    showLoading('Preparing...');
+    window.top.location.href = baseUrl + '?clearDraft=true';  // ✅ Has gesture
+  }
+}
+
+// Execute action on page load (after navigation)
+Tool.render(params) {
+  if (params.clearDraft === 'true') {
+    DataService.startFreshAttempt(clientId, 'toolN');
+  }
+}
+```
+
+**Why:** Chrome requires **user activation** (recent gesture) for `window.top.location.href` in sandboxed iframes. Async callbacks lose this activation.
+
+**Reference:** https://www.chromestatus.com/feature/5629582019395584
+
+---
+
 ## 📊 Validation Script
 
 Run this before every deployment:
@@ -405,12 +565,21 @@ function validateNavigationPatterns() {
 | Scenario | Method | Why |
 |----------|--------|-----|
 | Dashboard → Report | `getReportPage()` + `document.write()` | Continue SPA chain |
-| Dashboard → Form | `window.location.href` | Break chain for form flow |
+| Dashboard → Edit Form | `window.top.location.href` + `?editMode=true` | Preserve user gesture |
+| Dashboard → Start Fresh | `window.top.location.href` + `?clearDraft=true` | Preserve user gesture |
+| Dashboard → Start Tool | `window.top.location.href` | Direct button |
 | Report → Dashboard | `navigateToDashboard()` (uses `document.write()`) | Rejoin SPA chain |
+| Report → Edit Form | `window.top.location.href` + `?editMode=true` | Preserve user gesture |
 | Form → Dashboard | `navigateToDashboard()` (uses `document.write()`) | Rejoin SPA chain |
 | Form → Next Page | `window.location.href` | Sequential form flow |
 | Cancel Edit | `navigateToDashboard()` (uses `document.write()`) | Return to SPA |
 | Logout | `window.top.location.replace()` | Full reset |
+
+**Critical Rules:**
+- ✅ Dashboard ↔ Report: Use `document.write()` (SPA mode)
+- ✅ Dashboard/Report → Form: **Navigate IMMEDIATELY** with `window.top.location.href` + URL params
+- ❌ **NEVER** use async callbacks before navigation (loses user gesture!)
+- ✅ **ALWAYS** check for null in `google.script.run` success handlers
 
 ---
 
@@ -431,5 +600,6 @@ function validateNavigationPatterns() {
 ---
 
 **Created by:** Agent Girl
-**Based on:** Navigation fixes from v3.3.0
-**Status:** Production-ready checklist
+**Based on:** Navigation fixes from v3.3.0 (@41-@57)
+**Last Updated:** November 5, 2024 - Added null checks & user gesture patterns
+**Status:** Production-ready checklist with all edge cases documented

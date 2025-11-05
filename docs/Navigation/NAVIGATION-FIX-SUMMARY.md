@@ -715,16 +715,151 @@ Before adding new navigation:
 
 ---
 
+## 🔥 November 5, 2025 Update: Two Critical Edge Cases Fixed (@56-@57)
+
+After comprehensive manual testing, we discovered two more critical issues:
+
+### **Issue 14: google.script.run Returns Null Edge Case**
+
+**Problem:** Under certain conditions, `google.script.run` returns `null` instead of an error object, causing client-side crashes.
+
+**Trigger Conditions:**
+- Timing conflicts (concurrent server calls)
+- Object serialization issues
+- Large or complex objects
+- Circular references
+
+**Manifestation:**
+```javascript
+// Client receives null instead of {success: false, error: "..."}
+google.script.run
+  .withSuccessHandler(function(result) {
+    if (result.success) { ... }  // ❌ Crashes: "Cannot read properties of null"
+  })
+```
+
+**Fix (@56):** Added null checks to all dashboard handlers:
+```javascript
+.withSuccessHandler(function(result) {
+  if (!result) {
+    hideLoading();
+    alert('Error: Server returned no data. Please refresh and try again.');
+    return;
+  }
+  // ... rest of logic
+})
+```
+
+**Files Modified:**
+- `core/Router.js`: Added null checks to `editResponse()`, `retakeTool()`, `cancelDraft()`
+
+---
+
+### **Issue 15: User Gesture Lost in Async Callbacks** (CRITICAL DISCOVERY)
+
+**Problem:** Navigation in async `google.script.run` callbacks fails with security error:
+
+```
+Unsafe attempt to initiate navigation... has no user activation (aka gesture)
+The frame is sandboxed with 'allow-top-navigation-by-user-activation' flag
+```
+
+**Root Cause:**
+1. User clicks button → User gesture active
+2. Call `google.script.run` (ASYNC)
+3. Wait for server response...
+4. Try to navigate in callback → ❌ User gesture EXPIRED
+
+**Why It Fails:**
+Chrome requires **user activation** (recent gesture) for `window.top.location.href` in sandboxed iframes. Async callbacks lose this activation.
+
+**Reference:** https://www.chromestatus.com/feature/5629582019395584
+
+**The Solution (@57):** Navigate **IMMEDIATELY** from click handler, pass action as URL parameter:
+
+```javascript
+// ❌ BROKEN: Async callback loses gesture
+function retakeTool() {
+  google.script.run
+    .withSuccessHandler(function(result) {
+      window.top.location.href = url;  // ❌ No gesture!
+    })
+    .startFreshAttempt(...);
+}
+
+// ✅ WORKING: Navigate immediately (preserves gesture)
+function retakeTool() {
+  if (confirm('Start fresh?')) {
+    showLoading('Preparing...');
+    window.top.location.href = baseUrl + '?clearDraft=true';  // ✅ Has gesture!
+  }
+}
+
+// Execute action on page load (server-side)
+Tool1.render(params) {
+  if (params.clearDraft === 'true') {
+    DataService.startFreshAttempt(clientId, 'tool1');
+  }
+  // Continue rendering...
+}
+```
+
+**Changes:**
+1. **Router.js**:
+   - `editResponse()`: Navigate immediately with `?editMode=true`
+   - `retakeTool()`: Navigate immediately with `?clearDraft=true`
+   - Pass `editMode` and `clearDraft` params to tool render
+
+2. **Tool1.js**:
+   - Check `params.editMode` on load → Call `loadResponseForEditing()`
+   - Check `params.clearDraft` on load → Call `startFreshAttempt()`
+
+**Why This Works:**
+✅ Navigation happens WITH user gesture (immediate)
+✅ No async timing conflicts
+✅ Server action executes AFTER navigation completes
+✅ Matches working "Continue Draft" pattern
+✅ Chrome security requirements satisfied
+
+**Code Reduction:** Removed 50 lines of async complexity
+
+---
+
+## 📊 Complete Fix History
+
+| # | Issue | Location | Deploy | Fix |
+|---|-------|----------|--------|-----|
+| 1 | Case sensitivity (TRUE vs true) | ResponseManager.js | @43 | Added `_isTrue()` helper |
+| 2 | Variable redeclaration error | Router.js, Tool1Report.js | @46 | Wrapped scripts in IIFE |
+| 3 | Edit mode not loading form data | ResponseManager.js | @46 | Extract `formData` from nested structure |
+| 4 | White screen on 2nd report view | Router.js | @47 | Changed to `document.write()` pattern |
+| 5 | Ranking dropdowns empty in edit | Tool1.js | @48 | Fixed type coercion with `String()` |
+| 6 | Cancel Edit white screen | Router.js | @48 | Changed to `navigateToDashboard()` |
+| 7 | Logout button white screen | Router.js | @49 | Changed to `window.top.location.replace()` |
+| 8 | Cancel Edit banner white screen | Tool1.js | @49 | Changed to `navigateToDashboard()` |
+| 9-11 | Navigation functions, loading, getReportPage | Multiple | @44-@45 | Added missing functions |
+| 12 | Start Fresh not clearing drafts | ResponseManager.js | @52 | Clear PropertiesService |
+| 13 | **ALL form navigation from dashboard** | Router.js | **@53** | **Changed to `window.top.location.href`** |
+| **14** | **google.script.run returns null** | **Router.js** | **@56** | **Added null checks to all handlers** |
+| **15** | **User gesture lost in async callbacks** | **Router.js, Tool1.js** | **@57** | **Navigate immediately with URL params** |
+
+---
+
 **Created by:** Agent Girl
 **Original Date:** November 3, 2024
 **Major Update:** November 4, 2024 (AM) - iframe fixes
 **Deep Dive:** November 4, 2024 (PM) - Data persistence & navigation audit
-**Final Update:** November 4, 2024 (Late PM) - window.top discovery & production testing
-**Deployment:** v3.3.0 @53 - Production Ready (13 critical fixes)
-**Status:** ✅ ALL navigation working, iframe patterns fully documented
+**Critical Update:** November 4, 2024 (Late PM) - window.top discovery (@53)
+**Edge Cases Fixed:** November 5, 2024 - Null checks & user gesture (@56-@57)
+**Deployment:** v3.3.0 @57 - Production Ready with Hotfixes
+**Status:** ✅ ALL navigation working, all edge cases handled
 
 ## 🎉 Production Ready!
 
-**Total Issues Fixed:** 13 critical bugs across 13 deployments (@41-@53)
-**Key Discovery:** `window.top.location.href` required for ALL navigation from `document.write()` pages in Google Apps Script iframe environment
-**Testing:** All navigation paths verified working without white screens
+**Total Issues Fixed:** 15 critical bugs across 17 deployments (@41-@57)
+**Key Discoveries:**
+1. `window.top.location.href` required for ALL navigation from `document.write()` pages
+2. User gestures lost in async callbacks - navigate immediately instead
+3. `google.script.run` can return `null` - always add null checks
+
+**Testing:** All navigation paths verified working without white screens or security errors
