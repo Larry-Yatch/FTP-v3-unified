@@ -274,34 +274,39 @@ const Tool2GPTAnalysis = {
    * Income sources prompt (Q18)
    */
   getIncomeSourcesPrompt(previousInsights, traumaData) {
+    const traumaConnection = traumaData?.topTrauma ? `
+
+**${traumaData.topTrauma} PATTERN CONNECTION**:
+${this.getTraumaContext(traumaData)}
+
+Look for how their ${traumaData.topTrauma} pattern shows up in how they describe income:
+${traumaData.topTrauma === 'FSV' ? '- Are they minimizing success or exaggerating struggles?\n- Do they downplay reliable income or hide income sources?' : ''}${traumaData.topTrauma === 'Control' ? '- Do they over-detail or show anxiety about income variability?\n- Are they trying to control/predict every income stream?' : ''}${traumaData.topTrauma === 'ExVal' ? '- Do they reference what others think about their income?\n- Are income choices driven by status or comparison?' : ''}${traumaData.topTrauma === 'Fear' ? '- Do they avoid specifics or show paralysis about income?\n- Is there catastrophizing about income loss?' : ''}${traumaData.topTrauma === 'Receiving' ? '- Do they minimize help or struggle to receive?\n- Is there excessive self-reliance in income?' : ''}${traumaData.topTrauma === 'Showing' ? '- Do they prioritize others over their own income needs?\n- Is there guilt about earning or keeping money?' : ''}` : '';
+
     return `
 You are a financial clarity expert analyzing a student's income sources.
 
-**CRITICAL**: Reference the student's exact words and specific examples from
-their response. Ground your insights in what THEY said, not generic advice.
+**CRITICAL - QUOTE THEIR WORDS AND CONNECT TO PATTERN**:
+- Reference their exact words and specific income sources (name them!)
+- If they said "I work at Starbucks and sell crafts on Etsy", mention Starbucks and Etsy
+- Then connect HOW they described it to ${traumaData?.topTrauma ? `their ${traumaData.topTrauma} pattern` : 'their emotional pattern'}
+- Example: "Your primary income from [specific source] combined with [specific side income] shows how your ${traumaData?.topTrauma || 'pattern'} manifests in..."
+${traumaConnection}
 
 Analyze their response for:
-1. Pattern: What pattern emerges from their specific income sources?
-2. Insight: What does this reveal about their income clarity and stability?
-3. Action: One concrete step based on THEIR situation (not generic advice)
-
-Consider:
-- Number of income sources (diversification vs simplicity)
-- Predictability and consistency
-- Clarity about amounts and timing
-- Active vs passive income mix
-- Any emotional patterns in how they describe their income
+1. Pattern: Name THEIR SPECIFIC income sources + how ${traumaData?.topTrauma ? `${traumaData.topTrauma}` : 'their pattern'} shows up in it
+2. Insight: What does THIS setup + ${traumaData?.topTrauma ? `${traumaData.topTrauma} pattern` : 'pattern'} reveal about their income clarity?
+3. Action: One step that addresses both the financial behavior AND ${traumaData?.topTrauma ? `${traumaData.topTrauma}` : 'the pattern'}
 
 Return plain-text only:
 
 Pattern:
-(One sentence identifying the key pattern in their income structure)
+(One sentence: name their specific sources + how ${traumaData?.topTrauma || 'their pattern'} shows up)
 
 Insight:
-(One sentence about what this means for their financial clarity)
+(One sentence connecting their setup to ${traumaData?.topTrauma || 'the pattern'} and clarity)
 
 Action:
-(One specific, actionable step based on their situation)
+(One specific step that shifts both behavior and ${traumaData?.topTrauma || 'pattern'})
     `.trim();
   },
 
@@ -560,15 +565,19 @@ Action:
    * Synthesize overall insights from all individual analyses
    */
   synthesizeOverall(clientId, allInsights, domainScores, traumaData) {
-    // Softer trauma context - background awareness, not primary lens
-    const traumaBackground = traumaData?.topTrauma ? `
+    // Trauma as connecting thread - explains WHY financial behaviors exist
+    const traumaContext = traumaData?.topTrauma ? `
 
-BACKGROUND CONTEXT (do not over-emphasize):
-This person has a ${traumaData.topTrauma} pattern that MAY influence some financial behaviors. Keep this as gentle background awareness - don't make the entire report about this pattern. Focus primarily on their financial clarity, with trauma awareness as subtle subtext when relevant.` : '';
+CONNECTING CONTEXT:
+This person has a ${traumaData.topTrauma} pattern. Use this as the KEY to understanding WHY their financial behaviors exist the way they do. Connect their financial patterns TO this strategy - show how this pattern shapes their relationship with money, income, spending, saving, etc.
+
+${this.getTraumaContext(traumaData)}
+
+Your job: Show how ${traumaData.topTrauma} shows up in their specific financial behaviors. This helps them understand the "why" behind their money patterns.` : '';
 
     const systemPrompt = `
 You are synthesizing a comprehensive Financial Clarity report for a student.
-${traumaBackground}
+${traumaContext}
 
 Domain Scores (0-100%):
 - Money Flow: ${domainScores.moneyFlow}%
@@ -577,35 +586,46 @@ Domain Scores (0-100%):
 - Growth: ${domainScores.growth}%
 - Protection: ${domainScores.protection}%
 
-Individual Insights:
+Individual Insights (containing THEIR specific responses):
 ${JSON.stringify(allInsights, null, 2)}
 
-Create a cohesive narrative that:
-- Focuses PRIMARILY on their financial clarity journey (scores, behaviors, patterns)
-- Connects numeric scores to their personal stories and specific examples
-- Identifies practical financial patterns and opportunities for improvement
-- ${traumaData?.topTrauma ? `Gently acknowledges (but doesn't over-emphasize) how emotional patterns may influence some financial behaviors` : 'Notes emotional or behavioral patterns when relevant'}
-- Provides actionable steps that feel empowering and practical, not clinical or therapy-focused
-- Uses warm, encouraging language focused on growth and capability
+**CRITICAL - USE THEIR SPECIFIC EXAMPLES AND CONNECT TO ${traumaData?.topTrauma || 'PATTERN'}**:
+- The Individual Insights contain specific examples from their responses
+- You MUST reference these specific examples in your synthesis
+- DO NOT write generic statements like "your spending might be influenced by..."
+- INSTEAD write "you mentioned [specific thing] - this reflects how your ${traumaData?.topTrauma || 'pattern'} shows up in..."
+- Show the CONNECTION: "Your ${traumaData?.topTrauma || 'pattern'} pattern appears in how you described [specific example]..."
+- ${traumaData?.topTrauma ? `Every financial behavior should be connected back to their ${traumaData.topTrauma} strategy` : 'Connect behaviors to underlying patterns'}
 
-**IMPORTANT**: This is a financial clarity report, not a trauma assessment. Keep the tone focused on practical financial insights with compassionate awareness of emotional factors.
+Create a cohesive narrative that:
+- Starts with their ACTUAL financial behaviors from specific examples
+- Shows how ${traumaData?.topTrauma ? `their ${traumaData.topTrauma} pattern explains these behaviors` : 'emotional patterns shape their financial decisions'}
+- Connects specific behaviors → ${traumaData?.topTrauma || 'pattern'} → domain scores
+- Makes the ${traumaData?.topTrauma || 'pattern'} the KEY to understanding their financial life
+- Uses practical, empowering language (not clinical or therapy-focused)
+- Helps them see WHY they do what they do, not just WHAT they do
+
+**TONE BALANCE**:
+- Focus: Their specific financial behaviors and clarity
+- Connection: How ${traumaData?.topTrauma || 'their pattern'} explains and links these behaviors
+- Language: Practical and empowering, not clinical
 
 Return plain-text only:
 
 Overview:
-(2-3 paragraphs focused on their financial clarity journey - connecting scores to their actual financial behaviors and patterns. ${traumaData?.topTrauma ? `If relevant, gently note how emotional patterns may play a role, but keep the primary focus on finances.` : 'Note emotional factors naturally when they emerge from the data.'})
+(2-3 paragraphs: Start with specific examples from their responses - "You described [specific income/expenses/behaviors]..." Then connect these to ${traumaData?.topTrauma || 'the pattern'} - "This reflects how your ${traumaData?.topTrauma || 'pattern'} shows up in [domain]..." Finally link to scores. Make ${traumaData?.topTrauma || 'the pattern'} the connecting thread that explains WHY their financial life looks the way it does.)
 
 Top Patterns:
-- Pattern 1: [Most significant financial pattern or clarity gap - focus on the financial behavior itself]
-- Pattern 2: [Secondary financial pattern or strength that's notable]
-- Pattern 3: [Resource, strength, or positive pattern they can build on]
+- Pattern 1: [How ${traumaData?.topTrauma || 'their pattern'} shows up most strongly - reference specific financial behavior and connect to ${traumaData?.topTrauma || 'pattern'}]
+- Pattern 2: [Secondary way ${traumaData?.topTrauma || 'the pattern'} manifests - specific behavior + connection to ${traumaData?.topTrauma || 'pattern'}]
+- Pattern 3: [Strength or resource that can help shift ${traumaData?.topTrauma || 'the pattern'} - must be from their actual situation]
 
 Priority Actions:
-1. [Practical action for their lowest domain - specific and actionable]
-2. [Action that addresses a key financial behavior or pattern identified]
-3. [Action that builds on existing strengths or successes]
-4. [Action that supports emotional or mindset shift around money, if relevant]
-5. [Longer-term financial goal or practice that supports overall clarity]
+1. [Action for their lowest domain that addresses how ${traumaData?.topTrauma || 'their pattern'} shows up there - based on specific examples]
+2. [Action that helps shift ${traumaData?.topTrauma || 'the pattern'} in a specific financial area they mentioned]
+3. [Action building on their specific strengths to support new ${traumaData?.topTrauma ? 'ways of relating to' : 'patterns in'} money]
+4. [Practice or mindset shift related to ${traumaData?.topTrauma || 'the pattern'} - practical, not therapeutic]
+5. [Long-term action that supports healing ${traumaData?.topTrauma || 'the pattern'} through financial empowerment]
 
 STOP after Priority Actions. Do not add conclusions or additional text.
     `.trim();
