@@ -169,13 +169,14 @@ const Tool2 = {
     try {
       const tool1Response = DataService.getLatestResponse(clientId, 'tool1');
       if (tool1Response && tool1Response.data) {
-        tool1Data = tool1Response.data;
+        // Tool 1 saves as: {formData: {...}, scores: {...}, winner: "..."}
+        tool1Data = tool1Response.data.formData || tool1Response.data;
       }
     } catch (e) {
       Logger.log('Could not load Tool 1 data for pre-fill: ' + e);
     }
 
-    // Pre-fill values
+    // Pre-fill values from draft or Tool 1
     const name = data?.name || tool1Data?.name || '';
     const email = data?.email || tool1Data?.email || '';
     const studentId = clientId;
@@ -266,7 +267,13 @@ const Tool2 = {
       <h3 style="margin-top: 40px;">Employment & Income Context</h3>
 
       <div class="form-group">
-        <label class="form-label">Q8. Employment Status *</label>
+        <label class="form-label">Q8. How many additional income streams do you have beyond your primary source? *</label>
+        <p class="muted" style="font-size: 13px; margin-bottom: 10px;">Enter 0 if you have only one income source. Count side hustles, rental income, dividends, etc.</p>
+        <input type="number" name="incomeStreams" value="${incomeStreams}" min="0" max="10" required placeholder="Enter number (0 if none)">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Q9. Employment Status *</label>
         <select name="employment" id="employmentSelect" required onchange="toggleBusinessStage()">
           <option value="">Select status</option>
           <option value="full-time" ${employment === 'full-time' ? 'selected' : ''}>Full-time employee</option>
@@ -279,12 +286,6 @@ const Tool2 = {
           <option value="retired" ${employment === 'retired' ? 'selected' : ''}>Retired</option>
           <option value="not-working" ${employment === 'not-working' ? 'selected' : ''}>Not working by choice</option>
         </select>
-      </div>
-
-      <div class="form-group">
-        <label class="form-label">Q9. How many additional income streams do you have beyond your primary source? *</label>
-        <p class="muted" style="font-size: 13px; margin-bottom: 10px;">Enter 0 if you have only one income source. Count side hustles, rental income, dividends, etc.</p>
-        <input type="number" name="incomeStreams" value="${incomeStreams}" min="0" max="10" required placeholder="Enter number (0 if none)">
       </div>
 
       <div class="form-group" id="businessStageGroup" style="display: ${showBusinessStage ? 'block' : 'none'};">
