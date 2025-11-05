@@ -1,25 +1,27 @@
 # Financial TruPath v3 - Deployment Information
 
-**Status:** ✅ Production Ready - Tool 1 Complete with Edit Mode Fixed
+**Status:** ✅ Production Ready - Tool 1 Complete, Tool 2 In Progress
 
-**Last Updated:** November 4, 2025
+**Last Updated:** November 5, 2025
 
 ---
 
 ## 🔗 Current Production Deployment
 
-### Web App (Latest - v3.3.2 @69)
-**URL:** https://script.google.com/macros/s/AKfycbxoeCLfgyFlpZonGL2fqxPQegeGm9v9sr6AIcqmVPo7dnZCPlJMeqohi8rCt8Ug1hwo/exec
+### Web App (Latest - v3.4.3 @76)
+**URL:** https://script.google.com/macros/s/AKfycby-GAakXp4gn19YmjbGOhcy50mDjzgumrmRWHyeC_L4tFdqeYkq35VwyHtB65cVX3ss/exec
 
-**Deployment ID:** `AKfycbxoeCLfgyFlpZonGL2fqxPQegeGm9v9sr6AIcqmVPo7dnZCPlJMeqohi8rCt8Ug1hwo @69`
+**Deployment ID:** `AKfycby-GAakXp4gn19YmjbGOhcy50mDjzgumrmRWHyeC_L4tFdqeYkq35VwyHtB65cVX3ss @76`
 
-**Version:** v3.3.2 - Tool 1 Edit Mode Complete (All Bugs Fixed)
+**Version:** v3.4.3 - Tool 2 Page 2 Income Section Complete (Q14-Q18)
 
 **What's Working:**
 - ✅ Login and authentication
 - ✅ Dashboard with tool navigation
 - ✅ Tool 1 complete (all 5 pages + report + PDF)
 - ✅ Tool 1 edit mode fully functional
+- ✅ Tool 2 Page 1 complete (13 questions - demographics + mindset)
+- ✅ Tool 2 Page 2 Income Section complete (5 questions - Q14-Q18)
 - ✅ All page 5 ranking data saves correctly
 - ✅ No duplicate EDIT_DRAFTs or infinite loops
 - ✅ All iframe navigation issues resolved (document.write() pattern)
@@ -38,16 +40,16 @@ After comprehensive debugging, we solved all iframe navigation issues by using t
 **See:** [docs/SESSION-HANDOFF.md](docs/SESSION-HANDOFF.md) for complete details
 
 ### Recent Deployments
+- **@76** v3.4.3 - Tool 2 Page 2 Income Section Complete (Q14-Q18)
+- **@74** v3.4.2 - Fix Tool 1 data pre-fill + swap Q8/Q9
+- **@73** v3.4.1 - Fix identity field text color + add hybrid employment options
+- **@72** v3.4.0 - Tool 2 Page 1: 13 real questions (demographics + mindset)
+- **@71** v3.3.4 - Fix Tool 2 dashboard unlock (dynamic access check)
+- **@70** v3.3.3 - Tool 2 Phase 1: Core structure with edit mode patterns
 - **@69** v3.3.2 - FINAL: Simplified edit flow (dashboard only)
 - **@68** v3.3.2 - Stop infinite edit loop (delete EDIT_DRAFTs on submit)
 - **@67** v3.3.2 - Merge PropertiesService data for page 5 rankings
 - **@65** v3.3.1 - Fix metadata cleanup in submitEditedResponse
-- **@63** v3.3.1 - CRITICAL: Save page 5 data before final submission
-- **@60** v3.3.0 - Fix page 5 dropdown population in edit mode
-- **@58** v3.3.0 - Use DataService for Is_Latest handling
-- **@31** v3.2.4 - Fix deprecation warning
-- **@27** v3.2.1 - CRITICAL: Eliminate ALL iframe navigation issues
-- **@1** v3.0.0 - Initial Foundation Deployment
 
 ### Google Sheets Database
 **Spreadsheet:** FTP-v3-Mastersheet
