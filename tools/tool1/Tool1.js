@@ -47,20 +47,93 @@ const Tool1 = {
    * FormUtils will wrap this in standard page structure
    */
   renderPageContent(page, existingData, clientId) {
+    let content = '';
+
+    // Add edit mode banner if editing previous response
+    if (existingData && existingData._editMode) {
+      const originalDate = existingData._originalTimestamp ?
+        new Date(existingData._originalTimestamp).toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        }) : 'previous submission';
+
+      content += `
+        <div class="edit-mode-banner" style="
+          background: rgba(173, 145, 104, 0.1);
+          border: 2px solid #ad9168;
+          border-radius: 10px;
+          padding: 15px 20px;
+          margin-bottom: 30px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        ">
+          <div>
+            <strong style="color: #ad9168; font-size: 16px;">✏️ Edit Mode</strong>
+            <p style="margin: 5px 0 0 0; color: #fff; font-size: 14px;">
+              You're editing your response from ${originalDate}
+            </p>
+          </div>
+          <button
+            type="button"
+            onclick="cancelEdit()"
+            style="
+              background: transparent;
+              color: #ad9168;
+              border: 1px solid #ad9168;
+              padding: 8px 16px;
+              border-radius: 6px;
+              cursor: pointer;
+              font-size: 14px;
+              transition: all 0.3s;
+            "
+            onmouseover="this.style.background='rgba(173, 145, 104, 0.1)'"
+            onmouseout="this.style.background='transparent'"
+          >
+            Cancel Edit
+          </button>
+        </div>
+
+        <script>
+          function cancelEdit() {
+            if (confirm('Cancel editing and discard changes?')) {
+              google.script.run
+                .withSuccessHandler(function() {
+                  window.location.href = '${ScriptApp.getService().getUrl()}?route=dashboard&client=${clientId}';
+                })
+                .withFailureHandler(function(error) {
+                  alert('Error canceling edit: ' + error.message);
+                })
+                .cancelEditDraft('${clientId}', 'tool1');
+            }
+          }
+        </script>
+      `;
+    }
+
+    // Add page-specific content
     switch(page) {
       case 1:
-        return this.renderPage1Content(existingData, clientId);
+        content += this.renderPage1Content(existingData, clientId);
+        break;
       case 2:
-        return this.renderPage2Content(existingData, clientId);
+        content += this.renderPage2Content(existingData, clientId);
+        break;
       case 3:
-        return this.renderPage3Content(existingData, clientId);
+        content += this.renderPage3Content(existingData, clientId);
+        break;
       case 4:
-        return this.renderPage4Content(existingData, clientId);
+        content += this.renderPage4Content(existingData, clientId);
+        break;
       case 5:
-        return this.renderPage5Content(existingData, clientId);
+        content += this.renderPage5Content(existingData, clientId);
+        break;
       default:
-        return '<p class="error">Invalid page number</p>';
+        content += '<p class="error">Invalid page number</p>';
     }
+
+    return content;
   },
 
   /**
@@ -404,10 +477,22 @@ const Tool1 = {
   },
 
   /**
-   * Get existing data for a client (from draft storage)
+   * Get existing data for a client
+   * Checks both EDIT_DRAFT (from ResponseManager) and PropertiesService drafts
    */
   getExistingData(clientId) {
     try {
+      // First check if there's an EDIT_DRAFT in RESPONSES sheet
+      if (typeof DataService !== 'undefined') {
+        const activeDraft = DataService.getActiveDraft(clientId, 'tool1');
+
+        if (activeDraft && (activeDraft.status === 'EDIT_DRAFT' || activeDraft.status === 'DRAFT')) {
+          Logger.log(`Found active draft with status: ${activeDraft.status}`);
+          return activeDraft.data;
+        }
+      }
+
+      // Fallback to PropertiesService (legacy draft system)
       const userProperties = PropertiesService.getUserProperties();
       const draftKey = `tool1_draft_${clientId}`;
       const draftData = userProperties.getProperty(draftKey);
@@ -423,6 +508,7 @@ const Tool1 = {
 
   /**
    * Process final submission - Calculate scores and generate report
+   * Handles both new submissions and edited responses
    * Returns redirect URL for completeToolSubmission() handler
    */
   processFinalSubmission(clientId) {
@@ -434,17 +520,46 @@ const Tool1 = {
         throw new Error('No data found. Please start the assessment again.');
       }
 
+      // Check if this is an edit or new submission
+      const isEditMode = allData._editMode === true;
+
+      Logger.log(`Processing ${isEditMode ? 'edited' : 'new'} submission for ${clientId}`);
+
       // Calculate scores
       const scores = this.calculateScores(allData);
 
       // Determine winner
       const winner = this.determineWinner(scores, allData);
 
-      // Save to RESPONSES sheet (this marks Tool 1 as complete)
-      this.saveToResponses(clientId, allData, scores, winner);
+      // Prepare data package
+      const dataPackage = {
+        formData: allData,
+        scores: scores,
+        winner: winner
+      };
+
+      // Save based on mode
+      if (isEditMode && typeof DataService !== 'undefined') {
+        // Submit edited response (uses ResponseManager)
+        const result = DataService.submitEditedResponse(clientId, 'tool1', dataPackage);
+
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to save edited response');
+        }
+
+        Logger.log('Edited response submitted successfully');
+      } else {
+        // Save new response to RESPONSES sheet (traditional method)
+        this.saveToResponses(clientId, allData, scores, winner);
+
+        Logger.log('New response submitted successfully');
+      }
 
       // Unlock Tool 2 (completion is tracked via RESPONSES sheet)
-      ToolAccessControl.adminUnlockTool(clientId, 'tool2', 'system', 'Auto-unlocked after Tool 1 completion');
+      // Only unlock if not already unlocked (editing shouldn't re-unlock)
+      if (!isEditMode) {
+        ToolAccessControl.adminUnlockTool(clientId, 'tool2', 'system', 'Auto-unlocked after Tool 1 completion');
+      }
 
       // Return redirect URL for client-side navigation
       const reportUrl = `${ScriptApp.getService().getUrl()}?route=tool1_report&client=${clientId}`;

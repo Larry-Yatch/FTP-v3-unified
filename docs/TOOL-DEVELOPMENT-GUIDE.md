@@ -992,6 +992,277 @@ When building a new tool:
 
 ---
 
+## 🔄 Response Management & Edit Mode (v3.3.0)
+
+**NEW:** All tools now support View/Edit/Retake functionality via ResponseManager.
+
+### **Why This Matters:**
+- Students can fix mistakes without retaking entire assessment
+- Version history preserved (last 2 versions)
+- Dashboard shows appropriate actions based on tool state
+- Consistent UX across all 8 tools
+
+### **Implementation Steps:**
+
+#### **Step 1: Update `getExistingData()`**
+Check for EDIT_DRAFT before PropertiesService:
+
+```javascript
+getExistingData(clientId) {
+  try {
+    // First check for EDIT_DRAFT from ResponseManager
+    if (typeof DataService !== 'undefined') {
+      const activeDraft = DataService.getActiveDraft(clientId, 'toolN');
+
+      if (activeDraft && (activeDraft.status === 'EDIT_DRAFT' || activeDraft.status === 'DRAFT')) {
+        Logger.log(`Found active draft with status: ${activeDraft.status}`);
+        return activeDraft.data;
+      }
+    }
+
+    // Fallback to PropertiesService (legacy)
+    const userProperties = PropertiesService.getUserProperties();
+    const draftKey = `toolN_draft_${clientId}`;
+    const draftData = userProperties.getProperty(draftKey);
+
+    if (draftData) {
+      return JSON.parse(draftData);
+    }
+  } catch (error) {
+    Logger.log(`Error getting existing data: ${error}`);
+  }
+  return null;
+}
+```
+
+#### **Step 2: Add Edit Banner to `renderPageContent()`**
+Show banner when in edit mode:
+
+```javascript
+renderPageContent(page, existingData, clientId) {
+  let content = '';
+
+  // Add edit mode banner if editing
+  if (existingData && existingData._editMode) {
+    const originalDate = existingData._originalTimestamp ?
+      new Date(existingData._originalTimestamp).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      }) : 'previous submission';
+
+    content += `
+      <div class="edit-mode-banner" style="
+        background: rgba(173, 145, 104, 0.1);
+        border: 2px solid #ad9168;
+        border-radius: 10px;
+        padding: 15px 20px;
+        margin-bottom: 30px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      ">
+        <div>
+          <strong style="color: #ad9168; font-size: 16px;">✏️ Edit Mode</strong>
+          <p style="margin: 5px 0 0 0; color: #fff; font-size: 14px;">
+            You're editing your response from ${originalDate}
+          </p>
+        </div>
+        <button
+          type="button"
+          onclick="cancelEdit()"
+          style="
+            background: transparent;
+            color: #ad9168;
+            border: 1px solid #ad9168;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+          "
+          onmouseover="this.style.background='rgba(173, 145, 104, 0.1)'"
+          onmouseout="this.style.background='transparent'"
+        >
+          Cancel Edit
+        </button>
+      </div>
+
+      <script>
+        function cancelEdit() {
+          if (confirm('Cancel editing and discard changes?')) {
+            google.script.run
+              .withSuccessHandler(function() {
+                window.location.href = '${ScriptApp.getService().getUrl()}?route=dashboard&client=${clientId}';
+              })
+              .withFailureHandler(function(error) {
+                alert('Error canceling edit: ' + error.message);
+              })
+              .cancelEditDraft('${clientId}', 'toolN');
+          }
+        }
+      </script>
+    `;
+  }
+
+  // Add page-specific content
+  switch(page) {
+    case 1:
+      content += this.renderPage1Content(existingData, clientId);
+      break;
+    // ... etc
+  }
+
+  return content;
+}
+```
+
+#### **Step 3: Update `processFinalSubmission()`**
+Detect edit mode and route accordingly:
+
+```javascript
+processFinalSubmission(clientId) {
+  try {
+    const allData = this.getExistingData(clientId);
+
+    if (!allData) {
+      throw new Error('No data found. Please start the assessment again.');
+    }
+
+    // Check if this is an edit or new submission
+    const isEditMode = allData._editMode === true;
+
+    Logger.log(`Processing ${isEditMode ? 'edited' : 'new'} submission for ${clientId}`);
+
+    // Calculate scores/process data
+    const results = this.processResults(allData);
+
+    // Prepare data package
+    const dataPackage = {
+      formData: allData,
+      results: results
+      // ... any other data
+    };
+
+    // Save based on mode
+    if (isEditMode && typeof DataService !== 'undefined') {
+      // Submit edited response (uses ResponseManager)
+      const result = DataService.submitEditedResponse(clientId, 'toolN', dataPackage);
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to save edited response');
+      }
+
+      Logger.log('Edited response submitted successfully');
+    } else {
+      // Save new response (traditional method)
+      this.saveToResponses(clientId, dataPackage);
+
+      Logger.log('New response submitted successfully');
+    }
+
+    // Unlock next tool (only on new submission, not edit)
+    if (!isEditMode) {
+      ToolAccessControl.adminUnlockTool(clientId, 'toolN+1', 'system', 'Auto-unlocked after Tool N completion');
+    }
+
+    // Return redirect URL
+    const reportUrl = `${ScriptApp.getService().getUrl()}?route=toolN_report&client=${clientId}`;
+    return {
+      redirectUrl: reportUrl
+    };
+
+  } catch (error) {
+    Logger.log(`Error processing final submission: ${error}`);
+    throw error;
+  }
+}
+```
+
+#### **Step 4: Add Edit Button to Report**
+In `ToolNReport.js`:
+
+```javascript
+// In action buttons section
+<div class="action-buttons">
+  <button class="btn-primary" onclick="downloadPDF()">📥 Download PDF</button>
+  <button class="btn-secondary" onclick="editResponse()">✏️ Edit My Answers</button>
+  <button class="btn-secondary" onclick="backToDashboard()">← Back to Dashboard</button>
+</div>
+
+<script>
+  function editResponse() {
+    if (confirm('Load your responses into the form for editing?')) {
+      showLoading('Loading your responses...');
+
+      google.script.run
+        .withSuccessHandler(function(result) {
+          if (result.success) {
+            window.location.href = baseUrl + '?route=toolN&client=' + clientId + '&page=1';
+          } else {
+            hideLoading();
+            alert('Error loading response: ' + result.error);
+          }
+        })
+        .withFailureHandler(function(error) {
+          hideLoading();
+          alert('Error: ' + error.message);
+        })
+        .loadResponseForEditing(clientId, 'toolN');
+    }
+  }
+</script>
+```
+
+### **What ResponseManager Does Automatically:**
+
+✅ **Creates EDIT_DRAFT** when user clicks "Edit Answers"
+✅ **Marks old version** as `Is_Latest = false`
+✅ **Loads pre-filled form** with all previous answers
+✅ **Saves new version** on submit with `Is_Latest = true`
+✅ **Cleans up old versions** (keeps last 2 automatically)
+✅ **Handles cancel** (restores original, deletes EDIT_DRAFT)
+✅ **Manages draft persistence** across sessions
+
+### **Dashboard Integration (Automatic):**
+
+Router.js automatically checks tool status and shows:
+- **Not Started:** "Start Assessment" button
+- **In Progress:** "Continue" + "Discard Draft" buttons
+- **Completed:** "View Report" + "Edit Answers" + "Start Fresh" buttons
+
+No additional code needed in your tool!
+
+### **Testing Edit Mode:**
+
+1. Complete your tool with TEST001
+2. Go to dashboard → Click "Edit Answers"
+3. Form loads with edit banner + all answers
+4. Change one answer
+5. Submit
+6. Check RESPONSES sheet:
+   - Old row: `Is_Latest = false`
+   - New row: `Is_Latest = true`
+7. Click "Edit Answers" again
+8. Click "Cancel Edit" in banner
+9. Confirm - should return to dashboard (completed state)
+
+### **Common Mistakes to Avoid:**
+
+❌ **Don't** clear draft on edit mode (let ResponseManager handle it)
+❌ **Don't** re-unlock tools when editing (check `!isEditMode`)
+❌ **Don't** call `saveToolResponse()` directly (use ResponseManager)
+❌ **Don't** forget to check `_editMode` flag before saving
+❌ **Don't** modify `Is_Latest` flags manually
+
+✅ **Do** use `DataService` wrapper methods
+✅ **Do** check for EDIT_DRAFT in `getExistingData()`
+✅ **Do** show edit banner when `_editMode = true`
+✅ **Do** route to ResponseManager when editing
+✅ **Do** test cancel, complete, and fresh start flows
+
+---
+
 ## 🎯 Best Practices
 
 ### **Code Quality:**

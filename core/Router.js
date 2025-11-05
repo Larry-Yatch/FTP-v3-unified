@@ -384,6 +384,81 @@ const Router = {
    */
   _createDashboard(params) {
     const clientId = params.client || params.clientId;
+    const baseUrl = ScriptApp.getService().getUrl();
+
+    // Check Tool 1 status
+    const tool1Latest = DataService.getLatestResponse(clientId, 'tool1');
+    const tool1HasDraft = tool1Latest && (tool1Latest.status === 'DRAFT' || tool1Latest.status === 'EDIT_DRAFT');
+    const tool1Completed = tool1Latest && tool1Latest.status === 'COMPLETED';
+
+    // Build Tool 1 card HTML based on status
+    let tool1CardHTML = '';
+
+    if (tool1Completed) {
+      // Completed state - show View/Edit/Retake
+      const completedDate = new Date(tool1Latest.timestamp).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+
+      tool1CardHTML = `
+        <div class="tool-card" style="margin-bottom: 15px; border: 2px solid #4CAF50;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <h3 style="margin: 0;">Tool 1: Core Trauma Strategy Assessment</h3>
+            <span class="badge" style="background: #4CAF50; color: white;">✓ Completed</span>
+          </div>
+          <p class="muted" style="margin-bottom: 10px;">Completed on ${completedDate}</p>
+
+          <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px;">
+            <button class="btn-primary" onclick="window.location.href='${baseUrl}?route=tool1_report&client=${clientId}'">
+              📊 View Report
+            </button>
+            <button class="btn-secondary" onclick="editResponse()">
+              ✏️ Edit Answers
+            </button>
+            <button class="btn-secondary" onclick="retakeTool()">
+              🔄 Start Fresh
+            </button>
+          </div>
+        </div>
+      `;
+    } else if (tool1HasDraft) {
+      // Draft state - show Continue/Cancel
+      tool1CardHTML = `
+        <div class="tool-card" style="margin-bottom: 15px; border: 2px solid #FF9800;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <h3 style="margin: 0;">Tool 1: Core Trauma Strategy Assessment</h3>
+            <span class="badge" style="background: #FF9800; color: white;">⏸️ In Progress</span>
+          </div>
+          <p class="muted" style="margin-bottom: 10px;">
+            ${tool1Latest.status === 'EDIT_DRAFT' ? 'You have unsaved edits' : 'You have a draft in progress'}
+          </p>
+
+          <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px;">
+            <button class="btn-primary" onclick="window.location.href='${baseUrl}?route=tool1&client=${clientId}&page=1'">
+              ▶️ Continue
+            </button>
+            <button class="btn-secondary" onclick="cancelDraft()">
+              ❌ Discard Draft
+            </button>
+          </div>
+        </div>
+      `;
+    } else {
+      // Not started - show Start button
+      tool1CardHTML = `
+        <div class="tool-card" style="margin-bottom: 15px;">
+          <h3>Tool 1: Core Trauma Strategy Assessment</h3>
+          <p class="muted">Begin your financial journey with a comprehensive assessment</p>
+          <span class="badge">Ready</span>
+          <br><br>
+          <button class="btn-primary" onclick="showLoading('Loading Assessment'); window.location.href='${baseUrl}?route=tool1&client=${clientId}'">
+            Start Assessment
+          </button>
+        </div>
+      `;
+    }
 
     const template = HtmlService.createTemplate(`
       <!DOCTYPE html>
@@ -430,15 +505,7 @@ const Router = {
             <h2>Your Tools</h2>
             <p class="muted mb-20">Complete each tool in order to unlock the next.</p>
 
-            <div class="tool-card" style="margin-bottom: 15px;">
-              <h3>Tool 1: Orientation Assessment</h3>
-              <p class="muted">Begin your financial journey with a comprehensive assessment</p>
-              <span class="badge">Ready</span>
-              <br><br>
-              <button class="btn-primary" onclick="showLoading('Loading Assessment'); window.location.href='<?= ScriptApp.getService().getUrl() ?>?route=tool1&client=${clientId || 'TEST001'}'">
-                Start Assessment
-              </button>
-            </div>
+            ${tool1CardHTML}
 
             <div class="tool-card locked" style="margin-bottom: 15px;">
               <h3>Tool 2: Financial Clarity</h3>
@@ -450,13 +517,77 @@ const Router = {
           </div>
 
           <div class="text-center mt-20">
-            <button class="btn-secondary" onclick="window.location.href='<?= ScriptApp.getService().getUrl() ?>?route=login'">
+            <button class="btn-secondary" onclick="window.location.href='${baseUrl}?route=login'">
               Logout
             </button>
           </div>
         </div>
 
         <script>
+          const baseUrl = '${baseUrl}';
+          const clientId = '${clientId}';
+
+          // Edit response - load into form
+          function editResponse() {
+            showLoading('Loading your responses...');
+            google.script.run
+              .withSuccessHandler(function(result) {
+                if (result.success) {
+                  window.location.href = baseUrl + '?route=tool1&client=' + clientId + '&page=1';
+                } else {
+                  hideLoading();
+                  alert('Error loading response: ' + result.error);
+                }
+              })
+              .withFailureHandler(function(error) {
+                hideLoading();
+                alert('Error: ' + error.message);
+              })
+              .loadResponseForEditing(clientId, 'tool1');
+          }
+
+          // Retake tool - start fresh
+          function retakeTool() {
+            if (confirm('Start a completely fresh assessment? This will clear any drafts but keep your previous completed response.')) {
+              showLoading('Preparing fresh assessment...');
+              google.script.run
+                .withSuccessHandler(function(result) {
+                  if (result.success) {
+                    window.location.href = baseUrl + '?route=tool1&client=' + clientId + '&page=1';
+                  } else {
+                    hideLoading();
+                    alert('Error: ' + result.error);
+                  }
+                })
+                .withFailureHandler(function(error) {
+                  hideLoading();
+                  alert('Error: ' + error.message);
+                })
+                .startFreshAttempt(clientId, 'tool1');
+            }
+          }
+
+          // Cancel draft
+          function cancelDraft() {
+            if (confirm('Discard your draft and return to your last completed response?')) {
+              showLoading('Canceling draft...');
+              google.script.run
+                .withSuccessHandler(function(result) {
+                  if (result.success) {
+                    window.location.reload();
+                  } else {
+                    hideLoading();
+                    alert('Error: ' + result.error);
+                  }
+                })
+                .withFailureHandler(function(error) {
+                  hideLoading();
+                  alert('Error: ' + error.message);
+                })
+                .cancelEditDraft(clientId, 'tool1');
+            }
+          }
+
           // Fade in page once loaded
           window.addEventListener('load', function() {
             document.body.classList.add('loaded');

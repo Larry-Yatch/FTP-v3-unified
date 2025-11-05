@@ -3,6 +3,8 @@
  *
  * Handles all interactions with Google Sheets.
  * Clean interface for tool data storage and retrieval.
+ *
+ * Now integrated with ResponseManager for version control and editing.
  */
 
 const DataService = {
@@ -12,11 +14,12 @@ const DataService = {
    * @param {string} clientId - Client/student ID
    * @param {string} toolId - Tool identifier
    * @param {Object} data - Response data
+   * @param {string} status - Status ('COMPLETED', 'DRAFT', 'EDIT_DRAFT')
    * @returns {Object} Save result
    */
-  saveToolResponse(clientId, toolId, data) {
+  saveToolResponse(clientId, toolId, data, status = 'COMPLETED') {
     try {
-      console.log(`DataService: Saving response for ${clientId} / ${toolId}`);
+      console.log(`DataService: Saving response for ${clientId} / ${toolId} with status ${status}`);
 
       const sheet = SpreadsheetApp.openById(CONFIG.MASTER_SHEET_ID)
         .getSheetByName(CONFIG.SHEETS.RESPONSES);
@@ -25,17 +28,25 @@ const DataService = {
         return { success: false, error: 'RESPONSES sheet not found' };
       }
 
+      // Mark previous responses as not latest if this is COMPLETED
+      if (status === 'COMPLETED' && typeof ResponseManager !== 'undefined') {
+        ResponseManager._markAsNotLatest(clientId, toolId);
+      }
+
       sheet.appendRow([
         new Date(),                // Timestamp
         clientId,                  // Client_ID
         toolId,                    // Tool_ID
         JSON.stringify(data),      // Data
         CONFIG.VERSION,            // Version
-        'completed'                // Status
+        status,                    // Status
+        'true'                     // Is_Latest
       ]);
 
-      // Update tool status
-      this.updateToolStatus(clientId, toolId, 'completed');
+      // Update tool status only if COMPLETED
+      if (status === 'COMPLETED') {
+        this.updateToolStatus(clientId, toolId, 'completed');
+      }
 
       return {
         success: true,
@@ -49,6 +60,17 @@ const DataService = {
         error: error.toString()
       };
     }
+  },
+
+  /**
+   * Save draft response
+   * @param {string} clientId - Client/student ID
+   * @param {string} toolId - Tool identifier
+   * @param {Object} data - Draft data
+   * @returns {Object} Save result
+   */
+  saveDraft(clientId, toolId, data) {
+    return this.saveToolResponse(clientId, toolId, data, 'DRAFT');
   },
 
   /**
@@ -295,5 +317,110 @@ const DataService = {
     } catch (error) {
       console.error('Error logging activity:', error);
     }
+  },
+
+  // ===== RESPONSE LIFECYCLE METHODS (via ResponseManager) =====
+
+  /**
+   * Get latest response (COMPLETED or DRAFT)
+   * @param {string} clientId - Client/student ID
+   * @param {string} toolId - Tool identifier
+   * @returns {Object|null} Latest response
+   */
+  getLatestResponse(clientId, toolId) {
+    if (typeof ResponseManager === 'undefined') {
+      return this.getToolResponse(clientId, toolId);
+    }
+    return ResponseManager.getLatestResponse(clientId, toolId);
+  },
+
+  /**
+   * Get previous completed response
+   * @param {string} clientId - Client/student ID
+   * @param {string} toolId - Tool identifier
+   * @returns {Object|null} Previous response
+   */
+  getPreviousResponse(clientId, toolId) {
+    if (typeof ResponseManager === 'undefined') {
+      return null;
+    }
+    return ResponseManager.getPreviousResponse(clientId, toolId);
+  },
+
+  /**
+   * Check if student has active draft
+   * @param {string} clientId - Client/student ID
+   * @param {string} toolId - Tool identifier
+   * @returns {Object|null} Draft or null
+   */
+  getActiveDraft(clientId, toolId) {
+    if (typeof ResponseManager === 'undefined') {
+      return null;
+    }
+    return ResponseManager.getActiveDraft(clientId, toolId);
+  },
+
+  /**
+   * Load response for editing
+   * @param {string} clientId - Client/student ID
+   * @param {string} toolId - Tool identifier
+   * @returns {Object} Result with draft data
+   */
+  loadResponseForEditing(clientId, toolId) {
+    if (typeof ResponseManager === 'undefined') {
+      return { success: false, error: 'ResponseManager not available' };
+    }
+    return ResponseManager.loadResponseForEditing(clientId, toolId);
+  },
+
+  /**
+   * Submit edited response
+   * @param {string} clientId - Client/student ID
+   * @param {string} toolId - Tool identifier
+   * @param {Object} data - Edited data
+   * @returns {Object} Result
+   */
+  submitEditedResponse(clientId, toolId, data) {
+    if (typeof ResponseManager === 'undefined') {
+      return { success: false, error: 'ResponseManager not available' };
+    }
+    return ResponseManager.submitEditedResponse(clientId, toolId, data);
+  },
+
+  /**
+   * Cancel edit draft
+   * @param {string} clientId - Client/student ID
+   * @param {string} toolId - Tool identifier
+   * @returns {Object} Result
+   */
+  cancelEditDraft(clientId, toolId) {
+    if (typeof ResponseManager === 'undefined') {
+      return { success: false, error: 'ResponseManager not available' };
+    }
+    return ResponseManager.cancelEditDraft(clientId, toolId);
+  },
+
+  /**
+   * Start fresh attempt (clear all drafts)
+   * @param {string} clientId - Client/student ID
+   * @param {string} toolId - Tool identifier
+   * @returns {Object} Result
+   */
+  startFreshAttempt(clientId, toolId) {
+    if (typeof ResponseManager === 'undefined') {
+      return { success: false, error: 'ResponseManager not available' };
+    }
+    return ResponseManager.startFreshAttempt(clientId, toolId);
+  },
+
+  /**
+   * Check if tool has completed response (for dashboard)
+   * @param {string} clientId - Client/student ID
+   * @param {string} toolId - Tool identifier
+   * @returns {boolean} True if has completed response
+   */
+  hasCompletedResponse(clientId, toolId) {
+    const latest = this.getLatestResponse(clientId, toolId);
+    return latest !== null && latest.status === 'COMPLETED';
   }
 };

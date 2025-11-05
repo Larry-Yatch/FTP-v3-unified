@@ -60,19 +60,31 @@ GPT integration provides personalized insights while maintaining standardized sc
                               │
               ┌───────────────┼───────────────────┐
               ▼               ▼                   ▼
-      ┌──────────────┐ ┌──────────────┐ ┌─────────────┐
-      │ToolAccess    │ │ Insights     │ │ DataService │
-      │Control       │ │ Pipeline     │ │             │
-      └──────────────┘ └──────┬───────┘ └─────────────┘
-                              │
-                    ┌─────────┴─────────┐
+      ┌──────────────┐ ┌──────────────┐ ┌─────────────────┐
+      │ToolAccess    │ │ Insights     │ │  DataService    │
+      │Control       │ │ Pipeline     │ │  (Persistence)  │
+      └──────────────┘ └──────┬───────┘ └────────┬────────┘
+                              │                   │
+                              │                   ▼
+                              │         ┌──────────────────┐
+                              │         │ ResponseManager  │
+                              │         │ (Version Control)│
+                              │         │ - View/Edit      │
+                              │         │ - Version History│
+                              │         │ - Draft Mgmt     │
+                              │         └────────┬─────────┘
+                              │                  │
+                    ┌─────────┴─────────┬────────┘
                     ▼                   ▼
-         ┌─────────────────┐  ┌──────────────┐
-         │ OpenAI Service  │  │Google Sheets │
-         │ (GPT-4o-mini)   │  │- Insights    │
-         │ (NEW)           │  │- Mappings    │
-         └─────────────────┘  │- RESPONSES   │
-                              └──────────────┘
+         ┌─────────────────┐  ┌──────────────────┐
+         │ OpenAI Service  │  │  Google Sheets   │
+         │ (GPT-4o-mini)   │  │ - Insights       │
+         │ (v3.2.0)        │  │ - Mappings       │
+         └─────────────────┘  │ - RESPONSES      │
+                              │   • Is_Latest ✓  │
+                              │   • Status       │
+                              │   • Version Data │
+                              └──────────────────┘
 ```
 
 ---
@@ -136,14 +148,76 @@ GPT integration provides personalized insights while maintaining standardized sc
 - Manage sessions
 - Track tool status
 - Log activities
+- Wrapper for ResponseManager (version control)
 
 **Key Methods:**
-- `saveToolResponse(clientId, toolId, data)`
-- `getToolResponse(clientId, toolId)`
-- `updateToolStatus(clientId, toolId, status)`
-- `validateSession(sessionId)`
+- `saveToolResponse(clientId, toolId, data, status)` - Save with status
+- `getToolResponse(clientId, toolId)` - Get response (legacy)
+- `getLatestResponse(clientId, toolId)` - Get current version
+- `getPreviousResponse(clientId, toolId)` - Get old version
+- `updateToolStatus(clientId, toolId, status)` - Update status
+- `validateSession(sessionId)` - Check session validity
+- `loadResponseForEditing(clientId, toolId)` - Load for edit
+- `submitEditedResponse(clientId, toolId, data)` - Save edited
+- `cancelEditDraft(clientId, toolId)` - Cancel editing
+- `startFreshAttempt(clientId, toolId)` - Clear drafts
 
-### **5. ToolAccessControl (`core/ToolAccessControl.js`)**
+### **5. ResponseManager (`core/ResponseManager.js`)** *(NEW v3.3.0)*
+**Purpose:** Response lifecycle and version management.
+
+**Responsibilities:**
+- View/Edit/Retake functionality for all tools
+- Version control (keeps last 2 versions)
+- Draft management (DRAFT, EDIT_DRAFT, COMPLETED)
+- Automatic cleanup of old versions
+- Audit trail with `Is_Latest` flags
+
+**Key Methods:**
+- `getLatestResponse(clientId, toolId)` - Get current (COMPLETED or DRAFT)
+- `getPreviousResponse(clientId, toolId)` - Get previous version
+- `getAllResponses(clientId, toolId, limit)` - Get history
+- `getActiveDraft(clientId, toolId)` - Check for in-progress edits
+- `loadResponseForEditing(clientId, toolId)` - Create EDIT_DRAFT
+- `submitEditedResponse(clientId, toolId, data)` - Save edited version
+- `cancelEditDraft(clientId, toolId)` - Restore original
+- `startFreshAttempt(clientId, toolId)` - Clear drafts
+
+**Version Control Logic:**
+- Marks old versions as `Is_Latest = false`
+- New versions always `Is_Latest = true`
+- Only ONE row per client/tool has `Is_Latest = true`
+- Automatically deletes versions beyond last 2 COMPLETED
+
+**Status Types:**
+- `COMPLETED` - Finished assessment (visible on reports)
+- `DRAFT` - In-progress new assessment
+- `EDIT_DRAFT` - In-progress editing of completed assessment
+
+**Data Flow - Edit Mode:**
+```
+1. Student clicks "Edit Answers"
+2. ResponseManager.loadResponseForEditing()
+   - Gets latest COMPLETED response
+   - Creates new row: Status='EDIT_DRAFT', Is_Latest='true'
+   - Marks old as Is_Latest='false'
+   - Adds metadata: _editMode, _originalTimestamp
+3. Form loads with edit banner + pre-filled data
+4. Student makes changes, navigates pages
+5. Student submits
+6. Tool detects _editMode=true
+7. ResponseManager.submitEditedResponse()
+   - Saves new COMPLETED row with Is_Latest='true'
+   - Old versions remain with Is_Latest='false'
+   - Cleans up (keeps last 2)
+```
+
+**Why Separate from DataService:**
+- Cleaner separation of concerns
+- Version logic isolated and testable
+- Reusable across all 8 tools without modification
+- Easy to extend (e.g., add "Compare Versions" later)
+
+### **6. ToolAccessControl (`core/ToolAccessControl.js`)**
 **Purpose:** Access control and progression.
 
 **Responsibilities:**
@@ -158,7 +232,7 @@ GPT integration provides personalized insights while maintaining standardized sc
 - `adminLockTool(clientId, toolId, admin, reason)` - Manual lock
 - `initializeStudent(clientId)` - Setup new student
 
-### **6. Router (`core/Router.js`)**
+### **7. Router (`core/Router.js`)**
 **Purpose:** Registry-based routing.
 
 **Responsibilities:**
@@ -166,10 +240,18 @@ GPT integration provides personalized insights while maintaining standardized sc
 - Differentiate system vs. tool routes
 - Load appropriate handler
 - Session validation
+- Dynamic dashboard generation based on tool status
+
+**Dashboard Logic (Updated v3.3.0):**
+- Checks ResponseManager for tool status
+- Shows different UI based on state:
+  - Not started: "Start Assessment" button
+  - In Progress (draft): "Continue" + "Discard Draft"
+  - Completed: "View Report" + "Edit Answers" + "Start Fresh"
 
 **No hardcoded tool routes!**
 
-### **7. OpenAIService (`core/OpenAIService.js`)** *(NEW)*
+### **8. OpenAIService (`core/OpenAIService.js`)** *(NEW v3.2.0)*
 **Purpose:** Centralized GPT integration for personalized insights.
 
 **Responsibilities:**

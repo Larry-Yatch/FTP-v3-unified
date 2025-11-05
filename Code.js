@@ -159,6 +159,45 @@ function doPost(e) {
 }
 
 /**
+ * Cancel edit draft (return to completed response)
+ * Called from client-side via google.script.run
+ */
+function cancelEditDraft(clientId, toolId) {
+  try {
+    return DataService.cancelEditDraft(clientId, toolId);
+  } catch (error) {
+    Logger.log(`Error in cancelEditDraft: ${error}`);
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Load response for editing
+ * Called from client-side via google.script.run
+ */
+function loadResponseForEditing(clientId, toolId) {
+  try {
+    return DataService.loadResponseForEditing(clientId, toolId);
+  } catch (error) {
+    Logger.log(`Error in loadResponseForEditing: ${error}`);
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Start fresh attempt (clear all drafts)
+ * Called from client-side via google.script.run
+ */
+function startFreshAttempt(clientId, toolId) {
+  try {
+    return DataService.startFreshAttempt(clientId, toolId);
+  } catch (error) {
+    Logger.log(`Error in startFreshAttempt: ${error}`);
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
  * Generate PDF for Tool 1 report
  * Called from client-side via google.script.run
  */

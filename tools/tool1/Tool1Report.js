@@ -169,6 +169,7 @@ const Tool1Report = {
           <!-- Action buttons -->
           <div class="action-buttons">
             <button class="btn-primary" onclick="downloadPDF()">📥 Download PDF Report</button>
+            <button class="btn-secondary" onclick="editResponse()">✏️ Edit My Answers</button>
             <button class="btn-secondary" onclick="backToDashboard()">← Back to Dashboard</button>
           </div>
 
@@ -180,6 +181,9 @@ const Tool1Report = {
         </div>
 
         <script>
+          const baseUrl = '<?= ScriptApp.getService().getUrl() ?>';
+          const clientId = '${clientId}';
+
           function downloadPDF() {
             const btn = event.target;
             btn.disabled = true;
@@ -212,11 +216,32 @@ const Tool1Report = {
                 btn.textContent = '📥 Download PDF Report';
                 document.getElementById('loadingIndicator').style.display = 'none';
               })
-              .generateTool1PDF('${clientId}');
+              .generateTool1PDF(clientId);
+          }
+
+          function editResponse() {
+            if (confirm('Load your responses into the form for editing?')) {
+              showLoading('Loading your responses...');
+
+              google.script.run
+                .withSuccessHandler(function(result) {
+                  if (result.success) {
+                    window.location.href = baseUrl + '?route=tool1&client=' + clientId + '&page=1';
+                  } else {
+                    hideLoading();
+                    alert('Error loading response: ' + result.error);
+                  }
+                })
+                .withFailureHandler(function(error) {
+                  hideLoading();
+                  alert('Error: ' + error.message);
+                })
+                .loadResponseForEditing(clientId, 'tool1');
+            }
           }
 
           function backToDashboard() {
-            navigateToDashboard('${clientId}', 'Loading Dashboard');
+            navigateToDashboard(clientId, 'Loading Dashboard');
           }
         </script>
       </body>
