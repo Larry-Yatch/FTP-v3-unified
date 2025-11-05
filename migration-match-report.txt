@@ -1,0 +1,72 @@
+# Migration Match Report
+
+## Legacy Sheet (Source) - Column D Student IDs Found:
+
+Row 18: Cady Tyson → 4519CT
+Row 71: Valeria Storchak → 7343VS
+Row 99: Wendy larios → 3924WL
+Row 100: Rick Hussel → 5978RH
+Row 101: Jake Womack → 0118JW
+Row 102: Svetlana Malinsky → 3304SM
+Row 103: Robin Womack → 0118RW
+Row 105: Ray Waters → 7343RW
+Row 106: Laurie Garcia → 4107LG
+Row 107: Steve Nagib → 3529SN
+Row 108: Clark mcDaniel → 8142CM
+Row 109: Vicky Giangregorio → 8638VG
+Row 110: Travis Garcia → 2397TG
+Row 111: Suzanne Gordon → 3450SG
+Row 112: Evelia Salazar → 0391ES
+Row 114: Petra Macega → 2181PM
+Row 116: Gene Valencia → 5629GV
+Row 117: Adrian Marrero → 2798AM
+Row 118: Minlei Wang → 1749MW
+Row 119: Debbie Weller → 8586DW
+Row 120: Stan Volkman → 9392SV
+Row 121: Jessica Brandon → 6921JB
+Row 122: Brian Richardson → 7893BR
+Row 123: Ray Smith → 5792RS
+Row 124: Dana Franks → 2751DF
+Row 125: Lisa Loeffler → 7010LL
+Row 126: Greg Schulte → 2382GS
+Row 127: Lucie Mann → 9003LM
+Row 128: Lesley Schulte → 7567LS
+Row 129: Jessica Kobrin → 7923JK
+Row 131: Sondra Harper → 0061SH
+Row 132: Melissa Brown → 8383MB
+Row 133: Chad Clark → 3256CC
+Row 134: Chelsea Boissonneault → 6384CB
+Row 135: Wesley Williams → 7724WW
+Row 136: Matt Uhler → 1505MU
+
+**Total: 36 Student IDs found** (not 34 - slightly more!)
+
+## Expected Migration Results:
+
+**Students Sheet (Destination):** 47 active students
+
+**Matching Strategy:**
+1. **By Student ID:** ~34-36 students will match immediately
+2. **By Name:** Remaining ~11-13 students will try name matching
+3. **No Match:** Some students may not have legacy data (TEST accounts, new students)
+
+**Expected Outcome:**
+- Processed: ~40-45 students (matched and migrated)
+  - Student ID matches: ~34-36
+  - Name matches: ~5-10
+- Skipped: ~2-7 students (no legacy data, or TEST accounts)
+- Errors: 0 (expected)
+
+## ✅ Migration is Ready!
+
+The dual-matching strategy will handle:
+- ✅ 34-36 students with Student IDs → Perfect match
+- ✅ Remaining students → Fall back to name matching
+- ✅ Duplicates handled → Takes most recent by timestamp
+- ✅ Safe → Preview mode available
+
+## Next Steps:
+1. Deploy AdminMigration.js to Apps Script
+2. Reload spreadsheet (see Admin Tools menu)
+3. Run Preview to verify matches
+4. Run Migration if preview looks good

@@ -1293,7 +1293,7 @@ const Tool2 = {
   getTool1TraumaData(clientId) {
     try {
       // Query Tool 1 responses for this client
-      const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName('RESPONSES');
+      const sheet = SpreadsheetApp.openById(CONFIG.MASTER_SHEET_ID).getSheetByName('RESPONSES');
       const data = sheet.getDataRange().getValues();
       const headers = data[0];
 
@@ -1301,14 +1301,32 @@ const Tool2 = {
       const toolIdCol = headers.indexOf('Tool_ID');
       const clientCol = headers.indexOf('Client_ID');
       const isLatestCol = headers.indexOf('Is_Latest');
-      const responseCol = headers.indexOf('Response_Data');
+      const responseCol = headers.indexOf('Data');  // Column is named 'Data', not 'Response_Data'
 
+      Logger.log(`Searching for Tool1 data for client: ${clientId}`);
+      
       for (let i = data.length - 1; i >= 1; i--) {
+        if (data[i][clientCol] === clientId) {
+          Logger.log(`Row ${i+1}: Tool_ID=${data[i][toolIdCol]}, Is_Latest=${data[i][isLatestCol]}`);
+        }
+        
         if (data[i][toolIdCol] === 'tool1' &&
             data[i][clientCol] === clientId &&
             data[i][isLatestCol] === true) {
 
-          const responseData = JSON.parse(data[i][responseCol]);
+          // Check if response data exists
+          const rawResponseData = data[i][responseCol];
+          Logger.log(`Tool1 row found. Response_Data type: ${typeof rawResponseData}, length: ${rawResponseData ? String(rawResponseData).length : 0}`);
+          
+          if (!rawResponseData || rawResponseData === 'undefined' || rawResponseData === '' || rawResponseData === null) {
+            Logger.log(`Tool1 row found but Response_Data is empty/null/undefined for ${clientId}`);
+            continue;
+          }
+          
+          // Log first part of data for debugging
+          Logger.log(`Response_Data preview: ${String(rawResponseData).substring(0, 200)}`);
+          
+          const responseData = JSON.parse(rawResponseData);
 
           // Extract trauma scores and winner from Tool 1
           // Tool1 saves data as: {formData: {...}, scores: {...}, winner: "..."}
@@ -1320,11 +1338,15 @@ const Tool2 = {
           return { topTrauma, traumaScores };
         }
       }
+      
+      Logger.log(`No Tool1 data found for ${clientId} after checking ${data.length - 1} rows`);
+      
     } catch (e) {
       Logger.log('Error getting Tool 1 trauma data: ' + e.message);
     }
 
     // Default if no Tool 1 data found
+    Logger.log(`Returning default trauma data for ${clientId}: FSV`);
     return { topTrauma: 'FSV', traumaScores: {} };
   },
 

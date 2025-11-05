@@ -4,7 +4,7 @@
  * Migrates v2 Tool 1 responses to v3 RESPONSES sheet format
  * Run once via Admin menu: "Admin Tools > Migrate Legacy Tool 1"
  *
- * LOGIC: Start with Students sheet (destination), lookup legacy data for each student
+ * LOGIC: Match by Student ID (column D) first, fall back to Name matching
  */
 
 const AdminMigration = {
@@ -24,9 +24,10 @@ const AdminMigration = {
       const activeStudents = this.getActiveStudents();
       Logger.log(`Found ${activeStudents.length} active students in destination`);
 
-      // Step 2: Build legacy data lookup (email → most recent record)
-      const legacyLookup = this.buildLegacyLookup();
-      Logger.log(`Found ${legacyLookup.size} unique legacy records`);
+      // Step 2: Build legacy data lookups (by Student ID AND by Name)
+      const legacyLookups = this.buildLegacyLookups();
+      Logger.log(`Found ${legacyLookups.byStudentId.size} legacy records with Student IDs`);
+      Logger.log(`Found ${legacyLookups.byName.size} unique names in legacy data`);
 
       // Step 3: Check existing Tool 1 responses to avoid duplicates
       const existingTool1 = this.getExistingTool1ClientIds();
@@ -38,6 +39,8 @@ const AdminMigration = {
         processed: 0,
         skipped: 0,
         errors: 0,
+        matchedByStudentId: 0,
+        matchedByName: 0,
         details: []
       };
 
@@ -46,7 +49,6 @@ const AdminMigration = {
       studentsToProcess.forEach((student, index) => {
         try {
           const clientId = student.clientId;
-          const email = student.email.toLowerCase().trim();
           const name = student.name;
 
           // Check if student already has Tool 1 data
@@ -55,7 +57,6 @@ const AdminMigration = {
             results.details.push({
               clientId: clientId,
               name: name,
-              email: email,
               status: 'skipped',
               reason: 'Tool 1 already completed'
             });
@@ -63,21 +64,34 @@ const AdminMigration = {
             return;
           }
 
-          // Look up legacy data for this student
-          if (!legacyLookup.has(email)) {
+          // Try to match by Student ID first
+          let legacyRecord = null;
+          let matchMethod = null;
+
+          if (legacyLookups.byStudentId.has(clientId)) {
+            legacyRecord = legacyLookups.byStudentId.get(clientId);
+            matchMethod = 'Student ID';
+            results.matchedByStudentId++;
+          }
+          // Fall back to name matching
+          else if (legacyLookups.byName.has(name)) {
+            legacyRecord = legacyLookups.byName.get(name);
+            matchMethod = 'Name';
+            results.matchedByName++;
+          }
+
+          // No match found
+          if (!legacyRecord) {
             results.skipped++;
             results.details.push({
               clientId: clientId,
               name: name,
-              email: email,
               status: 'skipped',
-              reason: 'No legacy data found for this email'
+              reason: 'No legacy data found (tried Student ID and Name)'
             });
             Logger.log(`⚠️ Skipped: ${clientId} (${name}) - no legacy data`);
             return;
           }
-
-          const legacyRecord = legacyLookup.get(email);
 
           // Transform data to v3 format
           const v3Data = this.transformLegacyRecord(legacyRecord);
@@ -98,13 +112,13 @@ const AdminMigration = {
             results.details.push({
               clientId: clientId,
               name: name,
-              email: email,
               status: 'preview',
+              matchMethod: matchMethod,
               scores: scores,
               winner: winner,
               timestamp: legacyRecord.timestamp
             });
-            Logger.log(`✓ Preview: ${clientId} (${name}) - Winner: ${winner}`);
+            Logger.log(`✓ Preview: ${clientId} (${name}) - Matched by ${matchMethod} - Winner: ${winner}`);
           } else {
             // Write to RESPONSES sheet
             DataService.saveToolResponse(clientId, 'tool1', dataPackage, 'COMPLETED');
@@ -113,12 +127,12 @@ const AdminMigration = {
             results.details.push({
               clientId: clientId,
               name: name,
-              email: email,
               status: 'migrated',
+              matchMethod: matchMethod,
               winner: winner,
               timestamp: legacyRecord.timestamp
             });
-            Logger.log(`✓ Migrated: ${clientId} (${name}) - Winner: ${winner}`);
+            Logger.log(`✓ Migrated: ${clientId} (${name}) - Matched by ${matchMethod} - Winner: ${winner}`);
           }
 
         } catch (error) {
@@ -126,7 +140,6 @@ const AdminMigration = {
           results.details.push({
             clientId: student.clientId,
             name: student.name,
-            email: student.email,
             status: 'error',
             error: error.toString()
           });
@@ -138,6 +151,8 @@ const AdminMigration = {
       Logger.log(`=== Migration ${previewOnly ? 'Preview' : 'Complete'} ===`);
       Logger.log(`Total Students: ${results.totalStudents}`);
       Logger.log(`Processed: ${results.processed}`);
+      Logger.log(`  - Matched by Student ID: ${results.matchedByStudentId}`);
+      Logger.log(`  - Matched by Name: ${results.matchedByName}`);
       Logger.log(`Skipped: ${results.skipped}`);
       Logger.log(`Errors: ${results.errors}`);
 
@@ -172,7 +187,7 @@ const AdminMigration = {
         const email = data[i][2];    // Column C: Email
         const status = data[i][3];   // Column D: Status
 
-        if (clientId && email && status === 'active') {
+        if (clientId && name && status === 'active') {
           students.push({
             clientId: clientId,
             name: name,
@@ -190,17 +205,18 @@ const AdminMigration = {
   },
 
   /**
-   * Build legacy data lookup: email → most recent record
-   * Handles multiple submissions per email (takes latest by timestamp)
-   * @returns {Map<string, Object>} Email to legacy record map
+   * Build legacy data lookups: by Student ID AND by Name
+   * Handles multiple submissions (takes latest by timestamp)
+   * @returns {Object} {byStudentId: Map, byName: Map}
    */
-  buildLegacyLookup() {
+  buildLegacyLookups() {
     try {
       const legacySheet = SpreadsheetApp.openById(this.LEGACY_SHEET_ID);
       const sheet = legacySheet.getSheets()[0]; // First sheet
       const data = sheet.getDataRange().getValues();
 
-      const lookup = new Map();
+      const byStudentId = new Map();
+      const byName = new Map();
 
       // Skip header (row 0) and admin/category row (row 1)
       // Data starts at row 2 (index 2)
@@ -212,61 +228,86 @@ const AdminMigration = {
 
         const email = String(row[0]).toLowerCase().trim();
         const timestamp = row[1];
+        const name = String(row[2]).trim();
+        const studentId = row[3] ? String(row[3]).trim() : null; // Column D
 
-        // Skip invalid emails
+        // Skip invalid entries
         if (!email || email === 'admin') continue;
 
         const record = {
           email: email,
           timestamp: timestamp,
-          name: row[2],
-          // Questions (columns 3-20: indices 3-20)
-          q3: row[3],   // FSV
-          q4: row[4],   // FSV
-          q5: row[5],   // FSV
-          q17: row[6],  // Control
-          q18: row[7],  // Control
-          q19: row[8],  // Control
-          q10: row[9],  // Showing
-          q11: row[10], // Showing
-          q12: row[11], // Showing
-          q6: row[12],  // ExVal
-          q7: row[13],  // ExVal
-          q8: row[14],  // ExVal
-          q20: row[15], // Fear
-          q21: row[16], // Fear
-          q22: row[17], // Fear
-          q13: row[18], // Receiving
-          q14: row[19], // Receiving
-          q15: row[20], // Receiving
-          // Thought rankings (columns 21-25: indices 21-25)
-          thought_fsv: row[21],
-          thought_control: row[22],
-          thought_showing: row[23],
-          thought_exval: row[24],
-          thought_fear: row[25]
+          name: name,
+          studentId: studentId,
+          // Questions (columns 4-21: indices 4-21, accounting for new column D)
+          q3: row[4],   // FSV
+          q4: row[5],   // FSV
+          q5: row[6],   // FSV
+          q17: row[7],  // Control
+          q18: row[8],  // Control
+          q19: row[9],  // Control
+          q10: row[10],  // Showing
+          q11: row[11], // Showing
+          q12: row[12], // Showing
+          q6: row[13],  // ExVal
+          q7: row[14],  // ExVal
+          q8: row[15],  // ExVal
+          q20: row[16], // Fear
+          q21: row[17], // Fear
+          q22: row[18], // Fear
+          q13: row[19], // Receiving
+          q14: row[20], // Receiving
+          q15: row[21], // Receiving
+          // Thought rankings (columns 22-26: indices 22-26)
+          thought_fsv: row[22],
+          thought_control: row[23],
+          thought_showing: row[24],
+          thought_exval: row[25],
+          thought_fear: row[26]
         };
 
-        // If email already exists, keep the most recent one
-        if (lookup.has(email)) {
-          const existing = lookup.get(email);
-          const existingDate = new Date(existing.timestamp);
-          const newDate = new Date(timestamp);
+        // Index by Student ID if present
+        if (studentId) {
+          if (byStudentId.has(studentId)) {
+            const existing = byStudentId.get(studentId);
+            const existingDate = new Date(existing.timestamp);
+            const newDate = new Date(timestamp);
 
-          // Only replace if newer
-          if (newDate > existingDate) {
-            lookup.set(email, record);
-            Logger.log(`Updated: ${email} with newer submission (${timestamp})`);
+            // Only replace if newer
+            if (newDate > existingDate) {
+              byStudentId.set(studentId, record);
+              Logger.log(`Updated: ${studentId} with newer submission (${timestamp})`);
+            }
+          } else {
+            byStudentId.set(studentId, record);
           }
-        } else {
-          lookup.set(email, record);
+        }
+
+        // Index by Name (for fallback)
+        if (name) {
+          if (byName.has(name)) {
+            const existing = byName.get(name);
+            const existingDate = new Date(existing.timestamp);
+            const newDate = new Date(timestamp);
+
+            // Only replace if newer
+            if (newDate > existingDate) {
+              byName.set(name, record);
+              Logger.log(`Updated: ${name} with newer submission (${timestamp})`);
+            }
+          } else {
+            byName.set(name, record);
+          }
         }
       }
 
-      return lookup;
+      return {
+        byStudentId: byStudentId,
+        byName: byName
+      };
 
     } catch (error) {
-      Logger.log(`Error building legacy lookup: ${error}`);
+      Logger.log(`Error building legacy lookups: ${error}`);
       throw new Error(`Failed to read legacy spreadsheet: ${error}`);
     }
   },
@@ -313,14 +354,13 @@ const AdminMigration = {
    */
   transformLegacyRecord(record) {
     // Generate feeling rankings from thought rankings
-    // Strategy: Use thought rankings as proxy (they're correlated)
     const feelingRankings = this.generateFeelingRankings(record);
 
     return {
       formData: {
         name: record.name,
         email: record.email,
-        // Questions (already mapped correctly)
+        // Questions
         q3: String(record.q3),
         q4: String(record.q4),
         q5: String(record.q5),
@@ -363,7 +403,6 @@ const AdminMigration = {
 
   /**
    * Generate feeling rankings from thought rankings
-   * Use same ranking as thoughts (reasonable proxy for migration)
    * @param {Object} record - Legacy record
    * @returns {Object} Feeling rankings
    */
@@ -372,7 +411,7 @@ const AdminMigration = {
       feeling_fsv: record.thought_fsv,
       feeling_exval: record.thought_exval,
       feeling_showing: record.thought_showing,
-      feeling_receiving: record.thought_receiving || 6, // Default if missing
+      feeling_receiving: record.thought_receiving || 6,
       feeling_control: record.thought_control,
       feeling_fear: record.thought_fear
     };
@@ -387,8 +426,8 @@ const AdminMigration = {
     // Helper: Normalize thought ranking (1-10) to (-5 to +5)
     const normalizeThought = (rank) => {
       const r = parseInt(rank);
-      if (r >= 1 && r <= 5) return r - 6;  // 1→-5, 2→-4, ..., 5→-1
-      if (r >= 6 && r <= 10) return r - 5; // 6→1, 7→2, ..., 10→5
+      if (r >= 1 && r <= 5) return r - 6;
+      if (r >= 6 && r <= 10) return r - 5;
       return 0;
     };
 
@@ -490,6 +529,8 @@ function previewLegacyTool1Migration() {
     let message = `PREVIEW MODE - No data written\n\n`;
     message += `Total students in destination: ${result.totalStudents}\n`;
     message += `Will process: ${result.processed}\n`;
+    message += `  - Matched by Student ID: ${result.matchedByStudentId}\n`;
+    message += `  - Matched by Name: ${result.matchedByName}\n`;
     message += `Will skip: ${result.skipped}\n`;
     message += `Errors: ${result.errors}\n\n`;
     message += `First 5 records:\n\n`;
@@ -497,6 +538,7 @@ function previewLegacyTool1Migration() {
     result.details.slice(0, 5).forEach(detail => {
       if (detail.status === 'preview') {
         message += `✓ ${detail.clientId} - ${detail.name}\n`;
+        message += `  Matched by: ${detail.matchMethod}\n`;
         message += `  Winner: ${detail.winner}\n`;
         message += `  Scores: FSV=${detail.scores.FSV}, ExVal=${detail.scores.ExVal}\n\n`;
       } else if (detail.status === 'skipped') {
@@ -523,7 +565,7 @@ function runLegacyTool1Migration() {
     'This will migrate legacy Tool 1 data to v3 format.\n\n' +
     'This action will:\n' +
     '- Process active students from Students sheet\n' +
-    '- Look up their legacy Tool 1 data\n' +
+    '- Match by Student ID first, then by Name\n' +
     '- Skip students who already have Tool 1 data\n' +
     '- Write to RESPONSES sheet\n\n' +
     'Continue?',
@@ -541,6 +583,8 @@ function runLegacyTool1Migration() {
     let message = `Migration Complete!\n\n`;
     message += `Total students: ${result.totalStudents}\n`;
     message += `Migrated: ${result.processed}\n`;
+    message += `  - Matched by Student ID: ${result.matchedByStudentId}\n`;
+    message += `  - Matched by Name: ${result.matchedByName}\n`;
     message += `Skipped: ${result.skipped}\n`;
     message += `Errors: ${result.errors}\n\n`;
 
