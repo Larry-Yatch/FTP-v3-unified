@@ -415,6 +415,16 @@ document.write(dashboardHtml);              // Load dashboard
 | 7 | Logout button white screen | Router.js | @49 | Changed to `window.top.location.replace()` |
 | 8 | Cancel Edit banner white screen | Tool1.js | @49 | Changed to use `navigateToDashboard()` |
 
+#### **Issues Found During Production Testing (@51-@53)**
+
+| # | Issue | Location | Deploy | Fix |
+|---|-------|----------|--------|-----|
+| 9 | 404 error on Edit from report | Tool1Report.js | @51 | Fixed template syntax (`<?=` → `${}`) |
+| 10 | Ranking dropdowns still empty | Tool1.js | @51 | More explicit null checking |
+| 11 | Cancel Edit error handling | Tool1.js | @51 | Better result checking |
+| 12 | Start Fresh not clearing data | ResponseManager.js | @52 | Clear PropertiesService draft |
+| 13 | **ALL form navigation white screens** | Router.js, Tool1Report.js | **@53** | **Changed to `window.top.location.href`** |
+
 #### **Critical Fixes Explained**
 
 ##### **Fix 1: Case Sensitivity in Is_Latest Column**
@@ -488,6 +498,50 @@ function logout() {
 
 **Why:** `window.top.location.replace()` forces a complete page reload, clearing all JavaScript state and breaking out of iframes.
 
+##### **Fix 5: Form Navigation Requires window.top (CRITICAL DISCOVERY @53)**
+
+**Problem:** After fixing many other issues, ALL form navigation from Dashboard/Report still caused white screens in production testing.
+
+**Root Cause:** Google Apps Script runs in an iframe. After using `document.write()`, we're in a complex state:
+1. iframe sandbox is active
+2. document.write() has modified the DOM
+3. Using `window.location.href` tries to navigate within the iframe context
+4. Result: Browser gets confused and shows white screen
+
+**The Incorrect Assumption:**
+We initially thought `window.location.href` would "break the chain" and start normal navigation. This is TRUE for normal web pages, but FALSE for Google Apps Script's iframe environment.
+
+**The Solution:**
+```javascript
+// ❌ BROKEN (what we tried first):
+document.write(dashboardHtml);  // Load dashboard
+→ User clicks "Edit"
+→ window.location.href = formUrl;  // ❌ WHITE SCREEN in iframe!
+
+// ✅ WORKING (the actual requirement):
+document.write(dashboardHtml);  // Load dashboard
+→ User clicks "Edit"
+→ window.top.location.href = formUrl;  // ✅ Breaks out of iframe + document.write()
+```
+
+**Why window.top Works:**
+- `window.top` references the TOP-LEVEL browser window
+- Forces navigation at the outermost level
+- Breaks out of iframe sandbox
+- Clears document.write() state
+- Acts like a full page reload
+
+**Affected Navigation:**
+- Dashboard → Edit Form (editResponse function)
+- Dashboard → Start Fresh (retakeTool function)
+- Dashboard → Continue Draft (inline button)
+- Dashboard → Start Assessment (inline button)
+- Report → Edit Form (editResponse function)
+
+**Files Modified (@53):**
+- `core/Router.js`: 4 locations (lines 439, 456, 564, 585)
+- `tools/tool1/Tool1Report.js`: 1 location (line 334)
+
 ### **The Three Navigation Rules**
 
 #### **Rule 1: document.write() Chains Must Continue**
@@ -496,11 +550,15 @@ function logout() {
 ❌ document.write() → [Page A] → window.location.href → [Page B]  // WHITE SCREEN
 ```
 
-#### **Rule 2: You Can Break to Normal Navigation**
+#### **Rule 2: Breaking Out Requires window.top (CRITICAL)**
 ```javascript
-✅ document.write() → [Page A] → window.location.href → [Form] → window.location.href → [Next]
+// ❌ BROKEN - window.location.href FAILS in Google Apps Script iframe:
+document.write() → [Page A] → window.location.href → [Form]  // WHITE SCREEN!
+
+// ✅ WORKING - Must use window.top to break iframe AND document.write():
+document.write() → [Page A] → window.top.location.href → [Form] → window.location.href → [Next]
 ```
-Once you use `window.location.href` to leave a `document.write()` page, the chain is broken and normal navigation resumes.
+**Why:** Google Apps Script runs in iframe context. After `document.write()`, even breaking to normal navigation requires `window.top` to escape BOTH the document.write() state AND the iframe sandbox.
 
 #### **Rule 3: Logout Gets Special Treatment**
 ```javascript
@@ -572,17 +630,19 @@ function logout() {
 }
 ```
 
-### **Complete Navigation Map (v3.3.0)**
+### **Complete Navigation Map (v3.3.0 @53)**
 
 | From | To | Method | Component | Status |
 |------|-----|--------|-----------|--------|
 | Login | Dashboard | `document.write()` | `authenticateAndGetDashboard()` | ✅ |
 | Dashboard | Report | `document.write()` | `viewReport()` → `getReportPage()` | ✅ |
-| Dashboard | Edit Form | `window.location.href` | Direct navigation | ✅ |
-| Dashboard | Tool Start | `window.location.href` | Direct navigation | ✅ |
+| Dashboard | Edit Form | `window.top.location.href` | `editResponse()` | ✅ |
+| Dashboard | Start Fresh | `window.top.location.href` | `retakeTool()` | ✅ |
+| Dashboard | Continue Draft | `window.top.location.href` | Direct button | ✅ |
+| Dashboard | Start Tool | `window.top.location.href` | Direct button | ✅ |
 | Dashboard | Logout | `window.top.location.replace()` | `logout()` | ✅ |
 | Report | Dashboard | `document.write()` | `navigateToDashboard()` | ✅ |
-| Report | Edit Form | `window.location.href` | Direct navigation | ✅ |
+| Report | Edit Form | `window.top.location.href` | `editResponse()` | ✅ |
 | Form | Dashboard | `document.write()` | `navigateToDashboard()` | ✅ |
 | Form | Cancel Edit | `document.write()` | `navigateToDashboard()` | ✅ |
 | Form Pages | Next Page | `window.location.href` | FormUtils | ✅ |
@@ -617,19 +677,23 @@ All paths should transition smoothly with no white screens.
 
 ## 📚 Key Learnings Summary
 
-### **The Golden Rule**
-> Once you use `document.write()` for navigation, you're committed. All subsequent navigation must use the same pattern or explicitly break out with `window.location.href` to a new page.
+### **The Golden Rule (UPDATED for Google Apps Script)**
+> Once you use `document.write()` for navigation, you're committed. All subsequent navigation must EITHER:
+> 1. Use the same `document.write()` pattern (stay in SPA mode), OR
+> 2. Use `window.top.location.href` to break out of BOTH document.write() AND iframe contexts
+>
+> **CRITICAL:** `window.location.href` is NOT sufficient in Google Apps Script - it will cause white screens!
 
 ### **When to Use What**
 
 | Scenario | Method | Reason |
 |----------|--------|--------|
 | Dashboard ↔ Report | `document.write()` | Fast, SPA-like, no state loss |
-| Dashboard → Form | `window.location.href` | Start fresh flow |
+| Dashboard/Report → Form | `window.top.location.href` | Break iframe + document.write() chain |
 | Form → Dashboard | `document.write()` | Return to cached state |
 | Cancel Edit | `document.write()` | Maintain context |
 | Logout | `window.top.location.replace()` | Full reset needed |
-| Form → Form | `window.location.href` | Sequential flow |
+| Form → Form | `window.location.href` | Sequential flow (already outside iframe) |
 
 ### **Debug Patterns**
 
@@ -654,8 +718,13 @@ Before adding new navigation:
 **Created by:** Agent Girl
 **Original Date:** November 3, 2024
 **Major Update:** November 4, 2024 (AM) - iframe fixes
-**Final Update:** November 4, 2024 (PM) - Data persistence & deep audit
-**Deployment:** v3.3.0 @49 - Production Ready with Response Management
-**Status:** ✅ Navigation system fully audited, all patterns documented
+**Deep Dive:** November 4, 2024 (PM) - Data persistence & navigation audit
+**Final Update:** November 4, 2024 (Late PM) - window.top discovery & production testing
+**Deployment:** v3.3.0 @53 - Production Ready (13 critical fixes)
+**Status:** ✅ ALL navigation working, iframe patterns fully documented
 
-🎉 **Ready for Production!**
+## 🎉 Production Ready!
+
+**Total Issues Fixed:** 13 critical bugs across 13 deployments (@41-@53)
+**Key Discovery:** `window.top.location.href` required for ALL navigation from `document.write()` pages in Google Apps Script iframe environment
+**Testing:** All navigation paths verified working without white screens

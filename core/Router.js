@@ -436,7 +436,7 @@ const Router = {
           </p>
 
           <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px;">
-            <button class="btn-primary" onclick="showLoading('Loading Assessment'); window.location.href='${baseUrl}?route=tool1&client=${clientId}&page=1'">
+            <button class="btn-primary" onclick="showLoading('Loading Assessment'); window.top.location.href='${baseUrl}?route=tool1&client=${clientId}&page=1'">
               ▶️ Continue
             </button>
             <button class="btn-secondary" onclick="cancelDraft()">
@@ -453,7 +453,7 @@ const Router = {
           <p class="muted">Begin your financial journey with a comprehensive assessment</p>
           <span class="badge">Ready</span>
           <br><br>
-          <button class="btn-primary" onclick="showLoading('Loading Assessment'); window.location.href='${baseUrl}?route=tool1&client=${clientId}'">
+          <button class="btn-primary" onclick="showLoading('Loading Assessment'); window.top.location.href='${baseUrl}?route=tool1&client=${clientId}'">
             Start Assessment
           </button>
         </div>
@@ -560,7 +560,8 @@ const Router = {
             google.script.run
               .withSuccessHandler(function(result) {
                 if (result.success) {
-                  window.location.href = baseUrl + '?route=tool1&client=' + clientId + '&page=1';
+                  // Use window.top to break out of document.write() chain
+                  window.top.location.href = baseUrl + '?route=tool1&client=' + clientId + '&page=1';
                 } else {
                   hideLoading();
                   alert('Error loading response: ' + result.error);
@@ -580,7 +581,8 @@ const Router = {
               google.script.run
                 .withSuccessHandler(function(result) {
                   if (result.success) {
-                    window.location.href = baseUrl + '?route=tool1&client=' + clientId + '&page=1';
+                    // Use window.top to break out of document.write() chain
+                    window.top.location.href = baseUrl + '?route=tool1&client=' + clientId + '&page=1';
                   } else {
                     hideLoading();
                     alert('Error: ' + result.error);

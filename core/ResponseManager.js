@@ -435,7 +435,7 @@ const ResponseManager = {
       const toolIdCol = headers.indexOf('Tool_ID');
       const statusCol = headers.indexOf('Status');
 
-      // Delete any DRAFT or EDIT_DRAFT rows
+      // Delete any DRAFT or EDIT_DRAFT rows from RESPONSES sheet
       for (let i = data.length - 1; i >= 1; i--) {
         if (data[i][clientIdCol] === clientId &&
             data[i][toolIdCol] === toolId &&
@@ -444,9 +444,20 @@ const ResponseManager = {
         }
       }
 
+      // ALSO clear PropertiesService draft (legacy system)
+      try {
+        const userProperties = PropertiesService.getUserProperties();
+        const draftKey = `${toolId}_draft_${clientId}`;
+        userProperties.deleteProperty(draftKey);
+        Logger.log(`Cleared PropertiesService draft: ${draftKey}`);
+      } catch (propError) {
+        Logger.log(`Warning: Could not clear PropertiesService draft: ${propError}`);
+        // Non-critical - continue anyway
+      }
+
       SpreadsheetApp.flush();
 
-      Logger.log(`Fresh attempt ready for ${clientId}`);
+      Logger.log(`Fresh attempt ready for ${clientId} - all drafts cleared`);
 
       return {
         success: true,

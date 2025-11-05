@@ -246,7 +246,7 @@ const Tool1Report = {
 
         <script>
           (function() {
-            const baseUrl = '<?= ScriptApp.getService().getUrl() ?>';
+            const baseUrl = '${ScriptApp.getService().getUrl()}';
             const clientId = '${clientId}';
 
             // Make functions global for onclick handlers
@@ -330,7 +330,8 @@ const Tool1Report = {
               google.script.run
                 .withSuccessHandler(function(result) {
                   if (result.success) {
-                    window.location.href = baseUrl + '?route=tool1&client=' + clientId + '&page=1';
+                    // Use window.top to break out of document.write() chain
+                    window.top.location.href = baseUrl + '?route=tool1&client=' + clientId + '&page=1';
                   } else {
                     hideLoading();
                     alert('Error loading response: ' + result.error);
