@@ -20,6 +20,21 @@ const ToolN = {  // ← RENAME THIS
     const page = parseInt(params.page) || 1;
     const baseUrl = ScriptApp.getService().getUrl();
 
+    // CRITICAL: Handle URL parameters for navigation (preserves user gesture)
+    const editMode = params.editMode === 'true' || params.editMode === true;
+    const clearDraft = params.clearDraft === 'true' || params.clearDraft === true;
+
+    // Execute actions on page 1 AFTER navigation completes (with user gesture)
+    if (editMode && page === 1) {
+      Logger.log(`Edit mode triggered for ${clientId}`);
+      DataService.loadResponseForEditing(clientId, 'toolN');  // ← CUSTOMIZE: change toolN
+    }
+
+    if (clearDraft && page === 1) {
+      Logger.log(`Clear draft triggered for ${clientId}`);
+      DataService.startFreshAttempt(clientId, 'toolN');  // ← CUSTOMIZE: change toolN
+    }
+
     // Get existing data if resuming
     const existingData = this.getExistingData(clientId);
 
@@ -195,9 +210,21 @@ const ToolN = {  // ← RENAME THIS
 
   /**
    * Get existing data for a client (from draft storage)
+   * CRITICAL: Check DataService first for ResponseManager compatibility
    */
   getExistingData(clientId) {
     try {
+      // FIRST: Check for active draft from ResponseManager (EDIT_DRAFT or DRAFT)
+      if (typeof DataService !== 'undefined') {
+        const activeDraft = DataService.getActiveDraft(clientId, 'toolN');  // ← CUSTOMIZE: change toolN
+
+        if (activeDraft && (activeDraft.status === 'EDIT_DRAFT' || activeDraft.status === 'DRAFT')) {
+          Logger.log(`Found active draft with status: ${activeDraft.status}`);
+          return activeDraft.data;
+        }
+      }
+
+      // FALLBACK: Legacy PropertiesService (for backward compatibility)
       const userProperties = PropertiesService.getUserProperties();
       const draftKey = `toolN_draft_${clientId}`;  // ← CUSTOMIZE
       const draftData = userProperties.getProperty(draftKey);
@@ -224,19 +251,30 @@ const ToolN = {  // ← RENAME THIS
         throw new Error('No data found. Please start the assessment again.');
       }
 
+      // Check if this is an edit or new submission
+      const isEditMode = allData._editMode === true;
+
+      Logger.log(`Processing ${isEditMode ? 'edited' : 'new'} submission for ${clientId}`);
+
       // Process data (calculate scores, analyze, etc.)
       const results = this.processResults(allData);
 
-      // Save to RESPONSES sheet
-      this.saveToResponses(clientId, allData, results);
+      // CRITICAL: Use DataService.saveToolResponse() - handles Is_Latest column
+      DataService.saveToolResponse(clientId, 'toolN', {  // ← CUSTOMIZE: change toolN
+        data: allData,
+        results: results,
+        timestamp: new Date().toISOString()
+      });
 
-      // Unlock next tool
-      ToolAccessControl.adminUnlockTool(
-        clientId,
-        'toolX',  // ← CUSTOMIZE: next tool ID
-        'system',
-        'Auto-unlocked after Tool N completion'  // ← CUSTOMIZE
-      );
+      // Unlock next tool (only on new submission, not edit)
+      if (!isEditMode) {
+        ToolAccessControl.adminUnlockTool(
+          clientId,
+          'toolX',  // ← CUSTOMIZE: next tool ID
+          'system',
+          'Auto-unlocked after Tool N completion'  // ← CUSTOMIZE
+        );
+      }
 
       // Return redirect URL for client-side navigation
       const reportUrl = `${ScriptApp.getService().getUrl()}?route=toolN_report&client=${clientId}`;  // ← CUSTOMIZE
@@ -266,34 +304,18 @@ const ToolN = {  // ← RENAME THIS
   },
 
   /**
-   * Save final results to RESPONSES sheet
+   * DEPRECATED: Do not use this method!
+   * Use DataService.saveToolResponse() instead (see processFinalSubmission above)
+   *
+   * Why? DataService.saveToolResponse():
+   * - Handles Is_Latest column correctly (7 columns, not 6)
+   * - Marks old versions as Is_Latest = false
+   * - Sets new version as Is_Latest = true
+   * - Manages version cleanup
+   * - Prevents data integrity issues
+   *
+   * Bug reference: Deploy @58 (ec82987)
    */
-  saveToResponses(clientId, formData, results) {
-    try {
-      const ss = SpreadsheetApp.openById(CONFIG.MASTER_SHEET_ID);
-      const responseSheet = ss.getSheetByName(CONFIG.SHEETS.RESPONSES);
-
-      const row = [
-        new Date().toISOString(),     // Timestamp
-        clientId,                     // Client_ID
-        'toolN',                      // Tool_ID  ← CUSTOMIZE
-        JSON.stringify({              // Data (JSON)
-          formData: formData,
-          results: results
-        }),
-        '1.0.0',                      // Version  ← CUSTOMIZE
-        'COMPLETED'                   // Status
-      ];
-
-      responseSheet.appendRow(row);
-      SpreadsheetApp.flush();
-
-      Logger.log(`Saved Tool N results for ${clientId}`);  // ← CUSTOMIZE
-    } catch (error) {
-      Logger.log(`Error saving to responses: ${error}`);
-      throw error;
-    }
-  }
 };
 
 /**
@@ -312,13 +334,27 @@ const ToolN = {  // ← RENAME THIS
  * 6. Create report page (ToolNReport.js)
  * 7. Test with TEST001 user
  *
+ * CRITICAL PATTERNS (MUST FOLLOW):
+ * ✅ Handle editMode and clearDraft params in render() - page 1 only
+ * ✅ Check DataService.getActiveDraft() FIRST in getExistingData()
+ * ✅ Use DataService.saveToolResponse() - NEVER manual sheet.appendRow()
+ * ✅ Check _editMode flag before unlocking next tool
+ * ✅ Always check for null in google.script.run handlers
+ *
  * BENEFITS OF THIS PATTERN:
  * ✅ No POST submissions - no iframe sandbox issues
+ * ✅ User gesture preservation (immediate navigation)
  * ✅ Consistent UI/UX across all tools
  * ✅ Auto-save/resume functionality
+ * ✅ Edit mode support (view/edit/retake)
+ * ✅ Version control with Is_Latest column
  * ✅ Proper error handling
  * ✅ Loading animations
  * ✅ Progress indicators
  * ✅ Mobile-friendly
  * ✅ Easy to maintain
+ *
+ * BUG REFERENCES:
+ * - Deploy @58 (ec82987): Is_Latest column fix
+ * - Deploy @56 (99d0eeb): User gesture navigation fix
  */

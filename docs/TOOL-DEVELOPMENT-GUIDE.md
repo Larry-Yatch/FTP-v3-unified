@@ -1,6 +1,6 @@
 # Tool Development Guide - Financial TruPath v3
 
-**Last Updated:** November 4, 2024
+**Last Updated:** November 4, 2025
 **Version:** v3.3.0
 **For:** Building Tools 3-8
 
@@ -32,6 +32,198 @@ This guide provides **everything you need** to build a new tool in the v3 framew
 - **TOOL2-QUESTION-MASTER-LIST.md** - Scale labeling examples
 - **MultiPageToolTemplate.js** - Working code template
 - **FormUtils.js** - Form helper functions
+
+---
+
+## ⚠️ CRITICAL PATTERNS (Read This First!)
+
+These patterns are **non-negotiable** and prevent major bugs. Follow them religiously!
+
+### **1. ALWAYS Use DataService for Saving Responses**
+
+**❌ NEVER DO THIS:**
+```javascript
+// WRONG: Manual save to RESPONSES sheet
+const row = [timestamp, clientId, toolId, data, version, status];
+responseSheet.appendRow(row);
+```
+
+**✅ ALWAYS DO THIS:**
+```javascript
+// CORRECT: Use DataService wrapper
+DataService.saveToolResponse(clientId, this.id, {
+  data: formData,
+  results: results,
+  timestamp: new Date().toISOString()
+});
+```
+
+**Why This Matters:**
+- ❌ Manual saves miss the `Is_Latest` column (only 6 columns instead of 7)
+- ❌ Multiple rows end up with `Is_Latest = true` (breaks everything!)
+- ❌ Version control completely broken
+- ✅ DataService automatically marks old versions as `Is_Latest = false`
+- ✅ DataService sets new version as `Is_Latest = true`
+- ✅ ResponseManager handles version cleanup
+
+**Bug Fixed:** Deploy @58 (ec82987) - Tool1 was missing Is_Latest column
+
+---
+
+### **2. Navigate IMMEDIATELY to Preserve User Gesture**
+
+**❌ NEVER DO THIS:**
+```javascript
+// WRONG: Async callback loses user gesture
+function editResponse() {
+  google.script.run
+    .withSuccessHandler(function() {
+      // TOO LATE! User gesture lost, Chrome blocks navigation
+      window.top.location.href = toolUrl;
+    })
+    .loadResponseForEditing(clientId, toolId);
+}
+```
+
+**✅ ALWAYS DO THIS:**
+```javascript
+// CORRECT: Navigate immediately with URL params
+function editResponse() {
+  // Navigate FIRST (preserves user gesture)
+  window.top.location.href = toolUrl + '?editMode=true';
+  // Server action executes AFTER navigation completes
+}
+```
+
+**Why This Matters:**
+- ❌ Async callbacks lose user gesture/activation
+- ❌ Chrome blocks `window.top.location.href` without gesture
+- ❌ Error: "allow-top-navigation-by-user-activation" flag with no gesture
+- ✅ Immediate navigation preserves gesture (Chrome allows it)
+- ✅ Server actions execute safely after page loads
+- ✅ No white screen, no security errors
+
+**Bug Fixed:** Deploy @56 (99d0eeb) - User gesture navigation fix
+
+---
+
+### **3. Handle URL Parameters in render()**
+
+**All tools must check for and handle these URL parameters:**
+
+```javascript
+render(params) {
+  const editMode = params.editMode === 'true' || params.editMode === true;
+  const clearDraft = params.clearDraft === 'true' || params.clearDraft === true;
+
+  // Execute server actions on page 1 AFTER navigation
+  if (editMode && page === 1) {
+    Logger.log(`Edit mode triggered for ${clientId}`);
+    DataService.loadResponseForEditing(clientId, this.id);
+  }
+
+  if (clearDraft && page === 1) {
+    Logger.log(`Clear draft triggered for ${clientId}`);
+    DataService.startFreshAttempt(clientId, this.id);
+  }
+
+  // Continue with normal rendering...
+}
+```
+
+**Why This Matters:**
+- ✅ Actions execute AFTER navigation (with user gesture)
+- ✅ No timing conflicts or race conditions
+- ✅ Consistent pattern across all tools
+- ✅ Dashboard buttons work reliably
+
+---
+
+### **4. ALWAYS Check for Null in Handlers**
+
+**❌ NEVER DO THIS:**
+```javascript
+google.script.run
+  .withSuccessHandler(function(result) {
+    // Assumes result exists - crashes if null!
+    if (result.success) { ... }
+  })
+  .someServerFunction();
+```
+
+**✅ ALWAYS DO THIS:**
+```javascript
+google.script.run
+  .withSuccessHandler(function(result) {
+    if (!result) {
+      alert('Error: No response from server');
+      return;
+    }
+    if (result.success) { ... }
+  })
+  .withFailureHandler(function(error) {
+    alert('Error: ' + (error ? error.message : 'Unknown error'));
+  })
+  .someServerFunction();
+```
+
+**Why This Matters:**
+- ✅ Prevents "Cannot read property 'success' of null" errors
+- ✅ Graceful error handling
+- ✅ Better user experience
+
+---
+
+### **5. Check for EDIT_DRAFT in getExistingData()**
+
+**Updated pattern for ResponseManager compatibility:**
+
+```javascript
+getExistingData(clientId) {
+  try {
+    // FIRST: Check for active draft from ResponseManager
+    if (typeof DataService !== 'undefined') {
+      const activeDraft = DataService.getActiveDraft(clientId, this.id);
+
+      if (activeDraft && (activeDraft.status === 'EDIT_DRAFT' || activeDraft.status === 'DRAFT')) {
+        Logger.log(`Found active draft with status: ${activeDraft.status}`);
+        return activeDraft.data;
+      }
+    }
+
+    // FALLBACK: Legacy PropertiesService (for backward compatibility)
+    const userProperties = PropertiesService.getUserProperties();
+    const draftKey = `${this.id}_draft_${clientId}`;
+    const draftData = userProperties.getProperty(draftKey);
+
+    if (draftData) {
+      return JSON.parse(draftData);
+    }
+  } catch (error) {
+    Logger.log(`Error getting existing data: ${error}`);
+  }
+  return null;
+}
+```
+
+**Why This Matters:**
+- ✅ Supports edit mode (EDIT_DRAFT status)
+- ✅ Supports in-progress drafts (DRAFT status)
+- ✅ Falls back to legacy method if needed
+- ✅ Prevents data loss
+
+---
+
+### **Quick Reference: Critical Mistakes to Avoid**
+
+| ❌ NEVER Do This | ✅ ALWAYS Do This |
+|-----------------|-------------------|
+| `responseSheet.appendRow([...])` | `DataService.saveToolResponse(...)` |
+| Navigate in async callback | Navigate immediately with URL params |
+| Skip editMode/clearDraft params | Check params in render(), execute on page 1 |
+| Assume result exists | Check `if (!result)` in all handlers |
+| Only check PropertiesService | Check DataService.getActiveDraft() first |
+| Unlock tools when editing | Check `!isEditMode` before unlock |
 
 ---
 
@@ -158,12 +350,27 @@ const ToolN = {
 
   /**
    * Render tool UI
-   * @param {Object} params - { clientId, page, ... }
+   * @param {Object} params - { clientId, page, editMode, clearDraft, ... }
    */
   render(params) {
     const clientId = params.clientId;
     const page = parseInt(params.page) || 1;
     const baseUrl = ScriptApp.getService().getUrl();
+
+    // CRITICAL: Handle URL parameters for navigation (preserves user gesture)
+    const editMode = params.editMode === 'true' || params.editMode === true;
+    const clearDraft = params.clearDraft === 'true' || params.clearDraft === true;
+
+    // Execute actions on page 1 AFTER navigation completes (with user gesture)
+    if (editMode && page === 1) {
+      Logger.log(`Edit mode triggered for ${clientId}`);
+      DataService.loadResponseForEditing(clientId, this.id);
+    }
+
+    if (clearDraft && page === 1) {
+      Logger.log(`Clear draft triggered for ${clientId}`);
+      DataService.startFreshAttempt(clientId, this.id);
+    }
 
     // Get existing data (for resume/draft)
     const existingData = this.getExistingData(clientId);
@@ -305,10 +512,22 @@ const ToolN = {
 
   /**
    * Get existing data for resume/draft
+   * CRITICAL: Check DataService first for ResponseManager compatibility
    */
   getExistingData(clientId) {
     try {
-      const response = this.dataService.getToolResponse(clientId, this.id);
+      // FIRST: Check for active draft from ResponseManager (EDIT_DRAFT or DRAFT)
+      if (typeof DataService !== 'undefined') {
+        const activeDraft = DataService.getActiveDraft(clientId, this.id);
+
+        if (activeDraft && (activeDraft.status === 'EDIT_DRAFT' || activeDraft.status === 'DRAFT')) {
+          Logger.log(`Found active draft with status: ${activeDraft.status}`);
+          return activeDraft.data;
+        }
+      }
+
+      // FALLBACK: Legacy check (for backward compatibility)
+      const response = this.dataService?.getToolResponse(clientId, this.id);
       return response?.draft || response?.data || {};
     } catch (error) {
       Logger.log(`Error getting existing data: ${error}`);
@@ -373,22 +592,29 @@ const ToolN = {
     try {
       Logger.log(`Processing ToolN for ${clientId}`);
 
+      // Check if this is an edit or new submission
+      const isEditMode = data._editMode === true;
+
       // Calculate results
       const results = this.processResults(data);
 
-      // Save to database
-      this.dataService.saveToolResponse(clientId, this.id, {
+      // CRITICAL: Always use DataService.saveToolResponse()
+      // It handles Is_Latest column, version control, and cleanup
+      DataService.saveToolResponse(clientId, this.id, {
         data: data,
         results: results,
         timestamp: new Date().toISOString()
       });
 
-      // Update tool status
-      this.dataService.updateToolStatus(clientId, this.id, 'completed');
+      // Update tool status (only if not editing)
+      if (!isEditMode) {
+        this.dataService.updateToolStatus(clientId, this.id, 'completed');
+      }
 
       return {
         success: true,
-        result: results
+        result: results,
+        isEdit: isEditMode
       };
 
     } catch (error) {

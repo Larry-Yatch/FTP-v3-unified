@@ -328,6 +328,25 @@ const Tool1 = {
    * Page 5: Rankings (Questions 24 & 26)
    */
   renderPage5Content(data, clientId) {
+    // DIAGNOSTIC: Log data structure (for debugging page 5 dropdown issue)
+    Logger.log(`=== Page 5 Data Structure ===`);
+    Logger.log(`Data keys: ${JSON.stringify(Object.keys(data || {}))}`);
+    Logger.log(`Has formData? ${!!data?.formData}`);
+    Logger.log(`Has scores? ${!!data?.scores}`);
+    Logger.log(`Has winner? ${!!data?.winner}`);
+    Logger.log(`thought_fsv (direct): ${data?.thought_fsv}`);
+    Logger.log(`thought_fsv (nested): ${data?.formData?.thought_fsv}`);
+    Logger.log(`feeling_fsv (direct): ${data?.feeling_fsv}`);
+    Logger.log(`feeling_fsv (nested): ${data?.formData?.feeling_fsv}`);
+
+    // DEFENSIVE: Extract formData if nested (EDIT_DRAFT compatibility)
+    // ResponseManager wraps data as {formData, scores, winner}
+    // We need just the form fields for rendering
+    const formData = data?.formData || data || {};
+
+    Logger.log(`Using formData - thought_fsv: ${formData.thought_fsv}`);
+    Logger.log(`Using formData - feeling_fsv: ${formData.feeling_fsv}`);
+
     const thoughts = [
       {name: 'thought_fsv', text: 'I have to do something / be someone better to be safe.'},
       {name: 'thought_exval', text: 'I need others to value me to be safe.'},
@@ -359,8 +378,9 @@ const Tool1 = {
 
     thoughts.forEach(t => {
       let selected = '';
-      if (data && data[t.name]) {
-        selected = String(data[t.name]);
+      if (formData && formData[t.name]) {
+        selected = String(formData[t.name]);
+        Logger.log(`Setting ${t.name} selected = ${selected}`);
       }
       html += `
         <div class="form-group">
@@ -382,8 +402,9 @@ const Tool1 = {
 
     feelings.forEach(f => {
       let selected = '';
-      if (data && data[f.name]) {
-        selected = String(data[f.name]);
+      if (formData && formData[f.name]) {
+        selected = String(formData[f.name]);
+        Logger.log(`Setting ${f.name} selected = ${selected}`);
       }
       html += `
         <div class="form-group">

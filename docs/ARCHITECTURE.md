@@ -1,6 +1,6 @@
 # Financial TruPath v3 - Architecture Documentation
 
-**Last Updated:** November 4, 2024
+**Last Updated:** November 4, 2025
 **Version:** v3.3.0
 
 ## 🎯 Core Principles
@@ -19,6 +19,136 @@ Tools register themselves; framework discovers them dynamically.
 
 ### **5. AI-Enhanced Intelligence** *(NEW)*
 GPT integration provides personalized insights while maintaining standardized scoring.
+
+### **6. Data Integrity First** *(v3.3.0)*
+All tool responses MUST use DataService.saveToolResponse() to ensure proper version control and Is_Latest column management.
+
+### **7. User Gesture Preservation** *(v3.3.0)*
+Navigation must happen IMMEDIATELY from user action (button click) to preserve browser user gesture. Server actions execute AFTER navigation via URL parameters.
+
+---
+
+## ⚠️ Critical Architectural Patterns
+
+### **Navigation Pattern: Immediate Navigation with URL Parameters**
+
+**Problem Solved:** Chrome's user gesture/activation requirement for iframe navigation.
+
+**Pattern:**
+```javascript
+// Dashboard button (Router.js)
+function editResponse() {
+  // Navigate IMMEDIATELY (preserves user gesture)
+  window.top.location.href = toolUrl + '?editMode=true';
+  // NO async callback before navigation!
+}
+
+// Tool render() method
+render(params) {
+  const editMode = params.editMode === 'true';
+
+  // Execute action AFTER navigation (page 1 only)
+  if (editMode && page === 1) {
+    DataService.loadResponseForEditing(clientId, this.id);
+  }
+}
+```
+
+**Why It Works:**
+- User gesture preserved (navigation is synchronous from click)
+- No white screen / security errors
+- Server actions execute safely after page loads
+- Consistent across all tools
+
+**Bug Fixed:** Deploy @56 (99d0eeb) - User gesture navigation fix
+
+---
+
+### **Data Service Pattern: ALWAYS Use DataService for Saves**
+
+**Problem Solved:** Manual sheet saves were missing Is_Latest column, breaking version control.
+
+**Anti-Pattern (NEVER DO THIS):**
+```javascript
+// ❌ WRONG: Manual save (only 6 columns)
+const row = [timestamp, clientId, toolId, data, version, status];
+responseSheet.appendRow(row);
+// Missing 7th column: Is_Latest
+// Multiple rows have Is_Latest = true (BREAKS EVERYTHING)
+```
+
+**Correct Pattern:**
+```javascript
+// ✅ CORRECT: Use DataService
+DataService.saveToolResponse(clientId, toolId, {
+  data: formData,
+  results: results,
+  timestamp: new Date().toISOString()
+});
+// Automatically handles:
+// - Is_Latest column (7 columns total)
+// - Marks old versions as Is_Latest = false
+// - Sets new version as Is_Latest = true
+// - Version cleanup
+```
+
+**Why It Matters:**
+- `getLatestResponse()` queries by `Is_Latest = true`
+- Only ONE row per client/tool should have `Is_Latest = true`
+- Manual saves create multiple `Is_Latest = true` rows
+- Results in wrong data loaded for edit mode
+- Version control completely broken
+
+**Bug Fixed:** Deploy @58 (ec82987) - Tool1 missing Is_Latest column
+
+---
+
+### **Response Version Control: Is_Latest Column**
+
+**Schema:**
+```
+RESPONSES Sheet Columns:
+1. Timestamp
+2. Client_ID
+3. Tool_ID
+4. Data (JSON)
+5. Version
+6. Status (COMPLETED | DRAFT | EDIT_DRAFT)
+7. Is_Latest (true | false)  ← CRITICAL!
+```
+
+**Version Control Rules:**
+1. Only ONE row per client/tool has `Is_Latest = true`
+2. When saving new version:
+   - Mark ALL old rows as `Is_Latest = false`
+   - Set new row as `Is_Latest = true`
+3. Keep last 2 COMPLETED versions (automatic cleanup)
+4. DRAFT and EDIT_DRAFT rows don't count toward version limit
+
+**Data Flow:**
+```
+New Submission:
+1. Mark old COMPLETED row: Is_Latest = false
+2. Save new COMPLETED row: Is_Latest = true
+3. Delete DRAFT rows (if any)
+
+Edit Mode:
+1. Create EDIT_DRAFT: Is_Latest = true
+2. Mark old COMPLETED: Is_Latest = false
+3. On submit: Save new COMPLETED: Is_Latest = true
+4. Delete EDIT_DRAFT row
+
+Cancel Edit:
+1. Restore old COMPLETED: Is_Latest = true
+2. Delete EDIT_DRAFT row
+```
+
+**Why This Architecture:**
+- Simple query: `WHERE Is_Latest = true` (fast, reliable)
+- No MAX(Timestamp) queries (prone to errors)
+- Version history preserved (last 2)
+- Edit mode doesn't break production data
+- Cancel edit safely restores original
 
 ---
 
@@ -141,26 +271,39 @@ GPT integration provides personalized insights while maintaining standardized sc
 - Writes to: `CrossToolInsights` sheet (runtime data)
 
 ### **4. DataService (`core/DataService.js`)**
-**Purpose:** Data persistence layer.
+**Purpose:** Data persistence layer with version control.
 
 **Responsibilities:**
-- Save/retrieve tool responses
+- Save/retrieve tool responses with Is_Latest management
 - Manage sessions
 - Track tool status
 - Log activities
 - Wrapper for ResponseManager (version control)
 
+**⚠️ CRITICAL: All tool saves MUST go through DataService.saveToolResponse()**
+
+**Why This Is Non-Negotiable:**
+- Manual sheet saves miss the Is_Latest column (only 6 columns instead of 7)
+- Creates data integrity issues (multiple rows with Is_Latest = true)
+- Breaks version control, edit mode, and report display
+- Bug reference: Deploy @58 (ec82987)
+
 **Key Methods:**
-- `saveToolResponse(clientId, toolId, data, status)` - Save with status
+- `saveToolResponse(clientId, toolId, data, status)` - **USE THIS FOR ALL SAVES**
+  - Marks old versions as Is_Latest = false
+  - Sets new version as Is_Latest = true
+  - Handles version cleanup (keeps last 2)
+  - Manages DRAFT/EDIT_DRAFT/COMPLETED states
 - `getToolResponse(clientId, toolId)` - Get response (legacy)
-- `getLatestResponse(clientId, toolId)` - Get current version
-- `getPreviousResponse(clientId, toolId)` - Get old version
+- `getLatestResponse(clientId, toolId)` - Get current version (WHERE Is_Latest = true)
+- `getPreviousResponse(clientId, toolId)` - Get old version (WHERE Is_Latest = false)
+- `getActiveDraft(clientId, toolId)` - Check for DRAFT or EDIT_DRAFT
 - `updateToolStatus(clientId, toolId, status)` - Update status
 - `validateSession(sessionId)` - Check session validity
-- `loadResponseForEditing(clientId, toolId)` - Load for edit
-- `submitEditedResponse(clientId, toolId, data)` - Save edited
-- `cancelEditDraft(clientId, toolId)` - Cancel editing
-- `startFreshAttempt(clientId, toolId)` - Clear drafts
+- `loadResponseForEditing(clientId, toolId)` - Load for edit (creates EDIT_DRAFT)
+- `submitEditedResponse(clientId, toolId, data)` - Save edited (via ResponseManager)
+- `cancelEditDraft(clientId, toolId)` - Cancel editing (restore original)
+- `startFreshAttempt(clientId, toolId)` - Clear drafts (for retake)
 
 ### **5. ResponseManager (`core/ResponseManager.js`)** *(NEW v3.3.0)*
 **Purpose:** Response lifecycle and version management.
@@ -233,7 +376,7 @@ GPT integration provides personalized insights while maintaining standardized sc
 - `initializeStudent(clientId)` - Setup new student
 
 ### **7. Router (`core/Router.js`)**
-**Purpose:** Registry-based routing.
+**Purpose:** Registry-based routing with user gesture preservation.
 
 **Responsibilities:**
 - Route incoming requests
@@ -241,6 +384,7 @@ GPT integration provides personalized insights while maintaining standardized sc
 - Load appropriate handler
 - Session validation
 - Dynamic dashboard generation based on tool status
+- **CRITICAL:** Navigate immediately with URL params (preserves user gesture)
 
 **Dashboard Logic (Updated v3.3.0):**
 - Checks ResponseManager for tool status
@@ -248,6 +392,33 @@ GPT integration provides personalized insights while maintaining standardized sc
   - Not started: "Start Assessment" button
   - In Progress (draft): "Continue" + "Discard Draft"
   - Completed: "View Report" + "Edit Answers" + "Start Fresh"
+
+**Navigation Pattern (CRITICAL):**
+```javascript
+// ✅ CORRECT: Immediate navigation
+function editResponse() {
+  window.top.location.href = toolUrl + '?editMode=true';
+}
+
+function retakeTool() {
+  window.top.location.href = toolUrl + '?clearDraft=true';
+}
+
+// ❌ WRONG: Async callback (loses user gesture)
+function editResponse() {
+  google.script.run
+    .withSuccessHandler(() => {
+      window.top.location.href = toolUrl; // TOO LATE!
+    })
+    .loadResponseForEditing(...);
+}
+```
+
+**Why This Matters:**
+- Chrome requires user gesture for iframe → top navigation
+- Async callbacks lose user gesture/activation
+- Results in white screen + security error
+- Bug reference: Deploy @56 (99d0eeb)
 
 **No hardcoded tool routes!**
 
@@ -306,6 +477,24 @@ const ToolN = {
   id: 'toolN',              // Unique identifier
 
   // REQUIRED METHODS
+  render(params) {
+    // CRITICAL: Handle URL parameters for navigation
+    const editMode = params.editMode === 'true';
+    const clearDraft = params.clearDraft === 'true';
+    const page = parseInt(params.page) || 1;
+
+    // Execute actions on page 1 AFTER navigation (with user gesture)
+    if (editMode && page === 1) {
+      DataService.loadResponseForEditing(clientId, this.id);
+    }
+    if (clearDraft && page === 1) {
+      DataService.startFreshAttempt(clientId, this.id);
+    }
+
+    // Render UI...
+    // Returns: HtmlOutput
+  },
+
   initialize(dependencies, insights) {
     // Setup tool with framework services and previous insights
     // dependencies.openAI available for tools needing GPT
@@ -319,7 +508,26 @@ const ToolN = {
 
   process(clientId, data) {
     // Process submission
+    // CRITICAL: Check _editMode flag before unlocking next tool
+    const isEditMode = data._editMode === true;
+
+    // CRITICAL: Use DataService.saveToolResponse() - NEVER manual sheet.appendRow()
+    DataService.saveToolResponse(clientId, this.id, {
+      data: data,
+      results: results
+    });
+
     // Returns: { success: boolean, result: any, error?: string }
+  },
+
+  getExistingData(clientId) {
+    // CRITICAL: Check DataService.getActiveDraft() FIRST
+    if (typeof DataService !== 'undefined') {
+      const draft = DataService.getActiveDraft(clientId, this.id);
+      if (draft) return draft.data;
+    }
+    // Fallback to legacy method...
+    // Returns: Object or null
   },
 
   generateInsights(data, clientId) {
@@ -709,4 +917,19 @@ async buildReport(results, data, clientId) {
 
 **Next:** See `SETUP-GUIDE.md` for implementation instructions.
 
-**Updated:** November 4, 2024 - Added OpenAIService architecture and Tool 2 specifications
+---
+
+## 📝 Change Log
+
+**v3.3.0 - November 4, 2025:**
+- Added Critical Architectural Patterns section
+- Documented Navigation Pattern (immediate navigation with URL params)
+- Documented Data Service Pattern (ALWAYS use DataService.saveToolResponse)
+- Documented Response Version Control (Is_Latest column)
+- Updated Tool Interface Contract with critical patterns
+- Added bug references: Deploy @56, @57, @58
+- Updated DataService documentation with version control details
+- Updated Router documentation with user gesture preservation
+
+**v3.2.0 - November 4, 2024:**
+- Added OpenAIService architecture and Tool 2 specifications
