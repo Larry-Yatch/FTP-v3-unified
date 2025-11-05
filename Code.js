@@ -974,3 +974,41 @@ function quickAdminSetup() {
     console.log('\n⚠️ Setup had issues:', result.error);
   }
 }
+
+/**
+ * Quick helper: Unlock Tool 2 for TEST001
+ * Just click "Run" - no parameters needed!
+ */
+function unlockTool2ForTest001() {
+  console.log('Unlocking Tool 2 for TEST001...');
+  const result = unlockToolForStudent('TEST001', 'tool2');
+  console.log('Result:', result);
+  return result;
+}
+
+/**
+ * Diagnostic: Check Tool 2 access for TEST001
+ * Shows what's in TOOL_ACCESS sheet and what canAccessTool returns
+ */
+function checkTool2AccessForTest001() {
+  console.log('=== Checking Tool 2 Access for TEST001 ===\n');
+
+  // Check TOOL_ACCESS sheet directly
+  const ss = SpreadsheetApp.openById(CONFIG.MASTER_SHEET_ID);
+  const sheet = ss.getSheetByName(CONFIG.SHEETS.TOOL_ACCESS);
+  const data = sheet.getDataRange().getValues();
+
+  console.log('TOOL_ACCESS sheet records for TEST001:');
+  data.forEach((row, index) => {
+    if (row[0] === 'TEST001') {
+      console.log(`Row ${index}: Client=${row[0]}, Tool=${row[1]}, Status=${row[2]}`);
+    }
+  });
+
+  // Check what canAccessTool returns
+  console.log('\nChecking canAccessTool:');
+  const accessCheck = ToolAccessControl.canAccessTool('TEST001', 'tool2');
+  console.log('Result:', accessCheck);
+
+  return accessCheck;
+}

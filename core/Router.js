@@ -394,6 +394,12 @@ const Router = {
     const tool1HasDraft = tool1Latest && (tool1Latest.status === 'DRAFT' || tool1Latest.status === 'EDIT_DRAFT');
     const tool1Completed = tool1Latest && tool1Latest.status === 'COMPLETED';
 
+    // Check Tool 2 status
+    const tool2Latest = DataService.getLatestResponse(clientId, 'tool2');
+    const tool2HasDraft = tool2Latest && (tool2Latest.status === 'DRAFT' || tool2Latest.status === 'EDIT_DRAFT');
+    const tool2Completed = tool2Latest && tool2Latest.status === 'COMPLETED';
+    const tool2Access = ToolAccessControl.canAccessTool(clientId, 'tool2');
+
     // Build Tool 1 card HTML based on status
     let tool1CardHTML = '';
 
@@ -510,11 +516,7 @@ const Router = {
 
             ${tool1CardHTML}
 
-            <div class="tool-card locked" style="margin-bottom: 15px;">
-              <h3>Tool 2: Financial Clarity</h3>
-              <p class="muted">Deep dive into your financial situation</p>
-              <span class="badge">Locked</span>
-            </div>
+            ${this._buildTool2Card(clientId, baseUrl, tool2Latest, tool2HasDraft, tool2Completed, tool2Access)}
 
             <p class="muted mt-20 text-center">More tools will unlock as you progress</p>
           </div>
@@ -629,6 +631,134 @@ const Router = {
     return template.evaluate()
       .setTitle('Financial TruPath - Dashboard')
       .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  },
+
+  /**
+   * Build Tool 2 card dynamically based on access and status
+   * @private
+   */
+  _buildTool2Card(clientId, baseUrl, tool2Latest, tool2HasDraft, tool2Completed, tool2Access) {
+    if (tool2Completed) {
+      // Completed state - show View/Edit/Retake
+      const completedDate = new Date(tool2Latest.timestamp).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+
+      return `
+        <div class="tool-card" style="margin-bottom: 15px; border: 2px solid #4CAF50;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <h3 style="margin: 0;">Tool 2: Financial Clarity & Values</h3>
+            <span class="badge" style="background: #4CAF50; color: white;">✓ Completed</span>
+          </div>
+          <p class="muted" style="margin-bottom: 10px;">Completed on ${completedDate}</p>
+
+          <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px;">
+            <button class="btn-primary" onclick="viewTool2Report()">
+              📊 View Report
+            </button>
+            <button class="btn-secondary" onclick="editTool2Response()">
+              ✏️ Edit Answers
+            </button>
+            <button class="btn-secondary" onclick="retakeTool2()">
+              🔄 Start Fresh
+            </button>
+          </div>
+        </div>
+
+        <script>
+          function viewTool2Report() {
+            showLoading('Loading Report');
+            window.top.location.href = '${baseUrl}?route=tool2_report&client=${clientId}';
+          }
+
+          function editTool2Response() {
+            showLoading('Loading Assessment');
+            google.script.run
+              .withSuccessHandler(function() {
+                window.top.location.href = '${baseUrl}?route=tool2&client=${clientId}&page=1&editMode=true';
+              })
+              .withFailureHandler(function(error) {
+                alert('Error loading for edit: ' + error.message);
+                hideLoading();
+              })
+              .loadResponseForEditing('${clientId}', 'tool2');
+          }
+
+          function retakeTool2() {
+            if (confirm('Start fresh? This will discard your current response.')) {
+              showLoading('Starting Fresh');
+              window.top.location.href = '${baseUrl}?route=tool2&client=${clientId}&page=1&clearDraft=true';
+            }
+          }
+        </script>
+      `;
+    } else if (tool2HasDraft) {
+      // Draft state - show Continue/Cancel
+      return `
+        <div class="tool-card" style="margin-bottom: 15px; border: 2px solid #FF9800;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <h3 style="margin: 0;">Tool 2: Financial Clarity & Values</h3>
+            <span class="badge" style="background: #FF9800; color: white;">⏸️ In Progress</span>
+          </div>
+          <p class="muted" style="margin-bottom: 10px;">
+            ${tool2Latest.status === 'EDIT_DRAFT' ? 'You have unsaved edits' : 'You have a draft in progress'}
+          </p>
+
+          <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px;">
+            <button class="btn-primary" onclick="showLoading('Loading Assessment'); window.top.location.href='${baseUrl}?route=tool2&client=${clientId}&page=1'">
+              ▶️ Continue
+            </button>
+            <button class="btn-secondary" onclick="cancelTool2Draft()">
+              ❌ Discard Draft
+            </button>
+          </div>
+        </div>
+
+        <script>
+          function cancelTool2Draft() {
+            if (confirm('Discard draft and lose all progress?')) {
+              showLoading('Clearing Draft');
+              google.script.run
+                .withSuccessHandler(function() {
+                  window.location.reload();
+                })
+                .withFailureHandler(function(error) {
+                  alert('Error: ' + error.message);
+                  hideLoading();
+                })
+                .cancelEditDraft('${clientId}', 'tool2');
+            }
+          }
+        </script>
+      `;
+    } else if (tool2Access.allowed) {
+      // Accessible but not started - show Start button
+      return `
+        <div class="tool-card" style="margin-bottom: 15px;">
+          <h3>Tool 2: Financial Clarity & Values</h3>
+          <p class="muted">Comprehensive assessment of your financial situation and values</p>
+          <span class="badge" style="background: #2196F3; color: white;">✓ Ready</span>
+          <br><br>
+          <button class="btn-primary" onclick="showLoading('Loading Assessment'); window.top.location.href='${baseUrl}?route=tool2&client=${clientId}&page=1'">
+            Start Assessment
+          </button>
+        </div>
+      `;
+    } else {
+      // Locked - show reason
+      return `
+        <div class="tool-card locked" style="margin-bottom: 15px;">
+          <h3>Tool 2: Financial Clarity & Values</h3>
+          <p class="muted">Comprehensive assessment of your financial situation and values</p>
+          <span class="badge">🔒 Locked</span>
+          <p class="muted mt-10" style="font-size: 14px;">
+            ${tool2Access.reason || 'Complete previous tools to unlock'}
+          </p>
+        </div>
+      `;
+    }
   },
 
   /**
