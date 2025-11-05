@@ -233,9 +233,12 @@ const Tool1Report = {
           <!-- Action buttons -->
           <div class="action-buttons">
             <button class="btn-primary" onclick="downloadPDF()">📥 Download PDF Report</button>
-            <button class="btn-secondary" onclick="editResponse()">✏️ Edit My Answers</button>
             <button class="btn-secondary" onclick="backToDashboard()">← Back to Dashboard</button>
           </div>
+
+          <p style="text-align: center; color: #999; font-size: 14px; margin-top: 10px;">
+            To edit your responses, return to the dashboard and click "Edit Answers"
+          </p>
 
           <!-- Loading indicator -->
           <div id="loadingIndicator" style="display: none; text-align: center; margin: 20px;">
@@ -251,7 +254,6 @@ const Tool1Report = {
 
             // Make functions global for onclick handlers
             window.downloadPDF = downloadPDF;
-            window.editResponse = editResponse;
             window.backToDashboard = backToDashboard;
 
             // Loading overlay functions
@@ -321,29 +323,6 @@ const Tool1Report = {
                 document.getElementById('loadingIndicator').style.display = 'none';
               })
               .generateTool1PDF(clientId);
-          }
-
-          function editResponse() {
-            if (confirm('Load your responses into the form for editing?')) {
-              showLoading('Loading your responses...');
-
-              google.script.run
-                .withSuccessHandler(function(result) {
-                  if (result && result.success) {
-                    // Use window.top to break out of document.write() chain
-                    // CRITICAL: Add editMode=true to trigger edit mode in Tool1.render()
-                    window.top.location.href = baseUrl + '?route=tool1&client=' + clientId + '&page=1&editMode=true';
-                  } else {
-                    hideLoading();
-                    alert('Error loading response: ' + (result ? result.error : 'No response'));
-                  }
-                })
-                .withFailureHandler(function(error) {
-                  hideLoading();
-                  alert('Error: ' + error.message);
-                })
-                .loadResponseForEditing(clientId, 'tool1');
-            }
           }
 
           function backToDashboard() {
