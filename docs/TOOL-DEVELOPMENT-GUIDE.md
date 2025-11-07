@@ -1,7 +1,7 @@
 # Tool Development Guide - Financial TruPath v3
 
-**Last Updated:** November 5, 2025
-**Version:** v3.8.1
+**Last Updated:** January 7, 2025
+**Version:** v3.9.0
 **For:** Building Tools 3-8
 
 ---
@@ -9,6 +9,13 @@
 ## 🎯 Purpose
 
 This guide provides **everything you need** to build a new tool in the v3 framework, based on proven patterns from Tool 1 and Tool 2.
+
+**⚡ NEW in v3.9.0:** Major refactoring completed! This guide now includes:
+- 7 new shared utilities to eliminate code duplication
+- Updated patterns using EditModeBanner, DraftService, ReportBase
+- ErrorHandler and Validator patterns for consistency
+- NavigationHelpers and PDFGenerator utilities
+- CONFIG constant usage (no more hardcoded values!)
 
 **What's Included:**
 - Multi-page form patterns (with FormUtils)
@@ -24,14 +31,222 @@ This guide provides **everything you need** to build a new tool in the v3 framew
 ## 📚 Before You Start
 
 ### **Read First:**
-1. **ARCHITECTURE.md** - Understand the framework
-2. **Tool 1 code** (`tools/tool1/Tool1.js`) - Pure algorithmic example
-3. **Tool 2 code** (`tools/tool2/Tool2.js`) - Hybrid (algo + GPT) example
+1. **ARCHITECTURE.md** - Understand the framework and shared utilities
+2. **REFACTORING_DOCUMENTATION.md** - Learn about the 7 new shared utilities
+3. **Tool 1 code** (`tools/tool1/Tool1.js`) - Pure algorithmic example
+4. **Tool 2 code** (`tools/tool2/Tool2.js`) - Hybrid (algo + GPT) example
 
 ### **Reference During Development:**
+- **Shared Utilities** (`/shared/` directory) - Reusable components for all tools
 - **TOOL2-QUESTION-MASTER-LIST.md** - Scale labeling examples
 - **MultiPageToolTemplate.js** - Working code template
 - **FormUtils.js** - Form helper functions
+- **Config.js** - Use CONFIG constants instead of hardcoded values
+
+---
+
+## 🛠️ Shared Utilities (NEW in v3.9.0)
+
+The v3 framework now provides **7 shared utilities** to eliminate code duplication and ensure consistency across all tools. **ALWAYS use these utilities** instead of writing your own implementations!
+
+### **1. EditModeBanner** (`/shared/EditModeBanner.js`)
+**Purpose:** Standard edit mode UI with cancel functionality
+**When to use:** Whenever a user is editing a previous response
+
+```javascript
+// ✅ DO THIS: Use EditModeBanner utility
+const banner = EditModeBanner.render(originalDate, clientId, 'toolN');
+content = banner + pageContent;
+
+// ❌ DON'T: Write your own edit banner HTML
+```
+
+**Eliminates:** 40+ lines of duplicate HTML/CSS per tool
+
+---
+
+### **2. DraftService** (`/shared/DraftService.js`)
+**Purpose:** Consistent draft storage and retrieval using PropertiesService
+**When to use:** Saving/loading draft data, merging with edit data
+
+```javascript
+// ✅ DO THIS: Use DraftService
+DraftService.saveDraft('toolN', clientId, page, formData);
+const draft = DraftService.getDraft('toolN', clientId);
+DraftService.clearDraft('toolN', clientId);
+
+// ❌ DON'T: Access PropertiesService directly
+// PropertiesService.getUserProperties().setProperty(...); // WRONG!
+```
+
+**Key Methods:**
+- `saveDraft(toolId, clientId, page, formData, excludeKeys)` - Save draft
+- `getDraft(toolId, clientId)` - Retrieve draft
+- `clearDraft(toolId, clientId)` - Clear draft
+- `hasDraft(toolId, clientId)` - Check if draft exists
+- `mergeWithEditData(editData, toolId, clientId)` - Merge for edit mode
+
+**Eliminates:** 35+ lines of duplicate draft logic per tool
+
+---
+
+### **3. ReportBase** (`/shared/ReportBase.js`)
+**Purpose:** Common report retrieval logic from RESPONSES sheet
+**When to use:** Building tool reports that fetch latest data
+
+```javascript
+// ✅ DO THIS: Use ReportBase
+const results = ReportBase.getResults(clientId, 'toolN', (resultData, cId) => {
+  return {
+    clientId: cId,
+    scores: resultData.scores,
+    formData: resultData.formData
+  };
+}, false); // checkIsLatest parameter
+
+// ❌ DON'T: Write your own sheet retrieval logic
+```
+
+**Key Methods:**
+- `getResults(clientId, toolId, parseFunction, checkIsLatest)` - Get latest results
+- `getSheet()` - Get RESPONSES sheet
+- `getHeaders(responseSheet)` - Get column headers
+- `findLatestRow(data, columnIndexes, clientId, toolId, checkIsLatest)` - Find latest row
+
+**Eliminates:** 25+ lines of duplicate retrieval logic per tool
+
+---
+
+### **4. ErrorHandler** (`/shared/ErrorHandler.js`)
+**Purpose:** Consistent error handling and response formatting
+**When to use:** All error scenarios and success responses
+
+```javascript
+// ✅ DO THIS: Use ErrorHandler
+throw new AppError('Invalid input', ErrorCodes.INVALID_INPUT, { field: 'email' });
+
+// Wrap functions for automatic error handling
+const safeFunction = ErrorHandler.wrap(riskyFunction, 'Process Data');
+
+// Standard response formats
+return ErrorHandler.createSuccessResponse(data, 'Success!');
+return ErrorHandler.createErrorResponse('Error message', ErrorCodes.UNKNOWN);
+
+// ❌ DON'T: Use plain Error objects or inconsistent response formats
+```
+
+**Key Classes/Functions:**
+- `AppError(message, code, details)` - Custom error class
+- `ErrorCodes` - Standard error code constants
+- `wrap(fn, contextName)` - Wrap functions for auto error handling
+- `createSuccessResponse(data, message)` - Standard success format
+- `createErrorResponse(message, code, details)` - Standard error format
+
+**Eliminates:** Inconsistent error handling patterns
+
+---
+
+### **5. Validator** (`/shared/Validator.js`)
+**Purpose:** Input validation with consistent error messages
+**When to use:** Validating user input, form data, parameters
+
+```javascript
+// ✅ DO THIS: Use Validator
+const name = Validator.requireString(data.name, 'Name');
+const age = Validator.requireNumber(data.age, 'Age', { min: 0, max: 150 });
+const toolId = Validator.validateToolId(params.toolId);
+const email = Validator.validateEmail(data.email);
+
+// ❌ DON'T: Write validation from scratch
+// if (!name || name.trim() === '') throw new Error('Name required'); // WRONG!
+```
+
+**Key Methods:**
+- `requireString(value, fieldName)` - Validate required string (trims whitespace)
+- `requireNumber(value, fieldName, options)` - Validate number with min/max
+- `validateToolId(toolId)` - Validate tool ID format
+- `validateClientId(clientId)` - Validate client ID format
+- `validateEmail(email)` - Validate email format
+- `validateScaleValue(value, fieldName)` - Validate -5 to +5 scale (no zero)
+
+**Eliminates:** Inconsistent validation patterns
+
+---
+
+### **6. NavigationHelpers** (`/shared/NavigationHelpers.js`)
+**Purpose:** Client-side navigation without white flash
+**When to use:** Navigating between pages (used internally by Code.js, rarely needed in tools)
+
+```javascript
+// ✅ Internal use (Code.js uses this)
+const html = NavigationHelpers.getDashboardPage(clientId);
+const html = NavigationHelpers.getReportPage(clientId, 'toolN');
+const html = NavigationHelpers.getToolPageHtml('toolN', clientId, page);
+```
+
+**Note:** Tool developers rarely call this directly. It's used by Code.js for navigation.
+
+**Eliminates:** 100+ lines of duplicate navigation code
+
+---
+
+### **7. PDFGenerator** (`/shared/PDFGenerator.js`)
+**Purpose:** PDF generation for tool reports
+**When to use:** Adding PDF download for your tool's report
+
+```javascript
+// ✅ DO THIS: Add method to PDFGenerator
+// In /shared/PDFGenerator.js:
+PDFGenerator.generateToolNPDF = function(clientId) {
+  const results = ToolNReport.getResults(clientId);
+  const html = this.buildToolNHTML(results);
+  return this.htmlToPDF(html, this.generateFileName('Tool N', results.data.name));
+};
+
+// Then in Code.js, add wrapper:
+function generateToolNPDF(clientId) {
+  return PDFGenerator.generateToolNPDF(clientId);
+}
+
+// ❌ DON'T: Add PDF generation directly to Code.js
+```
+
+**Key Methods:**
+- `generateTool1PDF(clientId)` - Example: Tool 1 PDF generation
+- `generateTool2PDF(clientId)` - Example: Tool 2 PDF generation
+- `htmlToPDF(htmlContent, fileName)` - Convert HTML to PDF blob
+- `buildHeader(title, studentName)` - Standard header with logo
+- `buildFooter(customText)` - Standard footer
+- `getCommonStyles()` - Standard PDF styles (uses CONFIG.UI constants)
+- `generateFileName(toolName, studentName)` - Standard filename format
+
+**Eliminates:** 320+ lines of duplicate PDF code from Code.js
+
+---
+
+### **Using CONFIG Constants**
+
+**Always use CONFIG constants instead of hardcoded values:**
+
+```javascript
+// ✅ DO THIS: Use CONFIG constants
+const toolConfig = CONFIG.TOOLS.TOOL1; // { ID: 'tool1', NAME: '...', PAGES: 5 }
+const primaryColor = CONFIG.UI.PRIMARY_COLOR; // '#ad9168'
+const darkBg = CONFIG.UI.DARK_BG; // '#1e192b'
+const gptDelay = CONFIG.TIMING.GPT_ANALYSIS_DELAY; // 2000ms
+const colIdx = CONFIG.COLUMN_INDEXES.STUDENTS.CLIENT_ID; // 0
+
+// ❌ DON'T: Hardcode values
+const primaryColor = '#ad9168'; // WRONG!
+const totalPages = 5; // WRONG!
+```
+
+**Available CONFIG sections:**
+- `CONFIG.TOOLS` - Tool metadata (ID, NAME, PAGES, QUESTIONS)
+- `CONFIG.COLUMN_INDEXES` - Sheet column positions
+- `CONFIG.COLUMN_NAMES` - Header name lookups
+- `CONFIG.TIMING` - Delays and timeouts
+- `CONFIG.UI` - Theme colors, borders, etc.
 
 ---
 
@@ -230,14 +445,21 @@ getExistingData(clientId) {
 
 ### **Quick Reference: Critical Mistakes to Avoid**
 
-| ❌ NEVER Do This | ✅ ALWAYS Do This |
+| ❌ NEVER Do This | ✅ ALWAYS Do This (v3.9.0 Updated) |
 |-----------------|-------------------|
 | `responseSheet.appendRow([...])` | `DataService.saveToolResponse(...)` |
 | Navigate in async callback | Navigate immediately with URL params |
 | Skip editMode/clearDraft params | Check params in render(), execute on page 1 |
 | Assume result exists | Check `if (!result)` in all handlers |
-| Check EDIT_DRAFT first | Check PropertiesService first (live data priority!) |
+| Check EDIT_DRAFT first | Check DraftService first (live data priority!) |
 | Unlock tools when editing | Check `!isEditMode` before unlock |
+| Write own edit banner HTML | Use `EditModeBanner.render(...)` |
+| Access PropertiesService directly | Use `DraftService.saveDraft(...)` |
+| Write own validation | Use `Validator.requireString(...)` etc. |
+| Add PDF code to Code.js | Add to `PDFGenerator.js`, wrapper in Code.js |
+| Hardcode colors/values | Use `CONFIG.UI.*` and `CONFIG.TOOLS.*` |
+| Write own error handling | Use `ErrorHandler` and `AppError` |
+| Manual report data retrieval | Use `ReportBase.getResults(...)` |
 
 ---
 
@@ -526,19 +748,24 @@ const ToolN = {
 
   /**
    * Get existing data for resume/draft
-   * CRITICAL: Check PropertiesService FIRST (live page data), EDIT_DRAFT second (initial snapshot)
+   * CRITICAL: Check DraftService FIRST (live page data), EDIT_DRAFT second (initial snapshot)
+   *
+   * ✅ NEW (v3.9.0): Can use DraftService utility for cleaner code
    */
   getExistingData(clientId) {
     try {
-      // FIRST: Check PropertiesService (has live page changes)
-      const userProperties = PropertiesService.getUserProperties();
-      const draftKey = `${this.id}_draft_${clientId}`;
-      const draftData = userProperties.getProperty(draftKey);
-
-      if (draftData) {
-        Logger.log(`Found PropertiesService draft for ${clientId} (live page data)`);
-        return JSON.parse(draftData);
+      // Option 1: Use DraftService utility (RECOMMENDED)
+      const draft = DraftService.getDraft(this.id, clientId);
+      if (draft) {
+        Logger.log(`Found draft for ${clientId} (live page data)`);
+        return draft;
       }
+
+      // Option 2: Manual PropertiesService access (if you need custom logic)
+      // const userProperties = PropertiesService.getUserProperties();
+      // const draftKey = DraftService.getDraftKey(this.id, clientId);
+      // const draftData = userProperties.getProperty(draftKey);
+      // if (draftData) return JSON.parse(draftData);
 
       // FALLBACK: Check for active draft from ResponseManager (EDIT_DRAFT or DRAFT)
       // This is used when first loading edit mode, before any page changes
@@ -558,11 +785,18 @@ const ToolN = {
 
   /**
    * REQUIRED: Save draft (auto-called by FormUtils)
+   *
+   * ✅ NEW (v3.9.0): Can use DraftService utility directly
    */
   saveDraft(clientId, data) {
     try {
-      this.dataService.saveDraft(clientId, this.id, data);
+      // Option 1: Use DraftService directly (RECOMMENDED - simpler)
+      DraftService.saveDraft(this.id, clientId, null, data);
       return { success: true };
+
+      // Option 2: Use DataService wrapper (traditional method)
+      // this.dataService.saveDraft(clientId, this.id, data);
+      // return { success: true };
     } catch (error) {
       Logger.log(`Error saving draft: ${error}`);
       return { success: false, error: error.toString() };
@@ -573,28 +807,38 @@ const ToolN = {
 
   /**
    * Validate form data
+   *
+   * ✅ NEW (v3.9.0): Use Validator utility for consistent validation
    */
   validate(data) {
     const errors = [];
 
-    // Required field validation
-    if (!data.field1 || data.field1.trim() === '') {
-      errors.push('Field 1 is required');
-    }
+    try {
+      // ✅ RECOMMENDED: Use Validator utility for consistency
+      Validator.requireString(data.field1, 'Field 1'); // Throws AppError if invalid
 
-    // Type validation
-    if (data.numericField && isNaN(data.numericField)) {
-      errors.push('Field must be a number');
-    }
-
-    // Range validation (for scale questions)
-    const scaleFields = ['q1', 'q2', 'q3'];
-    scaleFields.forEach(field => {
-      const value = parseInt(data[field]);
-      if (value !== undefined && (value < -5 || value > 5 || value === 0)) {
-        errors.push(`${field} must be between -5 and +5 (excluding 0)`);
+      // Numeric validation with options
+      if (data.numericField) {
+        Validator.requireNumber(data.numericField, 'Numeric Field', { min: 0, max: 100 });
       }
-    });
+
+      // Scale validation (for -5 to +5 scale questions)
+      const scaleFields = ['q1', 'q2', 'q3'];
+      scaleFields.forEach(field => {
+        if (data[field]) {
+          Validator.validateScaleValue(data[field], field); // Validates -5 to +5, no zero
+        }
+      });
+
+    } catch (error) {
+      // AppError thrown by Validator has descriptive messages
+      errors.push(error.message);
+    }
+
+    // ❌ OLD WAY (still works, but not recommended):
+    // if (!data.field1 || data.field1.trim() === '') {
+    //   errors.push('Field 1 is required');
+    // }
 
     return {
       valid: errors.length === 0,
@@ -774,8 +1018,10 @@ tools/toolN/
    - Show source attribution (✨ Personalized vs 📋 General Guidance)
 
 6. **Add PDF Generation** (30 minutes)
-   - Add generateToolNPDF() to Code.js
+   - ✅ **NEW (v3.9.0):** Add generateToolNPDF() method to **PDFGenerator.js** (NOT Code.js!)
+   - Add wrapper function in Code.js that calls PDFGenerator.generateToolNPDF()
    - Update download button in ToolNReport.js
+   - See "Shared Utilities #7" section for PDFGenerator examples
 
 ### **Production Example (Tool 2)**
 
@@ -1012,8 +1258,25 @@ getExistingData(clientId) {
 
 ### **Basic Report (No GPT)**
 
+**✅ NEW (v3.9.0):** Use **ReportBase** utility for fetching data!
+
 ```javascript
 const ToolNReport = {
+
+  /**
+   * ✅ NEW: Use ReportBase.getResults() to fetch data
+   */
+  getResults(clientId) {
+    return ReportBase.getResults(clientId, 'toolN', (resultData, cId) => {
+      // Parse function - customize this for your tool
+      return {
+        clientId: cId,
+        scores: resultData.scores,
+        formData: resultData.formData,
+        category: resultData.category
+      };
+    }, false); // checkIsLatest = false for most tools (true for Tool2)
+  },
 
   buildReport(results, data, clientId) {
     return `
@@ -1084,12 +1347,124 @@ const ToolNReport = {
           background: #f9f9f9;
           border-radius: 8px;
         }
-        h1 { color: #ad9168; }
+        h1 { color: ${CONFIG.UI.PRIMARY_COLOR}; } /* ✅ Use CONFIG constant */
         h2 { color: #333; margin-top: 0; }
       </style>
     `;
   }
 };
+```
+
+### **PDF Generation for Reports**
+
+**✅ NEW (v3.9.0):** Add PDF generation to **PDFGenerator.js**, NOT Code.js!
+
+**Step 1: Add method to PDFGenerator.js**
+```javascript
+// In /shared/PDFGenerator.js
+
+/**
+ * Generate PDF for Tool N
+ * @param {string} clientId - Client ID
+ * @returns {Blob} PDF file blob
+ */
+PDFGenerator.generateToolNPDF = function(clientId) {
+  try {
+    Logger.log(`Generating Tool N PDF for ${clientId}`);
+
+    // 1. Get results using ReportBase
+    const results = ToolNReport.getResults(clientId);
+    if (!results) {
+      throw new Error('No results found for this client');
+    }
+
+    // 2. Build HTML content
+    const html = this.buildToolNHTML(results);
+
+    // 3. Convert to PDF
+    const fileName = this.generateFileName('Tool N Assessment', results.formData.name);
+    return this.htmlToPDF(html, fileName);
+
+  } catch (error) {
+    Logger.log(`Error generating Tool N PDF: ${error}`);
+    throw error;
+  }
+};
+
+/**
+ * Build HTML for Tool N PDF
+ * @param {Object} results - Tool N results
+ * @returns {string} HTML content
+ */
+PDFGenerator.buildToolNHTML = function(results) {
+  const styles = this.getCommonStyles();
+  const header = this.buildHeader('Tool N Assessment Results', results.formData.name);
+  const footer = this.buildFooter();
+
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      ${styles}
+    </head>
+    <body>
+      ${header}
+
+      <div class="content">
+        <h2>Summary</h2>
+        <p>Your score: ${results.score}</p>
+        <p>Category: ${results.category}</p>
+
+        <h2>Interpretation</h2>
+        <p>${ToolNReport.getInterpretation(results)}</p>
+
+        <h2>Next Steps</h2>
+        <ul>
+          ${ToolNReport.getRecommendations(results).map(r => `<li>${r}</li>`).join('')}
+        </ul>
+      </div>
+
+      ${footer}
+    </body>
+    </html>
+  `;
+};
+```
+
+**Step 2: Add wrapper to Code.js**
+```javascript
+// In Code.js (global function for webapp access)
+
+/**
+ * Generate PDF for Tool N
+ * Wrapper for PDFGenerator.generateToolNPDF()
+ */
+function generateToolNPDF(clientId) {
+  return PDFGenerator.generateToolNPDF(clientId);
+}
+```
+
+**Step 3: Add download button to ToolNReport.js**
+```javascript
+// In report HTML
+<button class="btn-primary" onclick="downloadPDF()">📥 Download PDF</button>
+
+<script>
+  function downloadPDF() {
+    showLoading('Generating PDF...');
+    google.script.run
+      .withSuccessHandler(function(blob) {
+        hideLoading();
+        // Blob is returned, browser handles download
+      })
+      .withFailureHandler(function(error) {
+        hideLoading();
+        alert('Error generating PDF: ' + error.message);
+      })
+      .generateToolNPDF('${clientId}');
+  }
+</script>
 ```
 
 ### **Hybrid Report (With GPT)**
@@ -1204,18 +1579,27 @@ When building a new tool:
 - [ ] Determine if GPT is needed (cost/benefit)
 - [ ] Decide on page count and question distribution
 - [ ] Identify any adaptive questions needed
+- [ ] ✅ **NEW:** Review shared utilities documentation (EditModeBanner, DraftService, ReportBase, etc.)
 
 **Setup:**
 - [ ] Create `tools/toolN/` directory
 - [ ] Create `tool.manifest.json`
 - [ ] Copy `MultiPageToolTemplate.js` to `ToolN.js`
 - [ ] Create `ToolNReport.js`
+- [ ] ✅ **NEW:** Add tool config to `Config.js` (TOOLS.TOOLN section)
 
 **Implementation:**
 - [ ] Update manifest with correct metadata
 - [ ] Implement page content methods (1-N)
+- [ ] ✅ **NEW:** Use `Validator` utility for input validation
+- [ ] ✅ **NEW:** Use `ErrorHandler` for error handling
+- [ ] ✅ **NEW:** Use `DraftService` for draft management
+- [ ] ✅ **NEW:** Use `EditModeBanner.render()` for edit mode UI
 - [ ] Implement scoring logic in `processResults()`
-- [ ] Implement report generation
+- [ ] ✅ **NEW:** Use `ReportBase.getResults()` in report generation
+- [ ] ✅ **NEW:** Add PDF method to `PDFGenerator.js` (not Code.js!)
+- [ ] ✅ **NEW:** Add PDF wrapper function in `Code.js`
+- [ ] ✅ **NEW:** Use `CONFIG.*` constants instead of hardcoded values
 - [ ] Add GPT integration if needed
 - [ ] Implement `generateInsights()` for next tools
 - [ ] Register tool in `Code.js`
@@ -1288,13 +1672,13 @@ getExistingData(clientId) {
 **Why This Order:** PropertiesService contains live changes as user edits pages. EDIT_DRAFT is only the initial snapshot. Always prioritize live data! (Bug Fix @91)
 
 #### **Step 2: Add Edit Banner to `renderPageContent()`**
-Show banner when in edit mode:
+Show banner when in edit mode using the **EditModeBanner** utility:
 
 ```javascript
 renderPageContent(page, existingData, clientId) {
   let content = '';
 
-  // Add edit mode banner if editing
+  // ✅ NEW: Use EditModeBanner utility (v3.9.0)
   if (existingData && existingData._editMode) {
     const originalDate = existingData._originalTimestamp ?
       new Date(existingData._originalTimestamp).toLocaleDateString('en-US', {
@@ -1303,58 +1687,8 @@ renderPageContent(page, existingData, clientId) {
         day: 'numeric'
       }) : 'previous submission';
 
-    content += `
-      <div class="edit-mode-banner" style="
-        background: rgba(173, 145, 104, 0.1);
-        border: 2px solid #ad9168;
-        border-radius: 10px;
-        padding: 15px 20px;
-        margin-bottom: 30px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      ">
-        <div>
-          <strong style="color: #ad9168; font-size: 16px;">✏️ Edit Mode</strong>
-          <p style="margin: 5px 0 0 0; color: #fff; font-size: 14px;">
-            You're editing your response from ${originalDate}
-          </p>
-        </div>
-        <button
-          type="button"
-          onclick="cancelEdit()"
-          style="
-            background: transparent;
-            color: #ad9168;
-            border: 1px solid #ad9168;
-            padding: 8px 16px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: all 0.3s;
-          "
-          onmouseover="this.style.background='rgba(173, 145, 104, 0.1)'"
-          onmouseout="this.style.background='transparent'"
-        >
-          Cancel Edit
-        </button>
-      </div>
-
-      <script>
-        function cancelEdit() {
-          if (confirm('Cancel editing and discard changes?')) {
-            google.script.run
-              .withSuccessHandler(function() {
-                window.location.href = '${ScriptApp.getService().getUrl()}?route=dashboard&client=${clientId}';
-              })
-              .withFailureHandler(function(error) {
-                alert('Error canceling edit: ' + error.message);
-              })
-              .cancelEditDraft('${clientId}', 'toolN');
-          }
-        }
-      </script>
-    `;
+    // Use shared utility instead of manual HTML (40+ lines eliminated!)
+    content += EditModeBanner.render(originalDate, clientId, 'toolN');
   }
 
   // Add page-specific content
@@ -1368,6 +1702,13 @@ renderPageContent(page, existingData, clientId) {
   return content;
 }
 ```
+
+**What EditModeBanner.render() does:**
+- ✅ Renders consistent edit mode UI with cancel button
+- ✅ Includes all necessary styles and scripts
+- ✅ Handles cancel confirmation and navigation
+- ✅ Eliminates 40+ lines of duplicate HTML/CSS
+- ✅ Consistent across all tools
 
 #### **Step 3: Update `processFinalSubmission()`**
 Detect edit mode and route accordingly:
@@ -1506,11 +1847,14 @@ No additional code needed in your tool!
 ❌ **Don't** call `saveToolResponse()` directly (use ResponseManager)
 ❌ **Don't** forget to check `_editMode` flag before saving
 ❌ **Don't** modify `Is_Latest` flags manually
+❌ **Don't** write your own edit banner HTML (use EditModeBanner utility)
+❌ **Don't** access PropertiesService directly (use DraftService utility)
 
 ✅ **Do** use `DataService` wrapper methods
-✅ **Do** check for EDIT_DRAFT in `getExistingData()`
-✅ **Do** show edit banner when `_editMode = true`
+✅ **Do** use `DraftService.getDraft()` in `getExistingData()`
+✅ **Do** use `EditModeBanner.render()` when `_editMode = true`
 ✅ **Do** route to ResponseManager when editing
+✅ **Do** use shared utilities (EditModeBanner, DraftService, ReportBase, etc.)
 ✅ **Do** test cancel, complete, and fresh start flows
 
 ---
@@ -1518,32 +1862,43 @@ No additional code needed in your tool!
 ## 🎯 Best Practices
 
 ### **Code Quality:**
-1. **Use FormUtils** - Don't reinvent form handling
-2. **Separate concerns** - Report logic in separate file
-3. **Validate thoroughly** - Trust no user input
-4. **Handle errors gracefully** - Use try/catch, log errors
-5. **Comment non-obvious logic** - Future you will thank you
+1. **Use shared utilities** - EditModeBanner, DraftService, ReportBase, Validator, ErrorHandler (v3.9.0)
+2. **Use FormUtils** - Don't reinvent form handling
+3. **Separate concerns** - Report logic in separate file
+4. **Validate with Validator utility** - Consistent error messages
+5. **Handle errors with ErrorHandler** - AppError class and standard responses
+6. **Use CONFIG constants** - No hardcoded values for colors, timing, etc.
+7. **Comment non-obvious logic** - Future you will thank you
 
 ### **User Experience:**
 1. **Progress indicators** - FormUtils provides this
 2. **Clear instructions** - Tell users what to expect
-3. **Draft auto-save** - Already handled by FormUtils
+3. **Draft auto-save** - Use DraftService utility
 4. **Mobile-friendly** - Test on phone/tablet
 5. **Encouraging tone** - Positive, supportive language
+6. **Consistent UI** - Use EditModeBanner for edit mode
 
 ### **Performance:**
 1. **Minimize API calls** - Batch GPT requests
-2. **Cache where possible** - OpenAI service handles this
+2. **Cache where possible** - OpenAI service handles this, DraftService for drafts
 3. **Optimize page size** - Don't load all pages at once
 4. **Async operations** - Don't block UI
-5. **Error fallbacks** - Always have a plan B
+5. **Error fallbacks** - Always have a plan B (3-tier fallback pattern)
+6. **Use ReportBase** - Efficient data retrieval from RESPONSES sheet
 
 ### **Cost Management (GPT):**
 1. **Use GPT-4o-mini** - 90% cheaper than GPT-4
 2. **Concise prompts** - Fewer tokens = lower cost
 3. **Batch requests** - Parallel API calls
-4. **Cache insights** - Avoid regenerating same analysis
+4. **Cache insights** - DraftService prevents duplicate analysis
 5. **Fallback templates** - If API fails or budget exceeded
+
+### **Maintenance & Consistency (v3.9.0):**
+1. **Add PDF to PDFGenerator.js** - NOT Code.js (keeps Code.js clean)
+2. **Use ReportBase pattern** - Consistent report data retrieval
+3. **Follow naming conventions** - Match existing tool patterns
+4. **Update CONFIG.TOOLS** - Add your tool's metadata
+5. **Test with validation suite** - Run test-refactoring.js after changes
 
 ---
 
@@ -1579,5 +1934,35 @@ The framework does the heavy lifting. You just focus on:
 
 ---
 
-**Last Updated:** November 4, 2024
-**Next:** Build Tool 3 using this guide!
+## 📦 Summary of v3.9.0 Refactoring (January 2025)
+
+The v3 framework now includes **7 shared utilities** that eliminate code duplication and ensure consistency:
+
+1. **EditModeBanner** - Standard edit mode UI (saves 40+ lines per tool)
+2. **DraftService** - Draft management via PropertiesService (saves 35+ lines per tool)
+3. **ReportBase** - Common report retrieval (saves 25+ lines per tool)
+4. **ErrorHandler** - Consistent error handling with AppError class
+5. **Validator** - Input validation with standard error messages
+6. **NavigationHelpers** - Client-side navigation (saves 100+ lines in Code.js)
+7. **PDFGenerator** - PDF generation for reports (saves 320+ lines in Code.js)
+
+**Impact:**
+- Code.js reduced from 1,086 lines to 696 lines (-36%)
+- Eliminated ~200 lines of duplicate code across tools
+- Added ~1,600 lines of reusable shared utilities
+- Consistent patterns across all tools
+
+**For Tool Developers:**
+- ✅ Use these utilities instead of writing your own implementations
+- ✅ Add PDFs to PDFGenerator.js (NOT Code.js)
+- ✅ Use CONFIG constants instead of hardcoded values
+- ✅ Follow examples in Tool1 and Tool2 (both refactored)
+
+**Testing:**
+- Run `runRefactoringValidationTests()` in Google Apps Script console
+- All 17 tests must pass before deployment
+
+---
+
+**Last Updated:** January 7, 2025 (v3.9.0 - Major Refactoring)
+**Next:** Build Tool 3 using this guide and the new shared utilities!
