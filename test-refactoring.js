@@ -12,16 +12,25 @@ function runRefactoringValidationTests() {
 
   Logger.log('=== Starting Refactoring Validation Tests ===');
 
-  // Test 1: Verify shared utilities exist
+  // Test 1: Verify shared utilities exist (Phase 1)
   try {
     if (typeof EditModeBanner === 'undefined') throw new Error('EditModeBanner not found');
     if (typeof ReportBase === 'undefined') throw new Error('ReportBase not found');
     if (typeof DraftService === 'undefined') throw new Error('DraftService not found');
     if (typeof ErrorHandler === 'undefined') throw new Error('ErrorHandler not found');
     if (typeof Validator === 'undefined') throw new Error('Validator not found');
-    results.passed.push('✓ All shared utilities are defined');
+    results.passed.push('✓ Phase 1: All shared utilities are defined');
   } catch (error) {
-    results.failed.push('✗ Shared utilities check: ' + error.message);
+    results.failed.push('✗ Phase 1 utilities check: ' + error.message);
+  }
+
+  // Test 1b: Verify Phase 2 utilities exist
+  try {
+    if (typeof NavigationHelpers === 'undefined') throw new Error('NavigationHelpers not found');
+    if (typeof PDFGenerator === 'undefined') throw new Error('PDFGenerator not found');
+    results.passed.push('✓ Phase 2: Navigation and PDF utilities are defined');
+  } catch (error) {
+    results.failed.push('✗ Phase 2 utilities check: ' + error.message);
   }
 
   // Test 2: Verify Config expansions
@@ -156,6 +165,46 @@ function runRefactoringValidationTests() {
     results.failed.push('✗ DraftService methods: ' + error.message);
   }
 
+  // Test 14: Verify NavigationHelpers methods exist
+  try {
+    if (typeof NavigationHelpers.getDashboardPage !== 'function') throw new Error('NavigationHelpers.getDashboardPage not found');
+    if (typeof NavigationHelpers.getReportPage !== 'function') throw new Error('NavigationHelpers.getReportPage not found');
+    if (typeof NavigationHelpers.getToolPageHtml !== 'function') throw new Error('NavigationHelpers.getToolPageHtml not found');
+    results.passed.push('✓ NavigationHelpers methods exist');
+  } catch (error) {
+    results.failed.push('✗ NavigationHelpers methods: ' + error.message);
+  }
+
+  // Test 15: Verify PDFGenerator methods exist
+  try {
+    if (typeof PDFGenerator.generateTool1PDF !== 'function') throw new Error('PDFGenerator.generateTool1PDF not found');
+    if (typeof PDFGenerator.generateTool2PDF !== 'function') throw new Error('PDFGenerator.generateTool2PDF not found');
+    if (typeof PDFGenerator.htmlToPDF !== 'function') throw new Error('PDFGenerator.htmlToPDF not found');
+    if (typeof PDFGenerator.buildHeader !== 'function') throw new Error('PDFGenerator.buildHeader not found');
+    results.passed.push('✓ PDFGenerator methods exist');
+  } catch (error) {
+    results.failed.push('✗ PDFGenerator methods: ' + error.message);
+  }
+
+  // Test 16: Verify global PDF functions still work
+  try {
+    if (typeof generateTool1PDF !== 'function') throw new Error('generateTool1PDF not found');
+    if (typeof generateTool2PDF !== 'function') throw new Error('generateTool2PDF not found');
+    results.passed.push('✓ Global PDF generation functions intact');
+  } catch (error) {
+    results.failed.push('✗ Global PDF functions: ' + error.message);
+  }
+
+  // Test 17: Verify global navigation functions still work
+  try {
+    if (typeof getDashboardPage !== 'function') throw new Error('getDashboardPage not found');
+    if (typeof getReportPage !== 'function') throw new Error('getReportPage not found');
+    if (typeof getToolPageHtml !== 'function') throw new Error('getToolPageHtml not found');
+    results.passed.push('✓ Global navigation functions intact');
+  } catch (error) {
+    results.failed.push('✗ Global navigation functions: ' + error.message);
+  }
+
   // Print results
   Logger.log('\n=== Test Results ===');
   Logger.log(`Passed: ${results.passed.length}`);
@@ -197,13 +246,19 @@ function quickSmokeTest() {
   try {
     // Test critical paths
     const tests = [
+      // Phase 1 utilities
       typeof EditModeBanner !== 'undefined',
       typeof ReportBase !== 'undefined',
       typeof DraftService !== 'undefined',
       typeof ErrorHandler !== 'undefined',
       typeof Validator !== 'undefined',
+      // Phase 2 utilities
+      typeof NavigationHelpers !== 'undefined',
+      typeof PDFGenerator !== 'undefined',
+      // Core components
       typeof Tool1 !== 'undefined',
       typeof Tool2 !== 'undefined',
+      // Config
       CONFIG.TOOLS !== undefined,
       CONFIG.COLUMN_INDEXES !== undefined
     ];
