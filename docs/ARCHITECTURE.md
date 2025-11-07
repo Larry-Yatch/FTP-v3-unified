@@ -475,6 +475,285 @@ TIER 3: Use domain-specific fallback → Always succeeds (100% reliability)
 
 ---
 
+## 🔧 Shared Utilities (`shared/`)
+
+**Purpose:** Reusable components that eliminate code duplication and provide consistent patterns across tools.
+
+**Added:** v3.9.0 (Refactoring Phase 1 & 2)
+
+---
+
+### **1. EditModeBanner (`shared/EditModeBanner.js`)**
+**Purpose:** Consistent edit mode UI banner for all tools.
+
+**Usage:**
+```javascript
+// In Tool's renderPageContent()
+if (existingData && existingData._editMode) {
+  const originalDate = new Date(existingData._originalTimestamp).toLocaleDateString(...);
+  content += EditModeBanner.render(originalDate, clientId, 'tool1');
+}
+```
+
+**Provides:**
+- Consistent edit mode UI across all tools
+- Cancel edit functionality
+- User-friendly date formatting
+
+**Deduplication:** Eliminated 40+ lines of duplicate code from Tool1/Tool2
+
+---
+
+### **2. ReportBase (`shared/ReportBase.js`)**
+**Purpose:** Common report data retrieval from RESPONSES sheet.
+
+**Usage:**
+```javascript
+// In ToolNReport.js
+getResults(clientId) {
+  return ReportBase.getResults(clientId, 'toolN', (resultData, cId) => {
+    // Parse and return formatted results
+    return {
+      clientId: cId,
+      scores: resultData.scores,
+      winner: resultData.winner
+    };
+  });
+}
+```
+
+**Methods:**
+- `getSheet()` - Get spreadsheet and RESPONSES sheet
+- `getHeaders(responseSheet)` - Get headers and column indexes
+- `findLatestRow(data, columnIndexes, clientId, toolId, checkIsLatest)` - Find most recent row
+- `getResults(clientId, toolId, parseFunction, checkIsLatest)` - Generic result retrieval
+- `getAllResults(clientId)` - Get all tool results for a client
+
+**Deduplication:** Eliminated 25+ lines of duplicate code per tool report
+
+---
+
+### **3. DraftService (`shared/DraftService.js`)**
+**Purpose:** Centralized draft storage via PropertiesService.
+
+**Usage:**
+```javascript
+// Save draft
+savePageData(clientId, page, formData) {
+  return DraftService.saveDraft('tool1', clientId, page, formData);
+}
+
+// Load draft
+const draft = DraftService.getDraft('tool1', clientId);
+
+// Clear draft
+DraftService.clearDraft('tool1', clientId);
+
+// Merge with edit data
+const merged = DraftService.mergeWithEditData(editData, 'tool1', clientId);
+```
+
+**Methods:**
+- `saveDraft(toolId, clientId, page, formData, excludeKeys)` - Save page data
+- `getDraft(toolId, clientId)` - Retrieve draft data
+- `clearDraft(toolId, clientId)` - Delete draft
+- `hasDraft(toolId, clientId)` - Check if draft exists
+- `getAllDrafts(clientId)` - Get all drafts for client
+- `mergeWithEditData(editData, toolId, clientId)` - Merge session with edit draft
+
+**Deduplication:** Eliminated 35+ lines of duplicate code per tool
+
+---
+
+### **4. ErrorHandler (`shared/ErrorHandler.js`)**
+**Purpose:** Consistent error handling and structured error responses.
+
+**Usage:**
+```javascript
+// Wrap functions with error handling
+const safeFn = ErrorHandler.wrap(myFunction, 'ContextName');
+
+// Execute with error handling
+const result = ErrorHandler.execute(() => {
+  // Your code here
+}, 'ContextName');
+
+// Create custom errors
+throw new AppError('Not found', ErrorCodes.NOT_FOUND, { id: 123 });
+
+// Create standardized responses
+return ErrorHandler.createErrorResponse('Error message', 'ERROR_CODE', details);
+return ErrorHandler.createSuccessResponse(data, 'Success message');
+```
+
+**Features:**
+- `AppError` class for structured errors
+- Standardized error/success response formats
+- `ErrorCodes` constants (AUTH_FAILED, INVALID_INPUT, TOOL_NOT_FOUND, etc.)
+- Function wrapping for consistent error handling
+- Logging integration
+
+---
+
+### **5. Validator (`shared/Validator.js`)**
+**Purpose:** Input validation with consistent error handling.
+
+**Usage:**
+```javascript
+// Type validation
+const validClientId = Validator.validateClientId(clientId);
+const validToolId = Validator.validateToolId(toolId);
+const validPage = Validator.validatePage(page, validToolId);
+
+// String validation
+const name = Validator.requireString(value, 'fieldName');
+
+// Number validation
+const age = Validator.requireNumber(value, 'age', { min: 0, max: 120 });
+
+// Email validation
+const email = Validator.validateEmail(emailInput);
+
+// Optional values
+const optional = Validator.optional(value, defaultValue, Validator.requireString);
+```
+
+**Methods:**
+- `requireString(value, fieldName)` - Non-empty string validation
+- `requireNumber(value, fieldName, options)` - Number validation with min/max
+- `requireInteger(value, fieldName, options)` - Integer validation
+- `requireObject(value, fieldName)` - Object validation
+- `requireArray(value, fieldName, options)` - Array validation with length checks
+- `validateToolId(toolId)` - Validate against CONFIG.TOOLS
+- `validateClientId(clientId)` - Client ID validation
+- `validatePage(page, toolId)` - Page number validation
+- `validateEmail(email)` - Email format validation
+- `validateStatus(status)` - Status validation
+- `requireOneOf(value, allowedValues, fieldName)` - Enum validation
+
+---
+
+### **6. NavigationHelpers (`shared/NavigationHelpers.js`)** *(NEW v3.9.0)*
+**Purpose:** Client-side navigation helpers for document.write() pattern.
+
+**Usage:**
+```javascript
+// In Code.js - global functions now delegate to NavigationHelpers
+function getDashboardPage(clientId) {
+  return NavigationHelpers.getDashboardPage(clientId);
+}
+
+function getReportPage(clientId, toolId) {
+  return NavigationHelpers.getReportPage(clientId, toolId);
+}
+
+function getToolPageHtml(toolId, clientId, page) {
+  return NavigationHelpers.getToolPageHtml(toolId, clientId, page);
+}
+```
+
+**Methods:**
+- `getDashboardPage(clientId)` - Get dashboard HTML for client-side navigation
+- `getReportPage(clientId, toolId)` - Get report HTML for client-side navigation
+- `getToolPageHtml(toolId, clientId, page)` - Get tool page HTML for client-side navigation
+- `renderErrorPage(title, error, clientId, styled)` - Consistent error pages with theme support
+- `createFakeRequest(route, params)` - Create router request objects
+
+**Why:** Eliminates white flash during navigation, preserves user gesture
+
+**Deduplication:** Eliminated 100+ lines of duplicate navigation code
+
+---
+
+### **7. PDFGenerator (`shared/PDFGenerator.js`)** *(NEW v3.9.0)*
+**Purpose:** Centralized PDF generation for tool reports.
+
+**Usage:**
+```javascript
+// In Code.js - global functions now delegate to PDFGenerator
+function generateTool1PDF(clientId) {
+  return PDFGenerator.generateTool1PDF(clientId);
+}
+
+function generateTool2PDF(clientId) {
+  return PDFGenerator.generateTool2PDF(clientId);
+}
+
+// For new tools - implement in PDFGenerator, not Code.js!
+// PDFGenerator.generateToolNPDF(clientId) { ... }
+```
+
+**Methods:**
+- `generateTool1PDF(clientId)` - Generate Tool 1 PDF report
+- `generateTool2PDF(clientId)` - Generate Tool 2 PDF report
+- `getCommonStyles()` - Shared PDF styling using CONFIG.UI
+- `buildHeader(title, studentName)` - Consistent PDF header
+- `buildFooter(customText)` - Consistent PDF footer
+- `htmlToPDF(htmlContent, fileName)` - Convert HTML to PDF blob
+- `buildHTMLDocument(styles, bodyContent)` - Build complete HTML document
+- `generateFileName(toolName, studentName)` - Consistent file naming
+
+**Why:** Single source of truth for PDF generation, consistent styling
+
+**Deduplication:** Eliminated 320+ lines of duplicate PDF code from Code.js
+
+**Important for New Tools:**
+- ❌ **DON'T** add `generateToolNPDF()` to Code.js
+- ✅ **DO** add `generateToolNPDF()` method to PDFGenerator
+- ✅ **DO** use `CONFIG.UI.*` constants for colors/styling
+- ✅ **DO** use shared `buildHeader()`, `buildFooter()`, `htmlToPDF()` methods
+
+---
+
+## 📁 Updated File Structure
+
+```
+FTP-v3-unified/
+├── Code.js                    # Main entry point (696 lines, down from 1,086)
+├── Config.js                  # Configuration (expanded with TOOLS, UI, TIMING, etc.)
+├── core/                      # Framework core (unchanged)
+│   ├── Router.js
+│   ├── ToolRegistry.js
+│   ├── FrameworkCore.js
+│   ├── DataService.js
+│   ├── ResponseManager.js
+│   ├── InsightsPipeline.js
+│   ├── ToolAccessControl.js
+│   ├── ToolInterface.js
+│   ├── Authentication.js
+│   └── FormUtils.js
+├── shared/                    # ✨ NEW: Shared utilities (v3.9.0)
+│   ├── EditModeBanner.js      # Edit mode UI banner
+│   ├── ReportBase.js          # Report data retrieval
+│   ├── DraftService.js        # Draft storage management
+│   ├── ErrorHandler.js        # Error handling utilities
+│   ├── Validator.js           # Input validation
+│   ├── NavigationHelpers.js   # Client-side navigation
+│   ├── PDFGenerator.js        # PDF generation
+│   ├── loading-animation.html # Loading animation
+│   └── styles.html            # Global styles
+├── tools/                     # Tool plugins
+│   ├── tool1/
+│   │   ├── tool.manifest.json
+│   │   ├── Tool1.js
+│   │   ├── Tool1Report.js
+│   │   └── Tool1Templates.js
+│   ├── tool2/
+│   │   ├── tool.manifest.json
+│   │   ├── Tool2.js
+│   │   ├── Tool2Report.js
+│   │   ├── Tool2GPTAnalysis.js
+│   │   └── Tool2Fallbacks.js
+│   └── MultiPageToolTemplate.js
+└── docs/                      # Documentation
+    ├── ARCHITECTURE.md        # This file
+    ├── TOOL-DEVELOPMENT-GUIDE.md
+    ├── REFACTORING_DOCUMENTATION.md  # ✨ NEW: Refactoring details
+    └── ...
+```
+
+---
+
 ## 🛠️ Tool Interface Contract
 
 Every tool MUST implement:
