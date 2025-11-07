@@ -82,58 +82,7 @@ const Tool2 = {
           day: 'numeric'
         }) : 'previous submission';
 
-      content += `
-        <div class="edit-mode-banner" style="
-          background: rgba(173, 145, 104, 0.1);
-          border: 2px solid #ad9168;
-          border-radius: 10px;
-          padding: 15px 20px;
-          margin-bottom: 30px;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-        ">
-          <div>
-            <strong style="color: #ad9168; font-size: 16px;">✏️ Edit Mode</strong>
-            <p style="margin: 5px 0 0 0; color: #fff; font-size: 14px;">
-              You're editing your response from ${originalDate}
-            </p>
-          </div>
-          <button
-            type="button"
-            onclick="cancelEdit()"
-            style="
-              background: transparent;
-              color: #ad9168;
-              border: 1px solid #ad9168;
-              padding: 8px 16px;
-              border-radius: 6px;
-              cursor: pointer;
-              font-size: 14px;
-              transition: all 0.3s;
-            "
-            onmouseover="this.style.background='rgba(173, 145, 104, 0.1)'"
-            onmouseout="this.style.background='transparent'"
-          >
-            Cancel Edit
-          </button>
-        </div>
-
-        <script>
-          function cancelEdit() {
-            if (confirm('Cancel editing and discard changes?')) {
-              google.script.run
-                .withSuccessHandler(function() {
-                  window.location.href = '${ScriptApp.getService().getUrl()}?route=dashboard&client=${clientId}';
-                })
-                .withFailureHandler(function(error) {
-                  alert('Error canceling edit: ' + error.message);
-                })
-                .cancelEditDraft('${clientId}', 'tool2');
-            }
-          }
-        </script>
-      `;
+      content += EditModeBanner.render(originalDate, clientId, 'tool2');
     }
 
     // Add page-specific content
@@ -1657,37 +1606,18 @@ const Tool2 = {
    */
   savePageData(clientId, page, formData) {
     try {
-      const userProperties = PropertiesService.getUserProperties();
-      const draftKey = `tool2_draft_${clientId}`;
+      // Save draft using shared service
+      const result = DraftService.saveDraft('tool2', clientId, page, formData, ['client', 'page']);
 
-      // Get existing draft or create new
-      let draftData = {};
-      const existingDraft = userProperties.getProperty(draftKey);
-      if (existingDraft) {
-        try {
-          draftData = JSON.parse(existingDraft);
-        } catch (e) {
-          Logger.log('Error parsing existing draft, starting fresh');
-        }
+      // Get the complete draft data for GPT analysis
+      const draftData = DraftService.getDraft('tool2', clientId);
+
+      // Trigger background GPT analysis for free-text responses
+      if (draftData) {
+        this.triggerBackgroundGPTAnalysis(page, clientId, formData, draftData);
       }
 
-      // Merge new page data
-      for (const key in formData) {
-        if (key !== 'client' && key !== 'page') {
-          draftData[key] = formData[key];
-        }
-      }
-
-      // Save updated draft
-      draftData.lastPage = page;
-      draftData.lastUpdate = new Date().toISOString();
-      userProperties.setProperty(draftKey, JSON.stringify(draftData));
-
-      Logger.log(`Saved tool2 page ${page} data for ${clientId}`);
-
-      // NEW: Trigger background GPT analysis for free-text responses
-      this.triggerBackgroundGPTAnalysis(page, clientId, formData, draftData);
-
+      return result;
     } catch (error) {
       Logger.log(`Error saving page data: ${error}`);
       throw error;
@@ -1710,15 +1640,8 @@ const Tool2 = {
           
           // If we have an EDIT_DRAFT, merge with any PropertiesService updates
           // This preserves both the complete data AND any current session changes
-          const userProperties = PropertiesService.getUserProperties();
-          const draftKey = `tool2_draft_${clientId}`;
-          const sessionData = userProperties.getProperty(draftKey);
-          
-          if (sessionData && activeDraft.status === 'EDIT_DRAFT') {
-            // Merge session data on top of EDIT_DRAFT data
-            const mergedData = Object.assign({}, activeDraft.data, JSON.parse(sessionData));
-            Logger.log(`Merged EDIT_DRAFT with session updates for ${clientId}`);
-            return mergedData;
+          if (activeDraft.status === 'EDIT_DRAFT') {
+            return DraftService.mergeWithEditData(activeDraft.data, 'tool2', clientId);
           }
           
           return activeDraft.data;
@@ -1726,14 +1649,7 @@ const Tool2 = {
       }
       
       // FALLBACK: Check PropertiesService for new drafts (not edits)
-      const userProperties = PropertiesService.getUserProperties();
-      const draftKey = `tool2_draft_${clientId}`;
-      const draftData = userProperties.getProperty(draftKey);
-
-      if (draftData) {
-        Logger.log(`Found PropertiesService draft for ${clientId} (new draft)`);
-        return JSON.parse(draftData);
-      }
+      return DraftService.getDraft('tool2', clientId);
       
     } catch (error) {
       Logger.log(`Error getting existing data: ${error}`);

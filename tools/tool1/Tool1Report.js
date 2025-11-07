@@ -53,35 +53,14 @@ const Tool1Report = {
    * Get assessment results from RESPONSES sheet
    */
   getResults(clientId) {
-    try {
-      const ss = SpreadsheetApp.openById(CONFIG.MASTER_SHEET_ID);
-      const responseSheet = ss.getSheetByName(CONFIG.SHEETS.RESPONSES);
-
-      const data = responseSheet.getDataRange().getValues();
-      const headers = data[0];
-
-      const clientIdCol = headers.indexOf('Client_ID');
-      const toolIdCol = headers.indexOf('Tool_ID');
-      const dataCol = headers.indexOf('Data') !== -1 ? headers.indexOf('Data') : headers.indexOf('Version');
-
-      // Find most recent Tool 1 result for this client
-      for (let i = data.length - 1; i >= 1; i--) {
-        if (data[i][clientIdCol] === clientId && data[i][toolIdCol] === 'tool1') {
-          const resultData = JSON.parse(data[i][dataCol]);
-          return {
-            clientId: clientId,
-            winner: resultData.winner,
-            scores: resultData.scores,
-            formData: resultData.formData
-          };
-        }
-      }
-
-      return null;
-    } catch (error) {
-      Logger.log(`Error getting results: ${error}`);
-      return null;
-    }
+    return ReportBase.getResults(clientId, 'tool1', (resultData, cId) => {
+      return {
+        clientId: cId,
+        winner: resultData.winner,
+        scores: resultData.scores,
+        formData: resultData.formData
+      };
+    });
   },
 
   /**

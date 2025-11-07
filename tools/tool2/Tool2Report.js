@@ -44,40 +44,16 @@ const Tool2Report = {
    * Get assessment results from RESPONSES sheet
    */
   getResults(clientId) {
-    try {
-      const ss = SpreadsheetApp.openById(CONFIG.MASTER_SHEET_ID);
-      const responseSheet = ss.getSheetByName(CONFIG.SHEETS.RESPONSES);
-
-      const data = responseSheet.getDataRange().getValues();
-      const headers = data[0];
-
-      const clientIdCol = headers.indexOf('Client_ID');
-      const toolIdCol = headers.indexOf('Tool_ID');
-      const dataCol = headers.indexOf('Data') !== -1 ? headers.indexOf('Data') : headers.indexOf('Version');
-      const isLatestCol = headers.indexOf('Is_Latest');
-
-      // Find most recent Tool 2 result for this client (check Is_Latest first)
-      for (let i = data.length - 1; i >= 1; i--) {
-        if (data[i][clientIdCol] === clientId &&
-            data[i][toolIdCol] === 'tool2' &&
-            data[i][isLatestCol] === true) {
-          const resultData = JSON.parse(data[i][dataCol]);
-          return {
-            clientId: clientId,
-            results: resultData.results,
-            data: resultData.data,
-            formData: resultData.data || resultData.formData, // Handle both formats
-            gptInsights: resultData.gptInsights || {},        // NEW: Include GPT insights
-            overallInsight: resultData.overallInsight || {}   // NEW: Include synthesis
-          };
-        }
-      }
-
-      return null;
-    } catch (error) {
-      Logger.log(`Error getting results: ${error}`);
-      return null;
-    }
+    return ReportBase.getResults(clientId, 'tool2', (resultData, cId) => {
+      return {
+        clientId: cId,
+        results: resultData.results,
+        data: resultData.data,
+        formData: resultData.data || resultData.formData, // Handle both formats
+        gptInsights: resultData.gptInsights || {},        // Include GPT insights
+        overallInsight: resultData.overallInsight || {}   // Include synthesis
+      };
+    }, true); // checkIsLatest = true for Tool2
   },
 
   /**

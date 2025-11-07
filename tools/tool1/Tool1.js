@@ -77,68 +77,7 @@ const Tool1 = {
           day: 'numeric'
         }) : 'previous submission';
 
-      content += `
-        <div class="edit-mode-banner" style="
-          background: rgba(173, 145, 104, 0.1);
-          border: 2px solid #ad9168;
-          border-radius: 10px;
-          padding: 15px 20px;
-          margin-bottom: 30px;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-        ">
-          <div>
-            <strong style="color: #ad9168; font-size: 16px;">✏️ Edit Mode</strong>
-            <p style="margin: 5px 0 0 0; color: #fff; font-size: 14px;">
-              You're editing your response from ${originalDate}
-            </p>
-          </div>
-          <button
-            type="button"
-            onclick="cancelEdit()"
-            style="
-              background: transparent;
-              color: #ad9168;
-              border: 1px solid #ad9168;
-              padding: 8px 16px;
-              border-radius: 6px;
-              cursor: pointer;
-              font-size: 14px;
-              transition: all 0.3s;
-            "
-            onmouseover="this.style.background='rgba(173, 145, 104, 0.1)'"
-            onmouseout="this.style.background='transparent'"
-          >
-            Cancel Edit
-          </button>
-        </div>
-
-        <script>
-          function cancelEdit() {
-            if (confirm('Cancel editing and discard changes?')) {
-              showLoading('Canceling edit...');
-              google.script.run
-                .withSuccessHandler(function(result) {
-                  // Don't hide loading - navigate directly to dashboard
-                  if (result && result.success !== false) {
-                    // Use navigateToDashboard to avoid iframe issues
-                    navigateToDashboard('${clientId}', 'Loading Dashboard');
-                  } else {
-                    hideLoading();
-                    alert('Error canceling edit: ' + (result ? result.error : 'Unknown error'));
-                  }
-                })
-                .withFailureHandler(function(error) {
-                  hideLoading();
-                  console.error('Cancel edit error:', error);
-                  alert('Error canceling edit: ' + error.message);
-                })
-                .cancelEditDraft('${clientId}', 'tool1');
-            }
-          }
-        </script>
-      `;
+      content += EditModeBanner.render(originalDate, clientId, 'tool1');
     }
 
     // Add page-specific content
@@ -499,37 +438,7 @@ const Tool1 = {
    * Save page data using PropertiesService (draft storage)
    */
   savePageData(clientId, page, formData) {
-    try {
-      const userProperties = PropertiesService.getUserProperties();
-      const draftKey = `tool1_draft_${clientId}`;
-
-      // Get existing draft or create new
-      let draftData = {};
-      const existingDraft = userProperties.getProperty(draftKey);
-      if (existingDraft) {
-        try {
-          draftData = JSON.parse(existingDraft);
-        } catch (e) {
-          Logger.log('Error parsing existing draft, starting fresh');
-        }
-      }
-
-      // Merge new page data
-      for (const key in formData) {
-        if (key !== 'route' && key !== 'client' && key !== 'page') {
-          draftData[key] = formData[key];
-        }
-      }
-
-      // Save updated draft
-      draftData.lastPage = page;
-      draftData.lastUpdate = new Date().toISOString();
-      userProperties.setProperty(draftKey, JSON.stringify(draftData));
-
-      Logger.log(`Saved page ${page} data for ${clientId}`);
-    } catch (error) {
-      Logger.log(`Error saving page data: ${error}`);
-    }
+    return DraftService.saveDraft('tool1', clientId, page, formData);
   },
 
   /**
@@ -552,20 +461,16 @@ const Tool1 = {
 
       // CRITICAL: Also check PropertiesService and merge (for page 5 data in edit mode)
       // When editing, page 5 data gets saved to PropertiesService but EDIT_DRAFT is in RESPONSES
-      const userProperties = PropertiesService.getUserProperties();
-      const draftKey = `tool1_draft_${clientId}`;
-      const propData = userProperties.getProperty(draftKey);
+      const propData = DraftService.getDraft('tool1', clientId);
 
       if (propData) {
-        const parsedPropData = JSON.parse(propData);
-
         if (data) {
           // Merge: PropertiesService data takes precedence (has latest page 5 data)
           Logger.log(`Merging PropertiesService data with EDIT_DRAFT`);
-          data = { ...data, ...parsedPropData };
+          data = { ...data, ...propData };
         } else {
           // No EDIT_DRAFT, use PropertiesService data
-          data = parsedPropData;
+          data = propData;
         }
       }
 
