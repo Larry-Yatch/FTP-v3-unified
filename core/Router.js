@@ -389,6 +389,14 @@ const Router = {
     const clientId = params.client || params.clientId;
     const baseUrl = ScriptApp.getService().getUrl();
 
+    // Handle discardDraft parameter - delete draft BEFORE checking status
+    if (params.discardDraft) {
+      const toolId = params.discardDraft; // e.g., 'tool1' or 'tool2'
+      Logger.log(`Dashboard: Discarding draft for ${clientId} / ${toolId}`);
+      DataService.cancelEditDraft(clientId, toolId);
+      SpreadsheetApp.flush(); // Ensure changes are committed
+    }
+
     // Check Tool 1 status
     const tool1Latest = DataService.getLatestResponse(clientId, 'tool1');
     const tool1HasDraft = tool1Latest && (tool1Latest.status === 'DRAFT' || tool1Latest.status === 'EDIT_DRAFT');
@@ -448,10 +456,10 @@ const Router = {
             <button class="btn-primary" onclick="showLoading('Loading Assessment'); window.top.location.href='${baseUrl}?route=tool1&client=${clientId}&page=1'">
               ▶️ Continue
             </button>
+            <button class="btn-secondary" onclick="if(confirm('Discard your draft and lose all progress?')) { showLoading('Discarding draft...'); window.top.location.href='${baseUrl}?route=dashboard&client=${clientId}&discardDraft=tool1'; }">
+              ❌ Discard Draft
+            </button>
           </div>
-          <p class="muted" style="margin-top: 10px; font-size: 14px;">
-            💡 Tip: To start over, complete this draft first, then use "Start Fresh" from your completed report.
-          </p>
         </div>
       `;
     } else {
@@ -673,10 +681,10 @@ const Router = {
             <button class="btn-primary" onclick="showLoading('Loading Assessment'); window.top.location.href='${baseUrl}?route=tool2&client=${clientId}&page=1'">
               ▶️ Continue
             </button>
+            <button class="btn-secondary" onclick="if(confirm('Discard your draft and lose all progress?')) { showLoading('Discarding draft...'); window.top.location.href='${baseUrl}?route=dashboard&client=${clientId}&discardDraft=tool2'; }">
+              ❌ Discard Draft
+            </button>
           </div>
-          <p class="muted" style="margin-top: 10px; font-size: 14px;">
-            💡 Tip: To start over, complete this draft first, then use "Start Fresh" from your completed report.
-          </p>
         </div>
       `;
     } else if (tool2Access.allowed) {
