@@ -67,6 +67,8 @@ const FormUtils = {
                 document.open();
                 document.write(result.nextPageHtml);
                 document.close();
+                // Scroll to top of new page
+                window.scrollTo(0, 0);
               } else {
                 hideLoading();
                 alert('Error: Server did not return next page HTML');
@@ -122,6 +124,8 @@ const FormUtils = {
                   document.open();
                   document.write(result.nextPageHtml);
                   document.close();
+                  // Scroll to top of new page
+                  window.scrollTo(0, 0);
                 } else {
                   hideLoading();
                   alert('Error: Server did not return report HTML');
