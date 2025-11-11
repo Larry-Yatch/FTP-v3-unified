@@ -435,10 +435,21 @@ const Tool1 = {
   },
 
   /**
-   * Save page data using PropertiesService (draft storage)
+   * Save page data to both PropertiesService and RESPONSES sheet
+   * PropertiesService: Fast page-to-page navigation
+   * RESPONSES sheet: Dashboard draft detection
    */
   savePageData(clientId, page, formData) {
-    return DraftService.saveDraft('tool1', clientId, page, formData);
+    // Save to PropertiesService for fast page-to-page navigation
+    DraftService.saveDraft('tool1', clientId, page, formData);
+
+    // Also save to RESPONSES sheet for dashboard detection
+    // Only on first page to create the DRAFT row with Is_Latest=true
+    if (page === 1) {
+      DataService.saveDraft(clientId, 'tool1', formData);
+    }
+
+    return { success: true };
   },
 
   /**
