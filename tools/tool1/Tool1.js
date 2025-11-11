@@ -19,6 +19,7 @@ const Tool1 = {
     // Handle URL parameters for immediate navigation (preserves user gesture)
     const editMode = params.editMode === 'true' || params.editMode === true;
     const clearDraft = params.clearDraft === 'true' || params.clearDraft === true;
+    const autoCancelDraft = params.autoCancelDraft === 'true' || params.autoCancelDraft === true;
 
     // Execute actions on page load (after navigation completes with user gesture)
     // Call loadResponseForEditing to create EDIT_DRAFT from COMPLETED response
@@ -33,6 +34,32 @@ const Tool1 = {
       // Clear all drafts for fresh start
       Logger.log(`Clear draft triggered for ${clientId}`);
       DataService.startFreshAttempt(clientId, 'tool1');
+    }
+
+    if (autoCancelDraft && page === 1) {
+      // WORKAROUND for Bug #5: Auto-cancel draft and return to dashboard
+      // This piggybacks on the working Form → Dashboard navigation
+      Logger.log(`Auto-cancel draft triggered for ${clientId}`);
+      DataService.cancelEditDraft(clientId, 'tool1');
+
+      // Return a page that immediately navigates back to dashboard
+      // using the proven working navigateToDashboard() method
+      return HtmlService.createTemplate(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Discarding Draft...</title>
+        </head>
+        <body>
+          <?!= include('shared/loading-animation') ?>
+          <script>
+            showLoading('Draft discarded. Returning to dashboard...');
+            // Use the proven working navigation method
+            navigateToDashboard('${clientId}', 'Loading Dashboard');
+          </script>
+        </body>
+        </html>
+      `).evaluate().setTitle('Discarding Draft');
     }
 
     // Get existing data if resuming

@@ -577,30 +577,12 @@ const Router = {
 
           // Cancel draft
           function cancelDraft() {
-            if (confirm('Discard your draft and return to your last completed response?')) {
-              showLoading('Canceling draft...');
-              google.script.run
-                .withSuccessHandler(function(result) {
-                  // Null check: google.script.run can return null in edge cases
-                  if (!result) {
-                    hideLoading();
-                    alert('Error: Server returned no data. Please refresh and try again.');
-                    return;
-                  }
-
-                  if (result.success) {
-                    // Use navigateToDashboard instead of reload to avoid iframe issues
-                    navigateToDashboard(clientId, 'Refreshing Dashboard');
-                  } else {
-                    hideLoading();
-                    alert('Error: ' + result.error);
-                  }
-                })
-                .withFailureHandler(function(error) {
-                  hideLoading();
-                  alert('Error: ' + error.message);
-                })
-                .cancelEditDraft(clientId, 'tool1');
+            if (confirm('Discard your draft?')) {
+              showLoading('Discarding draft...');
+              // WORKAROUND: Navigate to form with autoCancelDraft flag
+              // The form will immediately trigger cancel, which navigates back successfully
+              // This piggybacks on the working Form → Dashboard navigation
+              window.top.location.href = baseUrl + '?route=tool1&client=' + clientId + '&page=1&autoCancelDraft=true';
             }
           }
 
