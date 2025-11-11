@@ -311,7 +311,7 @@ const Tool2Report = {
   },
 
   /**
-   * Build priority list showing stress-weighted ranking
+   * Build priority list showing stress-weighted ranking with Priority × Clarity matrix
    */
   buildPriorityList(priorityList, benchmarks) {
     if (!priorityList || priorityList.length === 0) {
@@ -345,6 +345,9 @@ const Tool2Report = {
         priorityBadge = '<span class="priority-badge low">Lower Priority</span>';
       }
 
+      // Get contextual message from Priority × Clarity matrix
+      const contextualMessage = this.getPriorityMessage(index, level);
+
       html += `
         <div class="priority-item">
           <div class="priority-rank">${index + 1}</div>
@@ -354,6 +357,7 @@ const Tool2Report = {
               ${priorityBadge}
               <span class="priority-level ${level.toLowerCase()}">${level} Clarity</span>
             </div>
+            <div class="priority-message">${contextualMessage}</div>
           </div>
         </div>
       `;
@@ -361,6 +365,40 @@ const Tool2Report = {
 
     html += '</div>';
     return html;
+  },
+
+  /**
+   * Generate priority message based on Priority × Clarity matrix
+   * Priority: Rank in list (0=Highest, 1=High, 2-3=Medium, 4=Lower)
+   * Clarity: From benchmarks (Low <20%, Medium 20-60%, High 60%+)
+   */
+  getPriorityMessage(priorityRank, clarityLevel) {
+    const messages = {
+      0: { // Highest Priority
+        'Low': 'Critical focus area - Address confusion and high stress immediately',
+        'Medium': 'High impact area - Improve understanding for better outcomes',
+        'High': 'Key strength - Leverage this clarity for overall financial health'
+      },
+      1: { // High Priority
+        'Low': 'Important focus - Resolve unclear areas causing stress',
+        'Medium': 'Valuable area - Build on moderate understanding',
+        'High': 'Strong area - Maintain confidence and continue growth'
+      },
+      2: { // Medium Priority (ranks 2-3)
+        'Low': 'Moderate priority - Address confusion when ready',
+        'Medium': 'Balanced area - Steady improvement recommended',
+        'High': 'Solid foundation - Monitor and maintain'
+      },
+      4: { // Lower Priority
+        'Low': 'Lower urgency - Consider when other areas stabilize',
+        'Medium': 'Maintenance area - Keep current practices',
+        'High': 'Well managed - Continue current approach'
+      }
+    };
+
+    // Map rank to message tier (2-3 both use tier 2)
+    const tier = priorityRank <= 1 ? priorityRank : (priorityRank >= 4 ? 4 : 2);
+    return messages[tier][clarityLevel] || 'Focus on this area as needed';
   },
 
   /**
@@ -838,6 +876,17 @@ const Tool2Report = {
       .priority-level.low {
         background: rgba(239, 68, 68, 0.2);
         color: #fca5a5;
+      }
+
+      .priority-message {
+        margin-top: 10px;
+        padding: 10px;
+        background: rgba(173, 145, 104, 0.1);
+        border-left: 3px solid #ad9168;
+        border-radius: 4px;
+        font-size: 14px;
+        color: #e2e8f0;
+        line-height: 1.5;
       }
 
       /* Footer */
