@@ -693,17 +693,12 @@ const Router = {
 
         <script>
           function cancelTool2Draft() {
-            if (confirm('Discard draft and lose all progress?')) {
-              showLoading('Clearing Draft');
-              google.script.run
-                .withSuccessHandler(function() {
-                  window.location.reload();
-                })
-                .withFailureHandler(function(error) {
-                  alert('Error: ' + error.message);
-                  hideLoading();
-                })
-                .cancelEditDraft('${clientId}', 'tool2');
+            if (confirm('Discard your draft?')) {
+              showLoading('Discarding draft...');
+              // WORKAROUND: Navigate to form with autoCancelDraft flag
+              // The form will immediately trigger cancel, which navigates back successfully
+              // This piggybacks on the working Form → Dashboard navigation
+              window.top.location.href = '${baseUrl}?route=tool2&client=${clientId}&page=1&autoCancelDraft=true';
             }
           }
         </script>
