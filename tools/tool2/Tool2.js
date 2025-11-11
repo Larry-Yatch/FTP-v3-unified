@@ -1606,8 +1606,14 @@ const Tool2 = {
    */
   savePageData(clientId, page, formData) {
     try {
-      // Save draft using shared service
+      // Save to PropertiesService for fast page-to-page navigation
       const result = DraftService.saveDraft('tool2', clientId, page, formData, ['client', 'page']);
+
+      // Also save to RESPONSES sheet for dashboard detection
+      // Only on first page to create the DRAFT row with Is_Latest=true
+      if (page === 1) {
+        DataService.saveDraft(clientId, 'tool2', formData);
+      }
 
       // Get the complete draft data for GPT analysis
       const draftData = DraftService.getDraft('tool2', clientId);
