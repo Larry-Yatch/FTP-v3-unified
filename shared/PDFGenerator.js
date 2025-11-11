@@ -296,20 +296,54 @@ const PDFGenerator = {
         </div>
       `;
 
-      // Priority tier labels
-      const priorityTiers = ['Highest', 'High', 'Medium', 'Medium', 'Lower'];
+      /**
+       * Generate priority message based on Priority × Clarity matrix
+       * Priority: Rank in list (0=Highest, 1=High, 2-3=Medium, 4=Lower)
+       * Clarity: From benchmarks (Low <20%, Medium 20-60%, High 60%+)
+       */
+      const getPriorityMessage = (priorityRank, clarityLevel) => {
+        const messages = {
+          0: { // Highest Priority
+            'Low': 'Critical focus area - Address confusion and high stress immediately',
+            'Medium': 'High impact area - Improve understanding for better outcomes',
+            'High': 'Key strength - Leverage this clarity for overall financial health'
+          },
+          1: { // High Priority
+            'Low': 'Important focus - Resolve unclear areas causing stress',
+            'Medium': 'Valuable area - Build on moderate understanding',
+            'High': 'Strong area - Maintain confidence and continue growth'
+          },
+          2: { // Medium Priority (ranks 2-3)
+            'Low': 'Moderate priority - Address confusion when ready',
+            'Medium': 'Balanced area - Steady improvement recommended',
+            'High': 'Solid foundation - Monitor and maintain'
+          },
+          4: { // Lower Priority
+            'Low': 'Lower urgency - Consider when other areas stabilize',
+            'Medium': 'Maintenance area - Keep current practices',
+            'High': 'Well managed - Continue current approach'
+          }
+        };
+
+        // Map rank to message tier (2-3 both use tier 2)
+        const tier = priorityRank <= 1 ? priorityRank : (priorityRank >= 4 ? 4 : 2);
+        return messages[tier][clarityLevel] || 'Focus on this area as needed';
+      };
 
       const prioritySection = `
         <div class="page-break"></div>
         <h2>Priority Focus Areas</h2>
         <p>Based on stress-weighted analysis, here are your domains ranked by potential impact:</p>
         ${priorityList.map((item, idx) => {
-          const tierLabel = priorityTiers[idx] || 'Lower';
+          const benchmark = benchmarks[item.domain] || {};
+          const clarityLevel = benchmark.level || 'Medium';
           const domainLabel = item.domain.charAt(0).toUpperCase() + item.domain.slice(1);
+          const message = getPriorityMessage(idx, clarityLevel);
+
           return `
             <div class="priority-item">
-              <strong>${idx + 1}. ${domainLabel}</strong>
-              <p style="margin: 5px 0; font-size: 14px; color: #666;">${tierLabel} Priority - Focus on this area for maximum impact</p>
+              <strong>${idx + 1}. ${domainLabel}</strong> - <em>${clarityLevel} Clarity</em>
+              <p style="margin: 5px 0; font-size: 14px; color: #666;">${message}</p>
             </div>
           `;
         }).join('')}
