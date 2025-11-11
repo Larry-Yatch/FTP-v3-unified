@@ -38,8 +38,8 @@ const FeedbackWidget = {
 
           <form id="feedbackForm" onsubmit="return submitFeedback()">
             <div class="form-group">
-              <label class="form-label">What can we help with? *</label>
-              <select name="type" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; background: white;">
+              <label class="form-label" style="color: #333;">What can we help with? *</label>
+              <select name="type" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; background: white; color: #333;">
                 <option value="">Select a type...</option>
                 <option value="bug">🐛 Report a Bug</option>
                 <option value="question">❓ Ask a Question</option>
@@ -49,25 +49,25 @@ const FeedbackWidget = {
             </div>
 
             <div class="form-group">
-              <label class="form-label">Tell us more *</label>
+              <label class="form-label" style="color: #333;">Tell us more *</label>
               <textarea
                 name="message"
                 required
                 rows="6"
                 placeholder="Please describe your issue, question, or feedback in detail..."
-                style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-family: inherit; resize: vertical;"
+                style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-family: inherit; resize: vertical; background: white; color: #333;"
               ></textarea>
             </div>
 
             <div class="form-group">
-              <label class="form-label">Your Email (optional)</label>
+              <label class="form-label" style="color: #333;">Your Email (optional)</label>
               <input
                 type="email"
                 name="email"
                 placeholder="your@email.com (for follow-up)"
-                style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;"
+                style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; background: white; color: #333;"
               >
-              <small class="muted">We'll use your student email on file if you don't provide one.</small>
+              <small class="muted" style="color: #666;">We'll use your student email on file if you don't provide one.</small>
             </div>
 
             <input type="hidden" name="clientId" value="${clientId}">
@@ -236,17 +236,31 @@ const FeedbackWidget = {
           // Submit via google.script.run
           google.script.run
             .withSuccessHandler(function(result) {
-              if (result.success) {
+              console.log('Feedback response:', result);
+
+              // Hide any page-level loading indicators
+              if (typeof hideLoading === 'function') {
+                hideLoading();
+              }
+
+              if (result && result.success) {
                 // Show success message
                 form.style.display = 'none';
                 document.getElementById('feedbackSuccess').style.display = 'block';
               } else {
-                alert('Error sending feedback: ' + (result.error || 'Unknown error'));
+                alert('Error sending feedback: ' + (result && result.error ? result.error : 'Unknown error'));
                 submitBtn.textContent = originalText;
                 submitBtn.disabled = false;
               }
             })
             .withFailureHandler(function(error) {
+              console.error('Feedback error:', error);
+
+              // Hide any page-level loading indicators
+              if (typeof hideLoading === 'function') {
+                hideLoading();
+              }
+
               alert('Error sending feedback: ' + error.message);
               submitBtn.textContent = originalText;
               submitBtn.disabled = false;
