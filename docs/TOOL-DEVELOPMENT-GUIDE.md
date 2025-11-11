@@ -1232,17 +1232,40 @@ google.script.run
 
 **2. Your tool must implement:**
 ```javascript
-saveDraft(clientId, data) {
-  this.dataService.saveDraft(clientId, this.id, data);
+savePageData(clientId, page, formData) {
+  // ⚠️ CRITICAL: ALWAYS SAVE TO BOTH LOCATIONS!
+  // This has been a recurring bug (Bug #2, Bug #6)
+
+  // 1. Save to PropertiesService (for fast page-to-page navigation)
+  DraftService.saveDraft('toolX', clientId, page, formData);
+
+  // 2. Save to RESPONSES sheet (for dashboard detection)
+  // ONLY on page 1 to create the DRAFT row with Is_Latest=true
+  if (page === 1) {
+    DataService.saveDraft(clientId, 'toolX', formData);
+  }
+
   return { success: true };
 }
 ```
 
+**⚠️ WHY BOTH LOCATIONS?**
+- **PropertiesService** = Fast access during form navigation (page to page)
+- **RESPONSES sheet** = Dashboard needs this to show "⏸️ In Progress" status
+- **If you only save to PropertiesService**: Dashboard won't detect drafts (Bug #6)
+- **If you only save to RESPONSES sheet**: Form navigation will be slow
+
 **3. On resume, data is restored:**
 ```javascript
 getExistingData(clientId) {
-  const response = this.dataService.getToolResponse(clientId, this.id);
-  return response?.draft || response?.data || {};
+  // Check RESPONSES sheet first (for EDIT_DRAFT or DRAFT)
+  const activeDraft = DataService.getActiveDraft(clientId, 'toolX');
+  if (activeDraft?.data) {
+    return activeDraft.data;
+  }
+
+  // Fall back to PropertiesService
+  return DraftService.getDraft('toolX', clientId);
 }
 ```
 
@@ -1251,6 +1274,7 @@ getExistingData(clientId) {
 - All answers preserved
 - Progress indicator shows where they left off
 - No manual "Save" button needed
+- Dashboard shows "In Progress" with Continue/Discard Draft buttons
 
 ---
 

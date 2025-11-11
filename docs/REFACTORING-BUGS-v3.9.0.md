@@ -288,6 +288,124 @@ const overallInsight = results.overallInsight || {};
 
 ---
 
+### ✅ Bug #5: Dashboard "Discard Draft" White Screen (FIXED)
+
+**Severity:** 🔴 Critical (Navigation broken)
+
+**Status:** ✅ FIXED in deployments @132-133 (after 11 attempts!)
+
+**Symptom:**
+- User clicks "Discard Draft" button from dashboard
+- Browser shows white screen or redirects to login
+- Navigation fails completely
+- (Various symptoms through 11 different attempted solutions)
+
+**Root Cause (Final):**
+1. **Navigation complexity**: Previous attempts used document.write(), nested async callbacks, intermediate pages
+2. **Wrong data deletion**: cancelEditDraft() only handled EDIT_DRAFT, not regular DRAFT
+
+**Final Solution:**
+**Simple URL parameter approach** + **Handle both draft types**
+
+1. Button navigates to: `?route=dashboard&client=X&discardDraft=tool1`
+2. Dashboard detects `discardDraft` parameter on load
+3. Calls `cancelEditDraft()` BEFORE rendering
+4. Updated `cancelEditDraft()` to delete BOTH DRAFT and EDIT_DRAFT
+
+**Implementation:**
+```javascript
+// Router.js - Button (inline onclick)
+onclick="if(confirm('Discard draft?')) {
+  showLoading('Discarding...');
+  window.top.location.href=baseUrl+'?route=dashboard&client='+clientId+'&discardDraft=tool1';
+}"
+
+// Router.js - Dashboard handling (@132)
+if (params.discardDraft) {
+  DataService.cancelEditDraft(clientId, params.discardDraft);
+  SpreadsheetApp.flush();
+}
+
+// ResponseManager.js - Handle both types (@133)
+if (data[i][statusCol] === 'DRAFT' || data[i][statusCol] === 'EDIT_DRAFT') {
+  sheet.deleteRow(i + 1);
+}
+```
+
+**Testing:**
+- ✅ Discard regular DRAFT (never finished) → Deletes DRAFT, shows "Ready"
+- ✅ Discard EDIT_DRAFT (editing completed) → Deletes EDIT_DRAFT, keeps COMPLETED
+- ✅ Navigation works smoothly, no white screens
+- ✅ Works for both Tool1 and Tool2
+
+**Files Changed:**
+- `core/Router.js` - Added discardDraft parameter handling, buttons for both tools
+- `core/ResponseManager.js` - Updated cancelEditDraft to handle both draft types
+
+**Deployments:**
+- @115-@130: Various failed attempts (document.write, navigation patterns, workarounds)
+- @132: Simple URL parameter navigation (WORKS!)
+- @133: Handle both DRAFT and EDIT_DRAFT (COMPLETE FIX!)
+
+**Lessons Learned:**
+- Simpler is better - URL parameters beat complex navigation
+- Test on ALL tools, not just one
+- Dual-save pattern (PropertiesService + RESPONSES sheet) is critical
+
+---
+
+### ✅ Bug #6: Tool2 Not Creating DRAFT Rows (FIXED)
+
+**Severity:** 🟡 Medium (Dashboard detection fails)
+
+**Status:** ✅ FIXED in deployment @135
+
+**Discovered During:** Bug #5 testing
+
+**Symptom:**
+- Tool2 assessments in progress don't show on dashboard
+- No "⏸️ In Progress" status
+- No "Continue" or "Discard Draft" buttons
+- RESPONSES sheet has no DRAFT row for Tool2
+
+**Root Cause:**
+Tool2's `savePageData()` only saved to PropertiesService (for fast navigation), but didn't save to RESPONSES sheet (needed for dashboard detection). Tool1 saved to BOTH locations.
+
+**Fix Applied:**
+```javascript
+// Tool2.js - Added dual-save pattern (matching Tool1)
+savePageData(clientId, page, formData) {
+  // Save to PropertiesService
+  DraftService.saveDraft('tool2', clientId, page, formData);
+
+  // Also save to RESPONSES sheet on page 1  ← ADDED THIS
+  if (page === 1) {
+    DataService.saveDraft(clientId, 'tool2', formData);
+  }
+
+  return { success: true };
+}
+```
+
+**Why Both Locations?**
+- **PropertiesService**: Fast access during page navigation
+- **RESPONSES sheet**: Dashboard needs this to detect drafts and show status
+
+**Files Changed:**
+- `tools/tool2/Tool2.js` - Added DataService.saveDraft() call on page 1
+
+**Deployment:**
+- Version: @135
+
+**Documentation Updated:**
+- TOOL-DEVELOPMENT-GUIDE.md now has prominent warning about dual-save requirement
+
+**Related Bugs:**
+- This is a recurring pattern (also Bug #2)
+- Now documented prominently to prevent future occurrences
+
+---
+
 ## ✅ Tests Completed Successfully
 
 ### Section 1: Pre-Deployment ✅
