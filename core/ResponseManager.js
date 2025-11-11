@@ -428,7 +428,7 @@ const ResponseManager = {
    */
   cancelEditDraft(clientId, toolId) {
     try {
-      Logger.log(`Canceling edit draft: ${clientId} / ${toolId}`);
+      Logger.log(`Canceling draft: ${clientId} / ${toolId}`);
 
       const ss = SpreadsheetApp.openById(CONFIG.MASTER_SHEET_ID);
       const sheet = ss.getSheetByName(CONFIG.SHEETS.RESPONSES);
@@ -440,30 +440,31 @@ const ResponseManager = {
       const toolIdCol = headers.indexOf('Tool_ID');
       const statusCol = headers.indexOf('Status');
 
-      // Find and delete EDIT_DRAFT row
+      // Find and delete DRAFT or EDIT_DRAFT rows (handle both)
+      let deletedCount = 0;
       for (let i = data.length - 1; i >= 1; i--) {
         if (data[i][clientIdCol] === clientId &&
             data[i][toolIdCol] === toolId &&
-            data[i][statusCol] === 'EDIT_DRAFT') {
+            (data[i][statusCol] === 'DRAFT' || data[i][statusCol] === 'EDIT_DRAFT')) {
           sheet.deleteRow(i + 1);
-          break;
+          deletedCount++;
         }
       }
 
-      // Mark most recent COMPLETED as latest again
+      // Mark most recent COMPLETED as latest again (if one exists)
       this._restoreLatestCompleted(clientId, toolId);
 
       SpreadsheetApp.flush();
 
-      Logger.log(`Edit draft canceled for ${clientId}`);
+      Logger.log(`Draft canceled for ${clientId} (deleted ${deletedCount} row(s))`);
 
       return {
         success: true,
-        message: 'Edit canceled'
+        message: 'Draft canceled'
       };
 
     } catch (error) {
-      Logger.log(`Error canceling edit draft: ${error}`);
+      Logger.log(`Error canceling draft: ${error}`);
       return {
         success: false,
         error: error.toString()
