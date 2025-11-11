@@ -389,6 +389,105 @@ function getToolPageHtml(toolId, clientId, page) {
 }
 
 /**
+ * Submit feedback/support request
+ * Called from client-side via google.script.run
+ * @param {Object} feedbackData - Feedback data from form
+ * @returns {Object} Result with success status
+ */
+function submitFeedback(feedbackData) {
+  try {
+    Logger.log(`Feedback received from ${feedbackData.clientId}: ${feedbackData.type}`);
+
+    // Format email body
+    const emailBody = `
+New feedback received from TruPath Financial Assessment:
+
+TYPE: ${feedbackData.type}
+FROM: ${feedbackData.clientId}
+${feedbackData.email ? `EMAIL: ${feedbackData.email}` : ''}
+TIMESTAMP: ${feedbackData.timestamp}
+
+MESSAGE:
+${feedbackData.message}
+
+CONTEXT:
+- Tool: ${feedbackData.toolId}
+- Page: ${feedbackData.page}
+- URL: ${feedbackData.url}
+- Browser: ${feedbackData.userAgent}
+
+---
+This feedback was submitted via the in-app feedback widget.
+    `.trim();
+
+    // Send email to support
+    MailApp.sendEmail({
+      to: 'support@trupathmastery.com',
+      subject: `TruPath Feedback: ${feedbackData.type} from ${feedbackData.clientId}`,
+      body: emailBody
+    });
+
+    // Log to FEEDBACK sheet
+    try {
+      const ss = SpreadsheetApp.openById(CONFIG.MASTER_SHEET_ID);
+      let feedbackSheet = ss.getSheetByName('FEEDBACK');
+
+      // Create FEEDBACK sheet if it doesn't exist
+      if (!feedbackSheet) {
+        feedbackSheet = ss.insertSheet('FEEDBACK');
+        feedbackSheet.appendRow([
+          'Timestamp',
+          'Client_ID',
+          'Type',
+          'Message',
+          'Email',
+          'Tool_ID',
+          'Page',
+          'URL',
+          'User_Agent',
+          'Status'
+        ]);
+        feedbackSheet.getRange(1, 1, 1, 10).setFontWeight('bold');
+        Logger.log('Created FEEDBACK sheet');
+      }
+
+      // Add feedback row
+      feedbackSheet.appendRow([
+        new Date(feedbackData.timestamp),
+        feedbackData.clientId,
+        feedbackData.type,
+        feedbackData.message,
+        feedbackData.email || '',
+        feedbackData.toolId,
+        feedbackData.page,
+        feedbackData.url,
+        feedbackData.userAgent,
+        'NEW'
+      ]);
+
+      SpreadsheetApp.flush();
+    } catch (sheetError) {
+      Logger.log(`Warning: Could not log to FEEDBACK sheet: ${sheetError}`);
+      // Don't fail the whole operation if sheet logging fails
+    }
+
+    Logger.log('Feedback submitted successfully');
+
+    return {
+      success: true,
+      message: 'Thank you for your feedback!'
+    };
+
+  } catch (error) {
+    Logger.log(`Error submitting feedback: ${error}`);
+    return {
+      success: false,
+      error: error.toString()
+    };
+  }
+}
+
+/**
  * OPTIMIZED: Authenticate and get dashboard in one call (faster login)
  * @param {string} clientId - Student ID
  * @returns {Object} Result with dashboard HTML or error

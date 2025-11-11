@@ -241,6 +241,8 @@ const Tool2Report = {
             }
           })(); // End IIFE
         </script>
+
+        <?!= FeedbackWidget.render('${clientId}', 'tool2', 'report') ?>
       </body>
       </html>
     `;

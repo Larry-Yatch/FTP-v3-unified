@@ -303,6 +303,8 @@ const FormUtils = {
 
         ${this.getFormSubmissionScript(toolId, baseUrl)}
 
+        ${FeedbackWidget.render(clientId, toolId, page)}
+
         <script>
           document.body.classList.add('loaded');
         </script>

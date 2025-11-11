@@ -602,6 +602,8 @@ const Router = {
           }, 100);
           })(); // End IIFE
         </script>
+
+        <?!= FeedbackWidget.render('${clientId}', 'dashboard', 'main') ?>
       </body>
       </html>
     `);
