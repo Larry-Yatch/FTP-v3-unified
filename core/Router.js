@@ -448,10 +448,10 @@ const Router = {
             <button class="btn-primary" onclick="showLoading('Loading Assessment'); window.top.location.href='${baseUrl}?route=tool1&client=${clientId}&page=1'">
               ▶️ Continue
             </button>
-            <button class="btn-secondary" onclick="cancelDraft()">
-              ❌ Discard Draft
-            </button>
           </div>
+          <p class="muted" style="margin-top: 10px; font-size: 14px;">
+            💡 Tip: To start over, complete this draft first, then use "Start Fresh" from your completed report.
+          </p>
         </div>
       `;
     } else {
@@ -537,7 +537,6 @@ const Router = {
             window.viewReport = viewReport;
             window.editResponse = editResponse;
             window.retakeTool = retakeTool;
-            window.cancelDraft = cancelDraft;
             window.logout = logout;
 
             // View report - navigate using document.write() pattern
@@ -572,17 +571,6 @@ const Router = {
               showLoading('Preparing fresh assessment...');
               // Navigate IMMEDIATELY - async callbacks lose user gesture in iframe
               window.top.location.href = baseUrl + '?route=tool1&client=' + clientId + '&page=1&clearDraft=true';
-            }
-          }
-
-          // Cancel draft
-          function cancelDraft() {
-            if (confirm('Discard your draft?')) {
-              showLoading('Discarding draft...');
-              // WORKAROUND: Navigate to form with autoCancelDraft flag
-              // The form will immediately trigger cancel, which navigates back successfully
-              // This piggybacks on the working Form → Dashboard navigation
-              window.top.location.href = baseUrl + '?route=tool1&client=' + clientId + '&page=1&autoCancelDraft=true';
             }
           }
 
@@ -685,23 +673,11 @@ const Router = {
             <button class="btn-primary" onclick="showLoading('Loading Assessment'); window.top.location.href='${baseUrl}?route=tool2&client=${clientId}&page=1'">
               ▶️ Continue
             </button>
-            <button class="btn-secondary" onclick="cancelTool2Draft()">
-              ❌ Discard Draft
-            </button>
           </div>
+          <p class="muted" style="margin-top: 10px; font-size: 14px;">
+            💡 Tip: To start over, complete this draft first, then use "Start Fresh" from your completed report.
+          </p>
         </div>
-
-        <script>
-          function cancelTool2Draft() {
-            if (confirm('Discard your draft?')) {
-              showLoading('Discarding draft...');
-              // WORKAROUND: Navigate to form with autoCancelDraft flag
-              // The form will immediately trigger cancel, which navigates back successfully
-              // This piggybacks on the working Form → Dashboard navigation
-              window.top.location.href = '${baseUrl}?route=tool2&client=${clientId}&page=1&autoCancelDraft=true';
-            }
-          }
-        </script>
       `;
     } else if (tool2Access.allowed) {
       // Accessible but not started - show Start button
