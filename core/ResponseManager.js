@@ -456,6 +456,12 @@ const ResponseManager = {
 
       SpreadsheetApp.flush();
 
+      // ALSO clear PropertiesService draft data
+      if (typeof DraftService !== 'undefined') {
+        DraftService.clearDraft(toolId, clientId);
+        Logger.log(`Cleared PropertiesService draft for ${clientId} / ${toolId}`);
+      }
+
       Logger.log(`Draft canceled for ${clientId} (deleted ${deletedCount} row(s))`);
 
       return {
