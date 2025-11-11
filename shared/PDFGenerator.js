@@ -228,6 +228,7 @@ const PDFGenerator = {
       const domainScores = results.results?.domainScores || {};
       const archetype = results.results?.archetype || 'Financial Clarity Seeker';
       const priorityList = results.results?.priorityList || [];
+      const benchmarks = results.results?.benchmarks || {};
       const gptInsights = results.gptInsights || {};
       const overallInsight = results.overallInsight || {};
 
