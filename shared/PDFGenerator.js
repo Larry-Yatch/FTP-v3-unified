@@ -296,16 +296,23 @@ const PDFGenerator = {
         </div>
       `;
 
+      // Priority tier labels
+      const priorityTiers = ['Highest', 'High', 'Medium', 'Medium', 'Lower'];
+
       const prioritySection = `
         <div class="page-break"></div>
         <h2>Priority Focus Areas</h2>
         <p>Based on stress-weighted analysis, here are your domains ranked by potential impact:</p>
-        ${priorityList.map((item, idx) => `
-          <div class="priority-item">
-            <strong>${idx + 1}. ${item.domain}</strong> - ${formatScore(item.score)}
-            <p style="margin: 5px 0; font-size: 14px; color: #666;">Focus on this area for ${item.tier} impact</p>
-          </div>
-        `).join('')}
+        ${priorityList.map((item, idx) => {
+          const tierLabel = priorityTiers[idx] || 'Lower';
+          const domainLabel = item.domain.charAt(0).toUpperCase() + item.domain.slice(1);
+          return `
+            <div class="priority-item">
+              <strong>${idx + 1}. ${domainLabel}</strong>
+              <p style="margin: 5px 0; font-size: 14px; color: #666;">${tierLabel} Priority - Focus on this area for maximum impact</p>
+            </div>
+          `;
+        }).join('')}
       `;
 
       const insightsSection = this._buildTool2Insights(overallInsight, gptInsights);
