@@ -1,0 +1,20 @@
+{
+  "timeZone": "America/New_York",
+  "dependencies": {
+    "enabledAdvancedServices": [],
+    "libraries": [
+      {
+        "userSymbol": "FinancialTruPathFunctionLibrary",
+        "version": "22",
+        "libraryId": "1pSXE54QXfFzrmxFjLlS_wpw4w_ZrYdalqM3wNbPFIzThFQrXpP-SuunJ",
+        "developmentMode": true
+      }
+    ]
+  },
+  "exceptionLogging": "STACKDRIVER",
+  "runtimeVersion": "V8",
+  "webapp": {
+    "executeAs": "USER_DEPLOYING",
+    "access": "ANYONE_ANONYMOUS"
+  }
+}

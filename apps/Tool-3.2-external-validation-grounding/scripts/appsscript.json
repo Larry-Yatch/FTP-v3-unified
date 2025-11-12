@@ -1,0 +1,15 @@
+{
+  "timeZone": "America/Denver",
+  "exceptionLogging": "STACKDRIVER",
+  "runtimeVersion": "V8",
+  "dependencies": {
+    "libraries": [
+      {
+        "userSymbol": "FinancialTruPathFunctionLibrary",
+        "libraryId": "1pSXE54QXfFzrmxFjLlS_wpw4w_ZrYdalqM3wNbPFIzThFQrXpP-SuunJ",
+        "version": "0",
+        "developmentMode": true
+      }
+    ]
+  }
+}

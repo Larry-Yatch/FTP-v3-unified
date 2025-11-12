@@ -1,0 +1,1723 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="utf-8" />
+  <title>TruPath Financial - Investment Planning Tool</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Radley:wght@400&family=Rubik:wght@300;400;500;600;700&display=swap');
+    :root {
+      --bg: #1e192b;
+      --bg-gradient: linear-gradient(135deg, #4b4166, #1e192b);
+      --card: rgba(20, 15, 35, 0.9);
+      --muted: #94a3b8;
+      --text: #ffffff;
+      --accent: #ad9168;
+      --accent-blue: #188bf6;
+      --ok: #9ae6b4;
+      --warn: #f59e0b;
+      --bad: #ef4444;
+      --border: rgba(173, 145, 104, 0.2);
+      --gold: #ad9168;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; 
+      padding: 24px; 
+      background: var(--bg-gradient);
+      background-attachment: fixed;
+      min-height: 100vh;
+      color: var(--text);
+      font-family: 'Rubik', Arial, sans-serif;
+      font-size: 15px;
+      position: relative;
+    }
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: url('https://lh3.googleusercontent.com/d/1FWWkcJ77rtbkLGstB1LHHGHEENaM5JZj');
+      background-repeat: no-repeat;
+      background-position: center center;
+      background-size: 90%;
+      opacity: 0.05;
+      z-index: -1;
+      pointer-events: none;
+    }
+    h1, h2, h3, h4, h5, h6 { 
+      font-family: 'Radley', serif;
+      font-weight: 400;
+      color: var(--text);
+    }
+    h1 { margin: 0 0 16px 0; font-size: 29px; letter-spacing: 0.5px; }
+    .wrap { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 20px; max-width: 1200px; margin: 0 auto; }
+    .card {
+      background: var(--card);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--border); 
+      border-radius: 20px; 
+      padding: 20px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+    }
+    .row { display: grid; grid-template-columns: 1fr 120px; gap: 10px; align-items: center; margin-bottom: 10px; }
+    .row .label { 
+      font-size: 14px; 
+      color: var(--text); 
+      font-weight: 500;
+      font-family: 'Rubik', sans-serif;
+    }
+    .row input[type="range"] { 
+      width: 100%; 
+      -webkit-appearance: none;
+      appearance: none;
+      height: 6px;
+      background: rgba(173, 145, 104, 0.2);
+      border-radius: 5px;
+      outline: none;
+    }
+    .row input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      background: var(--gold);
+      border-radius: 50%;
+      cursor: pointer;
+    }
+    .row input[type="range"]::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      background: var(--gold);
+      border-radius: 50%;
+      cursor: pointer;
+      border: none;
+    }
+    .row input[type="number"] {
+      width: 120px; 
+      padding: 10px; 
+      border-radius: 50px; 
+      border: 1px solid var(--border);
+      background: rgba(20, 15, 35, 0.6); 
+      color: var(--text); 
+      font-size: 14px;
+      font-family: 'Rubik', sans-serif;
+    }
+    .input-with-symbol {
+      position: relative;
+      display: inline-block;
+    }
+    .input-with-symbol input[type="number"] {
+      padding-left: 25px;
+    }
+    .input-with-symbol.percent input[type="number"] {
+      padding-left: 10px;
+      padding-right: 25px;
+      text-align: right;
+    }
+    .input-symbol {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted);
+      font-size: 14px;
+      font-family: 'Rubik', sans-serif;
+      pointer-events: none;
+    }
+    .input-symbol.prefix {
+      left: 12px;
+    }
+    .input-symbol.suffix {
+      right: 12px;
+    }
+    .muted { 
+      color: var(--muted); 
+      font-size: 13px;
+      font-family: 'Rubik', sans-serif;
+    }
+    .hr { 
+      height: 1px; 
+      background: linear-gradient(90deg, transparent, var(--border), transparent); 
+      margin: 16px 0; 
+    }
+    .grid2 { display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
+    .badge { 
+      display:inline-block; 
+      padding:8px 16px; 
+      font-size:19px; 
+      color: var(--gold); 
+      font-weight:400;
+      font-family: 'Radley', serif;
+      letter-spacing: 0.5px;
+    }
+    .section-box {
+      padding: 20px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      margin-bottom: 20px;
+      backdrop-filter: blur(5px);
+      background: linear-gradient(315deg, rgba(173, 145, 104, 0.2) 0%, rgba(30, 25, 43, 0.4) 100%);
+    }
+    .pill { 
+      padding:8px 14px; 
+      border-radius:50px; 
+      background: rgba(20, 15, 35, 0.6); 
+      border:1px solid var(--border); 
+      font-size:13px; 
+      color: #94a3b8;
+      font-family: 'Rubik', sans-serif;
+    }
+    .out .num { 
+      font-weight:600; 
+      letter-spacing:0.3px;
+      color: var(--gold);
+      font-family: 'Rubik', sans-serif;
+    }
+    .btn {
+      appearance: none; 
+      border: 2px solid var(--gold); 
+      background: transparent; 
+      color: var(--gold);
+      padding: 10px 20px; 
+      border-radius: 50px; 
+      cursor: pointer; 
+      font-size: 13px;
+      font-family: 'Rubik', sans-serif;
+      font-weight: 500;
+      text-transform: uppercase;
+      transition: all 0.3s;
+      letter-spacing: 0.5px;
+    }
+    .btn:hover { 
+      background: var(--gold); 
+      color: #140f23;
+      box-shadow: 0 4px 15px rgba(173, 145, 104, 0.3);
+      transform: translateY(-2px);
+    }
+    .btn:disabled { 
+      opacity: 0.4; 
+      cursor: not-allowed;
+      transform: none;
+    }
+    .small { 
+      font-size: 12px; 
+      color: var(--muted);
+      font-family: 'Rubik', sans-serif;
+    }
+    #gateCard { max-width: 520px; margin: 40px auto; padding: 20px; }
+    #appWrap { display: none; } /* hidden until gate passes */
+    
+    /* Tutorial Modal Styles */
+    .tutorial-button {
+      background: linear-gradient(135deg, var(--purple), var(--gold));
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-family: 'Rubik', sans-serif;
+      font-size: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.3s ease;
+      margin-left: auto;
+    }
+    .tutorial-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(218, 165, 32, 0.3);
+    }
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      z-index: 9999;
+      justify-content: center;
+      align-items: center;
+    }
+    .modal-overlay.active {
+      display: flex;
+    }
+    .modal-content {
+      background: #1a1625;
+      border-radius: 15px;
+      padding: 20px;
+      width: 95%;
+      max-width: 1400px;
+      max-height: 95vh;
+      position: relative;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    }
+    .modal-close {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: white;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      font-size: 24px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s ease;
+      z-index: 10;
+    }
+    .modal-close:hover {
+      background: rgba(255, 255, 255, 0.2);
+      transform: rotate(90deg);
+    }
+    .modal-title {
+      color: var(--gold);
+      font-family: 'Radley', serif;
+      font-size: 24px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    .video-container {
+      width: 100%;
+      margin: 0 auto;
+    }
+    .video-container iframe {
+      width: 100%;
+      height: 75vh;
+      min-height: 600px;
+      border-radius: 10px;
+    }
+    @media (max-width: 768px) {
+      .video-container iframe {
+        height: 60vh;
+        min-height: 400px;
+      }
+      .modal-content {
+        padding: 15px;
+        width: 98%;
+      }
+      .tutorial-button span {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- TruPath Financial Brand Header with Logo -->
+  <div style="text-align: center; margin-bottom: 30px; padding-top: 20px;">
+    <div class="logo-container" style="display: inline-block; position: relative;">
+      <!-- Logo Design -->
+      <div style="text-align: center;">
+        <img src="https://lh3.googleusercontent.com/d/1fXEp_y6Wj8nlMUbEERCNIbW9si_3v0Uw" alt="TruPath Financial Logo" style="height: 180px; width: auto;">
+      </div>
+      <div style="margin-top: 5px;">
+        <p style="font-family: 'Rubik', sans-serif; font-size: 35px; color: #94a3b8; letter-spacing: 3px; text-transform: uppercase; font-weight: 500; margin: 0;">
+          Investment Planning Tool
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Gate -->
+  <div id="gateCard" class="card" style="max-width: 450px; margin: 0 auto 30px;">
+    <h2 style="font-family: 'Radley', serif; font-size: 26px; margin-bottom: 20px; color: var(--gold);">Welcome to Your Future</h2>
+    <div class="muted" style="margin-bottom:20px; font-size: 14px; line-height: 1.6;">
+      Enter your Client ID which is the last 4 numbers of your phone number plus the first two letters of your last name (e.g., 6123LY).
+    </div>
+    <div class="row" style="grid-template-columns: 1fr auto;">
+      <input id="gateId" class="pill" placeholder="Enter your Client ID (e.g., 6123LY)" style="font-size: 14px;">
+      <button id="gateBtn" class="btn">Continue</button>
+    </div>
+    <div id="gateMsg" class="small" style="margin-top:12px; color: var(--bad);"></div>
+  </div>
+
+  <!-- Fallback Name Lookup -->
+  <div id="nameCard" class="card" style="max-width: 450px; margin: 0 auto 30px; display: none;">
+    <h3 style="font-family: 'Radley', serif; font-size: 22px; margin-bottom: 20px; color: var(--gold);">Find Your Account</h3>
+    <div class="muted" style="margin-bottom:20px; font-size: 14px; line-height: 1.6;">
+      Client ID not found. Please enter at least 2 of the following to locate your account:
+    </div>
+    <div style="display: grid; gap: 12px; margin-bottom: 16px;">
+      <input id="nameFirst" class="pill" placeholder="First Name" style="font-size: 14px;">
+      <input id="nameLast" class="pill" placeholder="Last Name" style="font-size: 14px;">
+      <input id="nameEmail" class="pill" placeholder="Email Address" style="font-size: 14px;">
+    </div>
+    <div style="display: flex; gap: 8px; justify-content: flex-end;">
+      <button id="nameBackBtn" class="btn" style="background: transparent; border-color: var(--muted); color: var(--muted);">Back</button>
+      <button id="nameSearchBtn" class="btn">Search</button>
+    </div>
+    <div id="nameMsg" class="small" style="margin-top:12px; color: var(--bad);"></div>
+  </div>
+
+  <!-- App -->
+  <div id="appWrap" class="wrap">
+    <!-- App Header Bar -->
+    <div style="grid-column: 1 / -1; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; padding: 15px 20px; background: rgba(20, 15, 35, 0.6); border-radius: 15px; backdrop-filter: blur(10px);">
+      <div id="welcomeUser" style="font-family: 'Rubik', sans-serif; font-size: 14px; color: #94a3b8;"></div>
+    </div>
+    
+    <!-- LEFT: Controls -->
+    <div class="card">
+      <!-- Section 1: Mode Selection -->
+      <div class="section-box section-1">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div class="badge">🎯 What would you like to calculate?</div>
+            <div class="hr"></div>
+          </div>
+          <div id="welcome" class="small"></div>
+        </div>
+
+        <!-- Modes -->
+        <div class="mode" style="margin-top:8px; display:flex; gap:8px; flex-wrap:nowrap;">
+          <label style="padding: 8px; border: 1px solid #1f2937; border-radius: 6px; cursor: pointer; flex: 1; text-align: center;">
+            <input type="radio" name="mode" value="contrib" checked> 
+            <span style="font-weight: 500;">💰 Monthly Savings</span>
+          </label>
+          <label style="padding: 8px; border: 1px solid #1f2937; border-radius: 6px; cursor: pointer; flex: 1; text-align: center;">
+            <input type="radio" name="mode" value="return"> 
+            <span style="font-weight: 500;">📈 Returns Required</span>
+          </label>
+          <label style="padding: 8px; border: 1px solid #1f2937; border-radius: 6px; cursor: pointer; flex: 1; text-align: center;">
+            <input type="radio" name="mode" value="time"> 
+            <span style="font-weight: 500;">⏱️ Years Required</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Section 2: Top-level Inputs (moved above Four Dials) -->
+      <div class="section-box section-2">
+        <div class="badge">💼 Top-level Inputs</div>
+        <div class="hr"></div>
+
+        <div class="row">
+          <div class="label">Monthly Savings Required</div>
+          <div class="input-with-symbol">
+            <span class="input-symbol prefix">$</span>
+            <input id="capN" type="number" step="50" value="1500">
+          </div>
+        </div>
+        <div class="small muted" style="margin-left:12px; margin-bottom:16px;">How much can you invest each month?</div>
+
+        <div class="row">
+          <div class="label">Current Investment Balance</div>
+          <div class="input-with-symbol">
+            <span class="input-symbol prefix">$</span>
+            <input id="a0N" type="number" step="1000" value="0">
+          </div>
+        </div>
+        <div class="small muted" style="margin-left:12px; margin-bottom:16px;">What you've already saved for retirement</div>
+
+
+      </div>
+
+      <!-- Section 3: Four Dials -->
+      <div class="section-box section-3">
+        <div class="badge">🎛️ Four Dials</div>
+        <div class="hr"></div>
+
+        <!-- Dial 1: Future Monthly Income (real) -->
+        <div class="row">
+          <div>
+            <div class="label">Monthly Retirement Income Goal</div>
+            <input id="income" type="range" min="500" max="40000" step="100" value="10000" />
+          </div>
+          <div class="input-with-symbol">
+            <span class="input-symbol prefix">$</span>
+            <input id="incomeN" type="number" step="100" value="10000">
+          </div>
+        </div>
+        <div class="small muted" style="margin-left:12px; margin-top:-8px; margin-bottom:20px;">In today's dollars want do you want to live on monthly? -  we will adjust for inflation automatically</div>
+
+        <!-- Dial 2: Time to Goal (years) -->
+        <div class="row">
+          <div>
+            <div class="label">Years Until Retirement</div>
+            <input id="years" type="range" min="0" max="60" step="0.1" value="20" />
+          </div>
+          <input id="yearsN" type="number" step="0.1" value="20">
+        </div>
+        <div class="small muted" style="margin-left:12px; margin-top:-8px; margin-bottom:20px;">How many years until you start withdrawing from investments?</div>
+
+        <!-- Dial 3: Risk (0–10) -->
+        <div class="row">
+          <div>
+            <div class="label">Investment Risk Tolerance (0-10)</div>
+            <input id="risk" type="range" min="0" max="10" step="0.1" value="6" />
+          </div>
+          <input id="riskN" type="number" step="0.1" value="6">
+        </div>
+        <div class="small muted" style="margin-left:12px; margin-top:-8px; margin-bottom:12px;">Higher risk = higher potential returns, this will impact your requred return rate</div>
+
+        <!-- Effective accumulation return (conservative) -->
+        <div class="small" style="margin-bottom:20px;">This is the Effective Accumulation Return Rate (conservative): <span id="rAccEffLabel"></span></div>
+
+        <div class="hr"></div>
+        
+        <!-- Custom Return Override Section -->
+        <div style="margin-top:16px; margin-bottom:8px;">
+          <div class="badge">⚠️ Advanced Option</div>
+        </div>
+        
+        <!-- Dial 4: Custom Return override (Pro) -->
+        <div class="row" style="margin-top:8px;">
+          <div>
+            <div class="label">Return Rate Override % (shows Required Return Rate when disabled)</div>
+            <input id="rAccOverride" type="range" min="0" max="30" step="0.1" value="7" disabled />
+          </div>
+          <div class="input-with-symbol percent">
+            <input id="rAccOverrideN" type="number" step="0.1" value="7" disabled>
+            <span class="input-symbol suffix">%</span>
+          </div>
+        </div>
+        <div class="small">
+          <label><input type="checkbox" id="overrideToggle"> Enable custom return override</label>
+        </div>
+        <div class="small muted" style="margin-top:8px; padding:10px; background:rgba(245,158,11,0.1); border-radius:6px; line-height:1.5;">
+          <strong>What this does:</strong> Overrides the automatic risk-to-return calculation with your own return estimate. 
+          Use this if you have specific investment returns in mind that differ from our risk-based projections. 
+          <span style="color:var(--warn);">Note: This disables the Risk dial above.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Outputs -->
+    <div class="card">
+      <!-- Section 4: Your Investment Analysis -->
+      <div class="section-box section-4">
+        <div class="badge">📊 Your Investment Analysis</div>
+        <div class="hr"></div>
+        <div class="grid2 out">
+          <div>Monthly income at retirement <div class="muted small">(adjusted for inflation)</div></div>
+          <div class="num" id="outM0">$—</div>
+
+          <div>Required nest egg at start <div class="muted small">(growing annuity, at a 10% maintenanse rate of return)</div></div>
+          <div class="num" id="outAreq">$—</div>
+
+          <div id="outRowC" style="display:contents;">
+            <div>Monthly Savings Required</div>
+            <div class="num" id="outCreq">$—</div>
+          </div>
+
+          <div id="outRowR" style="display:none;">
+            <div>Target Investment Return Needed</div>
+            <div class="num" id="outRreq">—%</div>
+          </div>
+
+          <div id="outRowT" style="display:none;">
+            <div>Years Needed to Reach Goal</div>
+            <div class="num" id="outTreq">— yrs</div>
+          </div>
+        </div>
+
+        <div class="hr"></div>
+
+        <!-- Feasibility / Risk badges -->
+        <div id="feasBox" class="small" style="margin-top: 12px; padding: 12px; border-radius: 8px; background: rgba(255,255,255,0.03);"></div>
+        <div style="margin-top:10px;" class="small">
+          Risk profile: <span id="riskBadge" class="pill">—</span>
+          <span id="riskExplain" class="muted" style="margin-left:8px;"></span>
+        </div>
+      </div>
+      
+      <!-- Scenario Management -->
+      <div class="section-box section-5">
+        <div class="badge">📂 Scenario Management</div>
+        <div class="hr"></div>
+        
+        <div style="margin-top:12px;">
+          <div class="small" style="margin-bottom:6px; font-weight:500; color:#94a3b8;">Load Saved Scenario:</div>
+          <select id="scenarioList" class="pill" style="width:100%; margin-bottom:16px;">
+            <option value="">-- Select a saved scenario here--</option>
+          </select>
+        </div>
+        
+        <div style="margin-bottom:8px;">
+          <div class="small" style="margin-bottom:6px; font-weight:500; color:#94a3b8;">Current Scenario Name:</div>
+          <input id="scnName" placeholder="Name this scenario" class="pill" style="width:100%;" />
+        </div>
+        
+        <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:center;">
+          <button class="btn" id="saveBtn" title="Save current settings">💾 Save</button>
+          <button class="btn" id="loadBtn" title="Load selected scenario" disabled>📂 Load</button>
+          <button class="btn" id="reportBtn" title="Generate PDF report">📄 Generate PDF</button>
+        </div>
+        
+        <div id="scenarioMsg" class="small" style="margin-top:8px; min-height:20px; color: var(--accent);"></div>
+      </div>
+
+      <!-- Scenario Comparison Section -->
+      <div class="section-box section-6">
+        <div class="badge">⚖️ Compare Two Scenarios</div>
+        <div class="hr"></div>
+        <div id="compareSection">
+          <div class="small muted" style="margin-bottom:8px;">Select 2 saved scenarios to compare side-by-side:</div>
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-bottom:8px;">
+            <select id="compareScenario1" class="pill">
+              <option value="">-- Select Scenario 1 --</option>
+            </select>
+            <select id="compareScenario2" class="pill">
+              <option value="">-- Select Scenario 2 --</option>
+            </select>
+          </div>
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
+            <button class="btn" id="viewCompareBtn" title="View comparison" disabled>👁️ View Comparison</button>
+            <button class="btn" id="compareBtn" title="Generate PDF report" disabled>📑 Generate PDF</button>
+          </div>
+          <div id="compareMsg" class="small" style="margin-top:8px; color: var(--accent);"></div>
+          
+          <!-- On-site Comparison View -->
+          <div id="comparisonView" style="display:none; margin-top:16px; padding:12px; background:rgba(255,255,255,0.03); border-radius:8px; border:1px solid var(--border);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+              <h3 style="margin:0; font-size:16px; color:var(--accent);">📊 Quick Comparison</h3>
+              <button class="btn" id="hideCompareBtn" style="padding:4px 8px; font-size:12px;">✕ Hide</button>
+            </div>
+            <div id="comparisonContent"></div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Advanced Settings Section (Moved to bottom left, collapsible) -->
+      <div class="section-box section-7" style="grid-column: 1;">
+        <details id="advancedDetails">
+          <summary class="badge" style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; width: 100%;">
+            <span style="display: flex; align-items: center; gap: 8px;">⚙️ Advanced Settings</span>
+            <span style="color: white; font-size: 13px; font-weight: 500;">Click to open</span>
+          </summary>
+          <div class="hr"></div>
+          <div style="padding: 8px 0;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+              <p class="small" style="margin: 0;">Adjust these parameters to fine-tune your retirement calculations. These are typically set once and rarely changed.</p>
+              <button id="resetDefaultsBtn" class="btn" style="padding: 4px 8px; font-size: 11px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);" title="Reset all settings to default values">🔄 Reset</button>
+            </div>
+            
+            <div class="ctrl">
+              <label for="inflAdv">Inflation Rate</label>
+              <div class="small muted" style="margin-bottom: 6px;">Annual cost of living increase that reduces purchasing power over time</div>
+              <div style="display:flex; gap:8px; align-items:center;">
+                <input type="range" id="inflAdv" min="0" max="10" step="0.1" value="2.5" />
+                <input type="number" id="inflAdvN" min="0" max="10" step="0.1" value="2.5" class="pill" style="width:80px;" />
+                <span class="small">%</span>
+              </div>
+            </div>
+            
+            <div class="ctrl">
+              <label for="drawAdv">Retirement Duration</label>
+              <div class="small muted" style="margin-bottom: 6px;">Expected length of retirement period when withdrawing from savings</div>
+              <div style="display:flex; gap:8px; align-items:center;">
+                <input type="range" id="drawAdv" min="10" max="50" step="1" value="30" />
+                <input type="number" id="drawAdvN" min="10" max="50" step="1" value="30" class="pill" style="width:80px;" />
+                <span class="small">years</span>
+              </div>
+            </div>
+            
+            <div class="ctrl">
+              <label for="rRetAdv">Maintenance Rate (Retirement Phase Return)</label>
+              <div class="small muted" style="margin-bottom: 6px;">Conservative annual return during retirement when preserving capital</div>
+              <div style="display:flex; gap:8px; align-items:center;">
+                <input type="range" id="rRetAdv" min="0" max="20" step="0.1" value="10" />
+                <input type="number" id="rRetAdvN" min="0" max="20" step="0.1" value="10" class="pill" style="width:80px;" />
+                <span class="small">%</span>
+              </div>
+            </div>
+            
+            <div class="ctrl">
+              <label for="dragAdv">Deployment Drag (Conservative Pacing)</label>
+              <div class="small muted" style="margin-bottom: 6px;">Reduction in effective returns due to gradual investment deployment</div>
+              <div style="display:flex; gap:8px; align-items:center;">
+                <input type="range" id="dragAdv" min="0" max="50" step="1" value="25" />
+                <input type="number" id="dragAdvN" min="0" max="50" step="1" value="25" class="pill" style="width:80px;" />
+                <span class="small">%</span>
+              </div>
+            </div>
+            
+            <div class="small" style="margin-top: 12px; padding: 8px; background: rgba(255,255,255,0.03); border-radius: 4px;">
+              <strong>Note:</strong> These settings affect all calculations. Defaults are based on conservative assumptions suitable for most retirement planning scenarios.
+            </div>
+          </div>
+        </details>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ===== Settings =====
+    const SETTINGS = {
+      inflation: 0.025, rRet: 0.10, drawYears: 30,
+      deploymentDrag: 0.20, cashOnDrag: 0.05,
+      riskMap: { rMin: 0.045, rMax: 0.25, k: 0.6, m: 5 },
+      rSolveRange: [0.0001, 0.30], tSolveRange: [0.01, 60],
+      riskBands: [
+        { min: 0,   max: 2,   label: 'Very Low Risk/Low Returns', explain: 'Cash/T-bills/IG credit; low vol; high liquidity.' },
+        { min: 2,   max: 4,   label: 'Steady Returns',            explain: 'Fixed Funds' },
+        { min: 4,   max: 6,   label: 'Growth Backed by Hard Assets', explain: 'Multi-Family Real Estate' },
+        { min: 6,   max: 8,   label: 'High Growth',               explain: 'Hedge Fund' },
+        { min: 8,   max: 10.1,label: 'High Risk/High Reward',     explain: 'Private Equity' },
+      ],
+    };
+
+    // ===== Utils =====
+    const fmtUSD = n => isFinite(n) ? n.toLocaleString(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }) : '—';
+    const fmtPct = x => isFinite(x) ? (100 * x).toFixed(2) + '%' : '—';
+    const fmtPctWhole = x => isFinite(x) ? Math.round(100 * x) + '%' : '—';
+    const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
+    const nearlyEqual = (a,b,eps=1e-4) => Math.abs(a-b) < eps;
+    const sigmoid = x => 1 / (1 + Math.exp(-x));
+    const logit = p => Math.log(p / (1 - p));
+
+    function returnFromRisk(R, map = SETTINGS.riskMap) {
+      const r = clamp(R, 0, 10);
+      const x = sigmoid(map.k * (r - map.m));
+      return map.rMin + (map.rMax - map.rMin) * x; // target strategy return
+    }
+    function riskFromReturn(r, map = SETTINGS.riskMap) {
+      const p = (r - map.rMin) / (map.rMax - map.rMin);
+      if (p <= 0) return 0;
+      if (p >= 1) return 10;
+      return clamp(map.m + (1 / map.k) * logit(p), 0, 10);
+    }
+    function effectiveAccReturn(rAcc, drag = SETTINGS.deploymentDrag, cash = SETTINGS.cashOnDrag) {
+      return rAcc * (1 - drag) + cash * drag;
+    }
+    function requiredNestEgg(M_real, T, infl, rRet, D) {
+      const M0 = M_real * Math.pow(1 + infl, T);
+      if (!(rRet > infl)) return NaN;
+      const j = rRet / 12, g = infl / 12;
+      const num = 1 - Math.pow((1 + g) / (1 + j), 12 * D);
+      return 12 * M0 * (num / (rRet - infl));
+    }
+    function fvA0(A0, rEff, T) { return A0 * Math.pow(1 + rEff, T); }
+    function fvContrib(C, rEff, T) {
+      const i = rEff / 12;
+      if (Math.abs(i) < 1e-12) return C * 12 * T;
+      return C * ((Math.pow(1 + i, 12 * T) - 1) / i);
+    }
+    function requiredContribution(Areq, A0, rEff, T) {
+      const target = Areq - fvA0(A0, rEff, T);
+      if (target <= 0) return 0;
+      
+      // Handle T = 0 case (retiring immediately)
+      if (T === 0) {
+        // With no time to save, required contribution is infinite if there's a gap
+        return target > 0 ? Infinity : 0;
+      }
+      
+      const i = rEff / 12;
+      if (Math.abs(i) < 1e-12) return target / (12 * T);
+      const factor = (Math.pow(1 + i, 12 * T) - 1) / i;
+      return target / factor;
+    }
+
+    // ✅ FIXED: added missing ')' so JS parses and runs
+    function solveBisection(f, lo, hi, tol = 1e-8, maxIt = 100) {
+      let flo = f(lo), fhi = f(hi);
+      if (!isFinite(flo) || !isFinite(fhi)) return NaN;  // <-- correct parentheses
+      if (flo * fhi > 0) return NaN; // must bracket
+      for (let k = 0; k < maxIt; k++) {
+        const mid = 0.5 * (lo + hi);
+        const fm = f(mid);
+        if (!isFinite(fm)) return NaN;
+        if (Math.abs(fm) < tol) return mid;
+        if (flo * fm <= 0) { hi = mid; fhi = fm; } else { lo = mid; flo = fm; }
+      }
+      return 0.5 * (lo + hi);
+    }
+
+    // ===== DOM =====
+    const el = id => document.getElementById(id);
+
+    // Gate
+    const gateCard = el('gateCard'), gateId = el('gateId'), gateBtn = el('gateBtn'), gateMsg = el('gateMsg');
+    const nameCard = el('nameCard'), nameFirst = el('nameFirst'), nameLast = el('nameLast'), nameEmail = el('nameEmail');
+    const nameSearchBtn = el('nameSearchBtn'), nameBackBtn = el('nameBackBtn'), nameMsg = el('nameMsg');
+    const appWrap = el('appWrap'), welcome = el('welcome');
+
+    // Inputs
+    const income = el('income'), incomeN = el('incomeN');
+    const years  = el('years'),  yearsN  = el('yearsN');
+    const risk   = el('risk'),   riskN   = el('riskN');
+    const rAccOverride  = el('rAccOverride'),  rAccOverrideN = el('rAccOverrideN');
+    const overrideToggle= el('overrideToggle');
+    const capN = el('capN'); const a0N = el('a0N');
+    // Removed inflN, drawN, rRetN - now using Advanced Settings controls
+    const scnName = el('scnName'); const saveBtn = el('saveBtn');
+    const scenarioList = el('scenarioList'); const loadBtn = el('loadBtn');
+    const scenarioMsg = el('scenarioMsg');
+    
+    // Advanced Settings
+    const inflAdv = el('inflAdv'), inflAdvN = el('inflAdvN');
+    const drawAdv = el('drawAdv'), drawAdvN = el('drawAdvN');
+    const rRetAdv = el('rRetAdv'), rRetAdvN = el('rRetAdvN');
+    const dragAdv = el('dragAdv'), dragAdvN = el('dragAdvN');
+
+    // Outputs
+    const outM0 = el('outM0'), outAreq = el('outAreq');
+    const outCreq = el('outCreq'), outRreq = el('outRreq'), outTreq = el('outTreq');
+    const outRowC = el('outRowC'), outRowR = el('outRowR'), outRowT = el('outRowT');
+    const riskBadge = el('riskBadge'), riskExplain = el('riskExplain');
+    const rAccEffLabel = el('rAccEffLabel'), feasBox = el('feasBox');
+
+    // Session state
+    let student = { firstName: '', lastName: '', email: '', id: '' };
+    let lastScenario = null;
+
+    // ===== Gate logic =====
+    function proceedToApp(studentData) {
+      student = {
+        firstName: studentData.firstName || '',
+        lastName:  studentData.lastName  || '',
+        email:     studentData.email     || '',
+        id:        studentData.normalizedId || studentData.id
+      };
+      welcome.textContent = `Welcome, ${student.firstName} ${student.lastName} (${student.email}) — ID: ${student.id}`;
+      const welcomeUser = document.getElementById('welcomeUser');
+      if (welcomeUser) {
+        welcomeUser.textContent = `Welcome, ${student.firstName} ${student.lastName}`;
+      }
+      gateCard.style.display = 'none';
+      nameCard.style.display = 'none';
+      appWrap.style.display  = 'grid';
+      // Ensure initial payload is created (with clientId)
+      recalc();
+      // Load user's saved scenarios
+      loadUserScenarios();
+    }
+
+    gateBtn.addEventListener('click', () => {
+      const id = (gateId.value || '').trim();
+      gateMsg.textContent = 'Checking…';
+      if (!google || !google.script || !google.script.run) {
+        gateMsg.innerHTML = '<span class="bad">Cannot contact server (google.script.run unavailable).</span>';
+        return;
+      }
+      google.script.run
+        .withSuccessHandler(res => {
+          if (res && res.ok) {
+            proceedToApp(res);
+          } else {
+            // ID lookup failed - show name search option
+            gateMsg.innerHTML = `<span class="bad" style="font-size: 14px; line-height: 1.6;">${(res && res.error) ? res.error : 'Lookup failed.'}</span><br>`;
+            gateMsg.innerHTML += '<span style="color: var(--accent); cursor: pointer; text-decoration: underline; font-size: 14px; line-height: 1.6;" onclick="showNameSearch()">Try searching by name instead</span>';
+          }
+        })
+        .withFailureHandler(err => {
+          gateMsg.innerHTML = `<span class="bad" style="font-size: 14px; line-height: 1.6;">Error: ${err}</span>`;
+        })
+        .lookupStudentById(id);
+    });
+
+    // Show name search form
+    function showNameSearch() {
+      gateCard.style.display = 'none';
+      nameCard.style.display = 'block';
+      nameMsg.textContent = '';
+      nameFirst.value = '';
+      nameLast.value = '';
+      nameEmail.value = '';
+    }
+
+    // Back to ID search
+    nameBackBtn.addEventListener('click', () => {
+      nameCard.style.display = 'none';
+      gateCard.style.display = 'block';
+      gateMsg.textContent = '';
+    });
+
+    // Name search handler
+    nameSearchBtn.addEventListener('click', () => {
+      const firstName = (nameFirst.value || '').trim();
+      const lastName = (nameLast.value || '').trim();
+      const email = (nameEmail.value || '').trim();
+      
+      // Count how many fields were provided
+      let fieldsProvided = 0;
+      if (firstName) fieldsProvided++;
+      if (lastName) fieldsProvided++;
+      if (email) fieldsProvided++;
+      
+      if (fieldsProvided < 2) {
+        nameMsg.innerHTML = '<span class="bad">Please enter at least 2 fields (e.g., first name AND last name, or last name AND email).</span>';
+        return;
+      }
+      
+      nameMsg.textContent = 'Searching…';
+      
+      if (!google || !google.script || !google.script.run) {
+        nameMsg.innerHTML = '<span class="bad">Cannot contact server (google.script.run unavailable).</span>';
+        return;
+      }
+      
+      google.script.run
+        .withSuccessHandler(res => {
+          if (res && res.ok) {
+            nameMsg.innerHTML = `<span style="color: var(--ok);">Found: ${res.firstName} ${res.lastName} (matched by ${res.matchType})</span>`;
+            setTimeout(() => proceedToApp(res), 1000);
+          } else {
+            nameMsg.innerHTML = `<span class="bad">${(res && res.error) ? res.error : 'Search failed.'}</span>`;
+            
+            // If multiple matches, show them
+            if (res && res.matches && res.matches.length > 0) {
+              let matchHTML = '<br><div class="small" style="margin-top: 8px;">Possible matches:</div>';
+              res.matches.slice(0, 3).forEach(match => {
+                matchHTML += `<div class="small" style="margin-top: 4px; color: var(--muted);">• ${match.firstName} ${match.lastName} (${match.email})</div>`;
+              });
+              nameMsg.innerHTML += matchHTML;
+            }
+          }
+        })
+        .withFailureHandler(err => {
+          nameMsg.innerHTML = `<span class="bad">Search error: ${err}</span>`;
+        })
+        .lookupStudentByName(firstName, lastName, email);
+    });
+
+    // ===== Inputs sync & listeners =====
+    function bindPair(range, number, onChange) {
+      const sync = v => { range.value = v; number.value = v; onChange?.(); };
+      range.addEventListener('input', () => sync(range.value));
+      number.addEventListener('input', () => sync(number.value));
+      return v => sync(v);
+    }
+    const syncIncome = bindPair(income, incomeN, recalc);
+    const syncYears  = bindPair(years,  yearsN,  recalc);
+    const syncRisk   = bindPair(risk,   riskN,   recalc);
+    // Custom return override needs special handling for percentage display
+    const syncRAccO = v => { 
+      rAccOverride.value = v; 
+      rAccOverrideN.value = v; 
+      
+      // If custom override is enabled, update the risk slider to show equivalent risk level
+      if (overrideToggle.checked) {
+        const returnRate = parseFloat(v) / 100; // Convert percentage to decimal
+        const equivalentRisk = riskFromReturn(returnRate);
+        // Update risk slider visually (but don't trigger recalc to avoid loop)
+        risk.value = equivalentRisk;
+        riskN.value = equivalentRisk.toFixed(1);
+        setRiskBadges(equivalentRisk);
+      }
+      
+      recalc(); 
+    };
+    rAccOverride.addEventListener('input', () => syncRAccO(rAccOverride.value));
+    rAccOverrideN.addEventListener('input', () => syncRAccO(rAccOverrideN.value));
+
+    overrideToggle.addEventListener('change', () => {
+      const on = overrideToggle.checked;
+      rAccOverride.disabled = !on;
+      rAccOverrideN.disabled = !on;
+      
+      if (on) {
+        // When enabling override, update risk slider to show equivalent risk level
+        const returnRate = parseFloat(rAccOverrideN.value) / 100;
+        const equivalentRisk = riskFromReturn(returnRate);
+        risk.value = equivalentRisk;
+        riskN.value = equivalentRisk.toFixed(1);
+        setRiskBadges(equivalentRisk);
+      }
+      
+      recalc();
+    });
+    [capN, a0N].forEach(inp => inp.addEventListener('input', recalc));
+    Array.from(document.querySelectorAll('input[name="mode"]')).forEach(r => r.addEventListener('change', recalc));
+    scnName.addEventListener('input', recalc);
+    
+    // Advanced Settings event handlers
+    const syncInflAdv = bindPair(inflAdv, inflAdvN, () => {
+      SETTINGS.inflation = parseFloat(inflAdvN.value) / 100;
+      recalc();
+    });
+    const syncDrawAdv = bindPair(drawAdv, drawAdvN, () => {
+      SETTINGS.drawYears = parseFloat(drawAdvN.value);
+      recalc();
+    });
+    const syncRRetAdv = bindPair(rRetAdv, rRetAdvN, () => {
+      SETTINGS.rRet = parseFloat(rRetAdvN.value) / 100;
+      recalc();
+    });
+    const syncDragAdv = bindPair(dragAdv, dragAdvN, () => {
+      SETTINGS.deploymentDrag = parseFloat(dragAdvN.value) / 100;
+      recalc();
+    });
+    
+    // Advanced Settings UI enhancements
+    const advancedDetails = document.getElementById('advancedDetails');
+    const resetDefaultsBtn = document.getElementById('resetDefaultsBtn');
+    
+    // Update "Click to open" text based on details state
+    const updateAdvancedSummary = () => {
+      const clickToOpenSpan = advancedDetails.querySelector('summary span:last-child');
+      if (advancedDetails.open) {
+        clickToOpenSpan.textContent = 'Click to close';
+        clickToOpenSpan.style.color = 'white';
+        clickToOpenSpan.style.fontSize = '13px';
+        clickToOpenSpan.style.fontWeight = '500';
+      } else {
+        clickToOpenSpan.textContent = 'Click to open';
+        clickToOpenSpan.style.color = 'white';
+        clickToOpenSpan.style.fontSize = '13px';
+        clickToOpenSpan.style.fontWeight = '500';
+      }
+    };
+    
+    // Listen for details toggle
+    advancedDetails.addEventListener('toggle', updateAdvancedSummary);
+    
+    // Reset defaults functionality
+    resetDefaultsBtn.addEventListener('click', () => {
+      // Reset to default values
+      inflAdv.value = 2.5;
+      inflAdvN.value = 2.5;
+      SETTINGS.inflation = 0.025;
+      
+      drawAdv.value = 30;
+      drawAdvN.value = 30;
+      SETTINGS.drawYears = 30;
+      
+      rRetAdv.value = 10;
+      rRetAdvN.value = 10;
+      SETTINGS.rRet = 0.10;
+      
+      dragAdv.value = 25;
+      dragAdvN.value = 25;
+      SETTINGS.deploymentDrag = 0.25;
+      
+      // Show feedback
+      resetDefaultsBtn.textContent = '✓ Reset';
+      setTimeout(() => {
+        resetDefaultsBtn.textContent = '🔄 Reset';
+      }, 1500);
+      
+      recalc();
+    });
+
+    function setRiskBadges(R) {
+      const band = SETTINGS.riskBands.find(b => R >= b.min && R < b.max) || SETTINGS.riskBands[SETTINGS.riskBands.length - 1];
+      riskBadge.textContent = `${band.label} (R=${(+R).toFixed(1)})`;
+      riskExplain.textContent = band.explain;
+    }
+    function currentMode() {
+      const r = document.querySelector('input[name="mode"]:checked');
+      return r ? r.value : 'contrib';
+    }
+
+    function recalc() {
+      const M_real = parseFloat(incomeN.value) || 0;
+      const T      = Math.max(0, parseFloat(yearsN.value) || 0);
+      const R      = parseFloat(riskN.value) || 0;
+      const infl   = SETTINGS.inflation;  // Now controlled by Advanced Settings
+      const D      = SETTINGS.drawYears;  // Now controlled by Advanced Settings
+      const rRet   = SETTINGS.rRet;       // Now controlled by Advanced Settings
+      const C_cap  = Math.max(0, parseFloat(capN.value) || 0);
+      const A0     = Math.max(0, parseFloat(a0N.value) || 0);
+      const auto   = true; // Always auto-apply for client-facing tool
+
+      const useOverride  = overrideToggle.checked;
+      const rAccTarget   = useOverride ? Math.max(0, (parseFloat(rAccOverrideN.value) || 0) / 100) : returnFromRisk(R);
+      const rAccEff      = effectiveAccReturn(rAccTarget);
+
+      rAccEffLabel.textContent = fmtPctWhole(rAccEff);
+      setRiskBadges(useOverride ? riskFromReturn(rAccTarget) : R);
+
+      if (!(rRet > infl)) {
+        outM0.textContent = '$—';
+        outAreq.textContent = '—';
+        outCreq.textContent = '—';
+        outRreq.textContent = '—';
+        outTreq.textContent = '—';
+        feasBox.innerHTML = `<span class="bad">Maintenance return must exceed inflation. Increase r<sub>ret</sub> or lower inflation.</span>`;
+        return;
+      }
+
+      const M0 = M_real * Math.pow(1 + infl, T);
+      const Areq = requiredNestEgg(M_real, T, infl, rRet, D);
+      outM0.textContent = fmtUSD(M0);
+      outAreq.textContent = fmtUSD(Areq);
+      
+      // Update custom override dial to show required return when disabled
+      // This helps users visualize what return they would need
+      if (!useOverride && C_cap > 0 && isFinite(Areq)) {
+        const requiredReturnSolve = solveReturnAtCapacity(Areq, A0, T, C_cap);
+        if (isFinite(requiredReturnSolve.value)) {
+          const percentValue = Math.min(30, Math.max(0, requiredReturnSolve.value * 100)).toFixed(1);
+          rAccOverride.value = percentValue;
+          rAccOverrideN.value = percentValue;
+        }
+      }
+
+      const mode = currentMode();
+      outRowC.style.display = (mode === 'contrib') ? 'contents' : 'none';
+      outRowR.style.display = (mode === 'return')  ? 'block'    : 'none';
+      outRowT.style.display = (mode === 'time')    ? 'block'    : 'none';
+
+      let msg = `<span class="small">Conservative pacing applied.</span>`;
+      let rSolvedVal = ''; let tSolvedVal = ''; let CreqVal = '';
+      
+      // Special handling for T = 0 (immediate retirement)
+      if (T === 0) {
+        const currentBalanceEnough = A0 >= Areq;
+        if (currentBalanceEnough) {
+          msg = `<span class="ok" style="font-weight:600;">✅ Ready to Retire!</span><br>
+                 Your current balance of <b>${fmtUSD(A0)}</b> meets the required <b>${fmtUSD(Areq)}</b>.<br>
+                 <span class="small">Note: With 0 years, there's no time for growth. To model returns on your balance, set Years > 0.</span>`;
+        } else {
+          const gap = Areq - A0;
+          msg = `<span class="warn" style="font-weight:600;">⚠️ Immediate Retirement Analysis</span><br>
+                 Current balance: <b>${fmtUSD(A0)}</b><br>
+                 Required for retirement: <b>${fmtUSD(Areq)}</b><br>
+                 Shortfall: <b style="color:var(--bad)">${fmtUSD(gap)}</b><br>
+                 <span class="small" style="color:var(--accent);">💡 Tip: To see how returns affect your balance over time, set Years > 0. 
+                 For example, try 5 or 10 years to see growth potential at different risk levels.</span>`;
+        }
+        feasBox.innerHTML = msg;
+        return;
+      }
+
+      if (mode === 'contrib') {
+        const Creq = requiredContribution(Areq, A0, rAccEff, T);
+        CreqVal = Creq;
+        // Handle infinity when T=0 and there's a gap
+        outCreq.textContent = isFinite(Creq) ? fmtUSD(Creq) : 'N/A (no time)';
+
+        // Auto-apply updates the capacity input to match requirement
+        let effectiveCapacity = C_cap;
+        if (auto && isFinite(Creq)) {
+          // When auto-apply is on, set capacity to exactly match requirement
+          effectiveCapacity = Creq; // Use exact value for comparison
+          capN.value = Math.round(Creq); // Display rounded value in input
+        }
+
+        if (effectiveCapacity > 0 || C_cap > 0) {
+          const tolerance = 1; // $1 tolerance for floating point comparison
+          const gap = effectiveCapacity - Creq;
+          
+          if (Math.abs(gap) <= tolerance) {
+            // Exactly on target (within tolerance)
+            msg = `<span class="ok" style="font-weight:600;">✅ Perfect Match!</span><br>Your capacity exactly meets the requirement. <span class="small">Consider adding a small buffer for flexibility.</span>`;
+          } else if (gap > 0) {
+            // Surplus - feasible with headroom
+            msg = `<span class="ok" style="font-weight:600;">✅ Feasible - You're on track!</span><br>Surplus vs required: <b>${fmtUSD(gap)}</b>/mo. <span class="small">Conservative pacing applied.</span>`;
+          } else {
+            // Shortfall - not feasible
+            const shortfall = Math.abs(gap);
+            const rSolve = solveReturnAtCapacity(Areq, A0, T, effectiveCapacity);
+            const tSolve = solveTimeAtCapacity(Areq, A0, rAccEff, effectiveCapacity);
+            tSolvedVal = tSolve.value;
+            msg = `<span class="bad" style="font-weight:600;">❌ Not Feasible - Adjustments needed</span><br>Shortfall: <b>${fmtUSD(shortfall)}</b>/mo.
+              <br>• Target return needed at capacity: <b>${fmtPct(rSolve.value)}</b> ${rSolve.flag || ''}
+              <br>• Time needed at capacity (effective return): <b>${(tSolve.value).toFixed(1)} yrs</b>`;
+          }
+        }
+
+      } else if (mode === 'return') {
+        const rS = solveReturnAtCapacity(Areq, A0, T, C_cap);
+        rSolvedVal = rS.value;
+        outRreq.textContent = isFinite(rS.value) ? fmtPctWhole(rS.value) : '—';
+
+        if (isFinite(rS.value)) {
+          if (useOverride) {
+            if (auto && !nearlyEqual((parseFloat(rAccOverrideN.value) / 100), rS.value, 1e-4)) {
+              const percentValue = (rS.value * 100).toFixed(1);
+              rAccOverride.value = percentValue;
+              rAccOverrideN.value = percentValue;
+            }
+          } else {
+            const newR = riskFromReturn(rS.value);
+            if (auto && !nearlyEqual(parseFloat(riskN.value), newR, 0.05)) {
+              risk.value = newR.toFixed(1);
+              riskN.value = newR.toFixed(1);
+            }
+          }
+        }
+
+        msg = rS.ok
+          ? `<span class="ok" style="font-weight:600;">✅ Feasible</span><br>Required <b>target</b> return: <b>${fmtPct(rS.value)}</b> ${useOverride ? '(applied to override)' : '(Risk dial adjusted)'}. <span class="small">Conservative pacing applied.</span>`
+          : `<span class="bad">Required return exceeds search bound (${fmtPct(SETTINGS.rSolveRange[1])}).</span> Consider more time, higher capacity, or lower target.`;
+
+      } else if (mode === 'time') {
+        const tS = solveTimeAtCapacity(Areq, A0, rAccEff, C_cap);
+        tSolvedVal = tS.value;
+        outTreq.textContent = isFinite(tS.value) ? `${Math.round(tS.value)} yrs` : '—';
+
+        if (isFinite(tS.value) && auto && !nearlyEqual(parseFloat(yearsN.value), tS.value, 0.05)) {
+          years.value = tS.value.toFixed(1);
+          yearsN.value = tS.value.toFixed(1);
+        }
+
+        msg = tS.ok
+          ? `<span class="ok" style="font-weight:600;">✅ Feasible</span><br>Required years: <b>${Math.round(tS.value)}</b> (Time dial adjusted). <span class="small">Conservative pacing applied.</span>`
+          : `<span class="bad">Even at current effective return (${fmtPct(rAccEff)}), capacity is too low up to ${SETTINGS.tSolveRange[1]} yrs.</span>`;
+      }
+      feasBox.innerHTML = msg;
+
+      // Save payload (always refresh before a save)
+      lastScenario = {
+        // personalization
+        firstName: student.firstName, lastName: student.lastName, email: student.email, clientId: student.id,
+
+        // scenario + dials/inputs
+        name: scnName.value || '',
+        M_real: M_real, T: parseFloat(yearsN.value), risk: parseFloat(riskN.value),
+        C_cap: parseFloat(capN.value), A0, infl, D, rRet,
+        rAccTarget, rAccEff,
+
+        // outputs
+        M0, Areq,
+        Creq: (mode === 'contrib') ? CreqVal : '',
+        rSolved: (mode === 'return') ? rSolvedVal : '',
+        tSolved: (mode === 'time')   ? tSolvedVal  : '',
+        mode
+      };
+    }
+
+    // Solve for TARGET return r so EFFECTIVE return achieves Areq at capacity
+    function solveReturnAtCapacity(Areq, A0, T, Ccap) {
+      const f = r => {
+        const rEff = effectiveAccReturn(r);
+        return fvA0(A0, rEff, T) + fvContrib(Ccap, rEff, T) - Areq;
+      };
+      const [lo, hi] = SETTINGS.rSolveRange;
+      const flo = f(lo), fhi = f(hi);
+      if (!(flo <= 0 && fhi >= 0)) {
+        return { ok: false, value: NaN, flag: '' };
+      }
+      const r = solveBisection(f, lo, hi);
+      let flag = '';
+      if (isFinite(r) && r > SETTINGS.riskMap.rMax) {
+        flag = `<span class="warn">(beyond dial ceiling ${fmtPct(SETTINGS.riskMap.rMax)}; Risk pinned at 10)</span>`;
+      }
+      return { ok: isFinite(r), value: r, flag };
+    }
+
+    // Solve for Time using current EFFECTIVE return (from current dial/override)
+    function solveTimeAtCapacity(Areq, A0, rEff, Ccap) {
+      const f = T => fvA0(A0, rEff, T) + fvContrib(Ccap, rEff, T) - Areq;
+      const [lo, hi] = SETTINGS.tSolveRange;
+      const flo = f(lo), fhi = f(hi);
+      if (!(flo <= 0 && fhi >= 0)) {
+        return { ok: false, value: NaN };
+      }
+      const Tsol = solveBisection(f, lo, hi);
+      return { ok: isFinite(Tsol), value: Tsol };
+    }
+
+    // Load saved scenarios for this user
+    function loadUserScenarios() {
+      // Use student.id directly since lastScenario might not be initialized yet
+      if (!student.id) return;
+      
+      if (google && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(scenarios => {
+            scenarioList.innerHTML = '<option value="">-- Select a saved scenario --</option>';
+            
+            // Also update comparison dropdowns
+            const compareS1 = document.getElementById('compareScenario1');
+            const compareS2 = document.getElementById('compareScenario2');
+            compareS1.innerHTML = '<option value="">-- Select Scenario 1 --</option>';
+            compareS2.innerHTML = '<option value="">-- Select Scenario 2 --</option>';
+            
+            if (scenarios && scenarios.length > 0) {
+              scenarios.forEach((scn, idx) => {
+                const option = document.createElement('option');
+                option.value = idx;
+                option.textContent = scn.name || `Scenario ${idx + 1}`;
+                option.dataset.scenario = JSON.stringify(scn);
+                scenarioList.appendChild(option);
+                
+                // Add to comparison dropdowns
+                const option1 = option.cloneNode(true);
+                const option2 = option.cloneNode(true);
+                option1.dataset.scenario = JSON.stringify(scn);
+                option2.dataset.scenario = JSON.stringify(scn);
+                compareS1.appendChild(option1);
+                compareS2.appendChild(option2);
+              });
+              scenarioMsg.textContent = `Found ${scenarios.length} saved scenario(s)`;
+              setTimeout(() => scenarioMsg.textContent = '', 5000);
+            } else {
+              scenarioMsg.textContent = 'No saved scenarios yet';
+              setTimeout(() => scenarioMsg.textContent = '', 3000);
+            }
+          })
+          .withFailureHandler(err => {
+            console.error('Failed to load scenarios:', err);
+            scenarioMsg.textContent = 'Error loading scenarios';
+            setTimeout(() => scenarioMsg.textContent = '', 3000);
+          })
+          .getUserScenarios(student.id);
+      }
+    }
+    
+    // Handle scenario selection
+    scenarioList.addEventListener('change', () => {
+      const selected = scenarioList.selectedOptions[0];
+      if (selected && selected.value) {
+        loadBtn.disabled = false;
+        const scn = JSON.parse(selected.dataset.scenario || '{}');
+        if (scn.name) {
+          scenarioMsg.textContent = `Selected: ${scn.name}`;
+        }
+      } else {
+        loadBtn.disabled = true;
+        scenarioMsg.textContent = '';
+      }
+    });
+    
+    // Load selected scenario
+    loadBtn.addEventListener('click', () => {
+      const selected = scenarioList.selectedOptions[0];
+      if (selected && selected.dataset.scenario) {
+        const scn = JSON.parse(selected.dataset.scenario);
+        // Load the values into the dials
+        if (scn.M_real) { syncIncome(scn.M_real); incomeN.value = scn.M_real; }
+        if (scn.T) { syncYears(scn.T); yearsN.value = scn.T; }
+        if (scn.risk !== undefined) { syncRisk(scn.risk); riskN.value = scn.risk; }
+        if (scn.C_cap !== undefined) capN.value = scn.C_cap;
+        if (scn.A0 !== undefined) a0N.value = scn.A0;
+        if (scn.infl !== undefined) {
+          inflAdvN.value = (scn.infl * 100).toFixed(1); // Convert decimal to percentage
+          inflAdv.value = (scn.infl * 100).toFixed(1);
+          SETTINGS.inflation = scn.infl;
+        }
+        if (scn.D !== undefined) {
+          drawAdvN.value = scn.D;
+          drawAdv.value = scn.D;
+          SETTINGS.drawYears = scn.D;
+        }
+        if (scn.name) scnName.value = scn.name;
+        
+        scenarioMsg.textContent = `Loaded: ${scn.name || 'Unnamed scenario'}`;
+        setTimeout(() => scenarioMsg.textContent = '', 3000);
+        recalc();
+      }
+    });
+    
+    // Save scenario (ALWAYS recalc just before sending so name/ID are current)
+    let isSaving = false; // Prevent double-clicks
+    saveBtn.addEventListener('click', () => {
+      // Prevent multiple simultaneous saves
+      if (isSaving) {
+        console.log('Save already in progress...');
+        return;
+      }
+      
+      recalc(); // ensure lastScenario reflects latest Scenario Name and inputs
+      if (!google || !google.script || !google.script.run) {
+        alert('google.script.run not available. Are you running as a Web App or bound script?');
+        return;
+      }
+      
+      isSaving = true; // Set flag
+      saveBtn.disabled = true;
+      saveBtn.textContent = '⏳ Saving...';
+      
+      google.script.run
+        .withSuccessHandler(res => {
+          isSaving = false; // Reset flag
+          saveBtn.disabled = false;
+          if (res && res.ok) {
+            saveBtn.textContent = 'Saved ✓';
+            setTimeout(() => {
+              saveBtn.textContent = '💾 Save';
+              loadUserScenarios(); // Reload the list
+            }, 1500);
+            scenarioMsg.textContent = `Saved: ${scnName.value || 'Unnamed scenario'}`;
+            setTimeout(() => scenarioMsg.textContent = '', 3000);
+          } else {
+            saveBtn.textContent = '💾 Save';
+            alert('Save failed: ' + (res && res.error ? res.error : 'Unknown error'));
+          }
+        })
+        .withFailureHandler(err => {
+          isSaving = false; // Reset flag
+          saveBtn.disabled = false;
+          saveBtn.textContent = '💾 Save';
+          alert('Save failed: ' + err);
+        })
+        .saveScenario(lastScenario);
+    });
+
+    // Generate PDF Report
+    const reportBtn = document.getElementById('reportBtn');
+    let isGeneratingReport = false; // Prevent double-clicks
+    reportBtn.addEventListener('click', () => {
+      // Prevent multiple simultaneous requests
+      if (isGeneratingReport) {
+        console.log('Report generation already in progress...');
+        return;
+      }
+      
+      recalc(); // ensure lastScenario reflects latest data
+      if (!google || !google.script || !google.script.run) {
+        alert('google.script.run not available. Are you running as a Web App or bound script?');
+        return;
+      }
+      
+      isGeneratingReport = true; // Set flag
+      
+      // Update button to show loading state
+      const originalText = reportBtn.textContent;
+      reportBtn.textContent = '⏳ Generating...';
+      reportBtn.disabled = true;
+      
+      google.script.run
+        .withSuccessHandler(res => {
+          reportBtn.textContent = originalText;
+          reportBtn.disabled = false;
+          isGeneratingReport = false; // Reset flag
+          
+          if (res && res.ok) {
+            // Create a temporary link to download the PDF
+            const link = document.createElement('a');
+            link.href = res.pdfUrl;
+            link.download = res.fileName || 'Investment_Report.pdf';
+            link.target = '_blank';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            // Show success message
+            scenarioMsg.textContent = '✅ Report generated successfully!';
+            setTimeout(() => scenarioMsg.textContent = '', 5000);
+          } else {
+            alert('Report generation failed: ' + (res && res.error ? res.error : 'Unknown error'));
+          }
+        })
+        .withFailureHandler(err => {
+          reportBtn.textContent = originalText;
+          reportBtn.disabled = false;
+          isGeneratingReport = false; // Reset flag
+          alert('Report generation failed: ' + err);
+        })
+        .generateReport(lastScenario);
+    });
+
+    // Handle scenario comparison selection
+    const compareScenario1 = document.getElementById('compareScenario1');
+    const compareScenario2 = document.getElementById('compareScenario2');
+    const compareBtn = document.getElementById('compareBtn');
+    const viewCompareBtn = document.getElementById('viewCompareBtn');
+    const compareMsg = document.getElementById('compareMsg');
+    const comparisonView = document.getElementById('comparisonView');
+    const comparisonContent = document.getElementById('comparisonContent');
+    const hideCompareBtn = document.getElementById('hideCompareBtn');
+    
+    function checkCompareReady() {
+      const hasScenario1 = compareScenario1.value !== '';
+      const hasScenario2 = compareScenario2.value !== '';
+      const differentScenarios = compareScenario1.value !== compareScenario2.value;
+      
+      const isReady = hasScenario1 && hasScenario2 && differentScenarios;
+      compareBtn.disabled = !isReady;
+      viewCompareBtn.disabled = !isReady;
+      
+      if (hasScenario1 && hasScenario2 && !differentScenarios) {
+        compareMsg.textContent = '⚠️ Please select two different scenarios';
+      } else if (hasScenario1 && hasScenario2) {
+        compareMsg.textContent = '✓ Ready to compare';
+      } else {
+        compareMsg.textContent = '';
+      }
+    }
+    
+    compareScenario1.addEventListener('change', checkCompareReady);
+    compareScenario2.addEventListener('change', checkCompareReady);
+    
+    // View on-site comparison
+    viewCompareBtn.addEventListener('click', () => {
+      const scenario1 = JSON.parse(compareScenario1.selectedOptions[0].dataset.scenario || '{}');
+      const scenario2 = JSON.parse(compareScenario2.selectedOptions[0].dataset.scenario || '{}');
+      
+      // Helper function to ensure critical calculated fields exist
+      const ensureCalculatedFields = (scenario) => {
+        // If Areq is missing, calculate it
+        if (scenario.Areq === undefined && scenario.M_real && scenario.T && scenario.D) {
+          const infl = scenario.infl || 0.025;
+          const rRet = scenario.rRet || 0.03;
+          scenario.Areq = requiredNestEgg(scenario.M_real, scenario.T, infl, rRet, scenario.D);
+        }
+        
+        // If rAccEff is missing, calculate it from rAccTarget or risk
+        if (scenario.rAccEff === undefined) {
+          if (scenario.rAccTarget !== undefined) {
+            scenario.rAccEff = effectiveAccReturn(scenario.rAccTarget);
+          } else if (scenario.risk !== undefined) {
+            const rAccTarget = returnFromRisk(scenario.risk);
+            scenario.rAccEff = effectiveAccReturn(rAccTarget);
+          }
+        }
+        
+        return scenario;
+      };
+      
+      // Ensure calculated fields exist
+      ensureCalculatedFields(scenario1);
+      ensureCalculatedFields(scenario2);
+      
+      // Debug: Log scenario data to see what fields are available
+      console.log('Scenario 1 (after calc):', scenario1);
+      console.log('Scenario 2 (after calc):', scenario2);
+      
+      // Build comparison HTML
+      let html = '';
+      
+      // Feasibility summary
+      const tolerance = 1;
+      const isFeasible1 = scenario1.mode === 'contrib' ? 
+        (Number(scenario1.C_cap) >= Number(scenario1.Creq) - tolerance) : true;
+      const isFeasible2 = scenario2.mode === 'contrib' ? 
+        (Number(scenario2.C_cap) >= Number(scenario2.Creq) - tolerance) : true;
+      
+      html += '<div style="margin-bottom:16px; padding:10px; background:rgba(255,255,255,0.02); border-radius:6px;">';
+      html += '<div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; text-align:center;">';
+      html += `<div>
+        <div class="small muted">Scenario 1</div>
+        <div style="font-weight:600; color:var(--text);">${scenario1.name || 'Unnamed'}</div>
+        <div style="margin-top:4px; font-size:18px;">${isFeasible1 ? '✅' : '❌'}</div>
+        <div class="small">${isFeasible1 ? 'Feasible' : 'Needs Adjustment'}</div>
+      </div>`;
+      html += `<div>
+        <div class="small muted">Scenario 2</div>
+        <div style="font-weight:600; color:var(--text);">${scenario2.name || 'Unnamed'}</div>
+        <div style="margin-top:4px; font-size:18px;">${isFeasible2 ? '✅' : '❌'}</div>
+        <div class="small">${isFeasible2 ? 'Feasible' : 'Needs Adjustment'}</div>
+      </div>`;
+      html += '</div></div>';
+      
+      // Key metrics comparison table
+      html += '<table style="width:100%; border-collapse:collapse; font-size:13px;">';
+      html += '<thead><tr style="border-bottom:1px solid var(--border);">';
+      html += '<th style="text-align:left; padding:8px; color:var(--muted);">Metric</th>';
+      html += '<th style="text-align:right; padding:8px; color:var(--accent);">Scenario 1</th>';
+      html += '<th style="text-align:right; padding:8px; color:var(--warn);">Scenario 2</th>';
+      html += '<th style="text-align:right; padding:8px; color:var(--muted);">Difference</th>';
+      html += '</tr></thead><tbody>';
+      
+      // Helper to add row
+      const addRow = (label, val1, val2, formatter) => {
+        const formatted1 = formatter(val1);
+        const formatted2 = formatter(val2);
+        let diff = '';
+        let diffColor = 'var(--muted)';
+        
+        if (typeof val1 === 'number' && typeof val2 === 'number') {
+          const numDiff = val2 - val1;
+          if (formatter === fmtUSD) {
+            diff = (numDiff >= 0 ? '+' : '') + fmtUSD(numDiff);
+          } else if (label.includes('Years')) {
+            diff = (numDiff >= 0 ? '+' : '') + numDiff.toFixed(1) + ' yrs';
+          } else if (label.includes('Risk')) {
+            diff = (numDiff >= 0 ? '+' : '') + numDiff.toFixed(1);
+          } else if (label.includes('%') || formatter === fmtPct) {
+            diff = (numDiff >= 0 ? '+' : '') + fmtPct(numDiff);
+          } else {
+            diff = (numDiff >= 0 ? '+' : '') + numDiff.toFixed(0);
+          }
+          
+          if (Math.abs(numDiff) > 0) {
+            diffColor = numDiff > 0 ? 'var(--ok)' : 'var(--bad)';
+          }
+        }
+        
+        html += '<tr style="border-bottom:1px solid rgba(255,255,255,0.05);">';
+        html += `<td style="padding:8px; color:var(--muted);">${label}</td>`;
+        html += `<td style="padding:8px; text-align:right; font-weight:500;">${formatted1}</td>`;
+        html += `<td style="padding:8px; text-align:right; font-weight:500;">${formatted2}</td>`;
+        html += `<td style="padding:8px; text-align:right; color:${diffColor}; font-size:12px;">${diff}</td>`;
+        html += '</tr>';
+      };
+      
+      // Input parameters
+      addRow('Monthly Income Goal', scenario1.M_real, scenario2.M_real, fmtUSD);
+      addRow('Years to Retirement', scenario1.T, scenario2.T, v => v + ' yrs');
+      addRow('Risk Level', scenario1.risk, scenario2.risk, v => v + '/10');
+      addRow('Monthly Savings', scenario1.C_cap, scenario2.C_cap, fmtUSD);
+      addRow('Current Assets', scenario1.A0, scenario2.A0, fmtUSD);
+      
+      // Add separator
+      html += '<tr><td colspan="4" style="padding:4px;"></td></tr>';
+      
+      // Calculated values
+      addRow('Required Nest Egg', scenario1.Areq, scenario2.Areq, fmtUSD);
+      addRow('Effective Return', scenario1.rAccEff, scenario2.rAccEff, fmtPct);
+      
+      if (scenario1.mode === 'contrib' && scenario2.mode === 'contrib') {
+        addRow('Required Monthly', scenario1.Creq, scenario2.Creq, fmtUSD);
+        const surplus1 = Number(scenario1.C_cap) - Number(scenario1.Creq);
+        const surplus2 = Number(scenario2.C_cap) - Number(scenario2.Creq);
+        addRow('Surplus/Shortfall', surplus1, surplus2, fmtUSD);
+      }
+      
+      html += '</tbody></table>';
+      
+      // Quick recommendation
+      html += '<div style="margin-top:16px; padding:10px; background:rgba(34,211,238,0.1); border-radius:6px; border:1px solid var(--accent);">';
+      html += '<div class="small muted" style="margin-bottom:4px;">Quick Recommendation:</div>';
+      
+      if (isFeasible1 && !isFeasible2) {
+        html += `<div style="font-weight:600; color:var(--text);">✅ Choose "${scenario1.name}" - it's the only feasible option</div>`;
+      } else if (!isFeasible1 && isFeasible2) {
+        html += `<div style="font-weight:600; color:var(--text);">✅ Choose "${scenario2.name}" - it's the only feasible option</div>`;
+      } else if (isFeasible1 && isFeasible2) {
+        // Both feasible - pick based on metrics
+        const surplus1 = Number(scenario1.C_cap) - Number(scenario1.Creq || 0);
+        const surplus2 = Number(scenario2.C_cap) - Number(scenario2.Creq || 0);
+        
+        if (surplus1 > surplus2 && surplus1 > 50) {
+          html += `<div style="font-weight:600; color:var(--text);">💰 "${scenario1.name}" provides ${fmtUSD(surplus1 - surplus2)} more monthly flexibility</div>`;
+        } else if (surplus2 > surplus1 && surplus2 > 50) {
+          html += `<div style="font-weight:600; color:var(--text);">💰 "${scenario2.name}" provides ${fmtUSD(surplus2 - surplus1)} more monthly flexibility</div>`;
+        } else if (Number(scenario1.T) < Number(scenario2.T) - 2) {
+          html += `<div style="font-weight:600; color:var(--text);">⏱️ "${scenario1.name}" gets you to retirement ${(Number(scenario2.T) - Number(scenario1.T)).toFixed(1)} years sooner</div>`;
+        } else if (Number(scenario2.T) < Number(scenario1.T) - 2) {
+          html += `<div style="font-weight:600; color:var(--text);">⏱️ "${scenario2.name}" gets you to retirement ${(Number(scenario1.T) - Number(scenario2.T)).toFixed(1)} years sooner</div>`;
+        } else {
+          html += '<div style="font-weight:600; color:var(--text);">Both are viable - choose based on your preferences</div>';
+        }
+      } else {
+        // Neither feasible
+        const shortfall1 = Math.abs(Number(scenario1.C_cap) - Number(scenario1.Creq || 0));
+        const shortfall2 = Math.abs(Number(scenario2.C_cap) - Number(scenario2.Creq || 0));
+        
+        if (shortfall1 < shortfall2) {
+          html += `<div style="font-weight:600; color:var(--text);">⚠️ "${scenario1.name}" is closer to feasibility (${fmtUSD(shortfall1)} gap)</div>`;
+        } else {
+          html += `<div style="font-weight:600; color:var(--text);">⚠️ "${scenario2.name}" is closer to feasibility (${fmtUSD(shortfall2)} gap)</div>`;
+        }
+      }
+      html += '</div>';
+      
+      // Update content and show
+      comparisonContent.innerHTML = html;
+      comparisonView.style.display = 'block';
+      
+      // Scroll to comparison view
+      comparisonView.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
+    
+    // Hide comparison view
+    hideCompareBtn.addEventListener('click', () => {
+      comparisonView.style.display = 'none';
+    });
+    
+    // Generate comparison report
+    let isGeneratingComparison = false; // Prevent double-clicks
+    compareBtn.addEventListener('click', () => {
+      // Prevent multiple simultaneous requests
+      if (isGeneratingComparison) {
+        console.log('Comparison generation already in progress...');
+        return;
+      }
+      
+      const scenario1 = JSON.parse(compareScenario1.selectedOptions[0].dataset.scenario || '{}');
+      const scenario2 = JSON.parse(compareScenario2.selectedOptions[0].dataset.scenario || '{}');
+      
+      if (!google || !google.script || !google.script.run) {
+        alert('google.script.run not available. Are you running as a Web App or bound script?');
+        return;
+      }
+      
+      isGeneratingComparison = true; // Set flag
+      
+      // Update button to show loading state
+      const originalText = compareBtn.textContent;
+      compareBtn.textContent = '⏳ Generating comparison...';
+      compareBtn.disabled = true;
+      
+      google.script.run
+        .withSuccessHandler(res => {
+          compareBtn.textContent = originalText;
+          checkCompareReady(); // Re-enable button if appropriate
+          isGeneratingComparison = false; // Reset flag
+          
+          if (res && res.ok) {
+            // Create a temporary link to download the PDF
+            const link = document.createElement('a');
+            link.href = res.pdfUrl;
+            link.download = res.fileName || 'Comparison_Report.pdf';
+            link.target = '_blank';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            // Show success message
+            compareMsg.textContent = '✅ Comparison report generated successfully!';
+            setTimeout(() => compareMsg.textContent = '', 5000);
+          } else {
+            alert('Comparison report failed: ' + (res && res.error ? res.error : 'Unknown error'));
+          }
+        })
+        .withFailureHandler(err => {
+          compareBtn.textContent = originalText;
+          checkCompareReady();
+          isGeneratingComparison = false; // Reset flag
+          alert('Comparison report failed: ' + err);
+        })
+        .generateComparisonReport(scenario1, scenario2);
+    });
+
+    // Do not call recalc() until gate passes
+  </script>
+  <!-- Tutorial Modal -->
+  <div id="tutorialModal" class="modal-overlay">
+    <div class="modal-content">
+      <button class="modal-close" onclick="closeTutorial()">×</button>
+      <div class="modal-title">Investment Planning Tool Tutorial</div>
+      <div class="video-container">
+        <iframe 
+          id="tutorialVideo"
+          src="" 
+          title="Financial Investment Planning Tool Tutorial" 
+          frameborder="0" 
+          referrerpolicy="unsafe-url" 
+          allowfullscreen="true" 
+          allow="clipboard-write" 
+          sandbox="allow-popups allow-popups-to-escape-sandbox allow-scripts allow-forms allow-same-origin allow-presentation">
+        </iframe>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Tutorial Modal Functions
+    function openTutorial() {
+      const modal = document.getElementById('tutorialModal');
+      const iframe = document.getElementById('tutorialVideo');
+      // Set the src when opening to prevent loading when not needed
+      iframe.src = 'https://embed.app.guidde.com/playbooks/6QUHyvTuvrBwDGtbfmaDXP?mode=videoOnly';
+      modal.classList.add('active');
+    }
+    
+    function closeTutorial() {
+      const modal = document.getElementById('tutorialModal');
+      const iframe = document.getElementById('tutorialVideo');
+      modal.classList.remove('active');
+      // Clear the src to stop the video
+      setTimeout(() => {
+        iframe.src = '';
+      }, 300);
+    }
+    
+    // Close modal when clicking outside
+    document.getElementById('tutorialModal').addEventListener('click', function(e) {
+      if (e.target === this) {
+        closeTutorial();
+      }
+    });
+    
+    // Close modal with Escape key
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && document.getElementById('tutorialModal').classList.contains('active')) {
+        closeTutorial();
+      }
+    });
+  </script>
+
+</body>
+</html>
