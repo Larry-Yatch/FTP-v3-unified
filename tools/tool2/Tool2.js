@@ -692,6 +692,7 @@ const Tool2 = {
 
       <div class="form-group">
         <label class="form-label">Q32. How often do you tap into your emergency fund? *</label>
+        <p class="muted" style="font-size: 13px; margin-bottom: 10px;">If you don't have a fund, select the option that best describes how often you would need emergency money.</p>
         <select name="emergencyFundFrequency" required>
           <option value="">Select a response</option>
           <option value="-5" ${emergencyFundFrequency === '-5' ? 'selected' : ''}>-5: Multiple times per month (not emergencies)</option>
@@ -709,6 +710,7 @@ const Tool2 = {
 
       <div class="form-group">
         <label class="form-label">Q33. How quickly can you replenish your emergency fund after use? *</label>
+        <p class="muted" style="font-size: 13px; margin-bottom: 10px;">If you don't have a fund, select the option that describes how quickly you could save up emergency money if needed.</p>
         <select name="emergencyFundReplenishment" required>
           <option value="">Select a response</option>
           <option value="-5" ${emergencyFundReplenishment === '-5' ? 'selected' : ''}>-5: Cannot replenish, goes deeper in debt</option>

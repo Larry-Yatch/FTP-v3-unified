@@ -1,8 +1,8 @@
 # Tool Development Patterns - Financial TruPath v3
 
-**Version:** 1.2
-**Last Updated:** November 5, 2025
-**Status:** ✅ Production Ready - All Navigation Issues Resolved + Back Navigation Pattern Added
+**Version:** 1.3
+**Last Updated:** November 11, 2025
+**Status:** ✅ Production Ready - All Navigation Issues Resolved + Feedback System Integrated
 
 ---
 
@@ -14,6 +14,7 @@ This document defines the **standard patterns** for building multi-page form-bas
 - ✅ **Consistent UX** - All tools look and behave the same
 - ✅ **Auto-save/resume** - Never lose user data
 - ✅ **Proper error handling** - Graceful failures with user feedback
+- ✅ **Built-in feedback system** - Automatic "Get Help" widget on all pages
 - ✅ **Easy maintenance** - Standard structure across all tools
 
 ---
@@ -81,12 +82,14 @@ https://your-gas-url.com/exec?route=tool2&client=TEST001
 │  - Page structure                        │
 │  - Error handling                        │
 │  - Loading animations                    │
+│  - FeedbackWidget integration            │
 └──────────────┬──────────────────────────┘
                │ calls
 ┌──────────────▼──────────────────────────┐
 │  Code.js (Server-Side Handlers)         │
 │  - saveToolPageData(toolId, data)       │
 │  - completeToolSubmission(toolId, data) │
+│  - submitFeedback(feedbackData)         │
 └─────────────────────────────────────────┘
 ```
 
@@ -605,6 +608,46 @@ clasp deploy --description "v3.x.x - Added Tool 2"
 
 ---
 
+## 💬 **Built-in Feedback System**
+
+**Good news:** You don't need to do anything! FormUtils automatically includes a feedback widget on every page.
+
+### **What Users See**
+
+- **Floating "Get Help" button** - Bottom-right corner on all pages
+- **Modal form** - Bug reports, questions, feature requests
+- **Auto-context capture** - Automatically includes clientId, toolId, page, URL, browser info
+
+### **What You Get**
+
+- **FEEDBACK sheet** - All submissions logged automatically
+- **Daily email summary** - Set up time-based trigger for `sendDailyFeedbackSummary()`
+- **Full context** - Know exactly where the user was when they reported an issue
+
+### **How It Works**
+
+```javascript
+// In FormUtils.buildStandardPage() - line 302
+${FeedbackWidget.render(clientId, toolId, page)}
+```
+
+**That's it!** Every page built with `FormUtils.buildStandardPage()` gets the widget automatically.
+
+### **Setting Up Daily Email Notifications**
+
+1. Go to Apps Script editor
+2. Click **Triggers** (⏰ icon)
+3. **+ Add Trigger**:
+   - Function: `sendDailyFeedbackSummary`
+   - Event source: Time-driven
+   - Type: Day timer
+   - Time: 9am-10am (or your preference)
+4. **Save**
+
+You'll receive one email per day with all feedback submitted that day to `support@trupathmastery.com`.
+
+---
+
 ## 📞 **Getting Help**
 
 **Questions?** Check these resources:
@@ -613,7 +656,8 @@ clasp deploy --description "v3.x.x - Added Tool 2"
 2. `tools/tool1/Tool1.js` - Working example
 3. `tools/MultiPageToolTemplate.js` - Commented template
 4. `core/FormUtils.js` - Read the source
-5. Git commit history - See how issues were fixed
+5. `shared/FeedbackWidget.js` - Feedback widget implementation
+6. Git commit history - See how issues were fixed
 
 ---
 

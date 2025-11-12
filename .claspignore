@@ -15,3 +15,12 @@ check-sheets.js
 README.md
 GETTING-STARTED.md
 archive/**
+
+# Debug/test scripts (not needed in production)
+check-columns.js
+debug-tool2-trauma.js
+fix-tool1-data.js
+test-*.js
+*-test.js
+validate-*.js
+console-*.js

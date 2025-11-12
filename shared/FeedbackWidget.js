@@ -214,9 +214,15 @@ const FeedbackWidget = {
           document.body.style.overflow = 'auto';
 
           // Reset form
-          document.getElementById('feedbackForm').reset();
-          document.getElementById('feedbackForm').style.display = 'block';
+          const form = document.getElementById('feedbackForm');
+          form.reset();
+          form.style.display = 'block';
           document.getElementById('feedbackSuccess').style.display = 'none';
+
+          // Reset submit button
+          const submitBtn = form.querySelector('button[type="submit"]');
+          submitBtn.textContent = 'Send Feedback';
+          submitBtn.disabled = false;
         }
 
         function submitFeedback() {
