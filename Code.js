@@ -454,6 +454,92 @@ function submitFeedback(feedbackData) {
 }
 
 /**
+ * Trigger function for new feedback submissions
+ * Set up as an onEdit trigger in Apps Script to send email notifications
+ * @param {Object} e - Edit event object
+ */
+function onFeedbackSubmitted(e) {
+  try {
+    // Check if event object exists (trigger vs manual run)
+    if (!e || !e.range) {
+      Logger.log('onFeedbackSubmitted: No event object (manually triggered or no edit)');
+      return;
+    }
+
+    // Only process if edit happened in FEEDBACK sheet
+    const sheet = e.source.getActiveSheet();
+    if (sheet.getName() !== 'FEEDBACK') {
+      return; // Not the FEEDBACK sheet, ignore
+    }
+
+    // Only process if a new row was added (column A = Timestamp)
+    const range = e.range;
+    if (range.getColumn() !== 1) {
+      return; // Not timestamp column, ignore
+    }
+
+    const row = range.getRow();
+    if (row <= 1) {
+      return; // Header row, ignore
+    }
+
+    // Get the feedback data from the row
+    const data = sheet.getRange(row, 1, 1, 10).getValues()[0];
+    const timestamp = data[0];
+    const clientId = data[1];
+    const type = data[2];
+    const message = data[3];
+    const email = data[4];
+    const toolId = data[5];
+    const page = data[6];
+    const url = data[7];
+    const userAgent = data[8];
+    const status = data[9];
+
+    // Only send email for NEW feedback
+    if (status !== 'NEW') {
+      return;
+    }
+
+    // Format email
+    const emailBody = `
+New feedback received from TruPath Financial Assessment:
+
+TYPE: ${type}
+FROM: ${clientId}
+${email ? `EMAIL: ${email}` : ''}
+TIMESTAMP: ${timestamp}
+
+MESSAGE:
+${message}
+
+CONTEXT:
+- Tool: ${toolId}
+- Page: ${page}
+- URL: ${url}
+- Browser: ${userAgent}
+
+---
+To mark as reviewed, change the Status column in the FEEDBACK sheet.
+View feedback: ${e.source.getUrl()}#gid=${sheet.getSheetId()}
+    `.trim();
+
+    // Send email notification
+    MailApp.sendEmail({
+      to: 'support@trupathmastery.com',
+      subject: `TruPath Feedback: ${type} from ${clientId}`,
+      body: emailBody
+    });
+
+    Logger.log(`Email notification sent for feedback from ${clientId}`);
+
+  } catch (error) {
+    Logger.log(`Error in onFeedbackSubmitted trigger: ${error}`);
+    // Don't throw error - we don't want to break the sheet edit
+  }
+}
+
+/**
  * Test function to trigger email authorization
  * Run this once in Apps Script editor to authorize email permissions
  */
@@ -469,6 +555,102 @@ function testEmailAuthorization() {
   } catch (error) {
     Logger.log('❌ Email authorization failed: ' + error);
     return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Send daily summary email of today's feedback
+ * Set up as a time-based trigger (daily, 9-10am recommended)
+ */
+function sendDailyFeedbackSummary() {
+  try {
+    const ss = SpreadsheetApp.openById(CONFIG.MASTER_SHEET_ID);
+    const feedbackSheet = ss.getSheetByName('FEEDBACK');
+
+    if (!feedbackSheet) {
+      Logger.log('No FEEDBACK sheet found');
+      return;
+    }
+
+    // Get all data
+    const data = feedbackSheet.getDataRange().getValues();
+    const headers = data[0];
+
+    // Get today's date range (midnight to midnight)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    // Find feedback from today
+    const todaysFeedback = [];
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const timestamp = new Date(row[0]); // Column A = Timestamp
+
+      if (timestamp >= today && timestamp < tomorrow) {
+        todaysFeedback.push({
+          timestamp: timestamp,
+          clientId: row[1],
+          type: row[2],
+          message: row[3],
+          email: row[4],
+          toolId: row[5],
+          page: row[6],
+          url: row[7],
+          userAgent: row[8],
+          status: row[9]
+        });
+      }
+    }
+
+    // If no feedback today, log and exit
+    if (todaysFeedback.length === 0) {
+      Logger.log('No feedback received today');
+      return;
+    }
+
+    // Build email body
+    let emailBody = `TruPath Daily Feedback Summary\n`;
+    emailBody += `Date: ${Utilities.formatDate(today, Session.getScriptTimeZone(), 'MMMM dd, yyyy')}\n`;
+    emailBody += `Total feedback received: ${todaysFeedback.length}\n`;
+    emailBody += `\n${'='.repeat(70)}\n\n`;
+
+    // Add each feedback item
+    todaysFeedback.forEach((feedback, index) => {
+      emailBody += `FEEDBACK #${index + 1}\n`;
+      emailBody += `${'─'.repeat(70)}\n`;
+      emailBody += `Type: ${feedback.type}\n`;
+      emailBody += `From: ${feedback.clientId}\n`;
+      if (feedback.email) {
+        emailBody += `Email: ${feedback.email}\n`;
+      }
+      emailBody += `Time: ${Utilities.formatDate(feedback.timestamp, Session.getScriptTimeZone(), 'HH:mm:ss')}\n`;
+      emailBody += `\nMessage:\n${feedback.message}\n`;
+      emailBody += `\nContext:\n`;
+      emailBody += `  Tool: ${feedback.toolId}\n`;
+      emailBody += `  Page: ${feedback.page}\n`;
+      emailBody += `  URL: ${feedback.url}\n`;
+      emailBody += `  Browser: ${feedback.userAgent}\n`;
+      emailBody += `  Status: ${feedback.status}\n`;
+      emailBody += `\n${'='.repeat(70)}\n\n`;
+    });
+
+    // Add footer
+    emailBody += `View all feedback: ${ss.getUrl()}#gid=${feedbackSheet.getSheetId()}\n`;
+
+    // Send email
+    MailApp.sendEmail({
+      to: 'support@trupathmastery.com',
+      subject: `TruPath Daily Feedback (${todaysFeedback.length} items) - ${Utilities.formatDate(today, Session.getScriptTimeZone(), 'MMM dd, yyyy')}`,
+      body: emailBody
+    });
+
+    Logger.log(`✅ Daily summary sent: ${todaysFeedback.length} feedback items`);
+
+  } catch (error) {
+    Logger.log(`❌ Error in sendDailyFeedbackSummary: ${error}`);
+    // Don't throw - we don't want the trigger to fail
   }
 }
 
@@ -676,89 +858,6 @@ function addDefaultInsightMappings() {
   } catch (error) {
     console.error('Error adding mappings:', error);
     return { success: false, error: error.toString() };
-  }
-}
-
-// ========================================
-// TESTING FUNCTIONS
-// ========================================
-
-/**
- * Test Tool2 GPT integration with Tool1 trauma data
- */
-function testTool2GPTWithTraumaData() {
-  try {
-    const testClientId = 'TEST_TRAUMA_GPT_' + new Date().getTime();
-    
-    // Simulate Tool1 trauma data
-    const traumaData = {
-      topTrauma: 'FSV',
-      traumaScores: {
-        FSV: 75,
-        Control: 45,
-        ExVal: 30,
-        Fear: 20,
-        Receiving: 35,
-        Showing: 40
-      }
-    };
-    
-    // Test data
-    const testFormData = {
-      q18_income_sources: 'I work as a freelance designer but I don\'t really make that much. Just getting by.',
-      q23_major_expenses: 'Rent, food, basic stuff. Nothing fancy.',
-      q52_emotions: 'I feel ashamed about money. Like I should be doing better.'
-    };
-    
-    Logger.log('Testing Tool2 GPT with trauma data...');
-    Logger.log('Test Client: ' + testClientId);
-    Logger.log('Primary Trauma: ' + traumaData.topTrauma);
-    
-    // Test individual analysis with trauma context
-    const incomeInsight = Tool2GPTAnalysis.analyzeResponse({
-      clientId: testClientId,
-      responseType: 'income_sources',
-      responseText: testFormData.q18_income_sources,
-      previousInsights: {},
-      formData: testFormData,
-      domainScores: {moneyFlow: 35, obligations: 45, liquidity: 30, growth: 25, protection: 40},
-      traumaData: traumaData
-    });
-    
-    Logger.log('\nIncome Insight:');
-    Logger.log('Source: ' + incomeInsight.source);
-    Logger.log('Pattern: ' + incomeInsight.pattern);
-    Logger.log('Insight: ' + incomeInsight.insight);
-    Logger.log('Action: ' + incomeInsight.action);
-    
-    // Test synthesis with trauma data
-    const synthesis = Tool2GPTAnalysis.synthesizeOverall(
-      testClientId,
-      {income_sources: incomeInsight},
-      {moneyFlow: 35, obligations: 45, liquidity: 30, growth: 25, protection: 40},
-      traumaData
-    );
-    
-    Logger.log('\nSynthesis Overview:');
-    Logger.log(synthesis.overview || 'No overview generated');
-    
-    Logger.log('\n✅ Test completed successfully');
-    
-    // Clean up test data
-    PropertiesService.getUserProperties().deleteProperty(`tool2_gpt_${testClientId}`);
-    
-    return {
-      success: true,
-      insights: incomeInsight,
-      synthesis: synthesis
-    };
-    
-  } catch (error) {
-    Logger.log('❌ Test failed: ' + error.toString());
-    return {
-      success: false,
-      error: error.toString()
-    };
   }
 }
 
