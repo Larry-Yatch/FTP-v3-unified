@@ -359,23 +359,36 @@ const Tool3 = {
     }
 
     try {
-      // Render the page using GroundingFormBuilder
-      const htmlString = GroundingFormBuilder.renderPage({
+      // Get page content (just the form fields, not full HTML)
+      const pageContent = GroundingFormBuilder.renderPageContent({
         toolId: this.config.id,
-        toolName: this.config.name,
         pageNum: page,
         clientId: clientId,
-        baseUrl: baseUrl,
         subdomains: this.config.subdomains,
         intro: this.getIntroContent()
       });
 
-      return HtmlService.createHtmlOutput(htmlString);
+      // Use FormUtils to build standard page (like Tool 1 and Tool 2)
+      const template = HtmlService.createTemplate(
+        FormUtils.buildStandardPage({
+          toolName: this.config.name,
+          toolId: this.config.id,
+          page: page,
+          totalPages: totalPages,
+          clientId: clientId,
+          baseUrl: baseUrl,
+          pageContent: pageContent,
+          isFinalPage: (page === 7)
+        })
+      );
+
+      return template.evaluate()
+        .setTitle(`TruPath - ${this.config.name}`)
+        .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 
     } catch (error) {
       Logger.log(`Error rendering Tool3 page ${page}: ${error.message}`);
-      const errorHtml = this.renderErrorPage(error, clientId, baseUrl);
-      return HtmlService.createHtmlOutput(errorHtml);
+      throw error;
     }
   },
 

@@ -1,9 +1,42 @@
 # Tool 4: Financial Freedom Framework - Detailed Specification
 
-**Version:** 1.0
+**Version:** 2.0 (Interactive Calculator Architecture)
 **Date:** November 17, 2025
-**Status:** Planning Phase
+**Status:** ✅ DESIGN FINALIZED - Ready for Implementation (Pending Base Weights Optimization)
 **Author:** Claude Code
+
+---
+
+## 🎯 **MAJOR ARCHITECTURE CHANGE (v2.0)**
+
+**Tool 4 is now an INTERACTIVE CALCULATOR, not a static multi-page form.**
+
+### **Key Changes from v1.0:**
+- ✅ **Single-page interactive calculator** (not multi-page form)
+- ✅ **Client-side real-time calculations** (instant feedback)
+- ✅ **Progressive enhancement** (6 minimum inputs, expand for accuracy)
+- ✅ **Tool 2 integration with 3-tier fallback** (never blocks progression)
+- ✅ **Scenario-based workflow** (create, compare, select optimal)
+
+### **Reference Documents:**
+- **TOOL4-INTERACTIVE-CALCULATOR-ARCHITECTURE.md** - Complete v2.0 architecture
+- **TOOL4-INPUT-ANALYSIS.md** - Input requirements (6 minimum, 28 maximum)
+- **TOOL4-SESSION-HANDOFF.md** - Next steps for base weights optimization
+
+### **What's Finalized:**
+1. ✅ Interactive calculator UI pattern
+2. ✅ Client-side calculation engine
+3. ✅ Tool 2 fallback system (3-tier)
+4. ✅ Minimum inputs: 6 required fields
+5. ✅ All 8 design decisions locked in
+6. ✅ Trauma-informed satisfaction amplifier
+7. ✅ Rank top 3 priorities (weighted 50%, 30%, 20%)
+8. ✅ GPT hybrid (template + on-demand)
+
+### **Still To Do:**
+- 🔄 Base priority weightings optimization (see TOOL4-SESSION-HANDOFF.md)
+- 🔄 Update implementation plan for interactive calculator
+- 🔄 UI mockups/wireframes
 
 ---
 

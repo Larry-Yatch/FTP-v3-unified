@@ -16,6 +16,140 @@
 const GroundingFormBuilder = {
 
   /**
+   * Render page content ONLY (for use with FormUtils.buildStandardPage)
+   * Returns just the form fields, not the full HTML page
+   *
+   * @param {Object} params - Page rendering parameters
+   * @returns {string} Page content (form fields only)
+   */
+  renderPageContent(params) {
+    const {
+      toolId,
+      pageNum,
+      clientId,
+      subdomains,
+      intro
+    } = params;
+
+    // Page 1: Introduction content
+    if (pageNum === 1) {
+      return intro || this.getDefaultIntro('Grounding Tool');
+    }
+
+    // Pages 2-7: Subdomain form fields
+    if (pageNum >= 2 && pageNum <= 7) {
+      const subdomainIndex = pageNum - 2; // 0-5
+
+      if (!subdomains || subdomainIndex >= subdomains.length) {
+        throw new Error(`GroundingFormBuilder.renderPageContent: Subdomain ${subdomainIndex} not found`);
+      }
+
+      return this.renderSubdomainFormContent({
+        toolId,
+        subdomain: subdomains[subdomainIndex],
+        subdomainIndex
+      });
+    }
+
+    throw new Error(`GroundingFormBuilder.renderPageContent: Invalid page number ${pageNum}`);
+  },
+
+  /**
+   * Render subdomain form content (for pages 2-7)
+   * Returns just the form fields, including special grounding styles
+   */
+  renderSubdomainFormContent(params) {
+    const {toolId, subdomain, subdomainIndex} = params;
+
+    const subdomainContent = this.buildSubdomainContent(subdomain, subdomainIndex, toolId);
+
+    // Add custom styles needed for grounding scale questions
+    const groundingStyles = `
+      <style>
+        .scale-container {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin: 15px 0;
+          padding: 20px;
+          background: rgba(255, 255, 255, 0.03);
+          border-radius: 10px;
+          border: 1px solid rgba(173, 145, 104, 0.2);
+        }
+        .scale-label {
+          flex: 1;
+          font-size: 14px;
+          color: rgba(255, 255, 255, 0.8);
+        }
+        .scale-inputs {
+          display: flex;
+          gap: 8px;
+          flex-wrap: nowrap;
+        }
+        .scale-input {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
+        .scale-input input[type="radio"] {
+          width: 20px;
+          height: 20px;
+          cursor: pointer;
+        }
+        .scale-input label {
+          font-size: 12px;
+          color: rgba(255, 255, 255, 0.6);
+          margin-top: 5px;
+        }
+        .question-section {
+          margin-bottom: 35px;
+        }
+        .question-header {
+          font-size: 16px;
+          font-weight: 600;
+          color: #ad9168;
+          margin-bottom: 15px;
+        }
+        .question-text {
+          font-size: 15px;
+          color: rgba(255, 255, 255, 0.9);
+          margin-bottom: 10px;
+          line-height: 1.5;
+        }
+        .open-response-textarea {
+          width: 100%;
+          min-height: 120px;
+          padding: 15px;
+          font-size: 15px;
+          line-height: 1.6;
+          border-radius: 8px;
+          border: 1px solid rgba(173, 145, 104, 0.3);
+          background: rgba(255, 255, 255, 0.05);
+          color: rgba(255, 255, 255, 0.95);
+          font-family: inherit;
+          resize: vertical;
+        }
+        .open-response-textarea:focus {
+          outline: none;
+          border-color: #ad9168;
+          background: rgba(255, 255, 255, 0.08);
+        }
+      </style>
+    `;
+
+    // Hidden fields for form submission
+    const hiddenFields = `
+      <input type="hidden" name="subdomain_index" value="${subdomainIndex}">
+      <input type="hidden" name="subdomain_key" value="${subdomain.key}">
+    `;
+
+    // Background GPT script for mini-insights
+    const gptScript = this.getBackgroundGPTScript(toolId, subdomain.key, subdomainIndex);
+
+    return groundingStyles + hiddenFields + subdomainContent + gptScript;
+  },
+
+  /**
    * Render a specific page for a grounding tool
    *
    * @param {Object} params - Page rendering parameters
