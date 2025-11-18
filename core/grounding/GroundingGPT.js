@@ -190,6 +190,11 @@ const GroundingGPT = {
 
       const parsed = this.parseDomainSynthesis(result);
 
+      // Validate content is not empty
+      if (!this.isValidDomainSynthesis(parsed)) {
+        throw new Error('Empty synthesis content - GPT returned malformed response');
+      }
+
       Logger.log(`✅ [SYNTHESIS] Domain success: ${domainConfig.name}`);
 
       return {
@@ -244,6 +249,11 @@ const GroundingGPT = {
       });
 
       const parsed = this.parseOverallSynthesis(result);
+
+      // Validate content is not empty
+      if (!this.isValidOverallSynthesis(parsed)) {
+        throw new Error('Empty synthesis content - GPT returned malformed response');
+      }
 
       Logger.log(`✅ [SYNTHESIS] Overall success: ${toolId}`);
 
@@ -567,6 +577,31 @@ Priority Focus: ${synthesis.priorityFocus}
       insight.insight && insight.insight.length > 10 &&
       insight.action && insight.action.length > 10 &&
       insight.rootBelief && insight.rootBelief.length > 10
+    );
+  },
+
+  /**
+   * Validate domain synthesis completeness
+   */
+  isValidDomainSynthesis(synthesis) {
+    return (
+      synthesis &&
+      synthesis.summary && synthesis.summary.trim().length > 10 &&
+      synthesis.keyThemes && synthesis.keyThemes.length > 0 &&
+      synthesis.priorityFocus && synthesis.priorityFocus.trim().length > 10
+    );
+  },
+
+  /**
+   * Validate overall synthesis completeness
+   */
+  isValidOverallSynthesis(synthesis) {
+    return (
+      synthesis &&
+      synthesis.overview && synthesis.overview.trim().length > 10 &&
+      synthesis.integration && synthesis.integration.trim().length > 10 &&
+      synthesis.coreWork && synthesis.coreWork.trim().length > 10 &&
+      synthesis.nextSteps && synthesis.nextSteps.length > 0
     );
   },
 
