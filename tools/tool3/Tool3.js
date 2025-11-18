@@ -562,8 +562,17 @@ const Tool3 = {
     DraftService.saveDraft('tool3', clientId, page, formData);
 
     // Also save to RESPONSES sheet on first page to create DRAFT row
+    // BUT: Don't create new DRAFT if we're in edit mode (EDIT_DRAFT already exists)
     if (page === 1) {
-      DataService.saveDraft(clientId, 'tool3', formData);
+      const activeDraft = DataService.getActiveDraft(clientId, 'tool3');
+      const isEditMode = activeDraft && activeDraft.status === 'EDIT_DRAFT';
+
+      if (!isEditMode) {
+        // Only create new DRAFT row if not editing
+        DataService.saveDraft(clientId, 'tool3', formData);
+      } else {
+        Logger.log(`[Tool3] Skipping DRAFT creation - already in edit mode with EDIT_DRAFT`);
+      }
     }
 
     return { success: true };
@@ -723,7 +732,8 @@ const Tool3 = {
       },
       subdomainInsights: this.extractDomainInsights(gptInsights.subdomains, 0, 3),
       subdomainScores: this.extractDomainScores(scoringResult.subdomainQuotients, 0, 3),
-      domainScore: scoringResult.domainQuotients.domain1
+      domainScore: scoringResult.domainQuotients.domain1,
+      subdomainConfigs: this.config.subdomains.slice(0, 3)  // Pass first 3 subdomain configs
     });
 
     // Domain 2 synthesis
@@ -737,7 +747,8 @@ const Tool3 = {
       },
       subdomainInsights: this.extractDomainInsights(gptInsights.subdomains, 3, 6),
       subdomainScores: this.extractDomainScores(scoringResult.subdomainQuotients, 3, 6),
-      domainScore: scoringResult.domainQuotients.domain2
+      domainScore: scoringResult.domainQuotients.domain2,
+      subdomainConfigs: this.config.subdomains.slice(3, 6)  // Pass last 3 subdomain configs
     });
 
     // Overall synthesis
