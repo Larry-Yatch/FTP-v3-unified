@@ -759,6 +759,12 @@ const Router = {
             <button class="btn-primary" onclick="viewTool3Report()">
               📊 View Report
             </button>
+            <button class="btn-secondary" onclick="editTool3Response()">
+              ✏️ Edit Answers
+            </button>
+            <button class="btn-secondary" onclick="retakeTool3()">
+              🔄 Start Fresh
+            </button>
           </div>
         </div>
 
@@ -766,6 +772,18 @@ const Router = {
           function viewTool3Report() {
             showLoading('Loading Report');
             window.top.location.href = '${baseUrl}?route=tool3_report&client=${clientId}';
+          }
+
+          function editTool3Response() {
+            showLoading('Loading your responses...');
+            window.top.location.href = '${baseUrl}?route=tool3&client=${clientId}&page=1&editMode=true';
+          }
+
+          function retakeTool3() {
+            if (confirm('Start a completely fresh assessment? This will clear any drafts but keep your previous completed response.')) {
+              showLoading('Preparing fresh assessment...');
+              window.top.location.href = '${baseUrl}?route=tool3&client=${clientId}&page=1&clearDraft=true';
+            }
           }
         </script>
       `;
@@ -834,6 +852,12 @@ const Router = {
             <button class="btn-primary" onclick="viewTool5Report()">
               📊 View Report
             </button>
+            <button class="btn-secondary" onclick="editTool5Response()">
+              ✏️ Edit Answers
+            </button>
+            <button class="btn-secondary" onclick="retakeTool5()">
+              🔄 Start Fresh
+            </button>
           </div>
         </div>
 
@@ -841,6 +865,18 @@ const Router = {
           function viewTool5Report() {
             showLoading('Loading Report');
             window.top.location.href = '${baseUrl}?route=tool5_report&client=${clientId}';
+          }
+
+          function editTool5Response() {
+            showLoading('Loading your responses...');
+            window.top.location.href = '${baseUrl}?route=tool5&client=${clientId}&page=1&editMode=true';
+          }
+
+          function retakeTool5() {
+            if (confirm('Start a completely fresh assessment? This will clear any drafts but keep your previous completed response.')) {
+              showLoading('Preparing fresh assessment...');
+              window.top.location.href = '${baseUrl}?route=tool5&client=${clientId}&page=1&clearDraft=true';
+            }
           }
         </script>
       `;
