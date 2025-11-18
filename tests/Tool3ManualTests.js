@@ -480,6 +480,40 @@ function checkResponsesSheet() {
 }
 
 /**
+ * MANUAL CLEANUP: Clear all cached data for a client
+ * Use this to start completely fresh
+ */
+function clearAllClientData() {
+  const clientId = '6123LY';
+  const toolId = 'tool3';
+
+  Logger.log('======================================');
+  Logger.log('CLEARING ALL CLIENT DATA');
+  Logger.log('======================================\n');
+
+  const props = PropertiesService.getUserProperties();
+
+  // Clear draft
+  const draftKey = toolId + '_draft_' + clientId;
+  props.deleteProperty(draftKey);
+  Logger.log('✓ Cleared draft: ' + draftKey);
+
+  // Clear GPT cache (all 6 subdomains)
+  Tool3.config.subdomains.forEach(function(subdomain) {
+    const cacheKey = toolId + '_' + clientId + '_' + subdomain.key + '_insight';
+    props.deleteProperty(cacheKey);
+  });
+  Logger.log('✓ Cleared GPT cache (6 subdomains)');
+
+  Logger.log('\n✅ ALL CLIENT DATA CLEARED');
+  Logger.log('\nClient ' + clientId + ' now has:');
+  Logger.log('- No draft data');
+  Logger.log('- No GPT cache');
+  Logger.log('- RESPONSES sheet data unchanged (clear manually if needed)');
+  Logger.log('\nYou can now start Tool 3 completely fresh.');
+}
+
+/**
  * RUN ALL TESTS
  * Execute all tests in sequence for comprehensive diagnosis
  */
@@ -487,24 +521,24 @@ function runAllTests() {
   Logger.log('##################################################');
   Logger.log('RUNNING ALL DIAGNOSTIC TESTS');
   Logger.log('##################################################\n\n');
-  
+
   checkDraftData();
   Logger.log('\n\n');
-  
+
   debugScoring();
   Logger.log('\n\n');
-  
+
   checkGPTCache();
   Logger.log('\n\n');
-  
+
   checkResponsesSheet();
   Logger.log('\n\n');
-  
+
   debugSaveData();
   Logger.log('\n\n');
-  
+
   manualSubmissionTest();
-  
+
   Logger.log('\n\n##################################################');
   Logger.log('ALL TESTS COMPLETE');
   Logger.log('##################################################');

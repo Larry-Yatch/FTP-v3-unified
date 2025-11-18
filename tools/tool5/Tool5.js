@@ -805,6 +805,9 @@ const Tool5 = {
       dataToSave
     );
 
+    // Clear draft data from PropertiesService
+    DraftService.clearDraft(this.config.id, clientId);
+
     // Clear GPT cache
     GroundingGPT.clearCache(this.config.id, clientId);
   },
