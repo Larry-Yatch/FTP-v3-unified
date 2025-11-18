@@ -386,14 +386,21 @@ function completeToolSubmission(toolId, data) {
       reportHtml = Tool1Report.render(clientId).getContent();
     } else if (reportRoute === 'tool2_report' && typeof Tool2Report !== 'undefined') {
       reportHtml = Tool2Report.render(clientId).getContent();
+    } else if (reportRoute === 'tool3_report' && typeof Tool3Report !== 'undefined') {
+      reportHtml = Tool3Report.render(clientId).getContent();
+    } else if (reportRoute === 'tool5_report' && typeof Tool5Report !== 'undefined') {
+      reportHtml = Tool5Report.render(clientId).getContent();
     } else {
       // Fallback - just return success message
       reportHtml = `
         <html>
-        <body>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 40px;">
           <h1>Assessment Complete!</h1>
           <p>Your results have been saved.</p>
-          <a href="${ScriptApp.getService().getUrl()}?route=dashboard&client=${clientId}">Return to Dashboard</a>
+          <a href="${ScriptApp.getService().getUrl()}?route=dashboard&client=${clientId}"
+             style="display: inline-block; margin-top: 20px; padding: 12px 24px; background: #ad9168; color: white; text-decoration: none; border-radius: 6px;">
+             Return to Dashboard
+          </a>
         </body>
         </html>
       `;

@@ -512,14 +512,23 @@ const Tool5 = {
   },
 
   /**
-   * Process form submission (called by Router via saveToolPageData)
+   * Process final submission (called by Code.js completeToolSubmission)
+   * CRITICAL: Method name must match Code.js expectation
+   * CRITICAL: Signature must be (clientId) not (clientId, formData)
    */
-  processSubmission(clientId, formData) {
+  processFinalSubmission(clientId) {
     try {
-      Logger.log(`[Tool5] Processing submission for ${clientId}`);
+      Logger.log(`[Tool5] Processing final submission for ${clientId}`);
+
+      // Get all data from draft storage (like Tool 1/2)
+      const allData = this.getExistingData(clientId);
+
+      if (!allData) {
+        throw new Error('No data found. Please start the assessment again.');
+      }
 
       // Extract all responses (24 scale + 6 open responses = 30 total)
-      const responses = this.extractResponses(formData);
+      const responses = this.extractResponses(allData);
 
       // Calculate scores using GroundingScoring
       const scoringResult = GroundingScoring.calculateScores(
@@ -547,11 +556,8 @@ const Tool5 = {
 
       Logger.log(`[Tool5] Assessment data saved`);
 
-      // Generate and return report
-      return this.generateReport(clientId, scoringResult, {
-        ...gptInsights,
-        ...syntheses
-      });
+      // Return success (Code.js will handle report generation)
+      return { success: true };
 
     } catch (error) {
       Logger.log(`[Tool5] Error processing submission: ${error.message}`);

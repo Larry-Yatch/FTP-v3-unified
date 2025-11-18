@@ -348,9 +348,16 @@ const Tool3 = {
 
   /**
    * Main entry point - called by Router
+   * @param {Object} params - Render parameters from Router
    */
-  render(clientId, page = 1) {
+  render(params) {
+    const clientId = params.clientId;
+    const page = parseInt(params.page) || 1;
     const baseUrl = ScriptApp.getService().getUrl();
+
+    // Handle URL parameters for immediate navigation (preserves user gesture)
+    const editMode = params.editMode === 'true' || params.editMode === true;
+    const clearDraft = params.clearDraft === 'true' || params.clearDraft === true;
 
     // Page validation
     const totalPages = 7; // 1 intro + 6 subdomains
@@ -358,14 +365,29 @@ const Tool3 = {
       throw new Error(`Invalid page number: ${page}. Must be 1-${totalPages}`);
     }
 
+    // Execute actions on page load (after navigation completes with user gesture)
+    if (editMode && page === 1) {
+      Logger.log(`[Tool3] Edit mode detected for ${clientId} - creating EDIT_DRAFT`);
+      DataService.loadResponseForEditing(clientId, 'tool3');
+    }
+
+    if (clearDraft && page === 1) {
+      Logger.log(`[Tool3] Clear draft triggered for ${clientId}`);
+      DataService.startFreshAttempt(clientId, 'tool3');
+    }
+
     try {
+      // Get existing data if resuming
+      const existingData = this.getExistingData(clientId);
+
       // Get page content (just the form fields, not full HTML)
       const pageContent = GroundingFormBuilder.renderPageContent({
         toolId: this.config.id,
         pageNum: page,
         clientId: clientId,
         subdomains: this.config.subdomains,
-        intro: this.getIntroContent()
+        intro: this.getIntroContent(),
+        existingData: existingData
       });
 
       // Use FormUtils to build standard page (like Tool 1 and Tool 2)
@@ -387,7 +409,7 @@ const Tool3 = {
         .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 
     } catch (error) {
-      Logger.log(`Error rendering Tool3 page ${page}: ${error.message}`);
+      Logger.log(`[Tool3] Error rendering page ${page}: ${error.message}`);
       throw error;
     }
   },
@@ -490,14 +512,23 @@ const Tool3 = {
   },
 
   /**
-   * Process form submission (called by Router via saveToolPageData)
+   * Process final submission (called by Code.js completeToolSubmission)
+   * CRITICAL: Method name must match Code.js expectation
+   * CRITICAL: Signature must be (clientId) not (clientId, formData)
    */
-  processSubmission(clientId, formData) {
+  processFinalSubmission(clientId) {
     try {
-      Logger.log(`[Tool3] Processing submission for ${clientId}`);
+      Logger.log(`[Tool3] Processing final submission for ${clientId}`);
+
+      // Get all data from draft storage (like Tool 1/2)
+      const allData = this.getExistingData(clientId);
+
+      if (!allData) {
+        throw new Error('No data found. Please start the assessment again.');
+      }
 
       // Extract all responses (24 scale + 6 open responses = 30 total)
-      const responses = this.extractResponses(formData);
+      const responses = this.extractResponses(allData);
 
       // Calculate scores using GroundingScoring
       const scoringResult = GroundingScoring.calculateScores(
@@ -525,11 +556,8 @@ const Tool3 = {
 
       Logger.log(`[Tool3] Assessment data saved`);
 
-      // Generate and return report
-      return this.generateReport(clientId, scoringResult, {
-        ...gptInsights,
-        ...syntheses
-      });
+      // Return success (Code.js will handle report generation)
+      return { success: true };
 
     } catch (error) {
       Logger.log(`[Tool3] Error processing submission: ${error.message}`);
