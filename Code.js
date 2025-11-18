@@ -396,6 +396,18 @@ function triggerGroundingGPTAnalysis(toolId, clientId, subdomainKey, subdomainIn
       return { success: true, skipped: true, reason: 'insufficient_open_response' };
     }
 
+    // DUPLICATE PREVENTION: Check if we already analyzed this subdomain
+    // Prevents duplicate API calls on back/forward navigation (Tool 2 pattern)
+    const existingInsight = GroundingGPT.getCachedInsight(toolId, clientId, subdomainKey);
+    if (existingInsight && existingInsight.source) {
+      Logger.log(`✓ Insight already exists for ${subdomainKey} (source: ${existingInsight.source}), skipping GPT call`);
+      return {
+        success: true,
+        cached: true,
+        source: existingInsight.source
+      };
+    }
+
     // Get existing insights (for context in progressive chaining)
     // Only include insights from previous subdomains (not current one)
     const previousInsights = {};
