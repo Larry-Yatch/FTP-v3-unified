@@ -194,8 +194,6 @@ const GroundingReport = {
             color: #dc3545;
           }
         </style>
-        <?!= include('shared/styles') ?>
-        <?!= include('shared/loading-animation') ?>
       </head>
       <body>
         <div class="container">
@@ -249,7 +247,7 @@ const GroundingReport = {
     return `
       <div class="score-card">
         <h2 style="text-align: center; margin-bottom: 15px;">Overall ${toolConfig.scoreName}</h2>
-        <div class="score-large">${score}</div>
+        <div class="score-large">${Math.round(score)}</div>
         <div class="score-interpretation">${interpretation.label}</div>
         <p style="text-align: center; color: rgba(255, 255, 255, 0.7); max-width: 600px; margin: 0 auto;">
           ${interpretation.description}
@@ -317,7 +315,7 @@ const GroundingReport = {
               ${domain.description}
             </div>
           </div>
-          <div class="domain-score">${domain.score}</div>
+          <div class="domain-score">${Math.round(domain.score)}</div>
         </div>
 
         <div style="padding: 0 20px;">
