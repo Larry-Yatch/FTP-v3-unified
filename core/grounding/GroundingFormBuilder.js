@@ -68,6 +68,7 @@ const GroundingFormBuilder = {
     // Add custom styles needed for grounding scale questions
     const groundingStyles = `
       <style>
+        /* OLD HORIZONTAL LAYOUT - Kept for backward compatibility */
         .scale-container {
           display: flex;
           align-items: center;
@@ -103,6 +104,63 @@ const GroundingFormBuilder = {
           color: rgba(255, 255, 255, 0.6);
           margin-top: 5px;
         }
+
+        /* NEW VERTICAL LAYOUT - Full descriptive labels */
+        .scale-container-vertical {
+          margin: 20px 0;
+          padding: 15px;
+          background: rgba(255, 255, 255, 0.03);
+          border-radius: 10px;
+          border: 1px solid rgba(173, 145, 104, 0.2);
+        }
+        .scale-option {
+          display: flex;
+          align-items: flex-start;
+          padding: 12px;
+          margin: 8px 0;
+          border-radius: 6px;
+          transition: background-color 0.2s ease;
+          cursor: pointer;
+        }
+        .scale-option:hover {
+          background: rgba(173, 145, 104, 0.1);
+        }
+        .scale-option input[type="radio"] {
+          margin: 4px 12px 0 0;
+          width: 20px;
+          height: 20px;
+          cursor: pointer;
+          flex-shrink: 0;
+        }
+        .scale-option label {
+          display: flex;
+          align-items: baseline;
+          cursor: pointer;
+          flex: 1;
+          line-height: 1.5;
+        }
+        .scale-option .scale-value {
+          font-weight: 700;
+          font-size: 15px;
+          color: #ad9168;
+          min-width: 35px;
+          margin-right: 12px;
+          flex-shrink: 0;
+        }
+        .scale-option .scale-description {
+          font-size: 14px;
+          color: rgba(255, 255, 255, 0.85);
+          line-height: 1.6;
+        }
+        .scale-option input[type="radio"]:checked + label {
+          color: #ad9168;
+        }
+        .scale-option input[type="radio"]:checked + label .scale-description {
+          color: rgba(255, 255, 255, 0.95);
+          font-weight: 500;
+        }
+
+        /* SHARED STYLES */
         .question-section {
           margin-bottom: 35px;
         }
@@ -443,51 +501,122 @@ const GroundingFormBuilder = {
 
   /**
    * Build a single scale question (-3 to +3, no zero)
+   * Now supports full descriptive labels for each scale option
    */
   buildScaleQuestion(question, index, subdomainKey, existingData) {
     const {aspect, text, scale} = question;
     const fieldName = `${subdomainKey}_${aspect.toLowerCase()}`;
+    const labelFieldName = `${fieldName}_label`;
 
     // Get existing value if available
     const selectedValue = existingData?.[fieldName] || '';
 
+    // Build scale options HTML (vertical layout)
+    let scaleOptionsHTML = '';
+
+    // Handle both old format (object with negative/positive) and new format (array)
+    if (Array.isArray(scale)) {
+      // New format: array of scale objects with value and label
+      scale.forEach(option => {
+        const radioId = `${fieldName}_${option.value < 0 ? 'n' : 'p'}${Math.abs(option.value)}`;
+        const isChecked = selectedValue === String(option.value);
+        const displayValue = option.value > 0 ? `+${option.value}` : option.value;
+
+        scaleOptionsHTML += `
+          <div class="scale-option">
+            <input
+              type="radio"
+              id="${radioId}"
+              name="${fieldName}"
+              value="${option.value}"
+              data-label="${this.escapeHtml(option.label)}"
+              ${isChecked ? 'checked' : ''}
+              required
+            >
+            <label for="${radioId}">
+              <span class="scale-value">${displayValue}</span>
+              <span class="scale-description">${option.label}</span>
+            </label>
+          </div>
+        `;
+      });
+    } else {
+      // Old format: object with negative/positive (backward compatibility)
+      const values = [-3, -2, -1, 1, 2, 3];
+      values.forEach(value => {
+        const radioId = `${fieldName}_${value < 0 ? 'n' : 'p'}${Math.abs(value)}`;
+        const isChecked = selectedValue === String(value);
+        const displayValue = value > 0 ? `+${value}` : value;
+        const label = value === -3 ? scale.negative : (value === 3 ? scale.positive : `${displayValue}`);
+
+        scaleOptionsHTML += `
+          <div class="scale-option">
+            <input
+              type="radio"
+              id="${radioId}"
+              name="${fieldName}"
+              value="${value}"
+              data-label="${this.escapeHtml(label)}"
+              ${isChecked ? 'checked' : ''}
+              required
+            >
+            <label for="${radioId}">
+              <span class="scale-value">${displayValue}</span>
+              <span class="scale-description">${label}</span>
+            </label>
+          </div>
+        `;
+      });
+    }
+
+    // Hidden field to store the selected label text for GPT context
     return `
       <div class="question-section">
         <div class="question-header">${aspect}</div>
         <div class="question-text">${text}</div>
 
-        <div class="scale-container">
-          <div class="scale-label">${scale.negative}</div>
-          <div class="scale-inputs">
-            <div class="scale-input">
-              <input type="radio" id="${fieldName}_n3" name="${fieldName}" value="-3" ${selectedValue === '-3' ? 'checked' : ''} required>
-              <label for="${fieldName}_n3">-3</label>
-            </div>
-            <div class="scale-input">
-              <input type="radio" id="${fieldName}_n2" name="${fieldName}" value="-2" ${selectedValue === '-2' ? 'checked' : ''} required>
-              <label for="${fieldName}_n2">-2</label>
-            </div>
-            <div class="scale-input">
-              <input type="radio" id="${fieldName}_n1" name="${fieldName}" value="-1" ${selectedValue === '-1' ? 'checked' : ''} required>
-              <label for="${fieldName}_n1">-1</label>
-            </div>
-            <div class="scale-input">
-              <input type="radio" id="${fieldName}_p1" name="${fieldName}" value="1" ${selectedValue === '1' ? 'checked' : ''} required>
-              <label for="${fieldName}_p1">+1</label>
-            </div>
-            <div class="scale-input">
-              <input type="radio" id="${fieldName}_p2" name="${fieldName}" value="2" ${selectedValue === '2' ? 'checked' : ''} required>
-              <label for="${fieldName}_p2">+2</label>
-            </div>
-            <div class="scale-input">
-              <input type="radio" id="${fieldName}_p3" name="${fieldName}" value="3" ${selectedValue === '3' ? 'checked' : ''} required>
-              <label for="${fieldName}_p3">+3</label>
-            </div>
-          </div>
-          <div class="scale-label">${scale.positive}</div>
+        <div class="scale-container-vertical">
+          ${scaleOptionsHTML}
         </div>
+
+        <input type="hidden" name="${labelFieldName}" id="${labelFieldName}" value="">
+
+        <script>
+          // Store the label text when a radio is selected
+          (function() {
+            const radios = document.querySelectorAll('input[name="${fieldName}"]');
+            const labelField = document.getElementById('${labelFieldName}');
+
+            radios.forEach(radio => {
+              radio.addEventListener('change', function() {
+                if (this.checked) {
+                  labelField.value = this.getAttribute('data-label') || '';
+                }
+              });
+
+              // Set initial value if already selected
+              if (radio.checked) {
+                labelField.value = radio.getAttribute('data-label') || '';
+              }
+            });
+          })();
+        </script>
       </div>
     `;
+  },
+
+  /**
+   * Escape HTML entities for use in attributes
+   */
+  escapeHtml(text) {
+    const map = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#039;'
+    };
+    return text.replace(/[&<>"']/g, m => map[m]);
   },
 
   /**

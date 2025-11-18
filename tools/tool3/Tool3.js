@@ -47,37 +47,53 @@ const Tool3 = {
           {
             aspect: 'Belief',
             text: 'I\'m not the kind of person who gets to have financial freedom',
-            scale: {
-              negative: 'Strongly Agree (I\'m certain financial freedom is not for someone like me)',
-              positive: 'Strongly Disagree (I absolutely know I\'m the kind of person who gets to have financial freedom)'
-            }
+            scale: [
+              { value: -3, label: 'Strongly agree - I\'m absolutely certain financial freedom is not for someone like me; people like me don\'t get that' },
+              { value: -2, label: 'Agree - I believe financial freedom is for other kinds of people, not someone like me' },
+              { value: -1, label: 'Slightly agree - I often feel like I\'m not the type who gets financial freedom, though I\'m questioning this' },
+              { value: 1, label: 'Slightly disagree - I\'m learning I can be the kind of person who has financial freedom, though doubts linger' },
+              { value: 2, label: 'Disagree - I generally believe I can be someone who has financial freedom, though I occasionally question it' },
+              { value: 3, label: 'Strongly disagree - I absolutely know I\'m the kind of person who gets to have financial freedom' }
+            ]
           },
           // Behavior
           {
             aspect: 'Behavior',
             text: 'I avoid looking at my financial accounts and/or have money scattered across multiple places where I can\'t easily access it',
-            scale: {
-              negative: 'Always (This describes me completely)',
-              positive: 'Never (I consistently look at my accounts and keep my money organized and accessible)'
-            }
+            scale: [
+              { value: -3, label: 'Always - This describes me completely; I consistently avoid looking at accounts and have money scattered everywhere' },
+              { value: -2, label: 'Very often - I regularly avoid my financial reality and have money scattered that I can\'t easily access' },
+              { value: -1, label: 'Often - I frequently avoid looking at accounts and/or have money in places I forget about' },
+              { value: 1, label: 'Occasionally - I sometimes avoid my accounts or have some scattered money, noticing this pattern' },
+              { value: 2, label: 'Rarely - I occasionally avoid looking or have slight disorganization, but generally stay aware' },
+              { value: 3, label: 'Never - I consistently look at my accounts and keep my money organized and accessible' }
+            ]
           },
           // Feeling
           {
             aspect: 'Feeling',
             text: 'I feel deep shame and unworthiness about my financial situation',
-            scale: {
-              negative: 'Always (Deep shame and unworthiness dominate)',
-              positive: 'Never (I feel no shame; I accept where I am without judgment)'
-            }
+            scale: [
+              { value: -3, label: 'Always - Deep shame and unworthiness dominate my emotional experience with finances' },
+              { value: -2, label: 'Very often - Shame and unworthiness are heavy, recurring feelings about money' },
+              { value: -1, label: 'Often - I frequently feel shame and unworthiness about my financial situation' },
+              { value: 1, label: 'Occasionally - I sometimes feel shame creeping in, though I\'m working to release it' },
+              { value: 2, label: 'Rarely - I occasionally feel slight discomfort, but shame and unworthiness are rare' },
+              { value: 3, label: 'Never - I feel no shame about my finances; I accept where I am without judgment' }
+            ]
           },
           // Consequence
           {
             aspect: 'Consequence',
             text: 'Believing I\'m not the kind of person who gets financial freedom has caused me to miss opportunities or make poor financial decisions',
-            scale: {
-              negative: 'Always (I\'ve missed massive opportunities; the cost has been severe)',
-              positive: 'Never (I seize appropriate opportunities and make sound financial decisions aligned with my goals)'
-            }
+            scale: [
+              { value: -3, label: 'Always - I\'ve missed massive opportunities and made devastating decisions; the cost has been severe' },
+              { value: -2, label: 'Very often - I regularly sabotage myself through missed opportunities and poor choices' },
+              { value: -1, label: 'Often - I frequently miss opportunities or make poor decisions because of this unworthiness' },
+              { value: 1, label: 'Occasionally - I\'ve noticed some missed opportunities or confused decisions, working to change' },
+              { value: 2, label: 'Rarely - I\'ve occasionally missed something, but generally make good decisions' },
+              { value: 3, label: 'Never - I seize appropriate opportunities and make sound financial decisions aligned with my goals' }
+            ]
           },
           // Open Response
           {
@@ -97,37 +113,53 @@ const Tool3 = {
           {
             aspect: 'Belief',
             text: 'I\'ll never have enough money, no matter how much I earn',
-            scale: {
-              negative: 'Strongly Agree (I\'m certain I\'ll never have enough, no matter what I do)',
-              positive: 'Strongly Disagree (I know I can have enough; sufficiency is absolutely possible for me)'
-            }
+            scale: [
+              { value: -3, label: 'Strongly agree - I\'m certain I\'ll never have enough, no matter what I do or earn' },
+              { value: -2, label: 'Agree - I believe no amount will ever be enough; there\'s always something missing' },
+              { value: -1, label: 'Slightly agree - I often feel like I\'ll never have enough, though I\'m questioning this belief' },
+              { value: 1, label: 'Slightly disagree - I\'m learning that "enough" is possible, though scarcity thinking still surfaces' },
+              { value: 2, label: 'Disagree - I believe I can have enough with conscious effort and choices' },
+              { value: 3, label: 'Strongly disagree - I know I can have enough; sufficiency is absolutely possible for me' }
+            ]
           },
           // Behavior
           {
             aspect: 'Behavior',
             text: 'I ignore income and focus only on spending, or ignore spending and focus only on income - never paying attention to both at once',
-            scale: {
-              negative: 'Always (This perfectly describes my pattern)',
-              positive: 'Never (I consistently pay attention to both income and spending simultaneously)'
-            }
+            scale: [
+              { value: -3, label: 'Always - This perfectly describes my pattern; I never pay attention to both simultaneously' },
+              { value: -2, label: 'Very often - I regularly exhibit this selective attention pattern; it\'s become automatic' },
+              { value: -1, label: 'Often - I frequently focus on only one side (income OR spending) while ignoring the other' },
+              { value: 1, label: 'Occasionally - I sometimes notice this pattern of selective blindness, working to change it' },
+              { value: 2, label: 'Rarely - I occasionally have selective attention, but generally maintain balanced awareness' },
+              { value: 3, label: 'Never - I consistently pay attention to both income and spending simultaneously' }
+            ]
           },
           // Feeling
           {
             aspect: 'Feeling',
             text: 'I feel constant anxiety that there\'s never enough and/or confusion about whether I will have enough money',
-            scale: {
-              negative: 'Always (Constant anxiety and deep confusion dominate)',
-              positive: 'Never (I feel clear and calm about my finances; I trust I will have enough)'
-            }
+            scale: [
+              { value: -3, label: 'Always - Constant anxiety and deep confusion about having enough dominate my experience' },
+              { value: -2, label: 'Very often - Persistent anxiety about sufficiency and regular confusion about whether I\'ll have enough' },
+              { value: -1, label: 'Often - Frequent anxiety that there\'s never enough and confusion about having sufficient money' },
+              { value: 1, label: 'Occasionally - I sometimes feel anxious or confused about having enough, though I\'m learning to see more clearly' },
+              { value: 2, label: 'Rarely - Occasional worry or brief confusion, but generally feel grounded about sufficiency' },
+              { value: 3, label: 'Never - I feel clear and calm about my finances; I trust I will have enough' }
+            ]
           },
           // Consequence
           {
             aspect: 'Consequence',
             text: 'I\'ve made financial decisions in panic mode that made things worse, or missed opportunities because I didn\'t realize I had the resources',
-            scale: {
-              negative: 'Always (The pattern is devastating)',
-              positive: 'Never (I consistently make calm, informed decisions and recognize available opportunities)'
-            }
+            scale: [
+              { value: -3, label: 'Always - I\'ve repeatedly made panic-driven decisions and missed countless opportunities; the pattern is devastating' },
+              { value: -2, label: 'Very often - I regularly make fear-based decisions and miss opportunities due to this confusion' },
+              { value: -1, label: 'Often - I frequently act from panic or miss chances because I can\'t see my resources clearly' },
+              { value: 1, label: 'Occasionally - I\'ve made some panic decisions or missed opportunities, working to break this pattern' },
+              { value: 2, label: 'Rarely - I\'ve had occasional missteps, but generally make grounded decisions from clarity' },
+              { value: 3, label: 'Never - I consistently make calm, informed decisions and recognize available opportunities' }
+            ]
           },
           // Open Response
           {
@@ -147,37 +179,53 @@ const Tool3 = {
           {
             aspect: 'Belief',
             text: 'Finances are too complex/overwhelming for me to understand',
-            scale: {
-              negative: 'Strongly Agree (I\'m absolutely certain finances are beyond my ability to understand)',
-              positive: 'Strongly Disagree (I know I\'m fully capable of understanding finances; complexity is manageable)'
-            }
+            scale: [
+              { value: -3, label: 'Strongly agree - I\'m absolutely certain finances are beyond my ability to understand; it\'s all too complex' },
+              { value: -2, label: 'Agree - I believe finances are too complicated; I\'m not capable of making sense of them' },
+              { value: -1, label: 'Slightly agree - I often feel overwhelmed and think finances are too complex, though I\'m questioning this' },
+              { value: 1, label: 'Slightly disagree - I\'m learning I can understand finances, though complexity still feels intimidating' },
+              { value: 2, label: 'Disagree - I believe I can understand finances with effort and support' },
+              { value: 3, label: 'Strongly disagree - I know I\'m fully capable of understanding finances; complexity is manageable' }
+            ]
           },
           // Behavior
           {
             aspect: 'Behavior',
             text: 'I don\'t look at my full financial picture; I focus on one small piece at a time and ignore the rest',
-            scale: {
-              negative: 'Always (I only ever look at tiny fragments)',
-              positive: 'Never (I consistently look at my complete financial picture and understand how pieces connect)'
-            }
+            scale: [
+              { value: -3, label: 'Always - I completely avoid seeing the whole picture; I only ever look at tiny fragments' },
+              { value: -2, label: 'Very often - I regularly focus on one small piece and deliberately ignore everything else' },
+              { value: -1, label: 'Often - I frequently compartmentalize and avoid seeing the full reality' },
+              { value: 1, label: 'Occasionally - I sometimes fragment my view, though I\'m working to see the whole picture' },
+              { value: 2, label: 'Rarely - I occasionally focus too narrowly, but generally maintain comprehensive awareness' },
+              { value: 3, label: 'Never - I consistently look at my complete financial picture and understand how pieces connect' }
+            ]
           },
           // Feeling
           {
             aspect: 'Feeling',
             text: 'I feel overwhelmed and helpless about understanding money',
-            scale: {
-              negative: 'Always (Overwhelming helplessness is constant and crushing)',
-              positive: 'Never (I feel confident and capable; money is manageable and understandable)'
-            }
+            scale: [
+              { value: -3, label: 'Always - Overwhelming helplessness about finances is constant and crushing' },
+              { value: -2, label: 'Very often - I regularly feel overwhelmed and powerless when thinking about money' },
+              { value: -1, label: 'Often - I frequently feel helpless and overwhelmed by financial matters' },
+              { value: 1, label: 'Occasionally - I sometimes feel overwhelmed, though I\'m building confidence and capability' },
+              { value: 2, label: 'Rarely - Occasional brief overwhelm, but generally feel capable and empowered' },
+              { value: 3, label: 'Never - I feel confident and capable; money is manageable and understandable' }
+            ]
           },
           // Consequence
           {
             aspect: 'Consequence',
             text: 'I\'ve been blindsided by financial crises that I should have seen coming if I\'d been paying attention',
-            scale: {
-              negative: 'Always (I\'ve been repeatedly blindsided; the pattern keeps repeating)',
-              positive: 'Never (I consistently see financial challenges coming and prepare; no blindsiding)'
-            }
+            scale: [
+              { value: -3, label: 'Always - I\'ve been repeatedly blindsided by predictable crises; the pattern keeps repeating' },
+              { value: -2, label: 'Very often - I regularly face "surprise" crises that clear warning signs would have revealed' },
+              { value: -1, label: 'Often - I frequently encounter crises I should have anticipated with fuller awareness' },
+              { value: 1, label: 'Occasionally - I\'ve been surprised a few times, learning to pay better attention' },
+              { value: 2, label: 'Rarely - I\'ve had occasional surprises, but generally see challenges coming' },
+              { value: 3, label: 'Never - I consistently see financial challenges coming and prepare; no blindsiding' }
+            ]
           },
           // Open Response
           {
@@ -201,37 +249,53 @@ const Tool3 = {
           {
             aspect: 'Belief',
             text: 'How much money I have (or appear to have) determines my worth and value',
-            scale: {
-              negative: 'Strongly Agree (I\'m certain my worth is directly determined by money; without it I have no value)',
-              positive: 'Strongly Disagree (I absolutely know my worth is inherent and completely independent of money)'
-            }
+            scale: [
+              { value: -3, label: 'Strongly agree - I\'m certain my worth is directly determined by money; without it I have no value' },
+              { value: -2, label: 'Agree - I strongly believe money equals worth; I judge myself and others by financial appearance' },
+              { value: -1, label: 'Slightly agree - I often feel my value rises and falls with money, though I\'m questioning this connection' },
+              { value: 1, label: 'Slightly disagree - I\'m learning my worth is separate from money, though old beliefs surface' },
+              { value: 2, label: 'Disagree - I generally know my worth isn\'t determined by finances, though society\'s messages creep in' },
+              { value: 3, label: 'Strongly disagree - I absolutely know my worth is inherent and completely independent of money' }
+            ]
           },
           // Behavior
           {
             aspect: 'Behavior',
             text: 'I spend money to look successful/worthy to others, even when it strains my actual finances',
-            scale: {
-              negative: 'Always (I constantly spend to maintain an image, regardless of the financial strain)',
-              positive: 'Never (I consistently spend based on my actual needs and values, not others\' opinions)'
-            }
+            scale: [
+              { value: -3, label: 'Always - I constantly spend to maintain an image, regardless of the financial strain it causes' },
+              { value: -2, label: 'Very often - I regularly sacrifice financial stability to appear successful to others' },
+              { value: -1, label: 'Often - I frequently spend beyond my means to project success and worthiness' },
+              { value: 1, label: 'Occasionally - I sometimes spend for image, though I\'m working to make authentic choices' },
+              { value: 2, label: 'Rarely - I occasionally feel pressure to spend for appearance, but generally choose authentically' },
+              { value: 3, label: 'Never - I consistently spend based on my actual needs and values, not others\' opinions' }
+            ]
           },
           // Feeling
           {
             aspect: 'Feeling',
             text: 'I feel anxiety and shame when I think others might see my real financial situation',
-            scale: {
-              negative: 'Always (Constant, overwhelming anxiety and shame)',
-              positive: 'Never (I feel no shame about my real finances; I\'m comfortable being authentic)'
-            }
+            scale: [
+              { value: -3, label: 'Always - Constant, overwhelming anxiety and shame about others discovering my financial truth' },
+              { value: -2, label: 'Very often - Persistent anxiety and heavy shame about my real financial situation being revealed' },
+              { value: -1, label: 'Often - Frequent anxiety and shame about the gap between appearance and reality' },
+              { value: 1, label: 'Occasionally - I sometimes feel anxious or ashamed, learning to be more authentic' },
+              { value: 2, label: 'Rarely - Occasional discomfort about finances, but generally comfortable with transparency' },
+              { value: 3, label: 'Never - I feel no shame about my real finances; I\'m comfortable being authentic' }
+            ]
           },
           // Consequence
           {
             aspect: 'Consequence',
             text: 'I\'ve gone into debt or damaged my finances to maintain an image or impress others',
-            scale: {
-              negative: 'Always (I\'ve created massive debt and severe financial damage maintaining a false image)',
-              positive: 'Never (I consistently make financial choices based on reality, not image; no debt for appearance)'
-            }
+            scale: [
+              { value: -3, label: 'Always - I\'ve created massive debt and severe financial damage maintaining a false image' },
+              { value: -2, label: 'Very often - I regularly harm my finances significantly for the sake of appearance' },
+              { value: -1, label: 'Often - I frequently damage my financial health trying to impress or project success' },
+              { value: 1, label: 'Occasionally - I\'ve made some image-based choices that hurt me, working to change this' },
+              { value: 2, label: 'Rarely - I\'ve had occasional lapses, but generally prioritize authentic financial health' },
+              { value: 3, label: 'Never - I consistently make financial decisions based on reality, not image; no debt for appearance' }
+            ]
           },
           // Open Response
           {
@@ -251,37 +315,53 @@ const Tool3 = {
           {
             aspect: 'Belief',
             text: 'Others\' opinions about how I spend and what I share about money matter more than my own judgment',
-            scale: {
-              negative: 'Strongly Agree (Others\' opinions completely determine how I spend; my judgment is irrelevant)',
-              positive: 'Strongly Disagree (I completely trust my judgment; others\' opinions are just data, not directives)'
-            }
+            scale: [
+              { value: -3, label: 'Strongly agree - Others\' opinions completely determine how I spend and what I share; my judgment is irrelevant' },
+              { value: -2, label: 'Agree - I heavily weight others\' opinions over my own about spending and sharing financial info' },
+              { value: -1, label: 'Slightly agree - I often prioritize others\' views about my spending and what I share, though I\'m questioning why' },
+              { value: 1, label: 'Slightly disagree - I\'m learning to trust my judgment about spending and sharing, though others\' opinions still influence me' },
+              { value: 2, label: 'Disagree - I generally trust my own judgment about spending and what to share, though I occasionally seek validation' },
+              { value: 3, label: 'Strongly disagree - I completely trust my judgment about how I spend and what I share; others\' opinions are just data, not directives' }
+            ]
           },
           // Behavior
           {
             aspect: 'Behavior',
             text: 'I hide my financial choices from people in my life because I\'m afraid of their judgment',
-            scale: {
-              negative: 'Always (Fear of judgment controls my transparency completely)',
-              positive: 'Never (I\'m completely open about my financial choices with appropriate people; no hiding)'
-            }
+            scale: [
+              { value: -3, label: 'Always - I constantly hide all financial choices; fear of judgment controls my transparency completely' },
+              { value: -2, label: 'Very often - I regularly conceal financial decisions from most people due to fear of criticism' },
+              { value: -1, label: 'Often - I frequently hide money choices, worried about others\' reactions and judgment' },
+              { value: 1, label: 'Occasionally - I sometimes hide choices, working toward more authentic financial transparency' },
+              { value: 2, label: 'Rarely - I occasionally withhold details, but generally share financial decisions appropriately' },
+              { value: 3, label: 'Never - I\'m completely open about my financial choices with appropriate people; no hiding' }
+            ]
           },
           // Feeling
           {
             aspect: 'Feeling',
             text: 'I feel trapped between what I want to do and what others expect me to do financially',
-            scale: {
-              negative: 'Always (Constant, painful conflict paralyzes me)',
-              positive: 'Never (I feel free to make my own financial choices; no conflict between internal and external)'
-            }
+            scale: [
+              { value: -3, label: 'Always - Constant, painful conflict between my desires and others\' expectations paralyzes me' },
+              { value: -2, label: 'Very often - I regularly feel trapped and torn between my needs and others\' judgments' },
+              { value: -1, label: 'Often - I frequently feel stuck between authentic choices and external expectations' },
+              { value: 1, label: 'Occasionally - I sometimes feel this conflict, learning to honor my own needs' },
+              { value: 2, label: 'Rarely - Occasional tension between desires and expectations, but generally choose authentically' },
+              { value: 3, label: 'Never - I feel free to make my own financial choices; no conflict between internal and external' }
+            ]
           },
           // Consequence
           {
             aspect: 'Consequence',
             text: 'I\'ve made financial choices I regret because I was trying to please someone or avoid their disapproval',
-            scale: {
-              negative: 'Always (I\'ve made countless regrettable choices seeking approval; the cost has been devastating)',
-              positive: 'Never (I consistently make financial choices based on my judgment; no people-pleasing regrets)'
-            }
+            scale: [
+              { value: -3, label: 'Always - I\'ve made countless regrettable choices seeking approval; the cost has been devastating' },
+              { value: -2, label: 'Very often - I regularly make people-pleasing financial decisions I later regret deeply' },
+              { value: -1, label: 'Often - I frequently choose based on others\' approval rather than my authentic needs' },
+              { value: 1, label: 'Occasionally - I\'ve made some people-pleasing choices, working to trust myself more' },
+              { value: 2, label: 'Rarely - I\'ve had occasional lapses, but generally make decisions aligned with my values' },
+              { value: 3, label: 'Never - I consistently make financial choices based on my judgment; no people-pleasing regrets' }
+            ]
           },
           // Open Response
           {
@@ -301,37 +381,53 @@ const Tool3 = {
           {
             aspect: 'Belief',
             text: 'I need to prove I\'m successful/worthy through money and possessions',
-            scale: {
-              negative: 'Strongly Agree (I desperately need to prove my success through money; it\'s my only validation)',
-              positive: 'Strongly Disagree (I absolutely don\'t need to prove myself through money; my worth is inherent)'
-            }
+            scale: [
+              { value: -3, label: 'Strongly agree - I desperately need to prove my success and worth through money; it\'s my only validation' },
+              { value: -2, label: 'Agree - I strongly feel I must demonstrate worth through finances; proving myself drives my choices' },
+              { value: -1, label: 'Slightly agree - I often feel compelled to prove myself financially, though I\'m questioning this need' },
+              { value: 1, label: 'Slightly disagree - I\'m learning I don\'t need to prove anything, though old patterns emerge' },
+              { value: 2, label: 'Disagree - I generally know I don\'t need financial proof of worth, though occasional doubts surface' },
+              { value: 3, label: 'Strongly disagree - I absolutely don\'t need to prove myself through money; my worth is inherent' }
+            ]
           },
           // Behavior
           {
             aspect: 'Behavior',
             text: 'I buy status symbols and make financial moves to show others I\'ve \'made it\'',
-            scale: {
-              negative: 'Always (I constantly purchase status symbols for others\' validation)',
-              positive: 'Never (I consistently buy what I actually need and want; no purchases to prove anything)'
-            }
+            scale: [
+              { value: -3, label: 'Always - I constantly purchase status symbols and make visible financial moves for others\' validation' },
+              { value: -2, label: 'Very often - I regularly buy things and make choices primarily to demonstrate success to others' },
+              { value: -1, label: 'Often - I frequently spend on status and make proving moves, seeking external validation' },
+              { value: 1, label: 'Occasionally - I sometimes buy for status, working toward more authentic spending' },
+              { value: 2, label: 'Rarely - I occasionally feel the pull of status spending, but generally choose based on real needs' },
+              { value: 3, label: 'Never - I consistently buy what I actually need and want; no purchases to prove anything' }
+            ]
           },
           // Feeling
           {
             aspect: 'Feeling',
             text: 'I feel pressure to show I\'m doing well financially, and inadequate when I can\'t',
-            scale: {
-              negative: 'Always (Constant crushing pressure; profound inadequacy when I can\'t)',
-              positive: 'Never (I feel no pressure to prove financial success; completely comfortable with my authentic reality)'
-            }
+            scale: [
+              { value: -3, label: 'Always - Constant crushing pressure to demonstrate success; profound inadequacy when I can\'t' },
+              { value: -2, label: 'Very often - Regular heavy pressure to show financial success; deep inadequacy dominates' },
+              { value: -1, label: 'Often - Frequent pressure to prove I\'m doing well; inadequacy when appearances slip' },
+              { value: 1, label: 'Occasionally - Sometimes feel pressure or inadequacy, learning to release need for proof' },
+              { value: 2, label: 'Rarely - Occasional brief pressure or inadequacy, but generally comfortable with my path' },
+              { value: 3, label: 'Never - I feel no pressure to prove financial success; completely comfortable with my authentic reality' }
+            ]
           },
           // Consequence
           {
             aspect: 'Consequence',
             text: 'I\'ve damaged my finances by buying things or making choices to prove my success to others',
-            scale: {
-              negative: 'Always (I\'ve created severe financial damage through constant status-driven purchases)',
-              positive: 'Never (I consistently make authentic financial choices; no damage from trying to prove anything)'
-            }
+            scale: [
+              { value: -3, label: 'Always - I\'ve created severe financial damage through constant status-driven purchases and proving behavior' },
+              { value: -2, label: 'Very often - I regularly harm my finances significantly trying to demonstrate success' },
+              { value: -1, label: 'Often - I frequently damage my financial health with status purchases and proving moves' },
+              { value: 1, label: 'Occasionally - I\'ve made some status-driven choices that hurt me, working to stop this' },
+              { value: 2, label: 'Rarely - I\'ve had occasional proving purchases, but generally make grounded decisions' },
+              { value: 3, label: 'Never - I consistently make authentic financial choices; no damage from trying to prove anything' }
+            ]
           },
           // Open Response
           {
