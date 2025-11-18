@@ -611,8 +611,12 @@ const PDFGenerator = {
       // Combine all sections
       const bodyHTML = header + overallSection + overallSynthesis + domainSections + actionPlan;
 
+      // Build complete HTML document
+      const htmlContent = this.buildHTMLDocument(groundingStyles, bodyHTML);
+
       // Generate PDF
-      return this.generatePDF(bodyHTML, groundingStyles, `${toolConfig.name} Report - ${studentName}`);
+      const fileName = this.generateFileName(toolConfig.name, studentName);
+      return this.htmlToPDF(htmlContent, fileName);
 
     } catch (error) {
       Logger.log(`Error generating ${toolId} PDF: ${error}`);
