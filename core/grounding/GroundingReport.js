@@ -341,6 +341,28 @@ const GroundingReport = {
             background: rgba(220, 53, 69, 0.2);
             color: #dc3545;
           }
+
+          /* Print styles */
+          @media print {
+            body {
+              background: #fff;
+              color: #000;
+            }
+            .container {
+              max-width: 100%;
+            }
+            .tool-navigation,
+            .loading-overlay,
+            button,
+            .feedback-widget {
+              display: none !important;
+            }
+            .card {
+              background: #fff;
+              box-shadow: none;
+              border: none;
+            }
+          }
         </style>
       </head>
       <body>
