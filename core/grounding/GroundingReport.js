@@ -48,10 +48,129 @@ const GroundingReport = {
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta name="theme-color" content="#1e192b">
         <style>
+          @import url('https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700&display=swap');
+
+          * {
+            box-sizing: border-box;
+          }
+
           html, body {
             background: linear-gradient(135deg, #4b4166, #1e192b);
             margin: 0;
             padding: 0;
+            font-family: 'Rubik', -apple-system, BlinkMacSystemFont, sans-serif;
+            color: #ffffff;
+            min-height: 100vh;
+          }
+
+          .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+          }
+
+          .card {
+            background: rgba(30, 25, 43, 0.6);
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+          }
+
+          .tool-navigation {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 15px 0;
+            margin-bottom: 20px;
+          }
+
+          .btn-nav {
+            background: transparent;
+            border: 2px solid #ad9168;
+            color: #ad9168;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            font-family: 'Rubik', sans-serif;
+            transition: all 0.3s ease;
+          }
+
+          .btn-nav:hover {
+            background: rgba(173, 145, 104, 0.1);
+            transform: translateY(-2px);
+          }
+
+          .btn-primary, .btn-secondary {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            font-family: 'Rubik', sans-serif;
+          }
+
+          .btn-primary {
+            background: #ad9168;
+            color: #1e192b;
+          }
+
+          .btn-primary:hover {
+            background: #c4a877;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(173, 145, 104, 0.3);
+          }
+
+          .btn-secondary {
+            background: transparent;
+            color: #ad9168;
+            border: 2px solid #ad9168;
+          }
+
+          .btn-secondary:hover {
+            background: rgba(173, 145, 104, 0.1);
+            transform: translateY(-2px);
+          }
+
+          .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(30, 25, 43, 0.95);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            flex-direction: column;
+          }
+
+          .loading-overlay.active {
+            display: flex;
+          }
+
+          .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(173, 145, 104, 0.3);
+            border-top-color: #ad9168;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+          }
+
+          @keyframes spin {
+            to { transform: rotate(360deg); }
+          }
+
+          .loading-text {
+            color: #ad9168;
+            font-size: 18px;
+            margin-top: 20px;
           }
           .report-header {
             text-align: center;
@@ -196,6 +315,12 @@ const GroundingReport = {
         </style>
       </head>
       <body>
+        <!-- Loading Overlay -->
+        <div id="loadingOverlay" class="loading-overlay">
+          <div class="loading-spinner"></div>
+          <div class="loading-text">Loading...</div>
+        </div>
+
         <div class="container">
           <div class="tool-navigation">
             <button class="btn-nav" onclick="navigateToDashboard('${clientId}', 'Loading Dashboard')">
@@ -225,12 +350,46 @@ const GroundingReport = {
         ${FeedbackWidget.render(clientId, toolId, 'report')}
 
         <script>
-          document.body.classList.add('loaded');
+          const baseUrl = '${baseUrl}';
+          const clientId = '${clientId}';
 
-          function navigateToDashboard(clientId, message) {
-            showLoading(message || 'Loading...');
-            window.location.href = '${dashboardUrl}';
+          // Loading overlay functions
+          function showLoading(message) {
+            const overlay = document.getElementById('loadingOverlay');
+            const text = overlay.querySelector('.loading-text');
+            if (message) {
+              text.textContent = message;
+            }
+            overlay.classList.add('active');
           }
+
+          function hideLoading() {
+            const overlay = document.getElementById('loadingOverlay');
+            overlay.classList.remove('active');
+          }
+
+          // Navigate to dashboard using server-side routing
+          function navigateToDashboard(clientId, message) {
+            showLoading(message || 'Loading Dashboard');
+
+            google.script.run
+              .withSuccessHandler(function(dashboardHtml) {
+                // Replace current document with dashboard HTML
+                document.open();
+                document.write(dashboardHtml);
+                document.close();
+              })
+              .withFailureHandler(function(error) {
+                hideLoading();
+                alert('Navigation failed: ' + error.message);
+              })
+              .renderPage('dashboard', clientId);
+          }
+
+          // Hide loading on page load
+          window.addEventListener('load', function() {
+            hideLoading();
+          });
         </script>
       </body>
       </html>
