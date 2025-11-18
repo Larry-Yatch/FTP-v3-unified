@@ -5,6 +5,12 @@
 
 ---
 
+Bugs:
+- add in format for student ID
+- Add access to the investment tool - tool 8 now
+- change the position of the return to next and proceed to next page buttons on form
+
+
 ## 🎯 Immediate Actions (This Week)
 
 ### 1. ⏳ Set Up Daily Feedback Email Trigger
