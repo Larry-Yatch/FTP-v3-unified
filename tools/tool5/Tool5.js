@@ -477,7 +477,7 @@ const Tool5 = {
       const existingData = this.getExistingData(clientId);
 
       // Get page content (just the form fields, not full HTML)
-      const pageContent = GroundingFormBuilder.renderPageContent({
+      let pageContent = GroundingFormBuilder.renderPageContent({
         toolId: this.config.id,
         pageNum: page,
         clientId: clientId,
@@ -485,6 +485,18 @@ const Tool5 = {
         intro: this.getIntroContent(),
         existingData: existingData
       });
+
+      // Add edit mode banner if editing previous response
+      if (existingData && existingData._editMode) {
+        const originalDate = existingData._originalTimestamp ?
+          new Date(existingData._originalTimestamp).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          }) : 'previous submission';
+
+        pageContent = EditModeBanner.render(originalDate, clientId, 'tool5') + pageContent;
+      }
 
       // Use FormUtils to build standard page (like Tool 1 and Tool 2)
       const template = HtmlService.createTemplate(
