@@ -436,6 +436,60 @@ const Tool5 = {
   },
 
   /**
+   * Save page data (called after each page submission)
+   * Required by Code.js saveToolPageData()
+   */
+  savePageData(clientId, page, formData) {
+    // Save to PropertiesService for fast page-to-page navigation
+    DraftService.saveDraft('tool5', clientId, page, formData);
+
+    // Also save to RESPONSES sheet on first page to create DRAFT row
+    if (page === 1) {
+      DataService.saveDraft(clientId, 'tool5', formData);
+    }
+
+    return { success: true };
+  },
+
+  /**
+   * Get existing data for a client
+   * Checks both EDIT_DRAFT (from RESPONSES sheet) and PropertiesService drafts
+   */
+  getExistingData(clientId) {
+    try {
+      let data = null;
+
+      // First check if there's an active draft in RESPONSES sheet
+      if (typeof DataService !== 'undefined') {
+        const activeDraft = DataService.getActiveDraft(clientId, 'tool5');
+
+        if (activeDraft && (activeDraft.status === 'EDIT_DRAFT' || activeDraft.status === 'DRAFT')) {
+          Logger.log(`[Tool5] Found active draft with status: ${activeDraft.status}`);
+          data = activeDraft.data;
+        }
+      }
+
+      // Also check PropertiesService and merge
+      const propData = DraftService.getDraft('tool5', clientId);
+
+      if (propData) {
+        if (data) {
+          // Merge: PropertiesService takes precedence for newer page data
+          data = {...data, ...propData};
+        } else {
+          data = propData;
+        }
+      }
+
+      return data || {};
+
+    } catch (error) {
+      Logger.log(`[Tool5] Error getting existing data: ${error}`);
+      return {};
+    }
+  },
+
+  /**
    * Process form submission (called by Router via saveToolPageData)
    */
   processSubmission(clientId, formData) {
