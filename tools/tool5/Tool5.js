@@ -348,9 +348,16 @@ const Tool5 = {
 
   /**
    * Main entry point - called by Router
+   * @param {Object} params - Render parameters from Router
    */
-  render(clientId, page = 1) {
+  render(params) {
+    const clientId = params.clientId;
+    const page = parseInt(params.page) || 1;
     const baseUrl = ScriptApp.getService().getUrl();
+
+    // Handle URL parameters for immediate navigation (preserves user gesture)
+    const editMode = params.editMode === 'true' || params.editMode === true;
+    const clearDraft = params.clearDraft === 'true' || params.clearDraft === true;
 
     // Page validation
     const totalPages = 7; // 1 intro + 6 subdomains
@@ -358,14 +365,29 @@ const Tool5 = {
       throw new Error(`Invalid page number: ${page}. Must be 1-${totalPages}`);
     }
 
+    // Execute actions on page load (after navigation completes with user gesture)
+    if (editMode && page === 1) {
+      Logger.log(`[Tool5] Edit mode detected for ${clientId} - creating EDIT_DRAFT`);
+      DataService.loadResponseForEditing(clientId, 'tool5');
+    }
+
+    if (clearDraft && page === 1) {
+      Logger.log(`[Tool5] Clear draft triggered for ${clientId}`);
+      DataService.startFreshAttempt(clientId, 'tool5');
+    }
+
     try {
+      // Get existing data if resuming
+      const existingData = this.getExistingData(clientId);
+
       // Get page content (just the form fields, not full HTML)
       const pageContent = GroundingFormBuilder.renderPageContent({
         toolId: this.config.id,
         pageNum: page,
         clientId: clientId,
         subdomains: this.config.subdomains,
-        intro: this.getIntroContent()
+        intro: this.getIntroContent(),
+        existingData: existingData
       });
 
       // Use FormUtils to build standard page (like Tool 1 and Tool 2)

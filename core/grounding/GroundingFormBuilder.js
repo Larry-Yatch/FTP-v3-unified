@@ -28,7 +28,8 @@ const GroundingFormBuilder = {
       pageNum,
       clientId,
       subdomains,
-      intro
+      intro,
+      existingData
     } = params;
 
     // Page 1: Introduction content
@@ -47,7 +48,8 @@ const GroundingFormBuilder = {
       return this.renderSubdomainFormContent({
         toolId,
         subdomain: subdomains[subdomainIndex],
-        subdomainIndex
+        subdomainIndex,
+        existingData
       });
     }
 
@@ -59,9 +61,9 @@ const GroundingFormBuilder = {
    * Returns just the form fields, including special grounding styles
    */
   renderSubdomainFormContent(params) {
-    const {toolId, subdomain, subdomainIndex} = params;
+    const {toolId, subdomain, subdomainIndex, existingData} = params;
 
-    const subdomainContent = this.buildSubdomainContent(subdomain, subdomainIndex, toolId);
+    const subdomainContent = this.buildSubdomainContent(subdomain, subdomainIndex, toolId, existingData);
 
     // Add custom styles needed for grounding scale questions
     const groundingStyles = `
@@ -276,8 +278,8 @@ const GroundingFormBuilder = {
       ? `return submitFinalPage('${formId}')`
       : `return submitToolPage('${formId}', ${pageNum})`;
 
-    // Build subdomain content
-    const subdomainContent = this.buildSubdomainContent(subdomain, subdomainIndex, toolId);
+    // Build subdomain content (without existingData in legacy rendering path)
+    const subdomainContent = this.buildSubdomainContent(subdomain, subdomainIndex, toolId, null);
 
     // Build progress bar
     const progress = Math.round((pageNum / totalPages) * 100);
@@ -411,7 +413,7 @@ const GroundingFormBuilder = {
   /**
    * Build subdomain content (4 scale questions + 1 open response)
    */
-  buildSubdomainContent(subdomain, subdomainIndex, toolId) {
+  buildSubdomainContent(subdomain, subdomainIndex, toolId, existingData) {
     const {key, label, description, questions} = subdomain;
 
     if (!questions || questions.length !== 5) {
@@ -426,11 +428,11 @@ const GroundingFormBuilder = {
 
     // 4 scale questions (Belief, Behavior, Feeling, Consequence)
     questions.slice(0, 4).forEach((question, index) => {
-      html += this.buildScaleQuestion(question, index, key);
+      html += this.buildScaleQuestion(question, index, key, existingData);
     });
 
     // 1 open response question
-    html += this.buildOpenResponseQuestion(questions[4], key);
+    html += this.buildOpenResponseQuestion(questions[4], key, existingData);
 
     html += `
       </div>
@@ -442,9 +444,12 @@ const GroundingFormBuilder = {
   /**
    * Build a single scale question (-3 to +3, no zero)
    */
-  buildScaleQuestion(question, index, subdomainKey) {
+  buildScaleQuestion(question, index, subdomainKey, existingData) {
     const {aspect, text, scale} = question;
     const fieldName = `${subdomainKey}_${aspect.toLowerCase()}`;
+
+    // Get existing value if available
+    const selectedValue = existingData?.[fieldName] || '';
 
     return `
       <div class="question-section">
@@ -455,27 +460,27 @@ const GroundingFormBuilder = {
           <div class="scale-label">${scale.negative}</div>
           <div class="scale-inputs">
             <div class="scale-input">
-              <input type="radio" id="${fieldName}_n3" name="${fieldName}" value="-3" required>
+              <input type="radio" id="${fieldName}_n3" name="${fieldName}" value="-3" ${selectedValue === '-3' ? 'checked' : ''} required>
               <label for="${fieldName}_n3">-3</label>
             </div>
             <div class="scale-input">
-              <input type="radio" id="${fieldName}_n2" name="${fieldName}" value="-2" required>
+              <input type="radio" id="${fieldName}_n2" name="${fieldName}" value="-2" ${selectedValue === '-2' ? 'checked' : ''} required>
               <label for="${fieldName}_n2">-2</label>
             </div>
             <div class="scale-input">
-              <input type="radio" id="${fieldName}_n1" name="${fieldName}" value="-1" required>
+              <input type="radio" id="${fieldName}_n1" name="${fieldName}" value="-1" ${selectedValue === '-1' ? 'checked' : ''} required>
               <label for="${fieldName}_n1">-1</label>
             </div>
             <div class="scale-input">
-              <input type="radio" id="${fieldName}_p1" name="${fieldName}" value="1" required>
+              <input type="radio" id="${fieldName}_p1" name="${fieldName}" value="1" ${selectedValue === '1' ? 'checked' : ''} required>
               <label for="${fieldName}_p1">+1</label>
             </div>
             <div class="scale-input">
-              <input type="radio" id="${fieldName}_p2" name="${fieldName}" value="2" required>
+              <input type="radio" id="${fieldName}_p2" name="${fieldName}" value="2" ${selectedValue === '2' ? 'checked' : ''} required>
               <label for="${fieldName}_p2">+2</label>
             </div>
             <div class="scale-input">
-              <input type="radio" id="${fieldName}_p3" name="${fieldName}" value="3" required>
+              <input type="radio" id="${fieldName}_p3" name="${fieldName}" value="3" ${selectedValue === '3' ? 'checked' : ''} required>
               <label for="${fieldName}_p3">+3</label>
             </div>
           </div>
@@ -488,9 +493,18 @@ const GroundingFormBuilder = {
   /**
    * Build open response question
    */
-  buildOpenResponseQuestion(question, subdomainKey) {
+  buildOpenResponseQuestion(question, subdomainKey, existingData) {
     const {text} = question;
     const fieldName = `${subdomainKey}_open_response`;
+
+    // Get existing text if available (need to escape HTML entities)
+    const existingText = existingData?.[fieldName] || '';
+    const escapedText = existingText
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
 
     return `
       <div class="question-section">
@@ -503,7 +517,7 @@ const GroundingFormBuilder = {
           required
           minlength="20"
           placeholder="Please share your thoughts here (minimum 20 characters)..."
-        ></textarea>
+        >${escapedText}</textarea>
       </div>
     `;
   },
