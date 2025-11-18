@@ -38,7 +38,7 @@ const Tool3 = {
       // ========================================
       {
         key: 'subdomain_1_1',
-        label: 'I\'m Not Worthy of Financial Freedom',
+        label: "I'm Not Worthy of Financial Freedom",
         description: 'Exploring patterns of unworthiness that lead to financial avoidance and self-sabotage',
         beliefBehaviorConnection: 'Believing you\'re not worthy of financial freedom leads to avoiding financial reality and scattering resources',
 
