@@ -676,3 +676,150 @@ function checkResponsesSheetData() {
     Logger.log(error.stack);
   }
 }
+
+/**
+ * TEST GPT SYNTHESIS: Test if synthesis calls work or return empty
+ * This will show us exactly what GroundingGPT.synthesizeDomain() returns
+ */
+function testGPTSynthesis() {
+  const clientId = '6123LY';
+  const toolId = 'tool3';
+
+  Logger.log('============================================');
+  Logger.log('TESTING GPT SYNTHESIS CALLS');
+  Logger.log('============================================\n');
+
+  try {
+    // Get real data from the submission
+    const allData = Tool3.getExistingData(clientId);
+    const responses = Tool3.extractResponses(allData);
+    const scoringResult = GroundingScoring.calculateScores(responses, Tool3.config.subdomains);
+
+    Logger.log('✓ Retrieved scoring data');
+    Logger.log('Overall Quotient: ' + scoringResult.overallQuotient);
+    Logger.log('Domain 1: ' + scoringResult.domainQuotients.domain1);
+    Logger.log('Domain 2: ' + scoringResult.domainQuotients.domain2);
+
+    // Collect GPT insights (even if empty)
+    const gptInsights = Tool3.collectGPTInsights(clientId);
+    Logger.log('\n✓ Collected GPT insights');
+    Logger.log('Subdomain insights found: ' + Object.keys(gptInsights.subdomains || {}).length);
+
+    // Test synthesizing Domain 1
+    Logger.log('\n--- TESTING DOMAIN 1 SYNTHESIS ---');
+    Logger.log('Calling GroundingGPT.synthesizeDomain()...');
+
+    const domain1Config = {
+      name: Tool3.config.domains[0].name,
+      description: Tool3.config.domains[0].description,
+      subdomains: Tool3.config.subdomains.slice(0, 3)
+    };
+
+    const domain1Scores = {
+      subdomain_1_1: scoringResult.subdomainQuotients.subdomain_1_1,
+      subdomain_1_2: scoringResult.subdomainQuotients.subdomain_1_2,
+      subdomain_1_3: scoringResult.subdomainQuotients.subdomain_1_3
+    };
+
+    const domain1Synthesis = GroundingGPT.synthesizeDomain({
+      toolId: toolId,
+      clientId: clientId,
+      domainConfig: domain1Config,
+      domainScores: domain1Scores,
+      subdomainInsights: gptInsights.subdomains
+    });
+
+    Logger.log('\n=== DOMAIN 1 RESULT ===');
+    Logger.log('Type: ' + typeof domain1Synthesis);
+    Logger.log('Has summary: ' + !!domain1Synthesis.summary);
+    Logger.log('Summary length: ' + (domain1Synthesis.summary ? domain1Synthesis.summary.length : 0));
+    Logger.log('Summary content: ' + (domain1Synthesis.summary || '[EMPTY]'));
+    Logger.log('Has keyThemes: ' + !!domain1Synthesis.keyThemes);
+    Logger.log('keyThemes type: ' + typeof domain1Synthesis.keyThemes);
+    Logger.log('keyThemes length: ' + (Array.isArray(domain1Synthesis.keyThemes) ? domain1Synthesis.keyThemes.length : 'N/A'));
+    Logger.log('keyThemes content: ' + JSON.stringify(domain1Synthesis.keyThemes));
+    Logger.log('Has priorityFocus: ' + !!domain1Synthesis.priorityFocus);
+    Logger.log('priorityFocus length: ' + (domain1Synthesis.priorityFocus ? domain1Synthesis.priorityFocus.length : 0));
+    Logger.log('priorityFocus content: ' + (domain1Synthesis.priorityFocus || '[EMPTY]'));
+    Logger.log('Source: ' + (domain1Synthesis.source || '[MISSING]'));
+
+    if (!domain1Synthesis.summary || domain1Synthesis.summary.trim().length === 0) {
+      Logger.log('\n⚠️ DOMAIN 1 SYNTHESIS IS EMPTY!');
+    } else {
+      Logger.log('\n✅ DOMAIN 1 SYNTHESIS HAS CONTENT');
+    }
+
+    // Test synthesizing Overall
+    Logger.log('\n--- TESTING OVERALL SYNTHESIS ---');
+    Logger.log('Calling GroundingGPT.synthesizeOverall()...');
+
+    const allSyntheses = {
+      domain1: domain1Synthesis,
+      domain2: { summary: 'Mock domain 2', keyThemes: [], priorityFocus: 'Mock' }
+    };
+
+    const overallSynthesis = GroundingGPT.synthesizeOverall({
+      toolId: toolId,
+      clientId: clientId,
+      toolConfig: Tool3.config,
+      overallScore: scoringResult.overallQuotient,
+      domainScores: scoringResult.domainQuotients,
+      domainSyntheses: allSyntheses
+    });
+
+    Logger.log('\n=== OVERALL RESULT ===');
+    Logger.log('Type: ' + typeof overallSynthesis);
+    Logger.log('Has overview: ' + !!overallSynthesis.overview);
+    Logger.log('Overview length: ' + (overallSynthesis.overview ? overallSynthesis.overview.length : 0));
+    Logger.log('Overview content: ' + (overallSynthesis.overview || '[EMPTY]'));
+    Logger.log('Has topPatterns: ' + !!overallSynthesis.topPatterns);
+    Logger.log('topPatterns type: ' + typeof overallSynthesis.topPatterns);
+    Logger.log('topPatterns length: ' + (Array.isArray(overallSynthesis.topPatterns) ? overallSynthesis.topPatterns.length : 'N/A'));
+    Logger.log('topPatterns content: ' + JSON.stringify(overallSynthesis.topPatterns));
+    Logger.log('Has priorityActions: ' + !!overallSynthesis.priorityActions);
+    Logger.log('priorityActions length: ' + (overallSynthesis.priorityActions ? overallSynthesis.priorityActions.length : 0));
+    Logger.log('priorityActions content: ' + (overallSynthesis.priorityActions || '[EMPTY]'));
+    Logger.log('Source: ' + (overallSynthesis.source || '[MISSING]'));
+
+    if (!overallSynthesis.overview || overallSynthesis.overview.trim().length === 0) {
+      Logger.log('\n⚠️ OVERALL SYNTHESIS IS EMPTY!');
+    } else {
+      Logger.log('\n✅ OVERALL SYNTHESIS HAS CONTENT');
+    }
+
+    // Summary
+    Logger.log('\n============================================');
+    Logger.log('SYNTHESIS TEST SUMMARY');
+    Logger.log('============================================');
+
+    const domain1Empty = !domain1Synthesis.summary || domain1Synthesis.summary.trim().length === 0;
+    const overallEmpty = !overallSynthesis.overview || overallSynthesis.overview.trim().length === 0;
+
+    if (domain1Empty && overallEmpty) {
+      Logger.log('❌ BOTH syntheses are EMPTY');
+      Logger.log('\nPossible causes:');
+      Logger.log('1. GPT API is timing out');
+      Logger.log('2. GPT API is returning errors');
+      Logger.log('3. Fallback content is empty');
+      Logger.log('4. Parsing is broken');
+    } else if (domain1Empty) {
+      Logger.log('⚠️ Domain synthesis is EMPTY, but overall has content');
+      Logger.log('Check domain synthesis logic specifically');
+    } else if (overallEmpty) {
+      Logger.log('⚠️ Overall synthesis is EMPTY, but domain has content');
+      Logger.log('Check overall synthesis logic specifically');
+    } else {
+      Logger.log('✅ BOTH syntheses have content - synthesis calls are WORKING!');
+      Logger.log('\nIf production still fails, issue is likely:');
+      Logger.log('1. Timing/execution context difference');
+      Logger.log('2. Data being cleared after synthesis');
+      Logger.log('3. Different code path in production vs test');
+    }
+
+  } catch (error) {
+    Logger.log('\n❌ ERROR during synthesis test:');
+    Logger.log(error.toString());
+    Logger.log('\nStack trace:');
+    Logger.log(error.stack);
+  }
+}
