@@ -360,7 +360,7 @@ const Tool3 = {
 
     try {
       // Render the page using GroundingFormBuilder
-      return GroundingFormBuilder.renderPage({
+      const htmlString = GroundingFormBuilder.renderPage({
         toolId: this.config.id,
         toolName: this.config.name,
         pageNum: page,
@@ -370,9 +370,12 @@ const Tool3 = {
         intro: this.getIntroContent()
       });
 
+      return HtmlService.createHtmlOutput(htmlString);
+
     } catch (error) {
       Logger.log(`Error rendering Tool3 page ${page}: ${error.message}`);
-      return this.renderErrorPage(error, clientId, baseUrl);
+      const errorHtml = this.renderErrorPage(error, clientId, baseUrl);
+      return HtmlService.createHtmlOutput(errorHtml);
     }
   },
 
@@ -615,7 +618,7 @@ const Tool3 = {
   generateReport(clientId, scoringResult, gptInsights) {
     const baseUrl = ScriptApp.getService().getUrl();
 
-    return GroundingReport.generateReport({
+    const htmlString = GroundingReport.generateReport({
       toolId: this.config.id,
       toolConfig: this.config,
       clientId: clientId,
@@ -623,6 +626,8 @@ const Tool3 = {
       scoringResult: scoringResult,
       gptInsights: gptInsights
     });
+
+    return HtmlService.createHtmlOutput(htmlString);
   },
 
   /**

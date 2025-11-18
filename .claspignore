@@ -1,6 +1,8 @@
 # Exclude these
 node_modules/**
-tests/**
+tests/grounding-utilities-validation.js
+tests/tool3-e2e-tests.js
+tests/tool3-structure-validation.js
 docs/**
 .git/**
 *.md
@@ -15,6 +17,7 @@ check-sheets.js
 README.md
 GETTING-STARTED.md
 archive/**
+apps/**
 
 # Debug/test scripts (not needed in production)
 check-columns.js

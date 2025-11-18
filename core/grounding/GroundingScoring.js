@@ -125,8 +125,8 @@ const GroundingScoring = {
     const domain2Avg = this.average(domain2Keys.map(k => subdomainQuotients[k]));
 
     return {
-      domain1: Math.round(domain1Avg),
-      domain2: Math.round(domain2Avg)
+      domain1: domain1Avg,
+      domain2: domain2Avg
     };
   },
 
@@ -135,10 +135,10 @@ const GroundingScoring = {
    * Average of 2 domain quotients
    */
   calculateOverallQuotient(domainQuotients) {
-    return Math.round(this.average([
+    return this.average([
       domainQuotients.domain1,
       domainQuotients.domain2
-    ]));
+    ]);
   },
 
   /**

@@ -123,7 +123,33 @@ function registerTools() {
     Tool3.manifest = tool3Manifest;
     ToolRegistry.register('tool3', Tool3, tool3Manifest);
 
-    console.log('Tools registered successfully (Tool 1, Tool 2, Tool 3)');
+    // Tool 5: Love & Connection Grounding Tool
+    const tool5Manifest = {
+      id: "tool5",
+      version: "1.0.0",
+      name: "Love & Connection Grounding Tool",
+      pattern: "multi-phase",
+      route: "tool5",
+      routes: ["/tool5"],
+      description: "Grounding assessment revealing patterns of disconnection from others through issues showing and receiving love",
+      icon: "💝",
+      estimatedTime: "20-25 minutes",
+      sections: 7,
+      totalQuestions: 30,
+      categories: ["issues_showing_love", "issues_receiving_love"],
+      outputs: {
+        report: true,
+        email: true,
+        insights: true
+      },
+      dependencies: ["tool4"],
+      unlocks: ["tool6"]
+    };
+
+    Tool5.manifest = tool5Manifest;
+    ToolRegistry.register('tool5', Tool5, tool5Manifest);
+
+    console.log('Tools registered successfully (Tool 1, Tool 2, Tool 3, Tool 5)');
   } catch (error) {
     console.error('Error registering tools:', error);
   }

@@ -64,9 +64,9 @@ const CONFIG = {
     },
     TOOL5: {
       ID: 'tool5',
-      NAME: 'Tool 5',
-      PAGES: 1,
-      QUESTIONS: 0
+      NAME: 'Love & Connection Grounding Tool',
+      PAGES: 7,
+      QUESTIONS: 30
     },
     TOOL6: {
       ID: 'tool6',

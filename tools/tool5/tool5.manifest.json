@@ -1,0 +1,23 @@
+{
+  "id": "tool5",
+  "name": "Love & Connection Grounding Tool",
+  "version": "1.0.0",
+  "description": "Reveals patterns of disconnection from others through issues showing and receiving love",
+  "category": "grounding",
+  "pages": 7,
+  "questions": 30,
+  "estimatedMinutes": 25,
+  "requires": ["tool4"],
+  "unlocks": ["tool6"],
+  "manifest": {
+    "entryPoint": "Tool5.render",
+    "processor": "Tool5.processSubmission",
+    "dependencies": [
+      "GroundingFormBuilder",
+      "GroundingScoring",
+      "GroundingGPT",
+      "GroundingReport",
+      "GroundingFallbacks"
+    ]
+  }
+}

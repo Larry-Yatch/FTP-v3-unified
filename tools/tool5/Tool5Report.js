@@ -1,23 +1,23 @@
 /**
- * Tool3Report.js
- * Report wrapper for Identity & Validation Grounding Tool
+ * Tool5Report.js
+ * Report wrapper for Love & Connection Grounding Tool
  *
  * Delegates to GroundingReport.js for actual report generation
  * Exists to follow pattern and allow tool-specific customizations if needed
  */
 
-const Tool3Report = {
+const Tool5Report = {
 
   /**
-   * Generate Tool 3 report
+   * Generate Tool 5 report
    * Delegates to GroundingReport
    */
   generate(clientId, scoringResult, gptInsights) {
     const baseUrl = ScriptApp.getService().getUrl();
 
     return GroundingReport.generateReport({
-      toolId: 'tool3',
-      toolConfig: Tool3.config,
+      toolId: 'tool5',
+      toolConfig: Tool5.config,
       clientId: clientId,
       baseUrl: baseUrl,
       scoringResult: scoringResult,
@@ -31,7 +31,7 @@ const Tool3Report = {
   regenerate(clientId) {
     try {
       // Retrieve saved assessment data
-      const savedData = DataService.getToolResponse(clientId, 'tool3');
+      const savedData = DataService.getToolResponse(clientId, 'tool5');
 
       if (!savedData || !savedData.scoring || !savedData.gpt_insights || !savedData.syntheses) {
         throw new Error('Assessment data not found or incomplete');
@@ -49,7 +49,7 @@ const Tool3Report = {
       return this.generate(clientId, savedData.scoring, gptInsights);
 
     } catch (error) {
-      Logger.log(`Error regenerating Tool 3 report: ${error.message}`);
+      Logger.log(`Error regenerating Tool 5 report: ${error.message}`);
       throw error;
     }
   }

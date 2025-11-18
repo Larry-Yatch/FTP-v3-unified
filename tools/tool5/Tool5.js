@@ -20,322 +20,322 @@ const Tool5 = {
     name: 'Love & Connection Grounding Tool',
     shortName: 'Love & Connection',
     scoreName: 'Disconnection from Others Quotient',
-    purpose: 'Reveals patterns of disconnection from your authentic self through false self-view and external validation',
+    purpose: 'Reveals patterns of disconnection from others through issues showing and receiving love',
 
     // Domain configuration
-    domain1Name: 'False Self-View',
+    domain1Name: 'Issues Showing Love',
     domain1Key: 'domain1',
-    domain1Description: 'Confusion and lack of clarity about your financial reality',
+    domain1Description: 'Patterns of compulsive giving and self-sacrifice in relationships',
 
-    domain2Name: 'External Validation',
+    domain2Name: 'Issues Receiving Love',
     domain2Key: 'domain2',
-    domain2Description: 'Financial decisions driven by others\' opinions rather than your needs',
+    domain2Description: 'Patterns of unhealthy dependence and difficulty accepting help',
 
     // Subdomain configurations (6 total: 3 per domain)
     subdomains: [
       // ========================================
-      // DOMAIN 1: FALSE SELF-VIEW
+      // DOMAIN 1: ISSUES SHOWING LOVE
       // ========================================
       {
         key: 'subdomain_1_1',
-        label: "I'm Not Worthy of Financial Freedom",
-        description: 'Exploring patterns of unworthiness that lead to financial avoidance and self-sabotage',
-        beliefBehaviorConnection: 'Believing you\'re not worthy of financial freedom leads to avoiding financial reality and scattering resources',
+        label: "I Must Give to Be Loved",
+        description: 'Exploring patterns of believing love requires financial sacrifice',
+        beliefBehaviorConnection: 'Believing you must give financially to be loved leads to compulsive giving even when you can\'t afford it',
 
         questions: [
           // Belief
           {
             aspect: 'Belief',
-            text: 'I\'m not the kind of person who gets to have financial freedom',
+            text: 'If I don\'t give/sacrifice financially, I won\'t be loved or valued',
             scale: {
-              negative: 'Strongly Agree (I\'m certain financial freedom is not for someone like me)',
-              positive: 'Strongly Disagree (I absolutely know I\'m the kind of person who gets to have financial freedom)'
+              negative: 'Strongly Agree (I\'m certain love only comes through financial sacrifice)',
+              positive: 'Strongly Disagree (I absolutely know I\'m loved for who I am, not what I give)'
             }
           },
           // Behavior
           {
             aspect: 'Behavior',
-            text: 'I avoid looking at my financial accounts and/or have money scattered across multiple places where I can\'t easily access it',
+            text: 'I give money to people even when I can\'t afford it, unable to say no',
             scale: {
-              negative: 'Always (This describes me completely)',
-              positive: 'Never (I consistently look at my accounts and keep my money organized and accessible)'
+              negative: 'Always (I constantly give beyond my means; completely unable to decline any request)',
+              positive: 'Never (I consistently give from abundance, not deprivation; I can say no when necessary)'
             }
           },
           // Feeling
           {
             aspect: 'Feeling',
-            text: 'I feel deep shame and unworthiness about my financial situation',
+            text: 'I feel guilty and fearful when I don\'t give, and anxious about losing love if I stop',
             scale: {
-              negative: 'Always (Deep shame and unworthiness dominate)',
-              positive: 'Never (I feel no shame; I accept where I am without judgment)'
+              negative: 'Always (Constant overwhelming guilt and fear; terror of abandonment dominates)',
+              positive: 'Never (I feel no guilt about healthy boundaries; completely secure that love isn\'t transactional)'
             }
           },
           // Consequence
           {
             aspect: 'Consequence',
-            text: 'Believing I\'m not the kind of person who gets financial freedom has caused me to miss opportunities or make poor financial decisions',
+            text: 'I\'ve put myself in financial hardship by giving to others, and/or enabled others\' dysfunction',
             scale: {
-              negative: 'Always (I\'ve missed massive opportunities; the cost has been severe)',
-              positive: 'Never (I seize appropriate opportunities and make sound financial decisions aligned with my goals)'
+              negative: 'Always (I\'ve created severe hardship through compulsive giving)',
+              positive: 'Never (I consistently give sustainably and support others\' growth, not dysfunction)'
             }
           },
           // Open Response
           {
-            text: 'What specifically are you afraid you\'d find or have to face if you looked at your finances clearly right now?'
+            text: 'Who in your life do you feel you must give money to, and describe a specific time you gave money you couldn\'t afford to give—what did you fear would happen if you didn\'t, and how did it impact you financially and emotionally?'
           }
         ]
       },
 
       {
         key: 'subdomain_1_2',
-        label: 'I\'ll Never Have Enough',
-        description: 'Exploring patterns of scarcity thinking that create selective financial blindness',
-        beliefBehaviorConnection: 'Believing there will never be enough leads to focusing on only income OR spending, never seeing the full picture',
+        label: 'Their Needs > My Needs',
+        description: 'Exploring patterns of believing others\' needs are more important',
+        beliefBehaviorConnection: 'Believing others\' needs are more important leads to self-abandonment',
 
         questions: [
           // Belief
           {
             aspect: 'Belief',
-            text: 'I\'ll never have enough money, no matter how much I earn',
+            text: 'Others\' financial needs are always more important than my own',
             scale: {
-              negative: 'Strongly Agree (I\'m certain I\'ll never have enough, no matter what I do)',
-              positive: 'Strongly Disagree (I know I can have enough; sufficiency is absolutely possible for me)'
+              negative: 'Strongly Agree (I\'m absolutely certain others\' needs always matter more; mine are irrelevant)',
+              positive: 'Strongly Disagree (I know my needs and others\' needs are equally valid; balance is essential)'
             }
           },
           // Behavior
           {
             aspect: 'Behavior',
-            text: 'I ignore income and focus only on spending, or ignore spending and focus only on income - never paying attention to both at once',
+            text: 'I sacrifice my own financial needs or goals because I believe others deserve help more than I deserve to meet my own needs',
             scale: {
-              negative: 'Always (This perfectly describes my pattern)',
-              positive: 'Never (I consistently pay attention to both income and spending simultaneously)'
+              negative: 'Always (I always sacrifice my financial wellbeing because I believe others\' needs are more legitimate)',
+              positive: 'Never (I consistently honor both my needs and others\' needs as equally important)'
             }
           },
           // Feeling
           {
             aspect: 'Feeling',
-            text: 'I feel constant anxiety that there\'s never enough and/or confusion about whether I will have enough money',
+            text: 'I feel selfish when I prioritize my financial needs over others\'',
             scale: {
-              negative: 'Always (Constant anxiety and deep confusion dominate)',
-              positive: 'Never (I feel clear and calm about my finances; I trust I will have enough)'
+              negative: 'Always (Crushing guilt and selfishness dominate whenever I consider my own needs)',
+              positive: 'Never (I feel no guilt about appropriate self-care; know my needs are valid and necessary)'
             }
           },
           // Consequence
           {
             aspect: 'Consequence',
-            text: 'I\'ve made financial decisions in panic mode that made things worse, or missed opportunities because I didn\'t realize I had the resources',
+            text: 'I\'ve suffered financially by always putting others first, while they didn\'t reciprocate',
             scale: {
-              negative: 'Always (The pattern is devastating)',
-              positive: 'Never (I consistently make calm, informed decisions and recognize available opportunities)'
+              negative: 'Always (I\'ve experienced severe suffering through constant self-abandonment)',
+              positive: 'Never (I maintain healthy balance; relationships are reciprocal and I\'m cared for)'
             }
           },
           // Open Response
           {
-            text: 'Describe a specific time you made a financial decision in panic mode because you felt there would never be enough—what was happening, and what stories were you telling yourself in that moment?'
+            text: 'Think of a time you prioritized someone else\'s financial needs over your own when you couldn\'t afford to. What made their needs feel more legitimate than yours?'
           }
         ]
       },
 
       {
         key: 'subdomain_1_3',
-        label: 'I Can\'t See My Financial Reality',
-        description: 'Exploring patterns of overwhelm that lead to willful ignorance about finances',
-        beliefBehaviorConnection: 'Believing finances are too complex leads to fragmenting your view and avoiding the full picture',
+        label: 'I Can\'t Accept Help',
+        description: 'Exploring patterns of believing you must be the giver',
+        beliefBehaviorConnection: 'Believing you must be the giver leads to refusing receiving',
 
         questions: [
           // Belief
           {
             aspect: 'Belief',
-            text: 'Finances are too complex/overwhelming for me to understand',
+            text: 'Accepting financial help makes me weak/indebted/less worthy',
             scale: {
-              negative: 'Strongly Agree (I\'m absolutely certain finances are beyond my ability to understand)',
-              positive: 'Strongly Disagree (I know I\'m fully capable of understanding finances; complexity is manageable)'
+              negative: 'Strongly Agree (Accepting help absolutely makes me weak and worthless; it\'s shameful)',
+              positive: 'Strongly Disagree (I completely know accepting help is strength; interdependence is beautiful)'
             }
           },
           // Behavior
           {
             aspect: 'Behavior',
-            text: 'I don\'t look at my full financial picture; I focus on one small piece at a time and ignore the rest',
+            text: 'I refuse money/help when offered, even when I desperately need it',
             scale: {
-              negative: 'Always (I only ever look at tiny fragments)',
-              positive: 'Never (I consistently look at my complete financial picture and understand how pieces connect)'
+              negative: 'Always (I always refuse help regardless of desperation; accepting is impossible)',
+              positive: 'Never (I graciously accept help when offered and needed; I can receive openly)'
             }
           },
           // Feeling
           {
             aspect: 'Feeling',
-            text: 'I feel overwhelmed and helpless about understanding money',
+            text: 'I feel shame and vulnerability about needing help; I must be the strong one',
             scale: {
-              negative: 'Always (Overwhelming helplessness is constant and crushing)',
-              positive: 'Never (I feel confident and capable; money is manageable and understandable)'
+              negative: 'Always (Overwhelming shame about any vulnerability; I must always be the provider)',
+              positive: 'Never (I feel no shame about appropriate vulnerability; asking for help is strength)'
             }
           },
           // Consequence
           {
             aspect: 'Consequence',
-            text: 'I\'ve been blindsided by financial crises that I should have seen coming if I\'d been paying attention',
+            text: 'I\'ve suffered unnecessarily by refusing help that was offered, and relationships suffered from my inability to receive',
             scale: {
-              negative: 'Always (I\'ve been repeatedly blindsided; the pattern keeps repeating)',
-              positive: 'Never (I consistently see financial challenges coming and prepare; no blindsiding)'
+              negative: 'Always (I\'ve experienced severe unnecessary suffering and relationship damage)',
+              positive: 'Never (I accept help when offered and needed; relationships are reciprocal and healthy)'
             }
           },
           // Open Response
           {
-            text: 'What financial information do you deliberately avoid looking at right now, and what specifically do you fear you\'d discover if you looked?'
+            text: 'Describe a time you refused financial help you actually needed. What were you protecting by refusing?'
           }
         ]
       },
 
       // ========================================
-      // DOMAIN 2: EXTERNAL VALIDATION
+      // DOMAIN 2: ISSUES RECEIVING LOVE
       // ========================================
 
       {
         key: 'subdomain_2_1',
-        label: 'Money Shows My Worth',
-        description: 'Exploring patterns of equating self-worth with money that drive image spending',
-        beliefBehaviorConnection: 'Believing your worth is determined by money leads to spending to project success regardless of the strain',
+        label: 'I Can\'t Make It Alone',
+        description: 'Exploring patterns of believing you can\'t survive independently',
+        beliefBehaviorConnection: 'Believing you can\'t survive independently leads to financial dependency',
 
         questions: [
           // Belief
           {
             aspect: 'Belief',
-            text: 'How much money I have (or appear to have) determines my worth and value',
+            text: 'I can\'t financially survive or thrive without support',
             scale: {
-              negative: 'Strongly Agree (I\'m certain my worth is directly determined by money; without it I have no value)',
-              positive: 'Strongly Disagree (I absolutely know my worth is inherent and completely independent of money)'
+              negative: 'Strongly Agree (I\'m certain I absolutely can\'t survive alone; I\'m completely incapable)',
+              positive: 'Strongly Disagree (I absolutely know I can thrive independently; I\'m fully capable)'
             }
           },
           // Behavior
           {
             aspect: 'Behavior',
-            text: 'I spend money to look successful/worthy to others, even when it strains my actual finances',
+            text: 'I rely on others to cover my expenses or make financial decisions for me',
             scale: {
-              negative: 'Always (I constantly spend to maintain an image, regardless of the financial strain)',
-              positive: 'Never (I consistently spend based on my actual needs and values, not others\' opinions)'
+              negative: 'Always (I completely rely on others for financial support or decisions)',
+              positive: 'Never (I consistently handle my own finances and decisions; I\'m financially independent)'
             }
           },
           // Feeling
           {
             aspect: 'Feeling',
-            text: 'I feel anxiety and shame when I think others might see my real financial situation',
+            text: 'I feel helpless and incapable of managing money on my own',
             scale: {
-              negative: 'Always (Constant, overwhelming anxiety and shame)',
-              positive: 'Never (I feel no shame about my real finances; I\'m comfortable being authentic)'
+              negative: 'Always (Constant overwhelming helplessness about finances; complete incapability)',
+              positive: 'Never (I feel confident and capable managing finances; empowered and independent)'
             }
           },
           // Consequence
           {
             aspect: 'Consequence',
-            text: 'I\'ve gone into debt or damaged my finances to maintain an image or impress others',
+            text: 'I\'ve stayed in unhealthy relationships because of financial dependence',
             scale: {
-              negative: 'Always (I\'ve created massive debt and severe financial damage maintaining a false image)',
-              positive: 'Never (I consistently make financial choices based on reality, not image; no debt for appearance)'
+              negative: 'Always (I\'ve remained in severely damaging relationships repeatedly due to financial dependence)',
+              positive: 'Never (I consistently maintain financial independence; relationship choices are never driven by dependence)'
             }
           },
           // Open Response
           {
-            text: 'What image are you currently trying to project with money, and what\'s a specific example of something expensive you\'ve bought or done primarily to maintain that image?'
+            text: 'Who do you currently depend on financially, and describe a situation you\'ve stayed in longer than you wanted because of money—what would you need to become financially independent, and what keeps you from taking those steps?'
           }
         ]
       },
 
       {
         key: 'subdomain_2_2',
-        label: 'What Will They Think?',
-        description: 'Exploring patterns of seeking approval that lead to financial hiding and people-pleasing',
-        beliefBehaviorConnection: 'Living for others\' approval leads to hiding your financial choices out of fear of judgment',
+        label: 'I Owe Them Everything',
+        description: 'Exploring patterns of believing help creates debt',
+        beliefBehaviorConnection: 'Believing help creates debt leads to feeling trapped by obligation',
 
         questions: [
           // Belief
           {
             aspect: 'Belief',
-            text: 'Others\' opinions about how I spend and what I share about money matter more than my own judgment',
+            text: 'I believe that when someone helps me financially, I owe them and can never fully repay them',
             scale: {
-              negative: 'Strongly Agree (Others\' opinions completely determine how I spend; my judgment is irrelevant)',
-              positive: 'Strongly Disagree (I completely trust my judgment; others\' opinions are just data, not directives)'
+              negative: 'Strongly Agree (Any financial help creates permanent, unpayable debt that defines the relationship)',
+              positive: 'Strongly Disagree (I consistently believe genuine help is given without creating permanent obligation)'
             }
           },
           // Behavior
           {
             aspect: 'Behavior',
-            text: 'I hide my financial choices from people in my life because I\'m afraid of their judgment',
+            text: 'I let others control my financial decisions because they\'ve helped me, even when I disagree',
             scale: {
-              negative: 'Always (Fear of judgment controls my transparency completely)',
-              positive: 'Never (I\'m completely open about my financial choices with appropriate people; no hiding)'
+              negative: 'Always (I completely surrender all financial autonomy to anyone who helps)',
+              positive: 'Never (I consistently maintain full financial autonomy; help doesn\'t mean control)'
             }
           },
           // Feeling
           {
             aspect: 'Feeling',
-            text: 'I feel trapped between what I want to do and what others expect me to do financially',
+            text: 'I feel trapped and obligated by others\' financial help; the weight of owing them is heavy',
             scale: {
-              negative: 'Always (Constant, painful conflict paralyzes me)',
-              positive: 'Never (I feel free to make my own financial choices; no conflict between internal and external)'
+              negative: 'Always (Constant crushing weight of obligation; feel completely trapped by others\' help)',
+              positive: 'Never (I feel no obligation or burden from help; free and grateful without weight)'
             }
           },
           // Consequence
           {
             aspect: 'Consequence',
-            text: 'I\'ve made financial choices I regret because I was trying to please someone or avoid their disapproval',
+            text: 'I\'ve let people control me or made choices I regret because I felt I \'owed\' them for their help',
             scale: {
-              negative: 'Always (I\'ve made countless regrettable choices seeking approval; the cost has been devastating)',
-              positive: 'Never (I consistently make financial choices based on my judgment; no people-pleasing regrets)'
+              negative: 'Always (I\'ve repeatedly surrendered control and made devastating choices due to obligation)',
+              positive: 'Never (I consistently maintain autonomy; no regretted choices from obligation)'
             }
           },
           // Open Response
           {
-            text: 'Whose judgment about your finances do you fear most, and describe a specific financial choice you\'ve made (or are making) primarily to please them or avoid their disapproval?'
+            text: 'Who do you feel most indebted to, what do you think they expect from you in return for their help, and what specific financial choices have you made (or avoided making) because you felt you \'owed\' them?'
           }
         ]
       },
 
       {
         key: 'subdomain_2_3',
-        label: 'I Need to Prove Myself',
-        description: 'Exploring patterns of needing external proof that drive status spending',
-        beliefBehaviorConnection: 'Needing to prove your worth through money leads to buying status symbols to demonstrate you\'ve "made it"',
+        label: 'If They Stop Giving, I\'m Abandoned',
+        description: 'Exploring patterns of believing you\'ll be abandoned without help',
+        beliefBehaviorConnection: 'Believing you\'ll be abandoned without help leads to emotional manipulation',
 
         questions: [
           // Belief
           {
             aspect: 'Belief',
-            text: 'I need to prove I\'m successful/worthy through money and possessions',
+            text: 'If people stop helping me financially, it means they don\'t care and I\'m abandoned',
             scale: {
-              negative: 'Strongly Agree (I desperately need to prove my success through money; it\'s my only validation)',
-              positive: 'Strongly Disagree (I absolutely don\'t need to prove myself through money; my worth is inherent)'
+              negative: 'Strongly Agree (I\'m certain stopping help means complete abandonment; it proves they never cared)',
+              positive: 'Strongly Disagree (I absolutely know financial help and love are independent; boundaries aren\'t abandonment)'
             }
           },
           // Behavior
           {
             aspect: 'Behavior',
-            text: 'I buy status symbols and make financial moves to show others I\'ve \'made it\'',
+            text: 'I seek constant financial reassurance from others to feel secure in my relationships',
             scale: {
-              negative: 'Always (I constantly purchase status symbols for others\' validation)',
-              positive: 'Never (I consistently buy what I actually need and want; no purchases to prove anything)'
+              negative: 'Always (I constantly need financial proof that people care; always seeking reassurance)',
+              positive: 'Never (I never need financial reassurance to feel secure; I know I\'m valued beyond money)'
             }
           },
           // Feeling
           {
             aspect: 'Feeling',
-            text: 'I feel pressure to show I\'m doing well financially, and inadequate when I can\'t',
+            text: 'I feel anxious and abandoned when I think about managing financially on my own',
             scale: {
-              negative: 'Always (Constant crushing pressure; profound inadequacy when I can\'t)',
-              positive: 'Never (I feel no pressure to prove financial success; completely comfortable with my authentic reality)'
+              negative: 'Always (Constant terror and abandonment at the thought of financial independence)',
+              positive: 'Never (No anxiety or abandonment feelings about financial independence; I feel secure)'
             }
           },
           // Consequence
           {
             aspect: 'Consequence',
-            text: 'I\'ve damaged my finances by buying things or making choices to prove my success to others',
+            text: 'I\'ve stayed in unhealthy relationships or situations because I was afraid to lose financial support',
             scale: {
-              negative: 'Always (I\'ve created severe financial damage through constant status-driven purchases)',
-              positive: 'Never (I consistently make authentic financial choices; no damage from trying to prove anything)'
+              negative: 'Always (I\'ve repeatedly stayed in harmful situations due to fear of financial abandonment)',
+              positive: 'Never (I never stay in unhealthy situations for financial reasons; my wellbeing comes first)'
             }
           },
           // Open Response
           {
-            text: 'What specifically are you trying to prove with money, and who are you trying to prove it to? Give a concrete example of how this shows up in your financial choices.'
+            text: 'What do you fear would happen if your financial support stopped? Go deeper than money—what\'s the emotional fear underneath?'
           }
         ]
       }
@@ -360,7 +360,7 @@ const Tool5 = {
 
     try {
       // Render the page using GroundingFormBuilder
-      return GroundingFormBuilder.renderPage({
+      const htmlString = GroundingFormBuilder.renderPage({
         toolId: this.config.id,
         toolName: this.config.name,
         pageNum: page,
@@ -370,9 +370,12 @@ const Tool5 = {
         intro: this.getIntroContent()
       });
 
+      return HtmlService.createHtmlOutput(htmlString);
+
     } catch (error) {
       Logger.log(`Error rendering Tool5 page ${page}: ${error.message}`);
-      return this.renderErrorPage(error, clientId, baseUrl);
+      const errorHtml = this.renderErrorPage(error, clientId, baseUrl);
+      return HtmlService.createHtmlOutput(errorHtml);
     }
   },
 
@@ -384,20 +387,20 @@ const Tool5 = {
       <div class="card">
         <h2>Welcome to the Love & Connection Assessment</h2>
         <p class="muted" style="margin-bottom: 20px;">
-          This assessment explores how you see yourself and how others' opinions influence your financial decisions.
-          It reveals patterns of disconnection from your authentic self.
+          This assessment explores how you use money to show and receive love in relationships.
+          It reveals patterns of disconnection from others through financial interactions.
         </p>
 
         <h3 style="color: #ad9168; margin-top: 25px;">What This Assessment Explores</h3>
         <p style="line-height: 1.7; color: rgba(255, 255, 255, 0.85);">
-          <strong>Domain 1: False Self-View</strong><br>
-          How confusion and lack of clarity create blind spots in your financial reality—patterns like
-          unworthiness, scarcity mindset, and willful ignorance that keep you from seeing your finances clearly.
+          <strong>Domain 1: Issues Showing Love</strong><br>
+          How you use money to maintain relationships—patterns like compulsive giving, self-sacrifice,
+          and refusing to accept repayment that deplete your resources while potentially enabling others.
         </p>
         <p style="line-height: 1.7; color: rgba(255, 255, 255, 0.85);">
-          <strong>Domain 2: External Validation</strong><br>
-          How others' opinions drive your financial decisions—patterns like equating money with worth,
-          hiding choices out of fear, and spending to prove yourself rather than meet authentic needs.
+          <strong>Domain 2: Issues Receiving Love</strong><br>
+          How you receive financial support—patterns like unhealthy dependence, feeling perpetually indebted,
+          and equating financial help with emotional love that trap you or damage relationships.
         </p>
 
         <h3 style="color: #ad9168; margin-top: 25px;">How it Works</h3>
@@ -411,8 +414,8 @@ const Tool5 = {
 
         <div style="background: rgba(173, 145, 104, 0.1); padding: 20px; border-radius: 10px; border-left: 4px solid #ad9168; margin-top: 25px;">
           <p style="margin: 0; color: rgba(255, 255, 255, 0.9); font-weight: 500;">
-            💡 <strong>Tip:</strong> Find a quiet space where you can be honest with yourself.
-            The more authentic your responses, the more valuable your insights will be.
+            💡 <strong>Tip:</strong> This assessment may bring up vulnerable feelings about relationships.
+            Be gentle with yourself as you explore these patterns.
           </p>
         </div>
       </div>
@@ -615,7 +618,7 @@ const Tool5 = {
   generateReport(clientId, scoringResult, gptInsights) {
     const baseUrl = ScriptApp.getService().getUrl();
 
-    return GroundingReport.generateReport({
+    const htmlString = GroundingReport.generateReport({
       toolId: this.config.id,
       toolConfig: this.config,
       clientId: clientId,
@@ -623,6 +626,8 @@ const Tool5 = {
       scoringResult: scoringResult,
       gptInsights: gptInsights
     });
+
+    return HtmlService.createHtmlOutput(htmlString);
   },
 
   /**
