@@ -19,7 +19,11 @@ const Tool5Report = {
       // Retrieve saved assessment data
       const savedData = DataService.getToolResponse(clientId, 'tool5');
 
-      if (!savedData || !savedData.scoring || !savedData.gpt_insights || !savedData.syntheses) {
+      // DataService returns: { data: { scoring, gpt_insights, syntheses }, clientId, toolId, ... }
+      // We need to access the nested 'data' property
+      const assessmentData = savedData?.data || savedData;
+
+      if (!savedData || !assessmentData.scoring || !assessmentData.gpt_insights || !assessmentData.syntheses) {
         return HtmlService.createHtmlOutput(`
           <!DOCTYPE html>
           <html>
@@ -47,10 +51,10 @@ const Tool5Report = {
 
       // Reconstruct GPT insights
       const gptInsights = {
-        subdomains: savedData.gpt_insights.subdomains || {},
-        domain1: savedData.syntheses.domain1,
-        domain2: savedData.syntheses.domain2,
-        overall: savedData.syntheses.overall
+        subdomains: assessmentData.gpt_insights.subdomains || {},
+        domain1: assessmentData.syntheses.domain1,
+        domain2: assessmentData.syntheses.domain2,
+        overall: assessmentData.syntheses.overall
       };
 
       // Generate report HTML
@@ -59,7 +63,7 @@ const Tool5Report = {
         toolConfig: Tool5.config,
         clientId: clientId,
         baseUrl: ScriptApp.getService().getUrl(),
-        scoringResult: savedData.scoring,
+        scoringResult: assessmentData.scoring,
         gptInsights: gptInsights
       });
 
