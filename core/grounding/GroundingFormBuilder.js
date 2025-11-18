@@ -548,7 +548,11 @@ const GroundingFormBuilder = {
         }
 
         // Override the standard submitToolPage to add GPT trigger
-        const originalSubmitToolPage = window.submitToolPage;
+        // Use conditional to avoid redeclaration errors during page navigation
+        if (!window._originalSubmitToolPage) {
+          window._originalSubmitToolPage = window.submitToolPage;
+        }
+
         window.submitToolPage = function(formId, page, nextRoute) {
           const form = document.getElementById(formId);
           if (!form) return false;
@@ -565,7 +569,7 @@ const GroundingFormBuilder = {
           );
 
           // Call original submission
-          return originalSubmitToolPage(formId, page, nextRoute);
+          return window._originalSubmitToolPage(formId, page, nextRoute);
         };
       </script>
     `;
