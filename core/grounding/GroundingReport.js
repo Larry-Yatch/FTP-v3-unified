@@ -30,7 +30,8 @@ const GroundingReport = {
       clientId,
       baseUrl,
       scoringResult,
-      gptInsights
+      gptInsights,
+      formData = {}
     } = params;
 
     // Validate params
@@ -40,6 +41,10 @@ const GroundingReport = {
 
     const dashboardUrl = `${baseUrl}?route=dashboard&client=${clientId}`;
 
+    // Extract student info for header
+    const studentName = formData.name || formData.studentName || 'Student';
+    const studentEmail = formData.email || formData.studentEmail || '';
+
     return `
       <!DOCTYPE html>
       <html>
@@ -48,7 +53,7 @@ const GroundingReport = {
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta name="theme-color" content="#1e192b">
         <style>
-          @import url('https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700&display=swap');
+          @import url('https://fonts.googleapis.com/css2?family=Radley:wght@400&family=Rubik:wght@300;400;500;600;700&display=swap');
 
           * {
             box-sizing: border-box;
@@ -174,17 +179,41 @@ const GroundingReport = {
           }
           .report-header {
             text-align: center;
-            padding: 30px 0;
-            border-bottom: 2px solid rgba(173, 145, 104, 0.3);
-            margin-bottom: 30px;
+            margin-bottom: 40px;
+            padding-bottom: 30px;
+            border-bottom: 2px solid #ad9168;
           }
-          .report-header h1 {
-            font-size: 28px;
-            margin-bottom: 10px;
+
+          .logo {
+            height: 120px;
+            width: auto;
+            margin-bottom: 20px;
           }
-          .report-header .subtitle {
+
+          .main-title {
+            font-family: 'Radley', serif;
+            color: #ad9168;
+            font-size: 32px;
+            margin-bottom: 15px;
+            font-weight: 400;
+          }
+
+          .student-info {
+            font-size: 20px;
+            color: #fff;
+            margin: 10px 0;
+          }
+
+          .student-email {
             font-size: 16px;
-            color: rgba(255, 255, 255, 0.7);
+            color: #94a3b8;
+            margin: 5px 0;
+          }
+
+          .date {
+            font-size: 14px;
+            color: #94a3b8;
+            margin-top: 10px;
           }
           .score-card {
             background: rgba(255, 255, 255, 0.03);
@@ -331,8 +360,11 @@ const GroundingReport = {
 
           <div class="card">
             <div class="report-header">
-              <h1>${toolConfig.name}</h1>
-              <p class="subtitle">Your Personal Assessment Report</p>
+              <img src="https://lh3.googleusercontent.com/d/1fXEp_y6Wj8nlMUbEERCNIbW9si_3v0Uw" alt="TruPath Financial Logo" class="logo">
+              <h1 class="main-title">${toolConfig.name}</h1>
+              <p class="student-info">${studentName}</p>
+              ${studentEmail ? `<p class="student-email">${studentEmail}</p>` : ''}
+              <p class="date">${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
             </div>
 
             ${this.renderOverallSection(toolConfig, scoringResult, gptInsights.overall)}

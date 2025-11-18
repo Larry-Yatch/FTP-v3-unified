@@ -64,7 +64,8 @@ const Tool3Report = {
         clientId: clientId,
         baseUrl: ScriptApp.getService().getUrl(),
         scoringResult: assessmentData.scoring,
-        gptInsights: gptInsights
+        gptInsights: gptInsights,
+        formData: assessmentData.responses || {}  // Add formData for header
       });
 
       return HtmlService.createHtmlOutput(reportHtml);
