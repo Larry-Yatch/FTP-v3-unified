@@ -338,6 +338,107 @@ function saveToolPageData(toolId, data) {
 }
 
 /**
+ * GROUNDING TOOLS: Trigger background GPT analysis
+ * Called via google.script.run from GroundingFormBuilder.js
+ * Runs subdomain analysis in background (non-blocking for user)
+ *
+ * @param {string} toolId - Tool identifier ('tool3', 'tool5', 'tool7')
+ * @param {string} clientId - Client identifier
+ * @param {string} subdomainKey - Subdomain key (e.g., 'subdomain_1_1')
+ * @param {number} subdomainIndex - Index of subdomain (0-5)
+ * @param {Object} formData - Form data from this subdomain page
+ * @returns {Object} Result with success status
+ */
+function triggerGroundingGPTAnalysis(toolId, clientId, subdomainKey, subdomainIndex, formData) {
+  try {
+    Logger.log(`[GPT] Triggering analysis: ${toolId} - ${clientId} - ${subdomainKey}`);
+
+    registerTools();
+
+    // Get tool from registry
+    const toolReg = ToolRegistry.get(toolId);
+    if (!toolReg) {
+      Logger.log(`[GPT] Tool not found: ${toolId}`);
+      return { success: false, error: `Tool not found: ${toolId}` };
+    }
+
+    const tool = toolReg.module;
+    const subdomain = tool.config.subdomains[subdomainIndex];
+
+    if (!subdomain || subdomain.key !== subdomainKey) {
+      Logger.log(`[GPT] Subdomain mismatch: expected ${subdomainKey}, got ${subdomain?.key}`);
+      return { success: false, error: 'Subdomain configuration mismatch' };
+    }
+
+    // Extract responses for this subdomain (4 scale + 1 open response)
+    const responses = {};
+    const aspects = ['belief', 'behavior', 'feeling', 'consequence'];
+
+    aspects.forEach(aspect => {
+      const fieldName = `${subdomainKey}_${aspect}`;
+      responses[aspect] = parseInt(formData[fieldName]);
+      // Also capture the label text for GPT context
+      responses[`${aspect}_label`] = formData[`${fieldName}_label`] || '';
+    });
+
+    const openResponseField = `${subdomainKey}_open_response`;
+    responses.openResponse = formData[openResponseField] || '';
+
+    // Calculate aspect scores for this subdomain
+    const aspectScores = {};
+    aspects.forEach(aspect => {
+      aspectScores[aspect] = responses[aspect];
+    });
+
+    // Check if we have enough data for GPT analysis
+    if (!responses.openResponse || responses.openResponse.trim().length < 10) {
+      Logger.log(`[GPT] Skipping - insufficient open response for ${subdomainKey}`);
+      return { success: true, skipped: true, reason: 'insufficient_open_response' };
+    }
+
+    // Get existing insights (for context in progressive chaining)
+    // Only include insights from previous subdomains (not current one)
+    const previousInsights = {};
+    try {
+      for (let i = 0; i < subdomainIndex; i++) {
+        const prevSubdomain = tool.config.subdomains[i];
+        const cached = GroundingGPT.getCachedInsight(toolId, clientId, prevSubdomain.key);
+        if (cached) {
+          previousInsights[prevSubdomain.key] = cached;
+        }
+      }
+      Logger.log(`[GPT] Found ${Object.keys(previousInsights).length} previous insights for context`);
+    } catch (e) {
+      Logger.log(`[GPT] Could not retrieve previous insights: ${e.message}`);
+    }
+
+    // Call GroundingGPT to analyze this subdomain
+    const insight = GroundingGPT.analyzeSubdomain({
+      toolId: toolId,
+      clientId: clientId,
+      subdomainKey: subdomainKey,
+      subdomainConfig: subdomain,
+      responses: responses,
+      aspectScores: aspectScores,
+      previousInsights: previousInsights
+    });
+
+    Logger.log(`[GPT] Analysis complete: ${subdomainKey} (source: ${insight.source})`);
+
+    return {
+      success: true,
+      source: insight.source,
+      hasFallback: insight.source === 'fallback'
+    };
+
+  } catch (error) {
+    Logger.log(`[GPT] Error in triggerGroundingGPTAnalysis: ${error.message}`);
+    Logger.log(error.stack);
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
  * GENERIC: Complete tool submission (final page)
  * Works for ANY tool that implements processFinalSubmission()
  *
