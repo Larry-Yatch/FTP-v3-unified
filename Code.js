@@ -97,7 +97,33 @@ function registerTools() {
     Tool2.manifest = tool2Manifest;
     ToolRegistry.register('tool2', Tool2, tool2Manifest);
 
-    console.log('Tools registered successfully (Tool 1, Tool 2)');
+    // Tool 3: Identity & Validation Grounding Tool
+    const tool3Manifest = {
+      id: "tool3",
+      version: "1.0.0",
+      name: "Identity & Validation Grounding Tool",
+      pattern: "multi-phase",
+      route: "tool3",
+      routes: ["/tool3"],
+      description: "Grounding assessment revealing patterns of disconnection from self through false self-view and external validation",
+      icon: "🪞",
+      estimatedTime: "20-25 minutes",
+      sections: 7,
+      totalQuestions: 30,
+      categories: ["false_self_view", "external_validation"],
+      outputs: {
+        report: true,
+        email: true,
+        insights: true
+      },
+      dependencies: ["tool2"],
+      unlocks: ["tool4"]
+    };
+
+    Tool3.manifest = tool3Manifest;
+    ToolRegistry.register('tool3', Tool3, tool3Manifest);
+
+    console.log('Tools registered successfully (Tool 1, Tool 2, Tool 3)');
   } catch (error) {
     console.error('Error registering tools:', error);
   }

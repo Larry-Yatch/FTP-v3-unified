@@ -1,0 +1,23 @@
+{
+  "id": "tool3",
+  "name": "Identity & Validation Grounding Tool",
+  "version": "1.0.0",
+  "description": "Reveals patterns of disconnection from your authentic self through false self-view and external validation",
+  "category": "grounding",
+  "pages": 7,
+  "questions": 30,
+  "estimatedMinutes": 25,
+  "requires": [],
+  "unlocks": ["tool4"],
+  "manifest": {
+    "entryPoint": "Tool3.render",
+    "processor": "Tool3.processSubmission",
+    "dependencies": [
+      "GroundingFormBuilder",
+      "GroundingScoring",
+      "GroundingGPT",
+      "GroundingReport",
+      "GroundingFallbacks"
+    ]
+  }
+}

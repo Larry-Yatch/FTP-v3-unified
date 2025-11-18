@@ -52,9 +52,9 @@ const CONFIG = {
     },
     TOOL3: {
       ID: 'tool3',
-      NAME: 'Tool 3',
-      PAGES: 1,
-      QUESTIONS: 0
+      NAME: 'Identity & Validation Grounding Tool',
+      PAGES: 7,
+      QUESTIONS: 30
     },
     TOOL4: {
       ID: 'tool4',
