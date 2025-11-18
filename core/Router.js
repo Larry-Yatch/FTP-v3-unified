@@ -74,10 +74,10 @@ const Router = {
         return Tool2Report.render(params.client || params.clientId);
 
       case 'tool3_report':
-        return Tool3Report.regenerate(params.client || params.clientId);
+        return Tool3Report.render(params.client || params.clientId);
 
       case 'tool5_report':
-        return Tool5Report.regenerate(params.client || params.clientId);
+        return Tool5Report.render(params.client || params.clientId);
 
       default:
         return this._handle404(route);
