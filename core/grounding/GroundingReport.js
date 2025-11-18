@@ -381,10 +381,20 @@ const GroundingReport = {
               })
               .withFailureHandler(function(error) {
                 hideLoading();
-                alert('Navigation failed: ' + error.message);
+                console.error('Dashboard navigation error:', error);
+                alert('Error loading dashboard: ' + error.message);
               })
-              .renderPage('dashboard', clientId);
+              .getDashboardPage(clientId);
           }
+
+          // Alias for onclick handlers
+          function backToDashboard() {
+            navigateToDashboard(clientId, 'Loading Dashboard');
+          }
+
+          // Make functions global for onclick handlers
+          window.backToDashboard = backToDashboard;
+          window.navigateToDashboard = navigateToDashboard;
 
           // Hide loading on page load
           window.addEventListener('load', function() {
