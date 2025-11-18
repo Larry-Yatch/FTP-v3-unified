@@ -441,5 +441,185 @@ const PDFGenerator = {
     }
 
     return html;
+  },
+
+  /**
+   * Generate PDF for Tool 3 (Identity & Validation Grounding)
+   * @param {string} clientId - Client ID
+   * @returns {Object} {success, pdf, fileName, mimeType} or error
+   */
+  generateTool3PDF(clientId) {
+    return this.generateGroundingPDF('tool3', Tool3Report, Tool3.config, clientId);
+  },
+
+  /**
+   * Generate PDF for Tool 5 (Love & Connection Grounding)
+   * @param {string} clientId - Client ID
+   * @returns {Object} {success, pdf, fileName, mimeType} or error
+   */
+  generateTool5PDF(clientId) {
+    return this.generateGroundingPDF('tool5', Tool5Report, Tool5.config, clientId);
+  },
+
+  /**
+   * Generic grounding tool PDF generator (used by Tool 3 and Tool 5)
+   * @param {string} toolId - Tool identifier
+   * @param {Object} ToolReport - Tool report object
+   * @param {Object} toolConfig - Tool configuration
+   * @param {string} clientId - Client ID
+   * @returns {Object} {success, pdf, fileName, mimeType} or error
+   */
+  generateGroundingPDF(toolId, ToolReport, toolConfig, clientId) {
+    try {
+      // Get results
+      const results = ToolReport.getResults(clientId);
+      if (!results) {
+        return { success: false, error: 'No results found' };
+      }
+
+      // Extract data
+      const studentName = results.formData?.name || results.formData?.studentName || 'Student';
+      const scoring = results.scoring;
+      const gptInsights = results.gptInsights;
+
+      // Grounding tool styles
+      const groundingStyles = this.getCommonStyles() + `
+        .score-card { background: #f9f9f9; padding: 30px; margin: 20px 0; border-radius: 10px; text-align: center; page-break-inside: avoid; }
+        .score-large { font-size: 48px; font-weight: 700; color: ${CONFIG.UI.PRIMARY_COLOR}; margin: 15px 0; }
+        .domain-section { margin: 30px 0; page-break-inside: avoid; }
+        .domain-header { background: linear-gradient(135deg, rgba(173, 145, 104, 0.1), rgba(75, 65, 102, 0.1)); padding: 20px; border-left: 4px solid ${CONFIG.UI.PRIMARY_COLOR}; border-radius: 8px; margin-bottom: 15px; }
+        .domain-title { font-size: 22px; font-weight: 600; color: ${CONFIG.UI.PRIMARY_COLOR}; margin-bottom: 10px; }
+        .domain-score { font-size: 36px; font-weight: 700; color: ${CONFIG.UI.PRIMARY_COLOR}; }
+        .subdomain-card { background: #f9f9f9; padding: 15px; margin: 10px 0; border-radius: 8px; border-left: 3px solid ${CONFIG.UI.PRIMARY_COLOR}; }
+        .subdomain-name { font-weight: 600; margin-bottom: 8px; }
+        .subdomain-score { font-size: 24px; font-weight: 700; color: ${CONFIG.UI.PRIMARY_COLOR}; margin: 5px 0; }
+        .insight-box { background: #f9f9f9; padding: 20px; margin: 15px 0; border-left: 4px solid ${CONFIG.UI.PRIMARY_COLOR}; border-radius: 8px; }
+        .insight-label { font-size: 12px; text-transform: uppercase; color: ${CONFIG.UI.PRIMARY_COLOR}; font-weight: 600; margin-bottom: 8px; }
+        .action-item { background: rgba(173, 145, 104, 0.1); padding: 15px; margin: 10px 0; border-left: 3px solid ${CONFIG.UI.PRIMARY_COLOR}; border-radius: 5px; }
+      `;
+
+      // Build header
+      const header = this.buildHeader(`${toolConfig.name}`, studentName);
+
+      // Build overall score section
+      const overallScore = Math.round(scoring.overallQuotient);
+      const overallInterpretation = GroundingScoring.interpretQuotient(scoring.overallQuotient);
+
+      const overallSection = `
+        <div class="score-card">
+          <h2>Overall ${toolConfig.scoreName}</h2>
+          <div class="score-large">${overallScore}</div>
+          <p><strong>${overallInterpretation.label}</strong></p>
+          <p>${overallInterpretation.description}</p>
+        </div>
+      `;
+
+      // Build overall synthesis
+      let overallSynthesis = '';
+      if (gptInsights.overall) {
+        overallSynthesis = `
+          <div class="page-break"></div>
+          <h2>Your Journey</h2>
+          ${gptInsights.overall.overview ? `
+            <div class="insight-box">
+              <div class="insight-label">Overview</div>
+              <p>${gptInsights.overall.overview}</p>
+            </div>
+          ` : ''}
+          ${gptInsights.overall.integration ? `
+            <div class="insight-box">
+              <div class="insight-label">Integration</div>
+              <p>${gptInsights.overall.integration}</p>
+            </div>
+          ` : ''}
+          ${gptInsights.overall.coreWork ? `
+            <div class="insight-box">
+              <div class="insight-label">Core Work</div>
+              <p>${gptInsights.overall.coreWork}</p>
+            </div>
+          ` : ''}
+        `;
+      }
+
+      // Build domain sections
+      let domainSections = '<div class="page-break"></div><h2>Domain Analysis</h2>';
+
+      // Domain 1
+      const domain1Score = Math.round(scoring.domainQuotients.domain1);
+      const domain1Interpretation = GroundingScoring.interpretQuotient(scoring.domainQuotients.domain1);
+      domainSections += `
+        <div class="domain-section">
+          <div class="domain-header">
+            <div class="domain-title">${toolConfig.domain1Name}</div>
+            <div class="domain-score">${domain1Score}</div>
+            <p>${domain1Interpretation.label}</p>
+          </div>
+          ${gptInsights.domain1 ? `
+            <div class="insight-box">
+              <div class="insight-label">Summary</div>
+              <p>${gptInsights.domain1.summary || ''}</p>
+            </div>
+            ${gptInsights.domain1.priorityFocus ? `
+              <div class="insight-box">
+                <div class="insight-label">Priority Focus</div>
+                <p>${gptInsights.domain1.priorityFocus}</p>
+              </div>
+            ` : ''}
+          ` : ''}
+        </div>
+      `;
+
+      // Domain 2
+      const domain2Score = Math.round(scoring.domainQuotients.domain2);
+      const domain2Interpretation = GroundingScoring.interpretQuotient(scoring.domainQuotients.domain2);
+      domainSections += `
+        <div class="domain-section">
+          <div class="domain-header">
+            <div class="domain-title">${toolConfig.domain2Name}</div>
+            <div class="domain-score">${domain2Score}</div>
+            <p>${domain2Interpretation.label}</p>
+          </div>
+          ${gptInsights.domain2 ? `
+            <div class="insight-box">
+              <div class="insight-label">Summary</div>
+              <p>${gptInsights.domain2.summary || ''}</p>
+            </div>
+            ${gptInsights.domain2.priorityFocus ? `
+              <div class="insight-box">
+                <div class="insight-label">Priority Focus</div>
+                <p>${gptInsights.domain2.priorityFocus}</p>
+              </div>
+            ` : ''}
+          ` : ''}
+        </div>
+      `;
+
+      // Build action plan
+      let actionPlan = '';
+      if (gptInsights.overall && gptInsights.overall.nextSteps && gptInsights.overall.nextSteps.length > 0) {
+        actionPlan = `
+          <div class="page-break"></div>
+          <h2>Your Action Plan</h2>
+          ${gptInsights.overall.nextSteps.map((step, index) => `
+            <div class="action-item">
+              <strong>Step ${index + 1}:</strong> ${step}
+            </div>
+          `).join('')}
+        `;
+      }
+
+      // Combine all sections
+      const bodyHTML = header + overallSection + overallSynthesis + domainSections + actionPlan;
+
+      // Generate PDF
+      return this.generatePDF(bodyHTML, groundingStyles, `${toolConfig.name} Report - ${studentName}`);
+
+    } catch (error) {
+      Logger.log(`Error generating ${toolId} PDF: ${error}`);
+      return {
+        success: false,
+        error: error.toString()
+      };
+    }
   }
 };

@@ -46,9 +46,9 @@ These priorities are available to EVERYONE, regardless of financial situation.
 **Base Weights:**
 ```
 M: 5%   (Minimum wealth-building, focus on present)
-E: 50%  (High essentials coverage for tight budgets)
-F: 35%  (Build emergency fund aggressively)
-J: 10%  (Minimal enjoyment, prevent deprivation)
+E: 60%  (High essentials for crisis mode - UPDATED 11/18/25)
+F: 30%  (Build emergency fund - UPDATED 11/18/25)
+J: 5%   (Minimal enjoyment - UPDATED 11/18/25)
 ```
 
 **Unlock Requirements:**
@@ -79,9 +79,9 @@ if (emergencyFund < 1_month_expenses &&
 **Base Weights:**
 ```
 M: 10%  (Minimal investing, focus on stability)
-E: 35%  (Moderate essentials)
-F: 40%  (High freedom - regaining control)
-J: 15%  (Moderate enjoyment - self-care important)
+E: 45%  (Trauma-informed essentials - UPDATED 11/18/25)
+F: 35%  (Freedom focus - UPDATED 11/18/25)
+J: 10%  (Reduced for control focus - UPDATED 11/18/25)
 ```
 
 **Unlock Requirements:**
@@ -114,9 +114,9 @@ if (tool1Winner === 'Fear' || tool1Winner === 'Control' ||
 **Base Weights:**
 ```
 M: 15%  (Minimum investing, focus on debt)
-E: 30%  (Moderate essentials, sustainable during payoff)
+E: 35%  (Sustainable essentials - UPDATED 11/18/25)
 F: 40%  (Aggressive debt payoff focus)
-J: 15%  (Moderate enjoyment, prevent burnout)
+J: 10%  (Reduced to maintain F - UPDATED 11/18/25)
 ```
 
 **Unlock Requirements:**

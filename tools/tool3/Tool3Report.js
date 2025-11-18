@@ -98,6 +98,40 @@ const Tool3Report = {
   },
 
   /**
+   * Get assessment results for report generation (used by PDFGenerator)
+   * @param {string} clientId - Client ID
+   * @returns {Object} Results object with scoring, gptInsights, formData
+   */
+  getResults(clientId) {
+    try {
+      const savedData = DataService.getToolResponse(clientId, 'tool3');
+      const assessmentData = savedData?.data || savedData;
+
+      if (!savedData || !assessmentData.scoring || !assessmentData.gpt_insights || !assessmentData.syntheses) {
+        return null;
+      }
+
+      // Reconstruct GPT insights
+      const gptInsights = {
+        subdomains: assessmentData.gpt_insights.subdomains || {},
+        domain1: assessmentData.syntheses.domain1,
+        domain2: assessmentData.syntheses.domain2,
+        overall: assessmentData.syntheses.overall
+      };
+
+      return {
+        clientId: clientId,
+        scoring: assessmentData.scoring,
+        gptInsights: gptInsights,
+        formData: assessmentData.responses || {}
+      };
+    } catch (error) {
+      Logger.log(`[Tool3Report] Error getting results: ${error.message}`);
+      return null;
+    }
+  },
+
+  /**
    * Generate Tool 3 report (legacy method, kept for compatibility)
    * Delegates to GroundingReport
    */

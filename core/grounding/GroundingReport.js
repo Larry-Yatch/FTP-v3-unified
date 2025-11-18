@@ -384,6 +384,7 @@ const GroundingReport = {
         <script>
           const baseUrl = '${baseUrl}';
           const clientId = '${clientId}';
+          const toolId = '${toolId}';
 
           // Loading overlay functions
           function showLoading(message) {
@@ -419,6 +420,35 @@ const GroundingReport = {
               .getDashboardPage(clientId);
           }
 
+          // Download PDF report
+          function downloadPDF() {
+            showLoading('Generating PDF...');
+
+            // Determine which PDF function to call based on toolId
+            const pdfFunction = toolId === 'tool3' ? 'generateTool3PDF' : 'generateTool5PDF';
+
+            google.script.run
+              .withSuccessHandler(function(result) {
+                hideLoading();
+                if (result.success) {
+                  // Create download link
+                  const link = document.createElement('a');
+                  link.href = 'data:application/pdf;base64,' + result.pdf;
+                  link.download = result.fileName;
+                  link.click();
+                  alert('PDF downloaded successfully!');
+                } else {
+                  alert('Error generating PDF: ' + result.error);
+                }
+              })
+              .withFailureHandler(function(error) {
+                hideLoading();
+                console.error('PDF generation error:', error);
+                alert('Error generating PDF: ' + error.message);
+              })
+              [pdfFunction](clientId);
+          }
+
           // Alias for onclick handlers
           function backToDashboard() {
             navigateToDashboard(clientId, 'Loading Dashboard');
@@ -427,6 +457,7 @@ const GroundingReport = {
           // Make functions global for onclick handlers
           window.backToDashboard = backToDashboard;
           window.navigateToDashboard = navigateToDashboard;
+          window.downloadPDF = downloadPDF;
 
           // Hide loading on page load
           window.addEventListener('load', function() {
@@ -683,13 +714,19 @@ const GroundingReport = {
           and track your progress as you work through your action plan.
         </p>
 
-        <button
-          class="btn-primary"
-          onclick="navigateToDashboard('${clientId}', 'Loading Dashboard')"
-          style="margin-top: 10px;"
-        >
-          Return to Dashboard →
-        </button>
+        <!-- Action buttons -->
+        <div style="display: flex; gap: 15px; justify-content: center; margin-top: 25px; flex-wrap: wrap;">
+          <button class="btn-primary" onclick="downloadPDF()">
+            📥 Download PDF Report
+          </button>
+          <button class="btn-secondary" onclick="backToDashboard()">
+            ← Back to Dashboard
+          </button>
+        </div>
+
+        <p style="text-align: center; color: rgba(255, 255, 255, 0.6); font-size: 14px; margin-top: 15px;">
+          To edit your responses, return to the dashboard and click "Edit Answers"
+        </p>
       </div>
     `;
   },

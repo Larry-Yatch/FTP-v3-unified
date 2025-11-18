@@ -1,42 +1,48 @@
 # Tool 4: Financial Freedom Framework - Detailed Specification
 
-**Version:** 2.0 (Interactive Calculator Architecture)
+**Version:** 3.0 (Progressive Unlock Model + Hybrid Allocation)
 **Date:** November 17, 2025
-**Status:** ✅ DESIGN FINALIZED - Ready for Implementation (Pending Base Weights Optimization)
+**Status:** ✅ FINALIZED - Ready for Implementation
 **Author:** Claude Code
 
 ---
 
-## 🎯 **MAJOR ARCHITECTURE CHANGE (v2.0)**
+## 🚨 **MAJOR UPDATE - Version 3.0**
 
-**Tool 4 is now an INTERACTIVE CALCULATOR, not a static multi-page form.**
+**Tool 4 now features PROGRESSIVE UNLOCK MODEL with HYBRID ALLOCATION UX.**
 
-### **Key Changes from v1.0:**
-- ✅ **Single-page interactive calculator** (not multi-page form)
-- ✅ **Client-side real-time calculations** (instant feedback)
-- ✅ **Progressive enhancement** (6 minimum inputs, expand for accuracy)
-- ✅ **Tool 2 integration with 3-tier fallback** (never blocks progression)
-- ✅ **Scenario-based workflow** (create, compare, select optimal)
+### **Key Changes from v2.0:**
+- ✅ **Progressive Priority Unlock** - Priorities lock/unlock based on financial data (surplus, emergency fund, debt)
+- ✅ **Hybrid Priority Selection** - System suggests, student can override (Option B)
+- ✅ **Top 2 Priority Ranking** - Students rank top 2 priorities, weighted 70%/30% (changed from top 3)
+- ✅ **Hybrid Allocation UX** - Show both recommended + adjusted allocations, offer 3 paths forward
+- ✅ **Surplus-Based Unlocks** - Low threshold barriers based on (income - essentials)
+- ✅ **Progress Tracking** - 30-60-90 day milestones for gradual path
+- ✅ **Keep All 10 Priorities** - No merging, all serve distinct trauma-informed purposes
 
-### **Reference Documents:**
-- **TOOL4-INTERACTIVE-CALCULATOR-ARCHITECTURE.md** - Complete v2.0 architecture
+### **Primary Reference Documents:**
+- ⭐ **TOOL4-BASE-WEIGHTS-FINAL-DECISIONS.md** - COMPLETE SOURCE OF TRUTH (60KB, all decisions documented)
+- **TOOL4-PROGRESSIVE-UNLOCK-MODEL.md** - Progressive unlock framework (all 10 priorities)
+- **TOOL4-IMPLEMENTATION-CHECKLIST.md** - Phase-by-phase development guide
+- **TOOL4-INTERACTIVE-CALCULATOR-ARCHITECTURE.md** - Updated with hybrid UX
 - **TOOL4-INPUT-ANALYSIS.md** - Input requirements (6 minimum, 28 maximum)
-- **TOOL4-SESSION-HANDOFF.md** - Next steps for base weights optimization
 
-### **What's Finalized:**
-1. ✅ Interactive calculator UI pattern
-2. ✅ Client-side calculation engine
-3. ✅ Tool 2 fallback system (3-tier)
-4. ✅ Minimum inputs: 6 required fields
-5. ✅ All 8 design decisions locked in
-6. ✅ Trauma-informed satisfaction amplifier
-7. ✅ Rank top 3 priorities (weighted 50%, 30%, 20%)
-8. ✅ GPT hybrid (template + on-demand)
+### **What's 100% Finalized:**
+1. ✅ Progressive unlock logic for all 10 priorities
+2. ✅ Surplus-based unlock thresholds
+3. ✅ Hybrid priority selection (suggested + override)
+4. ✅ Top 2 ranking (70%/30% weighting)
+5. ✅ Hybrid allocation UX (recommended + adjusted + 3 paths)
+6. ✅ Tool 2 integration (intelligent essentials detection)
+7. ✅ Trauma-informed satisfaction amplifier
+8. ✅ Base weights for all 10 priorities (M/E/F/J percentages)
+9. ✅ All framework decisions locked in
 
-### **Still To Do:**
-- 🔄 Base priority weightings optimization (see TOOL4-SESSION-HANDOFF.md)
-- 🔄 Update implementation plan for interactive calculator
-- 🔄 UI mockups/wireframes
+### **Deferred to Implementation Phase:**
+- 🔄 Complete unlock requirement validation (emergency fund/debt thresholds may need tuning)
+- 🔄 Recommendation trigger decision tree (may refine based on usage data)
+- 🔄 Progress plan algorithm (30-60-90 day milestone calculations)
+- 🔄 UI mockups/wireframes (design phase)
 
 ---
 
@@ -216,15 +222,17 @@ Where:
 | Priority | M | E | F | J | Use Case |
 |----------|---|---|---|---|----------|
 | Build Long-Term Wealth | 40 | 25 | 20 | 15 | Growth-focused, stable income |
-| Get Out of Debt | 15 | 25 | 45 | 15 | High debt load |
+| Get Out of Debt | 15 | **35** | 40 | **10** | High debt load (UPDATED 11/18/25) |
 | Feel Financially Secure | 25 | 35 | 30 | 10 | Risk-averse, needs safety |
 | Enjoy Life Now | 20 | 20 | 15 | 45 | YOLO mindset |
-| Save for a Big Goal | 15 | 25 | 45 | 15 | Short-term target (house, car) |
-| Stabilize to Survive | 5 | 45 | 40 | 10 | Living paycheck-to-paycheck |
+| Save for a Big Goal | 25 | 25 | 40 | 10 | Short-term target (house, car) |
+| Stabilize to Survive | 5 | **60** | **30** | **5** | Crisis mode (UPDATED 11/18/25) |
 | Build/Stabilize Business | 20 | 30 | 35 | 15 | Entrepreneur, irregular income |
-| Create Generational Wealth | 45 | 25 | 20 | 10 | High net worth, legacy focus |
+| Create Generational Wealth | 50 | 20 | 20 | 10 | High net worth, legacy focus |
 | Create Life Balance | 15 | 25 | 25 | 35 | Work-life harmony |
-| Reclaim Financial Control | 10 | 35 | 40 | 15 | Financial avoidance recovery |
+| Reclaim Financial Control | 10 | **45** | **35** | **10** | Trauma recovery (UPDATED 11/18/25) |
+
+**📝 Update Note (11/18/25):** Base weights validated with 20 scenario tests. Three priorities adjusted for realistic allocations. See BASE-WEIGHTS-SCENARIO-TESTING.md for details.
 
 #### 3.1.2 Modifiers (Current Implementation)
 

@@ -64,7 +64,8 @@ const Tool5Report = {
         clientId: clientId,
         baseUrl: ScriptApp.getService().getUrl(),
         scoringResult: assessmentData.scoring,
-        gptInsights: gptInsights
+        gptInsights: gptInsights,
+        formData: assessmentData.responses || {}  // Add formData for header
       });
 
       return HtmlService.createHtmlOutput(reportHtml);
@@ -93,6 +94,40 @@ const Tool5Report = {
         </body>
         </html>
       `);
+    }
+  },
+
+  /**
+   * Get assessment results for report generation (used by PDFGenerator)
+   * @param {string} clientId - Client ID
+   * @returns {Object} Results object with scoring, gptInsights, formData
+   */
+  getResults(clientId) {
+    try {
+      const savedData = DataService.getToolResponse(clientId, 'tool5');
+      const assessmentData = savedData?.data || savedData;
+
+      if (!savedData || !assessmentData.scoring || !assessmentData.gpt_insights || !assessmentData.syntheses) {
+        return null;
+      }
+
+      // Reconstruct GPT insights
+      const gptInsights = {
+        subdomains: assessmentData.gpt_insights.subdomains || {},
+        domain1: assessmentData.syntheses.domain1,
+        domain2: assessmentData.syntheses.domain2,
+        overall: assessmentData.syntheses.overall
+      };
+
+      return {
+        clientId: clientId,
+        scoring: assessmentData.scoring,
+        gptInsights: gptInsights,
+        formData: assessmentData.responses || {}
+      };
+    } catch (error) {
+      Logger.log(`[Tool5Report] Error getting results: ${error.message}`);
+      return null;
     }
   },
 

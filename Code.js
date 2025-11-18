@@ -289,6 +289,24 @@ function generateTool2PDF(clientId) {
 }
 
 /**
+ * Generate PDF for Tool 3 Identity & Validation Report
+ * @param {string} clientId - Client ID
+ * @returns {object} {success, pdf, fileName, mimeType} or {success: false, error}
+ */
+function generateTool3PDF(clientId) {
+  return PDFGenerator.generateTool3PDF(clientId);
+}
+
+/**
+ * Generate PDF for Tool 5 Love & Connection Report
+ * @param {string} clientId - Client ID
+ * @returns {object} {success, pdf, fileName, mimeType} or {success: false, error}
+ */
+function generateTool5PDF(clientId) {
+  return PDFGenerator.generateTool5PDF(clientId);
+}
+
+/**
  * GENERIC: Save tool page data (called from client via google.script.run)
  * Works for ANY tool that implements savePageData()
  *

@@ -93,13 +93,24 @@ function testEmptySynthesisTriggersFallback() {
     const clientId = '6123LY';
 
     // Simulate tool3 synthesis with empty GPT response
-    Logger.log('Simulating empty GPT response for Tool 3 Domain 1...');
+    Logger.log('Testing with mock domain config (not calling real GPT)...');
 
-    // This should trigger fallback
+    // Create a mock domain config that matches Tool3 structure
+    const mockDomainConfig = {
+      key: 'domain1',
+      name: Tool3.config.domain1Name,
+      subdomains: [
+        {key: 'subdomain_1_1', name: 'Test Subdomain 1'},
+        {key: 'subdomain_1_2', name: 'Test Subdomain 2'},
+        {key: 'subdomain_1_3', name: 'Test Subdomain 3'}
+      ]
+    };
+
+    // This should trigger fallback if GPT returns empty
     const result = GroundingGPT.synthesizeDomain({
       toolId: 'tool3',
       clientId: clientId,
-      domainConfig: Tool3.config.domains[0],
+      domainConfig: mockDomainConfig,
       subdomainInsights: {
         subdomain_1_1: {
           pattern: 'Test pattern',
