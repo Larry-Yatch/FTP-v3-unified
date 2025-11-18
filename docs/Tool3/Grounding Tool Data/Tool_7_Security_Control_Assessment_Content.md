@@ -3,7 +3,7 @@
 
 **Created:** November 17, 2025  
 **Version:** 3.0 - Assessment Content with Flipped Scale  
-**Status:** ✅ Complete - All 36 Scale Questions with -3 to +3 (No Zero)  
+**Status:** ✅ Complete - All 24 Scale Questions with -3 to +3 (No Zero)  
 **Authority Document:** Financial Trauma Patterns: Clinical Design Document  
 **Part of:** Financial TruPath Grounding Tools Suite (Tools 3, 5, and 7)
 
@@ -26,10 +26,10 @@
 ## 📊 Executive Summary
 
 ### Purpose
-This document contains the **complete assessment content** for the Financial TruPath Security & Control Grounding Tool (Tool 7). It includes all 36 scale questions with full -3 to +3 descriptive labels, 12 open response questions, and the design principles behind the assessment structure.
+This document contains the **complete assessment content** for the Financial TruPath Security & Control Grounding Tool (Tool 7). It includes all 24 scale questions with full -3 to +3 descriptive labels, 6 open response questions, and the design principles behind the assessment structure.
 
 ### What's In This Document
-- ✅ Complete question text for Tool 7 (36 scale questions)
+- ✅ Complete question text for Tool 7 (24 scale questions)
 - ✅ All scale descriptors (-3 to +3) for each question
 - ✅ Open response questions for qualitative data (6 questions - one per subdomain)
 - ✅ Assessment design principles and rationale
@@ -112,7 +112,7 @@ Tool 7: Security & Control
 │   │   ├── Behavior (scale -3 to +3)
 │   │   ├── Feeling (scale -3 to +3)
 │   │   ├── Consequence (scale -3 to +3)
-│   │   └── Open Responses (2 questions)
+│   │   └── Open Response (1 question)
 │   ├── Subdomain 1.2: "I Can't Trust Others"
 │   └── Subdomain 1.3: "Asking for Help Is Weakness"
 │
@@ -152,10 +152,10 @@ Questions are framed to create self-awareness, not shame. Students are discoveri
 Each subdomain is specific enough that guidance can be targeted: "Your 'Everything Will Go Wrong' pattern means..." not just "You have Fear Leading to Isolation." Specificity enables actionable next steps.
 
 ### 6. Progressive Disclosure
-Students complete one subdomain at a time (one page per subdomain), preventing overwhelm. They don't see all 36 questions at once. This creates focus and reduces assessment fatigue.
+Students complete one subdomain at a time (one page per subdomain), preventing overwhelm. They don't see all 30 questions at once. This creates focus and reduces assessment fatigue.
 
 ### 7. Open Response Integration
-Two open-ended questions per subdomain provide qualitative data that enriches analysis and makes insights specific to the individual. These questions probe the "why" behind the scores.
+One open-ended question per subdomain provides qualitative data that enriches analysis and makes insights specific to the individual. These questions probe the "why" behind the scores.
 
 ### 8. Scoring Transparency
 Students see their scores at multiple levels (subdomain, domain, overall) with clear explanations of what each means. Transparency builds trust and understanding.
@@ -490,11 +490,11 @@ We use **-3 to +3 scales without zero** because:
 - **Manageable GPT processing** - 6 calls per tool (one per subdomain) is efficient
 
 ### Open Response Strategy
-**Two questions per subdomain** because:
-- **One question might not capture the nuance** - people need multiple angles to explore
-- **Two allows exploration and confirmation** - first question opens, second deepens
-- **More than two risks overwhelming students** - assessment fatigue is real
-- **Provides rich qualitative data for GPT** - enough context without overwhelming
+**One question per subdomain** because:
+- **Focused exploration** - one well-crafted question targets the core of each subdomain
+- **Reduces assessment fatigue** - 6 total open responses (vs 12) keeps engagement high
+- **Sufficient for GPT analysis** - one thoughtful response provides rich qualitative data
+- **Respects student time** - maintains assessment completion rate
 
 ### Gap Thresholds
 The gap classification helps students understand where to focus:
@@ -553,9 +553,9 @@ For all technical implementation details including:
 
 **END OF DOCUMENT**
 
-*This assessment content document provides all 36 scale questions with full descriptors and 6 open response questions for Financial TruPath Tool 7: Security & Control Grounding Tool. All scales use -3 to +3 without zero, where negative represents problematic patterns and positive represents healthy patterns. For implementation details, scoring algorithms, and technical specifications, refer to the companion Implementation Guide.*
+*This assessment content document provides all 24 scale questions with full descriptors and 6 open response questions for Financial TruPath Tool 7: Security & Control Grounding Tool. All scales use -3 to +3 without zero, where negative represents problematic patterns and positive represents healthy patterns. For implementation details, scoring algorithms, and technical specifications, refer to the companion Implementation Guide.*
 
-**✅ COMPLETE: All 36 Scale Questions with -3 to +3 (No Zero)**  
+**✅ COMPLETE: All 24 Scale Questions with -3 to +3 (No Zero)**  
 **✅ COMPLETE: All Scales Flipped (Negative = Bad, Positive = Good)**  
 **✅ COMPLETE: All 6 Open Response Questions**  
 **✅ COMPLETE: All Assessment Design Principles and Philosophy**

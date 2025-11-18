@@ -3,7 +3,7 @@
 
 **Created:** November 17, 2025  
 **Version:** 3.0 - Assessment Content with Flipped Scale  
-**Status:** âœ… Complete - All 36 Scale Questions with -3 to +3 (No Zero)  
+**Status:** âœ… Complete - All 24 Scale Questions with -3 to +3 (No Zero)  
 **Authority Document:** Financial Trauma Patterns: Clinical Design Document  
 **Part of:** Financial TruPath Grounding Tools Suite (Tools 3, 5, and 7)
 
@@ -26,12 +26,12 @@
 ## ðŸ“Š Executive Summary
 
 ### Purpose
-This document contains the **complete assessment content** for the Financial TruPath Love & Connection Grounding Tool (Tool 5). It includes all 36 scale questions with full -3 to +3 descriptive labels, 12 open response questions, and the design principles behind the assessment structure.
+This document contains the **complete assessment content** for the Financial TruPath Love & Connection Grounding Tool (Tool 5). It includes all 24 scale questions with full -3 to +3 descriptive labels, 6 open response questions, and the design principles behind the assessment structure.
 
 ### What's In This Document
-- âœ… Complete question text for Tool 5 (36 scale questions)
+- âœ… Complete question text for Tool 5 (24 scale questions)
 - âœ… All scale descriptors (-3 to +3) for each question
-- âœ… Open response questions for qualitative data (12 questions)
+- âœ… Open response questions for qualitative data (6 questions - one per subdomain)
 - âœ… Assessment design principles and rationale
 - âœ… Question design philosophy and compassionate framing
 
@@ -107,12 +107,12 @@ When students are disconnected from others, they experience:
 ```
 Tool 5: Love & Connection
 â”œâ”€â”€ Domain 1: Issues Showing Love (ISL)
-â”‚   â”œâ”€â”€ Subdomain 1.1: "I Must Give to Be Loved"
-â”‚   â”‚   â”œâ”€â”€ Belief (scale -3 to +3)
-â”‚   â”‚   â”œâ”€â”€ Behavior (scale -3 to +3)
-â”‚   â”‚   â”œâ”€â”€ Feeling (scale -3 to +3)
-â”‚   â”‚   â”œâ”€â”€ Consequence (scale -3 to +3)
-â”‚   â”‚   â””â”€â”€ Open Responses (2 questions)
+â"‚   â"œâ"€â"€ Subdomain 1.1: "I Must Give to Be Loved"
+â"‚   â"‚   â"œâ"€â"€ Belief (scale -3 to +3)
+â"‚   â"‚   â"œâ"€â"€ Behavior (scale -3 to +3)
+â"‚   â"‚   â"œâ"€â"€ Feeling (scale -3 to +3)
+â"‚   â"‚   â"œâ"€â"€ Consequence (scale -3 to +3)
+â"‚   â"‚   â""â"€â"€ Open Response (1 question)
 â”‚   â”œâ”€â”€ Subdomain 1.2: "Their Needs > My Needs"
 â”‚   â””â”€â”€ Subdomain 1.3: "I Can't Accept Help"
 â”‚
@@ -152,10 +152,10 @@ Questions are framed to create self-awareness, not shame. Students are discoveri
 Each subdomain is specific enough that guidance can be targeted: "Your 'I Can't Accept Help' pattern means..." not just "You have Issues Showing Love." Specificity enables actionable next steps.
 
 ### 6. Progressive Disclosure
-Students complete one subdomain at a time (one page per subdomain), preventing overwhelm. They don't see all 36 questions at once. This creates focus and reduces assessment fatigue.
+Students complete one subdomain at a time (one page per subdomain), preventing overwhelm. They don't see all 30 questions at once. This creates focus and reduces assessment fatigue.
 
 ### 7. Open Response Integration
-Two open-ended questions per subdomain provide qualitative data that enriches analysis and makes insights specific to the individual. These questions probe the "why" behind the scores.
+One open-ended question per subdomain provides qualitative data that enriches analysis and makes insights specific to the individual. These questions probe the "why" behind the scores.
 
 ### 8. Scoring Transparency
 Students see their scores at multiple levels (subdomain, domain, overall) with clear explanations of what each means. Transparency builds trust and understanding.
@@ -219,9 +219,8 @@ Throughout, we use language like "pattern," "strategy," "approach" rather than "
 - **+2** = Rarely - I've had occasional lapses, but generally give wisely without enabling
 - **+3** = Never - I consistently give sustainably and support others' growth, not dysfunction; I'm financially stable
 
-**Open Response Questions:**
-1. "Who in your life do you feel you must give money to? What do you fear would happen if you stopped?"
-2. "Describe a time you gave money you couldn't afford to give. How did it impact you?"
+**Open Response Question:**
+"Who in your life do you feel you must give money to, and describe a specific time you gave money you couldn't afford to give—what did you fear would happen if you didn't, and how did it impact you financially and emotionally?"
 
 ---
 
@@ -372,9 +371,8 @@ Throughout, we use language like "pattern," "strategy," "approach" rather than "
 - **+2** = Rarely - I've had occasional financial considerations in relationships, but generally maintain independence
 - **+3** = Never - I consistently maintain financial independence; relationship choices are never driven by dependence
 
-**Open Response Questions:**
-1. "Who do you depend on financially? What would you need to become financially independent?"
-2. "Have you ever stayed in a situation (job, relationship, living arrangement) longer than you wanted because of money? What was that like?"
+**Open Response Question:**
+"Who do you currently depend on financially, and describe a situation (job, relationship, living arrangement) you've stayed in longer than you wanted because of money—what would you need to become financially independent, and what keeps you from taking those steps?"
 
 ---
 
@@ -421,9 +419,8 @@ Throughout, we use language like "pattern," "strategy," "approach" rather than "
 - **+2** = Rarely - I've had occasional lapses, but generally maintain autonomy despite help
 - **+3** = Never - I consistently maintain autonomy; no regretted choices from obligation
 
-**Open Response Questions:**
-1. "Who do you feel most indebted to? What do you think they expect from you in return for their help?"
-2. "What financial choices have you made (or not made) because you felt you 'owed' someone?"
+**Open Response Question:**
+"Who do you feel most indebted to, what do you think they expect from you in return for their help, and what specific financial choices have you made (or avoided making) because you felt you 'owed' them?"
 
 ---
 
@@ -493,11 +490,11 @@ We use **-3 to +3 scales without zero** because:
 - **Manageable GPT processing** - 6 calls per tool (one per subdomain) is efficient
 
 ### Open Response Strategy
-**Two questions per subdomain** because:
-- **One question might not capture the nuance** - people need multiple angles to explore
-- **Two allows exploration and confirmation** - first question opens, second deepens
-- **More than two risks overwhelming students** - assessment fatigue is real
-- **Provides rich qualitative data for GPT** - enough context without overwhelming
+**One question per subdomain** because:
+- **Focused exploration** - one well-crafted hybrid question targets the core of each subdomain
+- **Reduces assessment fatigue** - 6 total open responses (vs 12) keeps engagement high
+- **Sufficient for GPT analysis** - one thoughtful, multi-part response provides rich qualitative data
+- **Respects student time** - maintains assessment completion rate
 
 ### Gap Thresholds
 The gap classification helps students understand where to focus:
@@ -556,9 +553,9 @@ For all technical implementation details including:
 
 **END OF DOCUMENT**
 
-*This assessment content document provides all 36 scale questions with full descriptors and 12 open response questions for Financial TruPath Tool 5: Love & Connection Grounding Tool. All scales use -3 to +3 without zero, where negative represents problematic patterns and positive represents healthy patterns. For implementation details, scoring algorithms, and technical specifications, refer to the companion Implementation Guide.*
+*This assessment content document provides all 24 scale questions with full descriptors and 6 open response questions for Financial TruPath Tool 5: Love & Connection Grounding Tool. All scales use -3 to +3 without zero, where negative represents problematic patterns and positive represents healthy patterns. For implementation details, scoring algorithms, and technical specifications, refer to the companion Implementation Guide.*
 
-**âœ… COMPLETE: All 36 Scale Questions with -3 to +3 (No Zero)**  
-**âœ… COMPLETE: All Scales Flipped (Negative = Bad, Positive = Good)**  
-**âœ… COMPLETE: All 12 Open Response Questions**  
+**âœ… COMPLETE: All 24 Scale Questions with -3 to +3 (No Zero)**
+**âœ… COMPLETE: All Scales Flipped (Negative = Bad, Positive = Good)**
+**âœ… COMPLETE: All 6 Open Response Questions**
 **âœ… COMPLETE: All Assessment Design Principles and Philosophy**
