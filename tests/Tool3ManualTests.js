@@ -543,3 +543,136 @@ function runAllTests() {
   Logger.log('ALL TESTS COMPLETE');
   Logger.log('##################################################');
 }
+/**
+ * Check what's actually in the RESPONSES sheet for 6123LY / tool3
+ */
+function checkResponsesSheetData() {
+  const clientId = '6123LY';
+  const toolId = 'tool3';
+  
+  Logger.log('============================================');
+  Logger.log('CHECKING RESPONSES SHEET - ACTUAL DATA');
+  Logger.log('============================================\n');
+  
+  try {
+    const ss = SpreadsheetApp.openById(CONFIG.MASTER_SHEET_ID);
+    const sheet = ss.getSheetByName('RESPONSES');
+    
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    
+    // Log headers first
+    Logger.log('HEADERS:');
+    headers.forEach((h, i) => Logger.log(`  ${i}: ${h}`));
+    
+    // Find column indices
+    const clientCol = headers.indexOf('Client_ID');
+    const toolCol = headers.indexOf('Tool_ID');
+    const dataCol = headers.indexOf('Data');
+    const statusCol = headers.indexOf('Status');
+    const timestampCol = headers.indexOf('Timestamp');
+    const versionCol = headers.indexOf('Version');
+    
+    Logger.log('\n--- SEARCHING FOR MATCHING ROWS ---');
+    Logger.log(`Looking for Client_ID='${clientId}' AND Tool_ID='${toolId}'`);
+    
+    // Find ALL rows for this client/tool
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      
+      if (row[clientCol] === clientId && row[toolCol] === toolId) {
+        Logger.log(`\n========== ROW ${i + 1} ==========`);
+        Logger.log('Client_ID: ' + row[clientCol]);
+        Logger.log('Tool_ID: ' + row[toolCol]);
+        Logger.log('Status: ' + row[statusCol]);
+        Logger.log('Timestamp: ' + row[timestampCol]);
+        Logger.log('Version: ' + row[versionCol]);
+        Logger.log('Data length: ' + (row[dataCol] ? row[dataCol].length : 0) + ' chars');
+        
+        if (row[dataCol]) {
+          try {
+            const parsed = JSON.parse(row[dataCol]);
+            Logger.log('\nPARSED DATA STRUCTURE:');
+            Logger.log('  Keys at top level: ' + Object.keys(parsed).join(', '));
+            
+            if (parsed.responses) {
+              Logger.log('  responses: EXISTS (' + Object.keys(parsed.responses).length + ' fields)');
+            } else {
+              Logger.log('  responses: MISSING');
+            }
+            
+            if (parsed.scoring) {
+              Logger.log('  scoring: EXISTS');
+              Logger.log('    - overallQuotient: ' + (parsed.scoring.overallQuotient || 'MISSING'));
+              Logger.log('    - domainQuotients: ' + (parsed.scoring.domainQuotients ? 'EXISTS' : 'MISSING'));
+            } else {
+              Logger.log('  scoring: MISSING');
+            }
+            
+            if (parsed.gpt_insights) {
+              Logger.log('  gpt_insights: EXISTS');
+              Logger.log('    - subdomains: ' + (parsed.gpt_insights.subdomains ? Object.keys(parsed.gpt_insights.subdomains).length + ' subdomains' : 'MISSING'));
+            } else {
+              Logger.log('  gpt_insights: MISSING');
+            }
+            
+            if (parsed.syntheses) {
+              Logger.log('  syntheses: EXISTS');
+              Logger.log('    - domain1: ' + (parsed.syntheses.domain1 ? 'EXISTS' : 'MISSING'));
+              Logger.log('    - domain2: ' + (parsed.syntheses.domain2 ? 'EXISTS' : 'MISSING'));
+              Logger.log('    - overall: ' + (parsed.syntheses.overall ? 'EXISTS' : 'MISSING'));
+            } else {
+              Logger.log('  syntheses: MISSING');
+            }
+            
+          } catch (e) {
+            Logger.log('ERROR PARSING JSON: ' + e.message);
+            Logger.log('First 500 chars of data:');
+            Logger.log(row[dataCol].substring(0, 500));
+          }
+        } else {
+          Logger.log('NO DATA IN THIS ROW!');
+        }
+      }
+    }
+    
+    // Now try DataService.getToolResponse() to see what IT returns
+    Logger.log('\n\n========== TESTING DataService.getToolResponse() ==========');
+    const retrieved = DataService.getToolResponse(clientId, toolId);
+    
+    if (!retrieved) {
+      Logger.log('❌ DataService.getToolResponse() returned NULL/undefined');
+    } else {
+      Logger.log('✓ DataService.getToolResponse() returned data');
+      Logger.log('\nRETURNED STRUCTURE:');
+      Logger.log('  Top-level keys: ' + Object.keys(retrieved).join(', '));
+      
+      // Check if data is nested
+      if (retrieved.data) {
+        Logger.log('  data property: EXISTS');
+        Logger.log('    Keys in data: ' + Object.keys(retrieved.data).join(', '));
+      } else {
+        Logger.log('  data property: MISSING');
+      }
+      
+      // Check Tool3Report's validation logic
+      Logger.log('\n--- TOOL3REPORT VALIDATION ---');
+      const assessmentData = retrieved?.data || retrieved;
+      Logger.log('Using assessmentData = retrieved?.data || retrieved');
+      Logger.log('  assessmentData exists: ' + !!assessmentData);
+      Logger.log('  assessmentData.scoring: ' + !!assessmentData.scoring);
+      Logger.log('  assessmentData.gpt_insights: ' + !!assessmentData.gpt_insights);
+      Logger.log('  assessmentData.syntheses: ' + !!assessmentData.syntheses);
+      
+      if (!savedData || !assessmentData.scoring || !assessmentData.gpt_insights || !assessmentData.syntheses) {
+        Logger.log('\n❌ WOULD SHOW ERROR PAGE');
+      } else {
+        Logger.log('\n✅ WOULD SHOW REPORT');
+      }
+    }
+    
+  } catch (error) {
+    Logger.log('ERROR: ' + error.message);
+    Logger.log(error.stack);
+  }
+}
