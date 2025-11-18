@@ -166,7 +166,8 @@ const GroundingGPT = {
       domainConfig,
       subdomainInsights,
       subdomainScores,
-      domainScore
+      domainScore,
+      subdomainConfigs  // ADD: subdomain configurations with labels
     } = params;
 
     try {
@@ -175,10 +176,11 @@ const GroundingGPT = {
       const systemPrompt = this.buildDomainSynthesisPrompt(
         domainConfig,
         subdomainScores,
-        domainScore
+        domainScore,
+        subdomainConfigs
       );
 
-      const userPrompt = this.buildDomainUserPrompt(subdomainInsights);
+      const userPrompt = this.buildDomainUserPrompt(subdomainInsights, subdomainConfigs);
 
       const result = this.callGPT({
         systemPrompt,
@@ -355,7 +357,16 @@ Root Belief:
   /**
    * Build system prompt for domain synthesis
    */
-  buildDomainSynthesisPrompt(domainConfig, subdomainScores, domainScore) {
+  buildDomainSynthesisPrompt(domainConfig, subdomainScores, domainScore, subdomainConfigs) {
+    // Build subdomain list with labels
+    const subdomainList = subdomainConfigs ? subdomainConfigs.map((config, index) => {
+      const key = config.key;
+      const score = subdomainScores[key];
+      return `- "${config.label}": ${Math.round(score)} (${this.interpretNormalizedScore(score)})`;
+    }).join('\n') : Object.entries(subdomainScores).map(([key, score]) =>
+      `- ${key}: ${Math.round(score)} (${this.interpretNormalizedScore(score)})`
+    ).join('\n');
+
     return `
 You are synthesizing insights for the "${domainConfig.name}" domain from a financial grounding assessment.
 
@@ -363,9 +374,7 @@ DOMAIN DESCRIPTION:
 ${domainConfig.description}
 
 SUBDOMAIN SCORES (0-100, where 100 is most problematic):
-${Object.entries(subdomainScores).map(([key, score]) =>
-  `- ${key}: ${Math.round(score)} (${this.interpretNormalizedScore(score)})`
-).join('\n')}
+${subdomainList}
 
 DOMAIN AVERAGE: ${Math.round(domainScore)} (${this.interpretNormalizedScore(domainScore)})
 
@@ -379,6 +388,11 @@ Focus on:
 2. How these patterns reinforce each other
 3. The overall impact on their ${domainConfig.name}
 4. Priority starting point based on highest subdomain
+
+IMPORTANT: When referencing subdomains in your synthesis, use their descriptive
+names (e.g., "I'm Not Worthy of Financial Freedom") rather than technical
+identifiers (e.g., subdomain_1_1). Students need to understand which patterns
+you're referring to.
 
 Return plain-text only:
 
@@ -398,14 +412,25 @@ Priority Focus:
   /**
    * Build user prompt for domain synthesis
    */
-  buildDomainUserPrompt(subdomainInsights) {
+  buildDomainUserPrompt(subdomainInsights, subdomainConfigs) {
+    // Create a map of key -> label for quick lookup
+    const labelMap = {};
+    if (subdomainConfigs) {
+      subdomainConfigs.forEach(config => {
+        labelMap[config.key] = config.label;
+      });
+    }
+
     return Object.entries(subdomainInsights)
-      .map(([key, insight]) => `
-${key}:
+      .map(([key, insight]) => {
+        const label = labelMap[key] || key;  // Fallback to key if no label found
+        return `
+"${label}":
 - Pattern: ${insight.pattern}
 - Insight: ${insight.insight}
 - Root Belief: ${insight.rootBelief || 'N/A'}
-      `)
+      `;
+      })
       .join('\n');
   },
 
