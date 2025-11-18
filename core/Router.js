@@ -414,6 +414,18 @@ const Router = {
     const tool2Completed = tool2Latest && tool2Latest.status === 'COMPLETED';
     const tool2Access = ToolAccessControl.canAccessTool(clientId, 'tool2');
 
+    // Check Tool 3 status
+    const tool3Latest = DataService.getLatestResponse(clientId, 'tool3');
+    const tool3HasDraft = tool3Latest && (tool3Latest.status === 'DRAFT' || tool3Latest.status === 'EDIT_DRAFT');
+    const tool3Completed = tool3Latest && tool3Latest.status === 'COMPLETED';
+    const tool3Access = ToolAccessControl.canAccessTool(clientId, 'tool3');
+
+    // Check Tool 5 status
+    const tool5Latest = DataService.getLatestResponse(clientId, 'tool5');
+    const tool5HasDraft = tool5Latest && (tool5Latest.status === 'DRAFT' || tool5Latest.status === 'EDIT_DRAFT');
+    const tool5Completed = tool5Latest && tool5Latest.status === 'COMPLETED';
+    const tool5Access = ToolAccessControl.canAccessTool(clientId, 'tool5');
+
     // Build Tool 1 card HTML based on status
     let tool1CardHTML = '';
 
@@ -531,6 +543,10 @@ const Router = {
             ${tool1CardHTML}
 
             ${this._buildTool2Card(clientId, baseUrl, tool2Latest, tool2HasDraft, tool2Completed, tool2Access)}
+
+            ${this._buildTool3Card(clientId, baseUrl, tool3Latest, tool3HasDraft, tool3Completed, tool3Access)}
+
+            ${this._buildTool5Card(clientId, baseUrl, tool5Latest, tool5HasDraft, tool5Completed, tool5Access)}
 
             <p class="muted mt-20 text-center">More tools will unlock as you progress</p>
           </div>
@@ -717,6 +733,156 @@ const Router = {
           <span class="badge">🔒 Locked</span>
           <p class="muted mt-10" style="font-size: 14px;">
             ${tool2Access.reason || 'Complete previous tools to unlock'}
+          </p>
+        </div>
+      `;
+    }
+  },
+
+  _buildTool3Card(clientId, baseUrl, tool3Latest, tool3HasDraft, tool3Completed, tool3Access) {
+    if (tool3Completed) {
+      const completedDate = new Date(tool3Latest.timestamp).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+
+      return `
+        <div class="tool-card" style="margin-bottom: 15px; border: 2px solid #4CAF50;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <h3 style="margin: 0;">🪞 Tool 3: Identity & Validation</h3>
+            <span class="badge" style="background: #4CAF50; color: white;">✓ Completed</span>
+          </div>
+          <p class="muted" style="margin-bottom: 10px;">Completed on ${completedDate}</p>
+
+          <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px;">
+            <button class="btn-primary" onclick="viewTool3Report()">
+              📊 View Report
+            </button>
+          </div>
+        </div>
+
+        <script>
+          function viewTool3Report() {
+            showLoading('Loading Report');
+            window.top.location.href = '${baseUrl}?route=tool3_report&client=${clientId}';
+          }
+        </script>
+      `;
+    } else if (tool3HasDraft) {
+      return `
+        <div class="tool-card" style="margin-bottom: 15px; border: 2px solid #FF9800;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <h3 style="margin: 0;">🪞 Tool 3: Identity & Validation</h3>
+            <span class="badge" style="background: #FF9800; color: white;">⏸️ In Progress</span>
+          </div>
+          <p class="muted" style="margin-bottom: 10px;">You have a draft in progress</p>
+
+          <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px;">
+            <button class="btn-primary" onclick="showLoading('Loading Assessment'); window.top.location.href='${baseUrl}?route=tool3&client=${clientId}&page=1'">
+              ▶️ Continue
+            </button>
+            <button class="btn-secondary" onclick="if(confirm('Discard your draft and lose all progress?')) { showLoading('Discarding draft...'); window.top.location.href='${baseUrl}?route=dashboard&client=${clientId}&discardDraft=tool3'; }">
+              ❌ Discard Draft
+            </button>
+          </div>
+        </div>
+      `;
+    } else if (tool3Access.allowed) {
+      return `
+        <div class="tool-card" style="margin-bottom: 15px;">
+          <h3>🪞 Tool 3: Identity & Validation</h3>
+          <p class="muted">Grounding assessment revealing patterns of disconnection from self</p>
+          <span class="badge" style="background: #2196F3; color: white;">✓ Ready</span>
+          <br><br>
+          <button class="btn-primary" onclick="showLoading('Loading Assessment'); window.top.location.href='${baseUrl}?route=tool3&client=${clientId}&page=1'">
+            Start Assessment
+          </button>
+        </div>
+      `;
+    } else {
+      return `
+        <div class="tool-card locked" style="margin-bottom: 15px;">
+          <h3>🪞 Tool 3: Identity & Validation</h3>
+          <p class="muted">Grounding assessment revealing patterns of disconnection from self</p>
+          <span class="badge">🔒 Locked</span>
+          <p class="muted mt-10" style="font-size: 14px;">
+            ${tool3Access.reason || 'Complete previous tools to unlock'}
+          </p>
+        </div>
+      `;
+    }
+  },
+
+  _buildTool5Card(clientId, baseUrl, tool5Latest, tool5HasDraft, tool5Completed, tool5Access) {
+    if (tool5Completed) {
+      const completedDate = new Date(tool5Latest.timestamp).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+
+      return `
+        <div class="tool-card" style="margin-bottom: 15px; border: 2px solid #4CAF50;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <h3 style="margin: 0;">💝 Tool 5: Love & Connection</h3>
+            <span class="badge" style="background: #4CAF50; color: white;">✓ Completed</span>
+          </div>
+          <p class="muted" style="margin-bottom: 10px;">Completed on ${completedDate}</p>
+
+          <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px;">
+            <button class="btn-primary" onclick="viewTool5Report()">
+              📊 View Report
+            </button>
+          </div>
+        </div>
+
+        <script>
+          function viewTool5Report() {
+            showLoading('Loading Report');
+            window.top.location.href = '${baseUrl}?route=tool5_report&client=${clientId}';
+          }
+        </script>
+      `;
+    } else if (tool5HasDraft) {
+      return `
+        <div class="tool-card" style="margin-bottom: 15px; border: 2px solid #FF9800;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <h3 style="margin: 0;">💝 Tool 5: Love & Connection</h3>
+            <span class="badge" style="background: #FF9800; color: white;">⏸️ In Progress</span>
+          </div>
+          <p class="muted" style="margin-bottom: 10px;">You have a draft in progress</p>
+
+          <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px;">
+            <button class="btn-primary" onclick="showLoading('Loading Assessment'); window.top.location.href='${baseUrl}?route=tool5&client=${clientId}&page=1'">
+              ▶️ Continue
+            </button>
+            <button class="btn-secondary" onclick="if(confirm('Discard your draft and lose all progress?')) { showLoading('Discarding draft...'); window.top.location.href='${baseUrl}?route=dashboard&client=${clientId}&discardDraft=tool5'; }">
+              ❌ Discard Draft
+            </button>
+          </div>
+        </div>
+      `;
+    } else if (tool5Access.allowed) {
+      return `
+        <div class="tool-card" style="margin-bottom: 15px;">
+          <h3>💝 Tool 5: Love & Connection</h3>
+          <p class="muted">Grounding assessment revealing patterns of disconnection from others</p>
+          <span class="badge" style="background: #2196F3; color: white;">✓ Ready</span>
+          <br><br>
+          <button class="btn-primary" onclick="showLoading('Loading Assessment'); window.top.location.href='${baseUrl}?route=tool5&client=${clientId}&page=1'">
+            Start Assessment
+          </button>
+        </div>
+      `;
+    } else {
+      return `
+        <div class="tool-card locked" style="margin-bottom: 15px;">
+          <h3>💝 Tool 5: Love & Connection</h3>
+          <p class="muted">Grounding assessment revealing patterns of disconnection from others</p>
+          <span class="badge">🔒 Locked</span>
+          <p class="muted mt-10" style="font-size: 14px;">
+            ${tool5Access.reason || 'Complete previous tools to unlock'}
           </p>
         </div>
       `;
