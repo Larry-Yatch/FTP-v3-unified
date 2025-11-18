@@ -266,6 +266,10 @@ const ResponseManager = {
         // Tool1 pattern: data is nested under formData
         formFields = responseData.formData;
         Logger.log(`Using nested formData extraction`);
+      } else if (responseData.responses) {
+        // Tool 3/5 pattern: data is nested under responses
+        formFields = responseData.responses;
+        Logger.log(`Using nested responses extraction`);
       } else if (responseData.data) {
         // Alternative pattern: data nested under data
         formFields = responseData.data;
