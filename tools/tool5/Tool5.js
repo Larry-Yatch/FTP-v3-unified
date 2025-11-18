@@ -674,6 +674,12 @@ const Tool5 = {
         return;
       }
 
+      // Skip label fields (used for GPT context, not scoring)
+      // Labels are like: subdomain_1_1_belief_label
+      if (key.endsWith('_label')) {
+        return;
+      }
+
       responses[key] = formData[key];
     });
 
