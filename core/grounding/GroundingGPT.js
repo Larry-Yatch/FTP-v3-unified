@@ -240,7 +240,7 @@ const GroundingGPT = {
         allScores
       );
 
-      const userPrompt = this.buildOverallUserPrompt(domainSyntheses);
+      const userPrompt = this.buildOverallUserPrompt(domainSyntheses, allScores, toolConfig);
 
       const result = this.callGPT({
         systemPrompt,
@@ -459,7 +459,7 @@ Focus on:
 1. The relationship between the two domains
 2. How patterns in one domain affect the other
 3. The core disconnection this assessment addresses
-4. A clear path forward
+4. A clear, specific path forward based on THEIR scores and responses
 
 Return plain-text only:
 
@@ -473,17 +473,30 @@ Core Work:
 (What is the fundamental shift you need to address this disconnection?)
 
 Next Steps:
-1. [Immediate action you can take for your highest domain]
-2. [Practice you can use for building awareness]
-3. [Long-term growth direction for you]
+IMPORTANT: Provide 5 concrete, personalized action steps based on this student's specific scores, highest domains, and responses. Make each step specific and actionable, NOT generic advice.
+
+1. [Specific action for your highest scoring subdomain - reference the actual subdomain name and score]
+2. [Concrete practice for building awareness of your specific pattern - reference actual patterns from their responses]
+3. [Specific boundary or experiment to try this week based on their situation]
+4. [Daily or weekly reflection practice tailored to their core disconnection]
+5. [30-day milestone or progress check specific to their work]
     `.trim();
   },
 
   /**
    * Build user prompt for overall synthesis
    */
-  buildOverallUserPrompt(domainSyntheses) {
-    return Object.entries(domainSyntheses)
+  buildOverallUserPrompt(domainSyntheses, allScores, toolConfig) {
+    // Build subdomain scores breakdown for context
+    let subdomainScoresText = '\n\nSUBDOMAIN SCORES (for reference in creating specific action steps):\n';
+    if (allScores && allScores.subdomainQuotients && toolConfig && toolConfig.subdomains) {
+      toolConfig.subdomains.forEach(subdomain => {
+        const score = Math.round(allScores.subdomainQuotients[subdomain.key]);
+        subdomainScoresText += `- "${subdomain.label}": ${score}\n`;
+      });
+    }
+
+    const domainSynthesesText = Object.entries(domainSyntheses)
       .map(([domain, synthesis]) => `
 ${domain}:
 Summary: ${synthesis.summary}
@@ -491,6 +504,8 @@ Key Themes: ${synthesis.keyThemes ? synthesis.keyThemes.join('; ') : 'N/A'}
 Priority Focus: ${synthesis.priorityFocus}
       `)
       .join('\n\n');
+
+    return domainSynthesesText + subdomainScoresText;
   },
 
   // ============================================================
