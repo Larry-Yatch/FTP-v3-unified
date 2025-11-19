@@ -161,6 +161,12 @@ const GroundingFormBuilder = {
         }
 
         /* SHARED STYLES */
+        .subdomain-description {
+          font-size: 17px;
+          color: rgba(255, 255, 255, 0.75);
+          margin-bottom: 25px;
+          line-height: 1.6;
+        }
         .question-section {
           margin-bottom: 35px;
         }
@@ -171,7 +177,7 @@ const GroundingFormBuilder = {
           margin-bottom: 15px;
         }
         .question-text {
-          font-size: 15px;
+          font-size: 17px;
           color: rgba(255, 255, 255, 0.9);
           margin-bottom: 10px;
           line-height: 1.5;
@@ -481,7 +487,7 @@ const GroundingFormBuilder = {
     let html = `
       <div class="card">
         <h2>${label}</h2>
-        <p class="muted" style="margin-bottom: 25px;">${description}</p>
+        <p class="subdomain-description">${description}</p>
     `;
 
     // 4 scale questions (Belief, Behavior, Feeling, Consequence)
