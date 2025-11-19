@@ -85,6 +85,78 @@ const FormUtils = {
         }
 
         /**
+         * Navigate to previous page (saves current page data first)
+         * @param {string} toolId - Tool identifier
+         * @param {string} clientId - Client ID
+         * @param {number} previousPage - Page number to navigate to
+         */
+        function navigateToPreviousPage(toolId, clientId, previousPage) {
+          // Find the current form (search for any form with tool page pattern)
+          const forms = document.querySelectorAll('form[id*="Page"]');
+          let currentForm = null;
+
+          for (let form of forms) {
+            if (form.id.includes(toolId)) {
+              currentForm = form;
+              break;
+            }
+          }
+
+          // Get form data (without validation - allow incomplete forms when going back)
+          const formData = currentForm ? new FormData(currentForm) : new FormData();
+          const data = Object.fromEntries(formData.entries());
+
+          showLoading(\`Loading Page \${previousPage}\`);
+
+          // Save current page data, then load previous page (following Tool 2 pattern)
+          google.script.run
+            .withSuccessHandler(function() {
+              // After saving, load the previous page
+              google.script.run
+                .withSuccessHandler(function(pageHtml) {
+                  if (pageHtml) {
+                    document.open();
+                    document.write(pageHtml);
+                    document.close();
+                    window.scrollTo(0, 0);
+                  } else {
+                    hideLoading();
+                    alert('Error loading previous page');
+                  }
+                })
+                .withFailureHandler(function(error) {
+                  hideLoading();
+                  console.error('Navigation error:', error);
+                  alert('Error loading page: ' + error.message);
+                })
+                .getToolPageHtml(toolId, clientId, previousPage);
+            })
+            .withFailureHandler(function(error) {
+              // Even if save fails, still try to navigate (don't block user)
+              console.warn('Save failed, navigating anyway:', error);
+              google.script.run
+                .withSuccessHandler(function(pageHtml) {
+                  if (pageHtml) {
+                    document.open();
+                    document.write(pageHtml);
+                    document.close();
+                    window.scrollTo(0, 0);
+                  } else {
+                    hideLoading();
+                    alert('Error loading previous page');
+                  }
+                })
+                .withFailureHandler(function(error) {
+                  hideLoading();
+                  console.error('Navigation error:', error);
+                  alert('Error loading page: ' + error.message);
+                })
+                .getToolPageHtml(toolId, clientId, previousPage);
+            })
+            .saveToolPageData(toolId, data);
+        }
+
+        /**
          * Submit final page (calls different handler for completion)
          * @param {string} formId - Form element ID
          * @param {function} customValidation - Optional custom validation function
@@ -188,10 +260,20 @@ const FormUtils = {
       totalPages,
       clientId,
       onSubmit,
-      content
+      content,
+      toolId
     } = options;
 
     const progress = Math.round((page / totalPages) * 100);
+
+    // Generate back button for pages 2+ (following Tool 2 pattern)
+    const backButton = page > 1 ? `
+      <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
+        <button type="button" class="btn-secondary" onclick="navigateToPreviousPage('${toolId}', '${clientId}', ${page - 1})">
+          ← Back to Page ${page - 1}
+        </button>
+      </div>
+    ` : '';
 
     return `
       <div class="progress-container">
@@ -213,6 +295,8 @@ const FormUtils = {
           ${page === totalPages ? 'Submit Assessment →' : 'Continue to Next Section →'}
         </button>
       </form>
+
+      ${backButton}
     `;
   },
 
@@ -295,7 +379,8 @@ const FormUtils = {
             totalPages: totalPages,
             clientId: clientId,
             onSubmit: onSubmit,
-            content: pageContent
+            content: pageContent,
+            toolId: toolId
           })}
 
           ${this.generatePageFooter()}
