@@ -126,22 +126,86 @@
   });
 
   // Navigate to dashboard using document.write() pattern (no iframe navigation!)
+  // SAVES current form data first to prevent data loss
   function navigateToDashboard(clientId, message) {
-    showLoading(message || 'Loading Dashboard');
+    showLoading(message || 'Saving and returning to Dashboard');
 
-    google.script.run
-      .withSuccessHandler(function(dashboardHtml) {
-        // Replace current document with dashboard HTML
-        document.open();
-        document.write(dashboardHtml);
-        document.close();
-      })
-      .withFailureHandler(function(error) {
-        hideLoading();
-        console.error('Dashboard navigation error:', error);
-        alert('Error loading dashboard: ' + error.message);
-      })
-      .getDashboardPage(clientId);
+    // Find the current form (search for any form with tool page pattern)
+    const forms = document.querySelectorAll('form[id*="Page"]');
+    let currentForm = null;
+    let toolId = null;
+
+    for (let form of forms) {
+      currentForm = form;
+      // Extract toolId from form ID (e.g., "tool2Page3Form" -> "tool2")
+      const match = form.id.match(/^(tool\d+)/);
+      if (match) {
+        toolId = match[1];
+      }
+      break;
+    }
+
+    // Get form data (without validation - allow incomplete forms when returning to dashboard)
+    const formData = currentForm ? new FormData(currentForm) : new FormData();
+    const data = Object.fromEntries(formData.entries());
+
+    // If we have a form with data, save it first
+    if (currentForm && toolId && Object.keys(data).length > 0) {
+      console.log(`Saving ${toolId} data before navigating to dashboard`);
+
+      // Save current page data, then load dashboard
+      google.script.run
+        .withSuccessHandler(function() {
+          console.log('Data saved, loading dashboard...');
+          // After saving, load the dashboard
+          google.script.run
+            .withSuccessHandler(function(dashboardHtml) {
+              // Replace current document with dashboard HTML
+              document.open();
+              document.write(dashboardHtml);
+              document.close();
+            })
+            .withFailureHandler(function(error) {
+              hideLoading();
+              console.error('Dashboard navigation error:', error);
+              alert('Error loading dashboard: ' + error.message);
+            })
+            .getDashboardPage(clientId);
+        })
+        .withFailureHandler(function(error) {
+          // Even if save fails, still navigate to dashboard (don't block user)
+          console.warn('Save failed, navigating to dashboard anyway:', error);
+          google.script.run
+            .withSuccessHandler(function(dashboardHtml) {
+              document.open();
+              document.write(dashboardHtml);
+              document.close();
+            })
+            .withFailureHandler(function(error) {
+              hideLoading();
+              console.error('Dashboard navigation error:', error);
+              alert('Error loading dashboard: ' + error.message);
+            })
+            .getDashboardPage(clientId);
+        })
+        .saveToolPageData(toolId, data);
+    } else {
+      // No form data to save, just navigate directly
+      console.log('No form data to save, navigating directly to dashboard');
+      google.script.run
+        .withSuccessHandler(function(dashboardHtml) {
+          // Replace current document with dashboard HTML
+          document.open();
+          document.write(dashboardHtml);
+          document.close();
+        })
+        .withFailureHandler(function(error) {
+          hideLoading();
+          console.error('Dashboard navigation error:', error);
+          alert('Error loading dashboard: ' + error.message);
+        })
+        .getDashboardPage(clientId);
+    }
   }
 
   // DEPRECATED: Old navigation function (causes white screen in iframes)
