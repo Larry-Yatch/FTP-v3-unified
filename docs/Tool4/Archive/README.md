@@ -1,31 +1,45 @@
 # Tool 4 Documentation Archive
 
-**Last Updated:** November 17, 2025
+**Last Updated:** November 18, 2025
 
 ---
 
 ## 📁 **What's in This Folder**
 
-This folder contains **session/process documents** from the Tool 4 base weights optimization session. These documents were used during the design process but have been **superseded by final decisions**.
+This folder contains **session/process documents** from the Tool 4 specification process (Sessions 1-3). These documents were used during the design process but have been **superseded by final decisions**.
 
 ---
 
 ## **Archived Documents:**
 
-### **1. TOOL4-SESSION-HANDOFF.md**
-- **Purpose:** Original handoff document for base weights deep dive session
-- **Status:** COMPLETED - Session finished successfully
-- **Superseded By:** TOOL4-BASE-WEIGHTS-FINAL-DECISIONS.md
+### **Session 1 Planning (Nov 17)**
 
-### **2. TOOL4-BASE-WEIGHTS-DEEP-DIVE-PLAN.md**
+**1. TOOL4-SESSION-HANDOFF.md**
+- **Purpose:** Session 1 → 2 handoff document
+- **Status:** COMPLETED
+- **Superseded By:** SESSION-THREE-HANDOFF.md (in parent folder)
+
+**2. TOOL4-BASE-WEIGHTS-DEEP-DIVE-PLAN.md**
 - **Purpose:** Original analysis plan (8 phases) for optimizing base weights
 - **Status:** COMPLETED - All phases executed
-- **Superseded By:** TOOL4-BASE-WEIGHTS-FINAL-DECISIONS.md + TOOL4-PROGRESSIVE-UNLOCK-MODEL.md
+- **Superseded By:** TOOL4-BASE-WEIGHTS-FINAL-DECISIONS.md
 
-### **3. TOOL4-PHILOSOPHY-QUESTIONNAIRE.md**
+**3. TOOL4-PHILOSOPHY-QUESTIONNAIRE.md**
 - **Purpose:** Structured questionnaire (20 questions) to capture design philosophy
-- **Status:** NOT USED - We did conversational approach instead
-- **Replaced By:** Conversational session captured in TOOL4-BASE-WEIGHTS-FINAL-DECISIONS.md
+- **Status:** NOT USED - Conversational approach used instead
+- **Replaced By:** Decisions captured in TOOL4-BASE-WEIGHTS-FINAL-DECISIONS.md
+
+### **Session Summaries (Nov 17-18)**
+
+**4. SESSION-SUMMARY-NOV-17-2025.md**
+- **Purpose:** Session 1 summary (framework decisions)
+- **Status:** Historical record
+- **Superseded By:** SESSION-THREE-COMPLETE-SUMMARY.md (comprehensive)
+
+**5. SESSION-TWO-SUMMARY-NOV-17-2025.md**
+- **Purpose:** Session 2 summary (implementation details)
+- **Status:** Historical record
+- **Superseded By:** SESSION-THREE-COMPLETE-SUMMARY.md (comprehensive)
 
 ---
 

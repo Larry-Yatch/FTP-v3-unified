@@ -6,9 +6,14 @@
 ---
 
 Bugs:
-- add in format for student ID
 - Add access to the investment tool - tool 8 now
 - change the position of the return to next and proceed to next page buttons on form
+- pull emogis from tool titles
+
+Tool 5: last two domains have the same consequence look into that
+
+
+- What produces your action plan? Is that a GPT prompt? 
 
 
 ## 🎯 Immediate Actions (This Week)

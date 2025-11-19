@@ -76,8 +76,7 @@ const ToolAccessControl = {
    */
   adminUnlockTool(clientId, toolId, adminEmail, reason) {
     try {
-      const sheet = SpreadsheetApp.openById(CONFIG.MASTER_SHEET_ID)
-        .getSheetByName(CONFIG.SHEETS.TOOL_ACCESS);
+      const sheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.TOOL_ACCESS);
 
       if (!sheet) {
         return { success: false, error: 'TOOL_ACCESS sheet not found' };
@@ -132,8 +131,7 @@ const ToolAccessControl = {
    */
   adminLockTool(clientId, toolId, adminEmail, reason) {
     try {
-      const sheet = SpreadsheetApp.openById(CONFIG.MASTER_SHEET_ID)
-        .getSheetByName(CONFIG.SHEETS.TOOL_ACCESS);
+      const sheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.TOOL_ACCESS);
 
       if (!sheet) {
         return { success: false, error: 'TOOL_ACCESS sheet not found' };
@@ -184,8 +182,7 @@ const ToolAccessControl = {
    */
   initializeStudent(clientId) {
     try {
-      const sheet = SpreadsheetApp.openById(CONFIG.MASTER_SHEET_ID)
-        .getSheetByName(CONFIG.SHEETS.TOOL_ACCESS);
+      const sheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.TOOL_ACCESS);
 
       if (!sheet) {
         return { success: false, error: 'TOOL_ACCESS sheet not found' };
@@ -226,8 +223,7 @@ const ToolAccessControl = {
    */
   getStudentAccess(clientId) {
     try {
-      const sheet = SpreadsheetApp.openById(CONFIG.MASTER_SHEET_ID)
-        .getSheetByName(CONFIG.SHEETS.TOOL_ACCESS);
+      const sheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.TOOL_ACCESS);
 
       if (!sheet) return [];
 
@@ -257,8 +253,7 @@ const ToolAccessControl = {
    */
   _autoUnlockTool(clientId, toolId) {
     try {
-      const sheet = SpreadsheetApp.openById(CONFIG.MASTER_SHEET_ID)
-        .getSheetByName(CONFIG.SHEETS.TOOL_ACCESS);
+      const sheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.TOOL_ACCESS);
 
       if (!sheet) return;
 
@@ -297,8 +292,7 @@ const ToolAccessControl = {
    */
   _getAccessRecord(clientId, toolId) {
     try {
-      const sheet = SpreadsheetApp.openById(CONFIG.MASTER_SHEET_ID)
-        .getSheetByName(CONFIG.SHEETS.TOOL_ACCESS);
+      const sheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.TOOL_ACCESS);
 
       if (!sheet) return null;
 

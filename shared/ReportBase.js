@@ -9,7 +9,7 @@ const ReportBase = {
    * @returns {Object} { ss, responseSheet }
    */
   getSheet() {
-    const ss = SpreadsheetApp.openById(CONFIG.MASTER_SHEET_ID);
+    const ss = SpreadsheetCache.getSpreadsheet();
     const responseSheet = ss.getSheetByName(CONFIG.SHEETS.RESPONSES);
     return { ss, responseSheet };
   },

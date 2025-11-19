@@ -573,18 +573,25 @@ const Tool3 = {
     // Save to PropertiesService for fast page-to-page navigation
     DraftService.saveDraft('tool3', clientId, page, formData);
 
-    // Also save to RESPONSES sheet on first page to create DRAFT row
-    // BUT: Don't create new DRAFT if we're in edit mode (EDIT_DRAFT already exists)
-    if (page === 1) {
-      const activeDraft = DataService.getActiveDraft(clientId, 'tool3');
-      const isEditMode = activeDraft && activeDraft.status === 'EDIT_DRAFT';
+    // Get the complete merged data (includes all pages)
+    const draftData = DraftService.getDraft('tool3', clientId);
 
-      if (!isEditMode) {
-        // Only create new DRAFT row if not editing
-        DataService.saveDraft(clientId, 'tool3', formData);
+    // Also save/update RESPONSES sheet for dashboard detection
+    // BUT: Don't create/update if we're in edit mode (EDIT_DRAFT already exists)
+    const activeDraft = DataService.getActiveDraft(clientId, 'tool3');
+    const isEditMode = activeDraft && activeDraft.status === 'EDIT_DRAFT';
+
+    if (!isEditMode) {
+      // Use complete draft data so RESPONSES sheet has ALL pages
+      if (page === 1) {
+        // Page 1: Create new DRAFT row with complete data
+        DataService.saveDraft(clientId, 'tool3', draftData);
       } else {
-        Logger.log(`[Tool3] Skipping DRAFT creation - already in edit mode with EDIT_DRAFT`);
+        // Page 2: Update existing DRAFT row with complete merged data
+        DataService.updateDraft(clientId, 'tool3', draftData);
       }
+    } else {
+      Logger.log(`[Tool3] Skipping DRAFT save/update - already in edit mode with EDIT_DRAFT`);
     }
 
     return { success: true };

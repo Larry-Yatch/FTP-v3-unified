@@ -21,8 +21,7 @@ const DataService = {
     try {
       console.log(`DataService: Saving response for ${clientId} / ${toolId} with status ${status}`);
 
-      const sheet = SpreadsheetApp.openById(CONFIG.MASTER_SHEET_ID)
-        .getSheetByName(CONFIG.SHEETS.RESPONSES);
+      const sheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.RESPONSES);
 
       if (!sheet) {
         return { success: false, error: 'RESPONSES sheet not found' };
@@ -74,6 +73,61 @@ const DataService = {
   },
 
   /**
+   * Update existing DRAFT row with new data (for multi-page forms)
+   * @param {string} clientId - Client/student ID
+   * @param {string} toolId - Tool identifier
+   * @param {Object} data - Updated draft data
+   * @returns {Object} Update result
+   */
+  updateDraft(clientId, toolId, data) {
+    try {
+      const sheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.RESPONSES);
+
+      if (!sheet) {
+        return { success: false, error: 'RESPONSES sheet not found' };
+      }
+
+      const sheetData = sheet.getDataRange().getValues();
+      const headers = sheetData[0];
+
+      const clientIdCol = headers.indexOf('Client_ID');
+      const toolIdCol = headers.indexOf('Tool_ID');
+      const dataCol = headers.indexOf('Data');
+      const statusCol = headers.indexOf('Status');
+      const timestampCol = headers.indexOf('Timestamp');
+      const isLatestCol = headers.indexOf('Is_Latest');
+
+      // Find the latest DRAFT row for this client/tool
+      let draftRowIndex = -1;
+      for (let i = sheetData.length - 1; i >= 1; i--) {
+        if (sheetData[i][clientIdCol] === clientId &&
+            sheetData[i][toolIdCol] === toolId &&
+            sheetData[i][statusCol] === 'DRAFT' &&
+            (isLatestCol === -1 || sheetData[i][isLatestCol] === 'true' || sheetData[i][isLatestCol] === true)) {
+          draftRowIndex = i;
+          break;
+        }
+      }
+
+      if (draftRowIndex !== -1) {
+        // Update existing DRAFT row
+        sheet.getRange(draftRowIndex + 1, dataCol + 1).setValue(JSON.stringify(data));
+        sheet.getRange(draftRowIndex + 1, timestampCol + 1).setValue(new Date());
+        console.log(`DataService: Updated existing DRAFT for ${clientId} / ${toolId}`);
+        return { success: true, message: 'Draft updated successfully', action: 'updated' };
+      } else {
+        // No existing DRAFT found, create new one
+        console.log(`DataService: No existing DRAFT found, creating new one for ${clientId} / ${toolId}`);
+        return this.saveDraft(clientId, toolId, data);
+      }
+
+    } catch (error) {
+      console.error('Error updating draft:', error);
+      return { success: false, error: error.toString() };
+    }
+  },
+
+  /**
    * Get tool response for a client
    * @param {string} clientId - Client/student ID
    * @param {string} toolId - Tool identifier
@@ -81,8 +135,7 @@ const DataService = {
    */
   getToolResponse(clientId, toolId) {
     try {
-      const sheet = SpreadsheetApp.openById(CONFIG.MASTER_SHEET_ID)
-        .getSheetByName(CONFIG.SHEETS.RESPONSES);
+      const sheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.RESPONSES);
 
       if (!sheet) return null;
 
@@ -119,8 +172,7 @@ const DataService = {
    */
   updateToolStatus(clientId, toolId, status) {
     try {
-      const sheet = SpreadsheetApp.openById(CONFIG.MASTER_SHEET_ID)
-        .getSheetByName(CONFIG.SHEETS.TOOL_STATUS);
+      const sheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.TOOL_STATUS);
 
       if (!sheet) {
         return { success: false, error: 'TOOL_STATUS sheet not found' };
@@ -174,8 +226,7 @@ const DataService = {
    */
   getToolStatus(clientId, toolId) {
     try {
-      const sheet = SpreadsheetApp.openById(CONFIG.MASTER_SHEET_ID)
-        .getSheetByName(CONFIG.SHEETS.TOOL_STATUS);
+      const sheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.TOOL_STATUS);
 
       if (!sheet) return null;
 
@@ -218,8 +269,7 @@ const DataService = {
    */
   saveSession(sessionId, clientId, options = {}) {
     try {
-      const sheet = SpreadsheetApp.openById(CONFIG.MASTER_SHEET_ID)
-        .getSheetByName(CONFIG.SHEETS.SESSIONS);
+      const sheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.SESSIONS);
 
       if (!sheet) {
         return { success: false, error: 'SESSIONS sheet not found' };
@@ -252,8 +302,7 @@ const DataService = {
    */
   validateSession(sessionId) {
     try {
-      const sheet = SpreadsheetApp.openById(CONFIG.MASTER_SHEET_ID)
-        .getSheetByName(CONFIG.SHEETS.SESSIONS);
+      const sheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.SESSIONS);
 
       if (!sheet) {
         return { valid: false, reason: 'Session storage unavailable' };
@@ -298,8 +347,7 @@ const DataService = {
    */
   logActivity(clientId, action, details = {}) {
     try {
-      const sheet = SpreadsheetApp.openById(CONFIG.MASTER_SHEET_ID)
-        .getSheetByName(CONFIG.SHEETS.ACTIVITY_LOG);
+      const sheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.ACTIVITY_LOG);
 
       if (!sheet) return;
 

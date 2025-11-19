@@ -1579,14 +1579,26 @@ const Tool2 = {
       // Save to PropertiesService for fast page-to-page navigation
       const result = DraftService.saveDraft('tool2', clientId, page, formData, ['client', 'page']);
 
-      // Also save to RESPONSES sheet for dashboard detection
-      // Only on first page to create the DRAFT row with Is_Latest=true
-      if (page === 1) {
-        DataService.saveDraft(clientId, 'tool2', formData);
-      }
-
-      // Get the complete draft data for GPT analysis
+      // Get the complete draft data (includes all pages merged)
       const draftData = DraftService.getDraft('tool2', clientId);
+
+      // Also save/update RESPONSES sheet for dashboard detection
+      // BUT: Don't create/update if we're in edit mode (EDIT_DRAFT already exists)
+      const activeDraft = DataService.getActiveDraft(clientId, 'tool2');
+      const isEditMode = activeDraft && activeDraft.status === 'EDIT_DRAFT';
+
+      if (!isEditMode) {
+        // Use complete draft data so RESPONSES sheet has ALL pages
+        if (page === 1) {
+          // Page 1: Create new DRAFT row
+          DataService.saveDraft(clientId, 'tool2', draftData);
+        } else {
+          // Pages 2-5: Update existing DRAFT row with complete merged data
+          DataService.updateDraft(clientId, 'tool2', draftData);
+        }
+      } else {
+        Logger.log(`[Tool2] Skipping DRAFT save/update - already in edit mode with EDIT_DRAFT`);
+      }
 
       // Trigger background GPT analysis for free-text responses
       if (draftData) {
@@ -1602,35 +1614,36 @@ const Tool2 = {
 
   /**
    * Get existing data for a client (from draft storage)
-   * CRITICAL: Check DataService first for ResponseManager compatibility
+   * CRITICAL: PropertiesService is source of truth for in-progress forms
    */
   getExistingData(clientId) {
     try {
-      // FIRST: Check for active draft from ResponseManager (EDIT_DRAFT or DRAFT)
-      // This ensures we get complete data when editing
+      // FIRST: Check PropertiesService (has complete merged data from all pages)
+      // This is the source of truth for in-progress forms
+      const propertiesData = DraftService.getDraft('tool2', clientId);
+
+      if (propertiesData) {
+        Logger.log(`Found PropertiesService draft for ${clientId} with complete page data`);
+        return propertiesData;
+      }
+
+      // FALLBACK: Check for EDIT_DRAFT or DRAFT from ResponseManager
+      // Only used when first loading edit mode (before any PropertiesService data exists)
       if (typeof DataService !== 'undefined') {
         const activeDraft = DataService.getActiveDraft(clientId, 'tool2');
 
         if (activeDraft && (activeDraft.status === 'EDIT_DRAFT' || activeDraft.status === 'DRAFT')) {
-          Logger.log(`Found active draft with status: ${activeDraft.status}`);
-          
-          // If we have an EDIT_DRAFT, merge with any PropertiesService updates
-          // This preserves both the complete data AND any current session changes
-          if (activeDraft.status === 'EDIT_DRAFT') {
-            return DraftService.mergeWithEditData(activeDraft.data, 'tool2', clientId);
-          }
-          
+          Logger.log(`Found ${activeDraft.status} for ${clientId} (initial load)`);
           return activeDraft.data;
         }
       }
-      
-      // FALLBACK: Check PropertiesService for new drafts (not edits)
-      return DraftService.getDraft('tool2', clientId);
-      
+
+      return null;
+
     } catch (error) {
       Logger.log(`Error getting existing data: ${error}`);
+      return null;
     }
-    return null;
   },
 
   /**

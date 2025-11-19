@@ -50,12 +50,22 @@ const Tool3Report = {
       }
 
       // Reconstruct GPT insights
+      Logger.log(`[Tool3Report] Reconstructing gptInsights for ${clientId}`);
+      Logger.log(`[Tool3Report] assessmentData.gpt_insights exists: ${!!assessmentData.gpt_insights}`);
+      Logger.log(`[Tool3Report] assessmentData.syntheses exists: ${!!assessmentData.syntheses}`);
+
       const gptInsights = {
-        subdomains: assessmentData.gpt_insights.subdomains || {},
-        domain1: assessmentData.syntheses.domain1,
-        domain2: assessmentData.syntheses.domain2,
-        overall: assessmentData.syntheses.overall
+        subdomains: assessmentData.gpt_insights?.subdomains || {},
+        domain1: assessmentData.syntheses?.domain1,
+        domain2: assessmentData.syntheses?.domain2,
+        overall: assessmentData.syntheses?.overall
       };
+
+      Logger.log(`[Tool3Report] gptInsights.domain1 exists: ${!!gptInsights.domain1}`);
+      Logger.log(`[Tool3Report] gptInsights.domain1.summary exists: ${!!gptInsights.domain1?.summary}`);
+      Logger.log(`[Tool3Report] gptInsights.domain1.summary length: ${gptInsights.domain1?.summary?.length || 0}`);
+      Logger.log(`[Tool3Report] gptInsights.domain2 exists: ${!!gptInsights.domain2}`);
+      Logger.log(`[Tool3Report] gptInsights.domain2.summary exists: ${!!gptInsights.domain2?.summary}`);
 
       // Generate report HTML
       const reportHtml = GroundingReport.generateReport({

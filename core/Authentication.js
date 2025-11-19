@@ -32,8 +32,7 @@ function lookupClientById(clientId) {
     const idNorm = normalizeId(input);
 
     // Load Students sheet
-    const ss = SpreadsheetApp.openById(CONFIG.MASTER_SHEET_ID);
-    const studentsSheet = ss.getSheetByName(CONFIG.SHEETS.STUDENTS);
+    const studentsSheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.STUDENTS);
 
     if (!studentsSheet) {
       return {
@@ -121,8 +120,7 @@ function lookupClientByDetails(params) {
     }
 
     // Load Students sheet
-    const ss = SpreadsheetApp.openById(CONFIG.MASTER_SHEET_ID);
-    const studentsSheet = ss.getSheetByName(CONFIG.SHEETS.STUDENTS);
+    const studentsSheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.STUDENTS);
 
     if (!studentsSheet) {
       return {

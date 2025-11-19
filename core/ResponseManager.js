@@ -37,8 +37,7 @@ const ResponseManager = {
    */
   getLatestResponse(clientId, toolId) {
     try {
-      const ss = SpreadsheetApp.openById(CONFIG.MASTER_SHEET_ID);
-      const sheet = ss.getSheetByName(CONFIG.SHEETS.RESPONSES);
+      const sheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.RESPONSES);
 
       if (!sheet || sheet.getLastRow() < 2) {
         return null;
@@ -102,8 +101,7 @@ const ResponseManager = {
    */
   getPreviousResponse(clientId, toolId) {
     try {
-      const ss = SpreadsheetApp.openById(CONFIG.MASTER_SHEET_ID);
-      const sheet = ss.getSheetByName(CONFIG.SHEETS.RESPONSES);
+      const sheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.RESPONSES);
 
       if (!sheet || sheet.getLastRow() < 2) {
         return null;
@@ -156,8 +154,7 @@ const ResponseManager = {
    */
   getAllResponses(clientId, toolId, limit = 10) {
     try {
-      const ss = SpreadsheetApp.openById(CONFIG.MASTER_SHEET_ID);
-      const sheet = ss.getSheetByName(CONFIG.SHEETS.RESPONSES);
+      const sheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.RESPONSES);
 
       if (!sheet || sheet.getLastRow() < 2) {
         return [];
@@ -298,8 +295,7 @@ const ResponseManager = {
       Logger.log(`editDraftData.feeling_fsv: ${editDraftData.feeling_fsv}`);
 
       // Save as EDIT_DRAFT in RESPONSES sheet
-      const ss = SpreadsheetApp.openById(CONFIG.MASTER_SHEET_ID);
-      const sheet = ss.getSheetByName(CONFIG.SHEETS.RESPONSES);
+      const sheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.RESPONSES);
 
       const row = [
         new Date(),                             // Timestamp
@@ -366,8 +362,7 @@ const ResponseManager = {
       Logger.log(`After cleanup - winner: ${cleanData.winner}`);
       Logger.log(`After cleanup - data: ${JSON.stringify(cleanData).substring(0, 200)}`);
 
-      const ss = SpreadsheetApp.openById(CONFIG.MASTER_SHEET_ID);
-      const sheet = ss.getSheetByName(CONFIG.SHEETS.RESPONSES);
+      const sheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.RESPONSES);
 
       // CRITICAL: Delete the EDIT_DRAFT (not just mark as not latest)
       // This prevents the edit loop where user keeps seeing "draft in progress"
@@ -434,8 +429,7 @@ const ResponseManager = {
     try {
       Logger.log(`Canceling draft: ${clientId} / ${toolId}`);
 
-      const ss = SpreadsheetApp.openById(CONFIG.MASTER_SHEET_ID);
-      const sheet = ss.getSheetByName(CONFIG.SHEETS.RESPONSES);
+      const sheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.RESPONSES);
 
       const data = sheet.getDataRange().getValues();
       const headers = data[0];
@@ -492,8 +486,7 @@ const ResponseManager = {
     try {
       Logger.log(`Starting fresh attempt: ${clientId} / ${toolId}`);
 
-      const ss = SpreadsheetApp.openById(CONFIG.MASTER_SHEET_ID);
-      const sheet = ss.getSheetByName(CONFIG.SHEETS.RESPONSES);
+      const sheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.RESPONSES);
 
       const data = sheet.getDataRange().getValues();
       const headers = data[0];
@@ -581,8 +574,7 @@ const ResponseManager = {
    */
   _markAsNotLatest(clientId, toolId) {
     try {
-      const ss = SpreadsheetApp.openById(CONFIG.MASTER_SHEET_ID);
-      const sheet = ss.getSheetByName(CONFIG.SHEETS.RESPONSES);
+      const sheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.RESPONSES);
 
       const data = sheet.getDataRange().getValues();
       const headers = data[0];
@@ -615,8 +607,7 @@ const ResponseManager = {
    */
   _restoreLatestCompleted(clientId, toolId) {
     try {
-      const ss = SpreadsheetApp.openById(CONFIG.MASTER_SHEET_ID);
-      const sheet = ss.getSheetByName(CONFIG.SHEETS.RESPONSES);
+      const sheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.RESPONSES);
 
       const data = sheet.getDataRange().getValues();
       const headers = data[0];
@@ -660,8 +651,7 @@ const ResponseManager = {
    */
   _cleanupOldVersions(clientId, toolId, keepCount = 2) {
     try {
-      const ss = SpreadsheetApp.openById(CONFIG.MASTER_SHEET_ID);
-      const sheet = ss.getSheetByName(CONFIG.SHEETS.RESPONSES);
+      const sheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.RESPONSES);
 
       const data = sheet.getDataRange().getValues();
       const headers = data[0];

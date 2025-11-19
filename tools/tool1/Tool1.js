@@ -443,10 +443,25 @@ const Tool1 = {
     // Save to PropertiesService for fast page-to-page navigation
     DraftService.saveDraft('tool1', clientId, page, formData);
 
-    // Also save to RESPONSES sheet for dashboard detection
-    // Only on first page to create the DRAFT row with Is_Latest=true
-    if (page === 1) {
-      DataService.saveDraft(clientId, 'tool1', formData);
+    // Get the complete merged data (includes all pages)
+    const draftData = DraftService.getDraft('tool1', clientId);
+
+    // Also save/update RESPONSES sheet for dashboard detection
+    // BUT: Don't create/update if we're in edit mode (EDIT_DRAFT already exists)
+    const activeDraft = DataService.getActiveDraft(clientId, 'tool1');
+    const isEditMode = activeDraft && activeDraft.status === 'EDIT_DRAFT';
+
+    if (!isEditMode) {
+      // Use complete draft data so RESPONSES sheet has ALL pages
+      if (page === 1) {
+        // Page 1: Create new DRAFT row with complete data
+        DataService.saveDraft(clientId, 'tool1', draftData);
+      } else {
+        // Pages 2-5: Update existing DRAFT row with complete merged data
+        DataService.updateDraft(clientId, 'tool1', draftData);
+      }
+    } else {
+      Logger.log(`[Tool1] Skipping DRAFT save/update - already in edit mode with EDIT_DRAFT`);
     }
 
     return { success: true };
@@ -554,6 +569,9 @@ const Tool1 = {
 
         Logger.log('New response submitted successfully');
       }
+
+      // Clean up PropertiesService (prevent memory leak)
+      DraftService.clearDraft('tool1', clientId);
 
       // Unlock Tool 2 (completion is tracked via RESPONSES sheet)
       // Only unlock if not already unlocked (editing shouldn't re-unlock)
