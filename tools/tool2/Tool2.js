@@ -1618,22 +1618,43 @@ const Tool2 = {
    */
   getExistingData(clientId) {
     try {
-      // FIRST: Check PropertiesService (has complete merged data from all pages)
-      // This is the source of truth for in-progress forms
+      // Check for EDIT_DRAFT first (edit mode takes priority)
+      let editDraft = null;
+      if (typeof DataService !== 'undefined') {
+        const activeDraft = DataService.getActiveDraft(clientId, 'tool2');
+        if (activeDraft && activeDraft.status === 'EDIT_DRAFT') {
+          editDraft = activeDraft;
+          Logger.log(`Found EDIT_DRAFT for ${clientId}`);
+        }
+      }
+
+      // Get PropertiesService data (page-by-page updates)
       const propertiesData = DraftService.getDraft('tool2', clientId);
 
+      // EDIT MODE: Merge EDIT_DRAFT (base) with PropertiesService (updates)
+      if (editDraft) {
+        if (propertiesData) {
+          // Merge: EDIT_DRAFT has all original data, PropertiesService has page updates
+          Logger.log(`Merging EDIT_DRAFT with PropertiesService updates`);
+          return { ...editDraft.data, ...propertiesData };
+        } else {
+          // No PropertiesService yet, use EDIT_DRAFT
+          Logger.log(`Using EDIT_DRAFT data (no PropertiesService yet)`);
+          return editDraft.data;
+        }
+      }
+
+      // NEW DRAFT MODE: PropertiesService is source of truth
       if (propertiesData) {
-        Logger.log(`Found PropertiesService draft for ${clientId} with complete page data`);
+        Logger.log(`Found PropertiesService draft for ${clientId}`);
         return propertiesData;
       }
 
-      // FALLBACK: Check for EDIT_DRAFT or DRAFT from ResponseManager
-      // Only used when first loading edit mode (before any PropertiesService data exists)
+      // Check for regular DRAFT (for resume)
       if (typeof DataService !== 'undefined') {
         const activeDraft = DataService.getActiveDraft(clientId, 'tool2');
-
-        if (activeDraft && (activeDraft.status === 'EDIT_DRAFT' || activeDraft.status === 'DRAFT')) {
-          Logger.log(`Found ${activeDraft.status} for ${clientId} (initial load)`);
+        if (activeDraft && activeDraft.status === 'DRAFT') {
+          Logger.log(`Found DRAFT for ${clientId}`);
           return activeDraft.data;
         }
       }
