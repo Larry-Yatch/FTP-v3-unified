@@ -138,13 +138,33 @@ const Tool2GPTAnalysis = {
       muteHttpExceptions: true
     });
 
+    const responseCode = response.getResponseCode();
     const json = JSON.parse(response.getContentText());
 
+    // Check for HTTP errors
+    if (responseCode !== 200) {
+      Logger.log(`❌ OpenAI API HTTP ${responseCode}: ${JSON.stringify(json)}`);
+      throw new Error(`OpenAI API HTTP ${responseCode}: ${json.error?.message || 'Unknown error'}`);
+    }
+
     if (json.error) {
+      Logger.log(`❌ OpenAI API Error: ${JSON.stringify(json.error)}`);
       throw new Error(`OpenAI API Error: ${json.error.message}`);
     }
 
-    return json.choices[0].message.content;
+    if (!json.choices || !json.choices[0] || !json.choices[0].message) {
+      Logger.log(`❌ OpenAI API returned invalid response structure: ${JSON.stringify(json)}`);
+      throw new Error('Invalid OpenAI API response structure');
+    }
+
+    const content = json.choices[0].message.content;
+
+    if (!content || content.trim().length === 0) {
+      Logger.log(`❌ OpenAI API returned empty content`);
+      throw new Error('OpenAI API returned empty content');
+    }
+
+    return content;
   },
 
   /**
@@ -645,6 +665,17 @@ STOP after Priority Actions. Do not add conclusions or additional text.
 
       const parsed = this.parseSynthesis(result);
 
+      // Validate that we got meaningful content
+      if (!parsed.overview || parsed.overview.length < 50 ||
+          !parsed.topPatterns || parsed.topPatterns.length < 20 ||
+          !parsed.priorityActions || parsed.priorityActions.length < 50) {
+        Logger.log(`⚠️ [SYNTHESIS] GPT returned incomplete response, using fallback`);
+        Logger.log(`Overview length: ${parsed.overview?.length || 0}`);
+        Logger.log(`Top Patterns length: ${parsed.topPatterns?.length || 0}`);
+        Logger.log(`Priority Actions length: ${parsed.priorityActions?.length || 0}`);
+        throw new Error('Incomplete GPT synthesis response');
+      }
+
       Logger.log(`✅ [SYNTHESIS] Synthesis success for ${clientId}`);
 
       return {
@@ -655,7 +686,10 @@ STOP after Priority Actions. Do not add conclusions or additional text.
 
     } catch (error) {
       Logger.log(`❌ [SYNTHESIS] Failed: ${error.message}, using fallback`);
-      return this.getGenericSynthesis(domainScores, traumaData);
+      const fallback = this.getGenericSynthesis(domainScores, traumaData);
+      fallback.source = 'fallback';
+      fallback.timestamp = new Date().toISOString();
+      return fallback;
     }
   },
 
