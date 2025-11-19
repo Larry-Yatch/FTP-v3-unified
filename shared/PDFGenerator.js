@@ -559,6 +559,14 @@ const PDFGenerator = {
               <div class="insight-label">Summary</div>
               <p>${gptInsights.domain1.summary || ''}</p>
             </div>
+            ${gptInsights.domain1.keyThemes && gptInsights.domain1.keyThemes.length > 0 ? `
+              <div class="insight-box">
+                <div class="insight-label">Key Themes</div>
+                <ul style="margin: 10px 0; padding-left: 20px;">
+                  ${gptInsights.domain1.keyThemes.map(theme => `<li style="margin: 5px 0;">${theme}</li>`).join('')}
+                </ul>
+              </div>
+            ` : ''}
             ${gptInsights.domain1.priorityFocus ? `
               <div class="insight-box">
                 <div class="insight-label">Priority Focus</div>
@@ -566,6 +574,9 @@ const PDFGenerator = {
               </div>
             ` : ''}
           ` : ''}
+
+          <h3 style="margin: 20px 0 10px; color: ${CONFIG.UI.PRIMARY_COLOR};">Subdomain Breakdown</h3>
+          ${this.buildSubdomainBreakdown(toolConfig.subdomains.slice(0, 3), scoring, gptInsights.subdomains)}
         </div>
       `;
 
@@ -584,6 +595,14 @@ const PDFGenerator = {
               <div class="insight-label">Summary</div>
               <p>${gptInsights.domain2.summary || ''}</p>
             </div>
+            ${gptInsights.domain2.keyThemes && gptInsights.domain2.keyThemes.length > 0 ? `
+              <div class="insight-box">
+                <div class="insight-label">Key Themes</div>
+                <ul style="margin: 10px 0; padding-left: 20px;">
+                  ${gptInsights.domain2.keyThemes.map(theme => `<li style="margin: 5px 0;">${theme}</li>`).join('')}
+                </ul>
+              </div>
+            ` : ''}
             ${gptInsights.domain2.priorityFocus ? `
               <div class="insight-box">
                 <div class="insight-label">Priority Focus</div>
@@ -591,6 +610,9 @@ const PDFGenerator = {
               </div>
             ` : ''}
           ` : ''}
+
+          <h3 style="margin: 20px 0 10px; color: ${CONFIG.UI.PRIMARY_COLOR};">Subdomain Breakdown</h3>
+          ${this.buildSubdomainBreakdown(toolConfig.subdomains.slice(3, 6), scoring, gptInsights.subdomains)}
         </div>
       `;
 
@@ -625,5 +647,50 @@ const PDFGenerator = {
         error: error.toString()
       };
     }
+  },
+
+  /**
+   * Build subdomain breakdown section for PDF
+   * @param {Array} subdomains - Subdomain configurations
+   * @param {Object} scoring - Scoring results
+   * @param {Object} subdomainInsights - GPT insights for subdomains
+   * @returns {string} HTML for subdomain breakdown
+   */
+  buildSubdomainBreakdown(subdomains, scoring, subdomainInsights) {
+    if (!subdomains || subdomains.length === 0) return '';
+
+    return subdomains.map(subdomain => {
+      const score = Math.round(scoring.subdomainQuotients[subdomain.key]);
+      const interpretation = GroundingScoring.interpretQuotient(scoring.subdomainQuotients[subdomain.key]);
+      const insight = subdomainInsights[subdomain.key];
+
+      return `
+        <div class="subdomain-card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <div class="subdomain-name">${subdomain.label}</div>
+            <div class="subdomain-score">${score}</div>
+          </div>
+          <p style="margin: 5px 0; color: #666; font-size: 14px;">${interpretation.label}</p>
+
+          ${insight ? `
+            <div style="margin-top: 15px;">
+              <div style="font-size: 12px; color: ${CONFIG.UI.PRIMARY_COLOR}; font-weight: 600; margin: 10px 0 5px;">PATTERN</div>
+              <p style="margin: 0; font-size: 14px; line-height: 1.5;">${insight.pattern}</p>
+
+              <div style="font-size: 12px; color: ${CONFIG.UI.PRIMARY_COLOR}; font-weight: 600; margin: 10px 0 5px;">INSIGHT</div>
+              <p style="margin: 0; font-size: 14px; line-height: 1.5;">${insight.insight}</p>
+
+              ${insight.rootBelief ? `
+                <div style="font-size: 12px; color: ${CONFIG.UI.PRIMARY_COLOR}; font-weight: 600; margin: 10px 0 5px;">ROOT BELIEF</div>
+                <p style="margin: 0; font-size: 14px; line-height: 1.5;">${insight.rootBelief}</p>
+              ` : ''}
+
+              <div style="font-size: 12px; color: ${CONFIG.UI.PRIMARY_COLOR}; font-weight: 600; margin: 10px 0 5px;">ACTION</div>
+              <p style="margin: 0; font-size: 14px; line-height: 1.5;">${insight.action}</p>
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }).join('');
   }
 };
