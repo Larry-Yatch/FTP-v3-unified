@@ -307,25 +307,26 @@ STUDENT'S SCORES (raw scale -3 to +3, where -3 is most problematic, +3 is health
 - Consequence: ${consequenceScore} (${this.interpretRawScore(consequenceScore)})
 
 YOUR TASK:
-Analyze their open response in the context of these scores and the belief→behavior connection.
+Analyze the student's open response in the context of these scores and the belief→behavior connection.
+Write your response as if you are speaking directly to the student (use "you" and "your").
 Focus on:
 1. How their words reveal the pattern described in this subdomain
 2. The relationship between their belief and behavior scores
-3. Concrete, specific guidance based on THEIR situation
+3. Concrete, specific guidance based on their situation
 
 Return plain-text only:
 
 Pattern:
-(One sentence: What specific pattern appears in their response related to "${label}"?)
+(One sentence: What specific pattern appears in your response related to "${label}"?)
 
 Insight:
-(One sentence: What does this pattern + scores reveal about their disconnection?)
+(One sentence: What does this pattern + scores reveal about your disconnection?)
 
 Action:
-(One specific, actionable step based on their response and scores)
+(One specific, actionable step you can take based on your response and scores)
 
 Root Belief:
-(One sentence: What underlying belief might be driving this pattern?)
+(One sentence: What underlying belief might be driving this pattern for you?)
     `.trim();
   },
 
@@ -383,6 +384,7 @@ SUBDOMAIN INSIGHTS (from previous analysis):
 
 YOUR TASK:
 Synthesize the subdomain insights into a cohesive domain-level understanding.
+Write your response as if you are speaking directly to the student (use "you" and "your").
 Focus on:
 1. Common themes across the 3 subdomains
 2. How these patterns reinforce each other
@@ -397,15 +399,15 @@ you're referring to.
 Return plain-text only:
 
 Summary:
-(2-3 sentences synthesizing the domain pattern)
+(2-3 sentences synthesizing the domain pattern as you see it in this student's results)
 
 Key Themes:
-- Theme 1: [Most prominent pattern across subdomains]
-- Theme 2: [Secondary pattern]
-- Theme 3: [Strength or resource]
+- Theme 1: [Most prominent pattern you see across subdomains]
+- Theme 2: [Secondary pattern you notice]
+- Theme 3: [Strength or resource you have]
 
 Priority Focus:
-(One sentence: Where should they start based on subdomain scores and insights?)
+(One sentence: Where should you start based on your subdomain scores and insights?)
     `.trim();
   },
 
@@ -452,6 +454,7 @@ DOMAIN SCORES:
 
 YOUR TASK:
 Create a cohesive narrative that connects both domains and provides an integrated understanding.
+Write your response as if you are speaking directly to the student (use "you" and "your").
 Focus on:
 1. The relationship between the two domains
 2. How patterns in one domain affect the other
@@ -461,18 +464,18 @@ Focus on:
 Return plain-text only:
 
 Overview:
-(2-3 paragraphs connecting both domains and explaining the core disconnection)
+(2-3 paragraphs connecting both domains and explaining the core disconnection you're experiencing)
 
 Integration:
-(How do the two domains interact and influence each other?)
+(How do the two domains interact and influence each other in your financial life?)
 
 Core Work:
-(What is the fundamental shift needed to address this disconnection?)
+(What is the fundamental shift you need to address this disconnection?)
 
 Next Steps:
-1. [Immediate action for highest domain]
-2. [Practice for building awareness]
-3. [Long-term growth direction]
+1. [Immediate action you can take for your highest domain]
+2. [Practice you can use for building awareness]
+3. [Long-term growth direction for you]
     `.trim();
   },
 
