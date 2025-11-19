@@ -431,7 +431,8 @@ const ResponseManager = {
 
       const sheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.RESPONSES);
 
-      const data = sheet.getDataRange().getValues();
+      // Use cached data to reduce API calls
+      const data = SpreadsheetCache.getSheetData(CONFIG.SHEETS.RESPONSES);
       const headers = data[0];
 
       const clientIdCol = headers.indexOf('Client_ID');
@@ -449,8 +450,12 @@ const ResponseManager = {
         }
       }
 
+      // Invalidate cache since we modified the sheet
+      SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.RESPONSES);
+
       // Mark most recent COMPLETED as latest again (if one exists)
-      this._restoreLatestCompleted(clientId, toolId);
+      // Pass the already-fetched data to avoid redundant getDataRange() call
+      this._restoreLatestCompletedFromData(sheet, data, headers, clientId, toolId);
 
       SpreadsheetApp.flush();
 
@@ -608,10 +613,21 @@ const ResponseManager = {
   _restoreLatestCompleted(clientId, toolId) {
     try {
       const sheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.RESPONSES);
-
       const data = sheet.getDataRange().getValues();
       const headers = data[0];
+      this._restoreLatestCompletedFromData(sheet, data, headers, clientId, toolId);
+    } catch (error) {
+      Logger.log(`Error restoring latest completed: ${error}`);
+    }
+  },
 
+  /**
+   * Restore most recent COMPLETED as latest using already-fetched data
+   * (Optimized version to avoid redundant getDataRange calls)
+   * @private
+   */
+  _restoreLatestCompletedFromData(sheet, data, headers, clientId, toolId) {
+    try {
       const clientIdCol = headers.indexOf('Client_ID');
       const toolIdCol = headers.indexOf('Tool_ID');
       const statusCol = headers.indexOf('Status');
@@ -641,7 +657,7 @@ const ResponseManager = {
       }
 
     } catch (error) {
-      Logger.log(`Error restoring latest completed: ${error}`);
+      Logger.log(`Error restoring latest completed from data: ${error}`);
     }
   },
 
