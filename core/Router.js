@@ -185,7 +185,11 @@ const Router = {
             <form id="loginForm">
               <div class="form-group">
                 <label class="form-label">Student ID</label>
-                <input type="text" name="clientId" id="clientId" placeholder="Enter your student ID" required>
+                <p class="muted" style="font-size: 13px; margin: 5px 0 10px; line-height: 1.5;">
+                  Your Student ID follows the pattern: <strong>Last 4 digits of your phone number</strong> + <strong>First 2 initials</strong><br>
+                  <span style="opacity: 0.8;">Example: 1111AB</span>
+                </p>
+                <input type="text" name="clientId" id="clientId" placeholder="e.g., 1111AB" required>
               </div>
               <button type="submit" class="btn-primary" id="loginBtn">
                 <span id="btnText">Sign In</span>
