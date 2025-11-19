@@ -438,157 +438,364 @@ const Tool7 = {
   },
 
   // ============================================================
-  // REQUIRED: RENDER METHOD
+  // CORE METHODS
   // ============================================================
 
+  /**
+   * Main entry point - called by Router
+   * @param {Object} params - Render parameters from Router
+   */
   render(params) {
     const clientId = params.clientId;
     const page = parseInt(params.page) || 1;
     const baseUrl = ScriptApp.getService().getUrl();
 
-    // Handle edit mode and clear draft actions
+    // Handle URL parameters for immediate navigation (preserves user gesture)
     const editMode = params.editMode === 'true' || params.editMode === true;
     const clearDraft = params.clearDraft === 'true' || params.clearDraft === true;
 
+    // Page validation
+    const totalPages = 7; // 1 intro + 6 subdomains
+    if (page < 1 || page > totalPages) {
+      throw new Error(`Invalid page number: ${page}. Must be 1-${totalPages}`);
+    }
+
+    // Execute actions on page load (after navigation completes with user gesture)
     if (editMode && page === 1) {
       Logger.log(`[Tool7] Edit mode detected for ${clientId} - creating EDIT_DRAFT`);
-      DataService.loadResponseForEditing(clientId, this.config.id);
+      DataService.loadResponseForEditing(clientId, 'tool7');
     }
 
     if (clearDraft && page === 1) {
       Logger.log(`[Tool7] Clear draft triggered for ${clientId}`);
-      DataService.startFreshAttempt(clientId, this.config.id);
+      DataService.startFreshAttempt(clientId, 'tool7');
     }
 
-    // Get existing data if resuming
-    const existingData = this.getExistingData(clientId);
-
-    // Determine total pages (1 intro + 6 subdomains + 1 processing = 8)
-    const totalPages = 8;
-
-    // Get page content
-    const pageContent = this.renderPageContent(page, existingData, clientId);
-
-    // Build page with GroundingFormBuilder
-    const html = GroundingFormBuilder.buildPage({
-      toolId: this.config.id,
-      toolName: this.config.name,
-      clientId: clientId,
-      baseUrl: baseUrl,
-      page: page,
-      totalPages: totalPages,
-      pageContent: pageContent,
-      isFinalPage: (page === totalPages)
-    });
-
-    return HtmlService.createHtmlOutput(html)
-      .setTitle(`TruPath - ${this.config.shortName}`)
-      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
-  },
-
-  // ============================================================
-  // PAGE ROUTING
-  // ============================================================
-
-  renderPageContent(page, data, clientId) {
-    // Page 1: Introduction
-    if (page === 1) {
-      return GroundingFormBuilder.renderIntroPage({
-        toolName: this.config.name,
-        purpose: this.config.purpose,
-        domain1Name: this.config.domain1Name,
-        domain1Description: this.config.domain1Description,
-        domain2Name: this.config.domain2Name,
-        domain2Description: this.config.domain2Description,
-        estimatedMinutes: 25,
-        editMode: data && data._editMode
-      });
-    }
-
-    // Pages 2-7: Subdomains (one per page)
-    if (page >= 2 && page <= 7) {
-      const subdomainIndex = page - 2; // 0-5
-      const subdomain = this.config.subdomains[subdomainIndex];
-
-      return GroundingFormBuilder.renderSubdomainPage({
-        subdomain: subdomain,
-        data: data,
-        pageNumber: page,
-        totalPages: 8
-      });
-    }
-
-    // Page 8: Processing
-    if (page === 8) {
-      return GroundingFormBuilder.renderProcessingPage({
-        toolName: this.config.shortName
-      });
-    }
-
-    // Invalid page
-    return '<p class="error">Invalid page number</p>';
-  },
-
-  // ============================================================
-  // DATA MANAGEMENT
-  // ============================================================
-
-  getExistingData(clientId) {
-    return DataService.getDraftData(clientId, this.config.id);
-  },
-
-  processSubmission(clientId) {
     try {
-      Logger.log(`[Tool7] Processing submission for client: ${clientId}`);
+      // Get existing data if resuming
+      const existingData = this.getExistingData(clientId);
 
-      // Get all form responses
-      const responses = this.getExistingData(clientId);
-      if (!responses) {
-        throw new Error('No form data found');
+      // Get page content (just the form fields, not full HTML)
+      let pageContent = GroundingFormBuilder.renderPageContent({
+        toolId: this.config.id,
+        pageNum: page,
+        clientId: clientId,
+        subdomains: this.config.subdomains,
+        intro: this.getIntroContent(),
+        existingData: existingData
+      });
+
+      // Add edit mode banner if editing previous response
+      if (existingData && existingData._editMode) {
+        const originalDate = existingData._originalTimestamp ?
+          new Date(existingData._originalTimestamp).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          }) : 'previous submission';
+
+        pageContent = EditModeBanner.render(originalDate, clientId, 'tool7') + pageContent;
       }
 
+      // Use FormUtils to build standard page (like Tool 1 and Tool 2)
+      const template = HtmlService.createTemplate(
+        FormUtils.buildStandardPage({
+          toolName: this.config.name,
+          toolId: this.config.id,
+          page: page,
+          totalPages: totalPages,
+          clientId: clientId,
+          baseUrl: baseUrl,
+          pageContent: pageContent,
+          isFinalPage: (page === 7)
+        })
+      );
+
+      return template.evaluate()
+        .setTitle(`TruPath - ${this.config.name}`)
+        .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+
+    } catch (error) {
+      Logger.log(`[Tool7] Error rendering page ${page}: ${error.message}`);
+      throw error;
+    }
+  },
+
+  /**
+   * Get custom intro content for Tool 7
+   */
+  getIntroContent() {
+    return `
+      <div class="card">
+        <h2>Welcome to the Security & Control Assessment</h2>
+        <p class="muted" style="margin-bottom: 20px;">
+          This assessment explores your relationship with control and fear in financial decision-making.
+          It reveals patterns of disconnection from trust in life and a sense that things can work out.
+        </p>
+
+        <h3 style="color: #ad9168; margin-top: 25px;">What This Assessment Explores</h3>
+        <p style="line-height: 1.7; color: rgba(255, 255, 255, 0.85);">
+          <strong>Domain 1: Control Leading to Isolation</strong><br>
+          How needing total control creates suffering—patterns like rejecting help and systems,
+          refusing to trust others, and viewing asking for support as weakness that exhausts you and keeps you stuck.
+        </p>
+        <p style="line-height: 1.7; color: rgba(255, 255, 255, 0.85);">
+          <strong>Domain 2: Fear Leading to Isolation</strong><br>
+          How fear creates the disasters you're trying to prevent—patterns like catastrophic thinking,
+          staying in dysfunction from fear of change, and trusting untrustworthy people that become self-fulfilling prophecies.
+        </p>
+
+        <h3 style="color: #ad9168; margin-top: 25px;">How it Works</h3>
+        <ul style="line-height: 1.8; color: rgba(255, 255, 255, 0.85);">
+          <li>You'll complete <strong>6 sections</strong>, one at a time (about 20-25 minutes total)</li>
+          <li>Each section has <strong>4 scale questions</strong> and <strong>1 reflection question</strong></li>
+          <li>Answer based on your actual patterns, not how you wish things were</li>
+          <li>There are no "right" answers—this is about self-discovery</li>
+          <li>AI analysis will provide personalized insights based on your responses</li>
+        </ul>
+
+        <div style="background: rgba(173, 145, 104, 0.1); padding: 20px; border-radius: 10px; border-left: 4px solid #ad9168; margin-top: 25px;">
+          <p style="margin: 0; color: rgba(255, 255, 255, 0.9); font-weight: 500;">
+            💡 <strong>Tip:</strong> This assessment may surface uncomfortable feelings about control and trust.
+            Be compassionate with yourself as you explore these patterns.
+          </p>
+        </div>
+      </div>
+    `;
+  },
+
+  /**
+   * Save page data (called after each page submission)
+   * Required by Code.js saveToolPageData()
+   */
+  savePageData(clientId, page, formData) {
+    // Save to PropertiesService for fast page-to-page navigation
+    DraftService.saveDraft('tool7', clientId, page, formData);
+
+    // Also save to RESPONSES sheet on first page to create DRAFT row
+    // BUT: Don't create new DRAFT if we're in edit mode (EDIT_DRAFT already exists)
+    if (page === 1) {
+      const activeDraft = DataService.getActiveDraft(clientId, 'tool7');
+      const isEditMode = activeDraft && activeDraft.status === 'EDIT_DRAFT';
+
+      if (!isEditMode) {
+        // Only create new DRAFT row if not editing
+        DataService.saveDraft(clientId, 'tool7', formData);
+      } else {
+        Logger.log(`[Tool7] Skipping DRAFT creation - already in edit mode with EDIT_DRAFT`);
+      }
+    }
+
+    return { success: true };
+  },
+
+  /**
+   * Get existing data for a client
+   * Checks both EDIT_DRAFT (from RESPONSES sheet) and PropertiesService drafts
+   */
+  getExistingData(clientId) {
+    try {
+      let data = null;
+
+      // First check if there's an active draft in RESPONSES sheet
+      if (typeof DataService !== 'undefined') {
+        const activeDraft = DataService.getActiveDraft(clientId, 'tool7');
+
+        if (activeDraft && (activeDraft.status === 'EDIT_DRAFT' || activeDraft.status === 'DRAFT')) {
+          Logger.log(`[Tool7] Found active draft with status: ${activeDraft.status}`);
+          data = activeDraft.data;
+        }
+      }
+
+      // Also check PropertiesService and merge
+      const propData = DraftService.getDraft('tool7', clientId);
+
+      if (propData) {
+        if (data) {
+          // Merge: PropertiesService takes precedence for newer page data
+          data = {...data, ...propData};
+        } else {
+          data = propData;
+        }
+      }
+
+      return data || {};
+
+    } catch (error) {
+      Logger.log(`[Tool7] Error getting existing data: ${error}`);
+      return {};
+    }
+  },
+
+  /**
+   * Process final submission (called by Code.js completeToolSubmission)
+   * CRITICAL: Method name must match Code.js expectation
+   * CRITICAL: Signature must be (clientId) not (clientId, formData)
+   */
+  processFinalSubmission(clientId) {
+    try {
+      Logger.log(`[Tool7] Processing final submission for ${clientId}`);
+
+      // Get all data from draft storage (like Tool 1/2)
+      const allData = this.getExistingData(clientId);
+
+      if (!allData) {
+        throw new Error('No data found. Please start the assessment again.');
+      }
+
+      // Extract all responses (24 scale + 6 open responses = 30 total)
+      const responses = this.extractResponses(allData);
+
       // Calculate scores using GroundingScoring
-      const scoringResult = GroundingScoring.calculateScores(responses, this.config.subdomains);
+      const scoringResult = GroundingScoring.calculateScores(
+        responses,
+        this.config.subdomains
+      );
 
-      // Extract domain-specific scores for GPT context
-      const domain1Scores = this.extractDomainScores(scoringResult.subdomainQuotients, 0, 3);
-      const domain2Scores = this.extractDomainScores(scoringResult.subdomainQuotients, 3, 6);
+      Logger.log(`[Tool7] Scoring complete: Overall=${scoringResult.overallQuotient}`);
 
-      // Generate GPT insights using progressive chaining
-      const gptInsights = GroundingGPT.generateInsights({
-        toolConfig: this.config,
-        responses: responses,
-        scoringResult: scoringResult,
-        domain1Scores: domain1Scores,
-        domain2Scores: domain2Scores
-      });
+      // Collect all GPT insights (from cache)
+      const gptInsights = this.collectGPTInsights(clientId);
 
-      // Extract syntheses
-      const syntheses = {
-        domain1: gptInsights.domain1,
-        domain2: gptInsights.domain2,
-        overall: gptInsights.overall
-      };
+      // Run final 3 synthesis calls
+      const syntheses = this.runFinalSyntheses(clientId, scoringResult, gptInsights);
 
-      // Save to RESPONSES sheet
+      Logger.log(`[Tool7] GPT syntheses complete`);
+
+      // Save complete assessment data
       this.saveAssessmentData(clientId, {
-        responses: responses,
-        scoringResult: scoringResult,
-        gptInsights: gptInsights,
-        syntheses: syntheses
+        responses,
+        scoringResult,
+        gptInsights,
+        syntheses
       });
 
-      // Generate report
-      const reportHtml = this.generateReport(clientId, scoringResult, gptInsights);
+      Logger.log(`[Tool7] Assessment data saved`);
 
-      return HtmlService.createHtmlOutput(reportHtml);
+      // Return success (Code.js will handle report generation)
+      return { success: true };
 
     } catch (error) {
       Logger.log(`[Tool7] Error processing submission: ${error.message}`);
-      return GroundingFallbacks.renderErrorPage(error, clientId, this.config.id);
+      throw error;
     }
   },
 
+  /**
+   * Extract responses from form data
+   */
+  extractResponses(formData) {
+    const responses = {};
+
+    // Extract all fields from formData
+    Object.keys(formData).forEach(key => {
+      // Skip metadata fields
+      if (['client', 'page', 'subdomain_index', 'subdomain_key'].includes(key)) {
+        return;
+      }
+
+      // Skip label fields (used for GPT context, not scoring)
+      // Labels are like: subdomain_1_1_belief_label
+      if (key.endsWith('_label')) {
+        return;
+      }
+
+      responses[key] = formData[key];
+    });
+
+    return responses;
+  },
+
+  /**
+   * Collect GPT insights from cache (created during form)
+   */
+  collectGPTInsights(clientId) {
+    const insights = {
+      subdomains: {}
+    };
+
+    this.config.subdomains.forEach(subdomain => {
+      const cached = GroundingGPT.getCachedInsight(this.config.id, clientId, subdomain.key);
+      if (cached) {
+        insights.subdomains[subdomain.key] = cached;
+      } else {
+        Logger.log(`⚠️ No cached insight for ${subdomain.key}, will use fallback`);
+      }
+    });
+
+    return insights;
+  },
+
+  /**
+   * Run final 3 synthesis calls (2 domain + 1 overall)
+   */
+  runFinalSyntheses(clientId, scoringResult, gptInsights) {
+    const syntheses = {};
+
+    // Domain 1 synthesis
+    syntheses.domain1 = GroundingGPT.synthesizeDomain({
+      toolId: this.config.id,
+      clientId: clientId,
+      domainConfig: {
+        key: this.config.domain1Key,
+        name: this.config.domain1Name,
+        description: this.config.domain1Description
+      },
+      subdomainInsights: this.extractDomainInsights(gptInsights.subdomains, 0, 3),
+      subdomainScores: this.extractDomainScores(scoringResult.subdomainQuotients, 0, 3),
+      domainScore: scoringResult.domainQuotients.domain1,
+      subdomainConfigs: this.config.subdomains.slice(0, 3)  // Pass first 3 subdomain configs
+    });
+
+    // Domain 2 synthesis
+    syntheses.domain2 = GroundingGPT.synthesizeDomain({
+      toolId: this.config.id,
+      clientId: clientId,
+      domainConfig: {
+        key: this.config.domain2Key,
+        name: this.config.domain2Name,
+        description: this.config.domain2Description
+      },
+      subdomainInsights: this.extractDomainInsights(gptInsights.subdomains, 3, 6),
+      subdomainScores: this.extractDomainScores(scoringResult.subdomainQuotients, 3, 6),
+      domainScore: scoringResult.domainQuotients.domain2,
+      subdomainConfigs: this.config.subdomains.slice(3, 6)  // Pass last 3 subdomain configs
+    });
+
+    // Overall synthesis
+    syntheses.overall = GroundingGPT.synthesizeOverall({
+      toolId: this.config.id,
+      clientId: clientId,
+      toolConfig: this.config,
+      domainSyntheses: {
+        [this.config.domain1Name]: syntheses.domain1,
+        [this.config.domain2Name]: syntheses.domain2
+      },
+      allScores: scoringResult
+    });
+
+    return syntheses;
+  },
+
+  /**
+   * Extract insights for a specific domain
+   */
+  extractDomainInsights(allInsights, startIdx, endIdx) {
+    const domainInsights = {};
+    const subdomains = this.config.subdomains.slice(startIdx, endIdx);
+
+    subdomains.forEach(subdomain => {
+      if (allInsights[subdomain.key]) {
+        domainInsights[subdomain.key] = allInsights[subdomain.key];
+      }
+    });
+
+    return domainInsights;
+  },
+
+  /**
+   * Extract scores for a specific domain
+   */
   extractDomainScores(allScores, startIdx, endIdx) {
     const domainScores = {};
     const subdomains = this.config.subdomains.slice(startIdx, endIdx);
@@ -600,6 +807,9 @@ const Tool7 = {
     return domainScores;
   },
 
+  /**
+   * Save assessment data to RESPONSES sheet
+   */
   saveAssessmentData(clientId, data) {
     const dataToSave = {
       responses: data.responses,
@@ -624,6 +834,9 @@ const Tool7 = {
     GroundingGPT.clearCache(this.config.id, clientId);
   },
 
+  /**
+   * Generate report HTML
+   */
   generateReport(clientId, scoringResult, gptInsights) {
     const baseUrl = ScriptApp.getService().getUrl();
 
@@ -636,6 +849,36 @@ const Tool7 = {
       gptInsights: gptInsights
     });
 
-    return htmlString;
+    return HtmlService.createHtmlOutput(htmlString);
+  },
+
+  /**
+   * Render error page
+   */
+  renderErrorPage(error, clientId, baseUrl) {
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>TruPath - Error</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <?!= include('shared/styles') ?>
+      </head>
+      <body>
+        <div class="container">
+          <div class="card">
+            <h1 style="color: #dc3545;">Error</h1>
+            <p>An error occurred while loading this assessment:</p>
+            <p style="background: rgba(220, 53, 69, 0.1); padding: 15px; border-radius: 8px; font-family: monospace;">
+              ${error.message}
+            </p>
+            <button class="btn-primary" onclick="window.location.href='${baseUrl}?route=dashboard&client=${clientId}'">
+              Return to Dashboard →
+            </button>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
   }
 };

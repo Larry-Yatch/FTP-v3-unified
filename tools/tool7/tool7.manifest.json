@@ -4,14 +4,14 @@
   "version": "1.0.0",
   "description": "Reveals patterns of disconnection from trust in life through control and fear-based isolation",
   "category": "grounding",
-  "pages": 8,
+  "pages": 7,
   "questions": 30,
   "estimatedMinutes": 25,
   "requires": ["tool6"],
   "unlocks": [],
   "manifest": {
     "entryPoint": "Tool7.render",
-    "processor": "Tool7.processSubmission",
+    "processor": "Tool7.processFinalSubmission",
     "dependencies": [
       "GroundingFormBuilder",
       "GroundingScoring",
