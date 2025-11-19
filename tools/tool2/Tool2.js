@@ -710,38 +710,6 @@ const Tool2 = {
           <option value="5" ${emergencyFundStress === '5' ? 'selected' : ''}>+5: Complete confidence, zero fear, rock-solid security</option>
         </select>
       </div>
-
-      <!-- Navigation: Back to Page 2 -->
-      <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
-        <button type="button" class="btn-secondary" onclick="goBackToPage2('${clientId}')">
-          ← Back to Page 2
-        </button>
-      </div>
-
-      <script>
-        function goBackToPage2(clientId) {
-          showLoading('Loading Page 2');
-
-          // Use document.write() pattern (no white flash!)
-          google.script.run
-            .withSuccessHandler(function(pageHtml) {
-              if (pageHtml) {
-                document.open();
-                document.write(pageHtml);
-                document.close();
-              } else {
-                hideLoading();
-                alert('Error loading Page 2');
-              }
-            })
-            .withFailureHandler(function(error) {
-              hideLoading();
-              console.error('Navigation error:', error);
-              alert('Error loading Page 2: ' + error.message);
-            })
-            .getToolPageHtml('tool2', clientId, 2);
-        }
-      </script>
     `;
   },
 
@@ -989,38 +957,6 @@ const Tool2 = {
           <option value="5" ${retirementStress === '5' ? 'selected' : ''}>+5: Zero stress, retirement secured, clear path</option>
         </select>
       </div>
-
-      <!-- Navigation: Back to Page 3 -->
-      <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
-        <button type="button" class="btn-secondary" onclick="goBackToPage3('${clientId}')">
-          ← Back to Page 3
-        </button>
-      </div>
-
-      <script>
-        function goBackToPage3(clientId) {
-          showLoading('Loading Page 3');
-
-          // Use document.write() pattern (no white flash!)
-          google.script.run
-            .withSuccessHandler(function(pageHtml) {
-              if (pageHtml) {
-                document.open();
-                document.write(pageHtml);
-                document.close();
-              } else {
-                hideLoading();
-                alert('Error loading Page 3');
-              }
-            })
-            .withFailureHandler(function(error) {
-              hideLoading();
-              console.error('Navigation error:', error);
-              alert('Error loading Page 3: ' + error.message);
-            })
-            .getToolPageHtml('tool2', clientId, 3);
-        }
-      </script>
     `;
   },
 
