@@ -17,7 +17,7 @@ const Tool3 = {
 
   config: {
     id: 'tool3',
-    name: 'Identity & Validation Grounding Tool',
+    name: 'Tool 3: Identity & Validation',
     shortName: 'Identity & Validation',
     scoreName: 'Disconnection from Self Quotient',
     purpose: 'Reveals patterns of disconnection from your authentic self through false self-view and external validation',

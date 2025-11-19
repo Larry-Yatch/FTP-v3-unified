@@ -750,7 +750,7 @@ const Router = {
       return `
         <div class="tool-card" style="margin-bottom: 15px; border: 2px solid #4CAF50;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-            <h3 style="margin: 0;">🪞 Tool 3: Identity & Validation</h3>
+            <h3 style="margin: 0;">Tool 3: Identity & Validation</h3>
             <span class="badge" style="background: #4CAF50; color: white;">✓ Completed</span>
           </div>
           <p class="muted" style="margin-bottom: 10px;">Completed on ${completedDate}</p>
@@ -791,7 +791,7 @@ const Router = {
       return `
         <div class="tool-card" style="margin-bottom: 15px; border: 2px solid #FF9800;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-            <h3 style="margin: 0;">🪞 Tool 3: Identity & Validation</h3>
+            <h3 style="margin: 0;">Tool 3: Identity & Validation</h3>
             <span class="badge" style="background: #FF9800; color: white;">⏸️ In Progress</span>
           </div>
           <p class="muted" style="margin-bottom: 10px;">You have a draft in progress</p>
@@ -809,7 +809,7 @@ const Router = {
     } else if (tool3Access.allowed) {
       return `
         <div class="tool-card" style="margin-bottom: 15px;">
-          <h3>🪞 Tool 3: Identity & Validation</h3>
+          <h3>Tool 3: Identity & Validation</h3>
           <p class="muted">Grounding assessment revealing patterns of disconnection from self</p>
           <span class="badge" style="background: #2196F3; color: white;">✓ Ready</span>
           <br><br>
@@ -821,7 +821,7 @@ const Router = {
     } else {
       return `
         <div class="tool-card locked" style="margin-bottom: 15px;">
-          <h3>🪞 Tool 3: Identity & Validation</h3>
+          <h3>Tool 3: Identity & Validation</h3>
           <p class="muted">Grounding assessment revealing patterns of disconnection from self</p>
           <span class="badge">🔒 Locked</span>
           <p class="muted mt-10" style="font-size: 14px;">
@@ -843,7 +843,7 @@ const Router = {
       return `
         <div class="tool-card" style="margin-bottom: 15px; border: 2px solid #4CAF50;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-            <h3 style="margin: 0;">💝 Tool 5: Love & Connection</h3>
+            <h3 style="margin: 0;">Tool 5: Love & Connection</h3>
             <span class="badge" style="background: #4CAF50; color: white;">✓ Completed</span>
           </div>
           <p class="muted" style="margin-bottom: 10px;">Completed on ${completedDate}</p>
@@ -884,7 +884,7 @@ const Router = {
       return `
         <div class="tool-card" style="margin-bottom: 15px; border: 2px solid #FF9800;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-            <h3 style="margin: 0;">💝 Tool 5: Love & Connection</h3>
+            <h3 style="margin: 0;">Tool 5: Love & Connection</h3>
             <span class="badge" style="background: #FF9800; color: white;">⏸️ In Progress</span>
           </div>
           <p class="muted" style="margin-bottom: 10px;">You have a draft in progress</p>
@@ -902,7 +902,7 @@ const Router = {
     } else if (tool5Access.allowed) {
       return `
         <div class="tool-card" style="margin-bottom: 15px;">
-          <h3>💝 Tool 5: Love & Connection</h3>
+          <h3>Tool 5: Love & Connection</h3>
           <p class="muted">Grounding assessment revealing patterns of disconnection from others</p>
           <span class="badge" style="background: #2196F3; color: white;">✓ Ready</span>
           <br><br>
@@ -914,7 +914,7 @@ const Router = {
     } else {
       return `
         <div class="tool-card locked" style="margin-bottom: 15px;">
-          <h3>💝 Tool 5: Love & Connection</h3>
+          <h3>Tool 5: Love & Connection</h3>
           <p class="muted">Grounding assessment revealing patterns of disconnection from others</p>
           <span class="badge">🔒 Locked</span>
           <p class="muted mt-10" style="font-size: 14px;">

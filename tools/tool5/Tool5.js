@@ -17,7 +17,7 @@ const Tool5 = {
 
   config: {
     id: 'tool5',
-    name: 'Love & Connection Grounding Tool',
+    name: 'Tool 5: Love & Connection',
     shortName: 'Love & Connection',
     scoreName: 'Disconnection from Others Quotient',
     purpose: 'Reveals patterns of disconnection from others through issues showing and receiving love',
