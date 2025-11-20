@@ -46,6 +46,9 @@ const DataService = {
       if (status === 'COMPLETED') {
         this.updateToolStatus(clientId, toolId, 'completed');
 
+        // Update tools completed count in STUDENTS sheet
+        this.updateStudentToolsCompletedCount(clientId);
+
         // Log activity for tool completion
         this.logActivity(clientId, 'tool_completed', {
           toolId: toolId,
@@ -276,6 +279,79 @@ const DataService = {
   isToolCompleted(clientId, toolId) {
     const status = this.getToolStatus(clientId, toolId);
     return status === 'completed';
+  },
+
+  /**
+   * Update Tools_Completed count in STUDENTS sheet
+   * Counts how many tools have status='COMPLETED' in RESPONSES sheet
+   * @param {string} clientId - Client/student ID
+   * @returns {Object} Update result
+   */
+  updateStudentToolsCompletedCount(clientId) {
+    try {
+      console.log(`[UPDATE_TOOLS_COUNT] Updating count for ${clientId}`);
+
+      // Count completed tools from RESPONSES sheet (source of truth)
+      const responsesSheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.RESPONSES);
+      const completedTools = new Set();
+
+      if (responsesSheet) {
+        const data = responsesSheet.getDataRange().getValues();
+
+        // Find COMPLETED responses for this student
+        // Columns: Timestamp, Client_ID, Tool_ID, Data, Version, Status, Is_Latest
+        for (let i = data.length - 1; i > 0; i--) {
+          const responseClientId = data[i][1];
+          const toolId = data[i][2];
+          const status = data[i][5];
+          const isLatest = data[i][6];
+
+          if (responseClientId === clientId && status === 'COMPLETED' && (isLatest === 'true' || isLatest === true)) {
+            completedTools.add(toolId);
+          }
+        }
+      }
+
+      const completedCount = completedTools.size;
+      console.log(`[UPDATE_TOOLS_COUNT] Found ${completedCount} completed tools for ${clientId}:`, Array.from(completedTools));
+
+      // Update STUDENTS sheet
+      const studentsSheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.STUDENTS);
+
+      if (!studentsSheet) {
+        console.error('[UPDATE_TOOLS_COUNT] STUDENTS sheet not found');
+        return { success: false, error: 'STUDENTS sheet not found' };
+      }
+
+      const studentsData = studentsSheet.getDataRange().getValues();
+
+      // Find student row
+      for (let i = 1; i < studentsData.length; i++) {
+        if (studentsData[i][0] === clientId) {
+          // Update Tools_Completed (column G, index 6)
+          studentsSheet.getRange(i + 1, 7).setValue(completedCount);
+
+          // Update Last_Activity (column F, index 5)
+          studentsSheet.getRange(i + 1, 6).setValue(new Date());
+
+          SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.STUDENTS);
+
+          console.log(`[UPDATE_TOOLS_COUNT] Updated ${clientId} to ${completedCount} completed tools`);
+
+          return {
+            success: true,
+            completedCount: completedCount
+          };
+        }
+      }
+
+      console.error(`[UPDATE_TOOLS_COUNT] Student ${clientId} not found in STUDENTS sheet`);
+      return { success: false, error: 'Student not found' };
+
+    } catch (error) {
+      console.error('[UPDATE_TOOLS_COUNT] Error:', error);
+      return { success: false, error: error.toString() };
+    }
   },
 
   /**

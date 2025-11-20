@@ -12,8 +12,9 @@
  * - /admin/students - Student management
  * - /admin/access - Tool access control
  * - /admin/activity - Activity log viewer
+ * - /admin/reports - Student reports viewer
  *
- * VERSION: v3.9.0
+ * VERSION: v3.11.0
  * CREATED: November 19, 2025
  */
 
@@ -451,6 +452,277 @@ function handleUpdateStudentStatusRequest(clientId, newStatus) {
 
   } catch (error) {
     console.error('Error updating student status:', error);
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Handle get student tools request
+ * Returns all tools with completion status for a student
+ */
+function handleGetStudentToolsRequest(clientId) {
+  console.log('[GET_STUDENT_TOOLS] Request received for clientId:', clientId);
+
+  if (!isAdminAuthenticated()) {
+    console.log('[GET_STUDENT_TOOLS] Not authenticated');
+    return { success: false, error: 'Not authenticated' };
+  }
+
+  console.log('[GET_STUDENT_TOOLS] Authenticated, fetching tool data');
+
+  try {
+    const ss = SpreadsheetCache.getSpreadsheet();
+
+    // Get completion info from RESPONSES sheet (more reliable than activity log)
+    const responsesSheet = ss.getSheetByName(CONFIG.SHEETS.RESPONSES);
+    const completionDates = {};
+
+    if (responsesSheet) {
+      const responsesData = responsesSheet.getDataRange().getValues();
+
+      // Find COMPLETED responses for this student
+      // Columns: Timestamp, Client_ID, Tool_ID, Data, Version, Status, Is_Latest
+      for (let i = responsesData.length - 1; i > 0; i--) {
+        const timestamp = responsesData[i][0];
+        const responseClientId = responsesData[i][1];
+        const toolId = responsesData[i][2];
+        const status = responsesData[i][5];
+        const isLatest = responsesData[i][6];
+
+        if (responseClientId === clientId && status === 'COMPLETED' && (isLatest === 'true' || isLatest === true)) {
+          // Only store if not already found (most recent)
+          if (!completionDates[toolId]) {
+            completionDates[toolId] = timestamp;
+          }
+        }
+      }
+    }
+
+    console.log('[GET_STUDENT_TOOLS] Found completed tools:', Object.keys(completionDates));
+
+    // Get tool names from registry (or use default names)
+    const toolNames = {
+      'tool1': 'Personal Orientation',
+      'tool2': 'Financial Clarity',
+      'tool3': 'Identity & Validation',
+      'tool4': 'Work & Purpose',
+      'tool5': 'Love & Connection',
+      'tool6': 'Health & Vitality',
+      'tool7': 'Transcendence',
+      'tool8': 'Integration & Action'
+    };
+
+    // Build tool status array for all 8 tools
+    const tools = [];
+    for (let i = 1; i <= 8; i++) {
+      const toolId = `tool${i}`;
+      const isCompleted = !!completionDates[toolId];
+
+      tools.push({
+        toolId: toolId,
+        name: toolNames[toolId] || toolId,
+        status: isCompleted ? 'completed' : 'not_completed',
+        completedDate: isCompleted ? completionDates[toolId].toString() : ''
+      });
+    }
+
+    console.log('[GET_STUDENT_TOOLS] Returning', tools.length, 'tools');
+    return { success: true, tools: tools };
+
+  } catch (error) {
+    console.error('[GET_STUDENT_TOOLS] Error:', error);
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Handle get tool report request
+ * Returns the completed report data for a specific tool
+ */
+function handleGetToolReportRequest(clientId, toolId) {
+  console.log('[GET_TOOL_REPORT] Request received for', clientId, '/', toolId);
+
+  if (!isAdminAuthenticated()) {
+    console.log('[GET_TOOL_REPORT] Not authenticated');
+    return { success: false, error: 'Not authenticated' };
+  }
+
+  console.log('[GET_TOOL_REPORT] Authenticated, fetching report data');
+
+  try {
+    // Get tool response data
+    const response = DataService.getToolResponse(clientId, toolId);
+
+    if (!response) {
+      console.log('[GET_TOOL_REPORT] No response found');
+      return { success: false, error: 'No report data found for this tool' };
+    }
+
+    // Only return completed reports
+    if (response.status !== 'COMPLETED') {
+      console.log('[GET_TOOL_REPORT] Tool not completed, status:', response.status);
+      return { success: false, error: 'This tool has not been completed yet' };
+    }
+
+    // Get completion date from activity log
+    let completedDate = response.timestamp;
+    const ss = SpreadsheetCache.getSpreadsheet();
+    const activitySheet = ss.getSheetByName(CONFIG.SHEETS.ACTIVITY_LOG);
+
+    if (activitySheet) {
+      const activityData = activitySheet.getDataRange().getValues();
+
+      for (let i = activityData.length - 1; i > 0; i--) {
+        const clientIdCol = activityData[i][1];
+        const action = activityData[i][2];
+        const activityToolId = activityData[i][4];
+        const timestamp = activityData[i][0];
+
+        if (clientIdCol === clientId && action === 'tool_completed' && activityToolId === toolId) {
+          completedDate = timestamp;
+          break;
+        }
+      }
+    }
+
+    // Return report data
+    console.log('[GET_TOOL_REPORT] Returning report data');
+    return {
+      success: true,
+      report: {
+        toolId: toolId,
+        clientId: clientId,
+        data: response.data,
+        completedDate: completedDate ? completedDate.toString() : '',
+        version: response.version
+      }
+    };
+
+  } catch (error) {
+    console.error('[GET_TOOL_REPORT] Error:', error);
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Handle get tool report HTML request
+ * Returns the formatted HTML that students see (not raw data)
+ */
+function handleGetToolReportHTMLRequest(clientId, toolId) {
+  console.log('[GET_TOOL_REPORT_HTML] Request received for', clientId, '/', toolId);
+
+  if (!isAdminAuthenticated()) {
+    console.log('[GET_TOOL_REPORT_HTML] Not authenticated');
+    return { success: false, error: 'Not authenticated' };
+  }
+
+  console.log('[GET_TOOL_REPORT_HTML] Authenticated, generating report HTML');
+
+  try {
+    // Check if tool is completed
+    const response = DataService.getToolResponse(clientId, toolId);
+
+    if (!response) {
+      console.log('[GET_TOOL_REPORT_HTML] No response found');
+      return { success: false, error: 'No report data found for this tool' };
+    }
+
+    if (response.status !== 'COMPLETED') {
+      console.log('[GET_TOOL_REPORT_HTML] Tool not completed, status:', response.status);
+      return { success: false, error: 'This tool has not been completed yet' };
+    }
+
+    // Get the appropriate report renderer
+    let reportHTML = '';
+
+    switch (toolId) {
+      case 'tool1':
+        // Tool1 requires template parameter
+        const tool1Results = Tool1Report.getResults(clientId);
+        if (tool1Results) {
+          const template = Tool1Templates.getTemplate(tool1Results.winner);
+          if (template) {
+            reportHTML = Tool1Report.buildReportHTML(clientId, tool1Results, template);
+          }
+        }
+        break;
+
+      case 'tool2':
+        const tool2Results = Tool2Report.getResults(clientId);
+        if (tool2Results) {
+          reportHTML = Tool2Report.buildReportHTML(clientId, tool2Results);
+        }
+        break;
+
+      case 'tool3':
+        // Tool3 uses GroundingReport pattern
+        const savedData3 = DataService.getToolResponse(clientId, 'tool3');
+        const assessmentData3 = savedData3?.data || savedData3;
+
+        if (assessmentData3.scoring && assessmentData3.gpt_insights && assessmentData3.syntheses) {
+          const gptInsights3 = {
+            subdomains: assessmentData3.gpt_insights?.subdomains || {},
+            domain1: assessmentData3.syntheses?.domain1,
+            domain2: assessmentData3.syntheses?.domain2,
+            overall: assessmentData3.syntheses?.overall
+          };
+
+          reportHTML = GroundingReport.generateReport({
+            toolId: 'tool3',
+            toolConfig: Tool3.config,
+            clientId: clientId,
+            baseUrl: ScriptApp.getService().getUrl(),
+            scoringResult: assessmentData3.scoring,
+            gptInsights: gptInsights3,
+            formData: assessmentData3.responses || {}
+          });
+        }
+        break;
+
+      case 'tool5':
+        // Tool5 uses GroundingReport pattern
+        const savedData5 = DataService.getToolResponse(clientId, 'tool5');
+        const assessmentData5 = savedData5?.data || savedData5;
+
+        if (assessmentData5.scoring && assessmentData5.gpt_insights && assessmentData5.syntheses) {
+          const gptInsights5 = {
+            subdomains: assessmentData5.gpt_insights?.subdomains || {},
+            domain1: assessmentData5.syntheses?.domain1,
+            domain2: assessmentData5.syntheses?.domain2,
+            overall: assessmentData5.syntheses?.overall
+          };
+
+          reportHTML = GroundingReport.generateReport({
+            toolId: 'tool5',
+            toolConfig: Tool5.config,
+            clientId: clientId,
+            baseUrl: ScriptApp.getService().getUrl(),
+            scoringResult: assessmentData5.scoring,
+            gptInsights: gptInsights5,
+            formData: assessmentData5.responses || {}
+          });
+        }
+        break;
+
+      default:
+        return {
+          success: false,
+          error: `Report viewing not yet available for ${toolId}`
+        };
+    }
+
+    if (!reportHTML) {
+      return { success: false, error: 'Could not generate report HTML' };
+    }
+
+    console.log('[GET_TOOL_REPORT_HTML] Report HTML generated successfully');
+    return {
+      success: true,
+      html: reportHTML
+    };
+
+  } catch (error) {
+    console.error('[GET_TOOL_REPORT_HTML] Error:', error);
     return { success: false, error: error.toString() };
   }
 }

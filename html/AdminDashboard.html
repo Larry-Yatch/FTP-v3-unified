@@ -455,6 +455,103 @@
       color: #0c5460;
       border: 1px solid #bee5eb;
     }
+
+    /* Tool Cards for Reports */
+    .tool-cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 16px;
+    }
+
+    .tool-card {
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 20px;
+      transition: all 0.2s;
+      background: white;
+    }
+
+    .tool-card.completed {
+      cursor: pointer;
+      border-color: #28a745;
+    }
+
+    .tool-card.completed:hover {
+      box-shadow: 0 4px 12px rgba(40, 167, 69, 0.2);
+      transform: translateY(-2px);
+    }
+
+    .tool-card.not-completed {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .tool-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 12px;
+    }
+
+    .tool-card-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #1e192b;
+    }
+
+    .tool-card-status {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .tool-card-status.completed {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .tool-card-status.not-completed {
+      background: #f0f0f0;
+      color: #999;
+    }
+
+    .tool-card-date {
+      font-size: 12px;
+      color: #666;
+      margin-top: 8px;
+    }
+
+    .tool-card-action {
+      margin-top: 12px;
+      font-size: 13px;
+      color: #ad9168;
+      font-weight: 500;
+    }
+
+    /* Report Data Table */
+    .report-data-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .report-data-table th,
+    .report-data-table td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #e0e0e0;
+    }
+
+    .report-data-table th {
+      background: #f9f9f9;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .report-data-table tr:last-child td {
+      border-bottom: none;
+    }
   </style>
 </head>
 <body>
@@ -492,6 +589,10 @@
       <div class="nav-item" onclick="switchPage('activity')" data-page="activity">
         <span class="nav-icon">📝</span>
         <span>Activity Log</span>
+      </div>
+      <div class="nav-item" onclick="switchPage('reports')" data-page="reports">
+        <span class="nav-icon">📄</span>
+        <span>Student Reports</span>
       </div>
     </div>
 
@@ -650,6 +751,42 @@
           </div>
         </div>
       </div>
+
+      <!-- Student Reports Page -->
+      <div class="page-section" id="reports-page">
+        <div class="section-header">
+          <h2>Student Reports</h2>
+          <p>View completed tool reports for any student</p>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Search Student</div>
+          </div>
+          <div class="form-group">
+            <input type="text" id="reportStudentSearch" placeholder="🔍 Type student ID, name, or email..."
+                   onkeyup="filterReportStudents()" style="width: 100%; padding: 12px; margin-bottom: 12px;">
+            <div id="reportStudentList" style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd; border-radius: 6px;">
+              <div style="padding: 20px; text-align: center; color: #999;">
+                Start typing to search for a student
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="reportToolsContainer" style="display: none;">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">
+                Tools for <span id="reportStudentName"></span> (<span id="reportStudentId"></span>)
+              </div>
+            </div>
+            <div id="reportToolsGrid" style="padding: 20px;">
+              <!-- Tool cards will be inserted here -->
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -663,6 +800,26 @@
       <div class="modal-footer">
         <button class="btn btn-secondary" onclick="closeAccessModal()">Cancel</button>
         <button class="btn btn-primary" id="accessModalAction" onclick="executeAccessAction()">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal for Report View -->
+  <div id="reportModal" class="modal">
+    <div class="modal-content" style="max-width: 900px;">
+      <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <h3 class="modal-title" id="reportModalTitle">Tool Report</h3>
+          <p style="font-size: 12px; color: #999; margin-top: 4px;" id="reportModalSubtitle"></p>
+        </div>
+        <button onclick="closeReportModal()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #999;">&times;</button>
+      </div>
+      <div id="reportModalBody" style="max-height: 70vh; overflow-y: auto; padding: 0; background: linear-gradient(135deg, #4b4166, #1e192b); border-radius: 8px;">
+        <!-- Report HTML will be inserted here -->
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: space-between;">
+        <div id="reportPdfButton"></div>
+        <button class="btn btn-secondary" onclick="closeReportModal()">Close</button>
       </div>
     </div>
   </div>
@@ -1171,6 +1328,286 @@
 
     function closeAccessModal() {
       document.getElementById('accessModal').classList.remove('show');
+    }
+
+    // ========================================
+    // STUDENT REPORTS FUNCTIONS
+    // ========================================
+
+    let currentReportStudent = null;
+
+    // Filter students for reports page
+    function filterReportStudents() {
+      const searchTerm = document.getElementById('reportStudentSearch').value.toLowerCase();
+      const listContainer = document.getElementById('reportStudentList');
+
+      if (searchTerm.length < 2) {
+        listContainer.innerHTML = '<div style="padding: 20px; text-align: center; color: #999;">Type at least 2 characters to search</div>';
+        document.getElementById('reportToolsContainer').style.display = 'none';
+        return;
+      }
+
+      // Filter from studentsData
+      const filtered = studentsData.filter(s =>
+        s.clientId.toLowerCase().includes(searchTerm) ||
+        s.name.toLowerCase().includes(searchTerm) ||
+        s.email.toLowerCase().includes(searchTerm)
+      );
+
+      if (filtered.length === 0) {
+        listContainer.innerHTML = '<div style="padding: 20px; text-align: center; color: #999;">No students found</div>';
+        return;
+      }
+
+      let html = '<div style="list-style: none; padding: 0; margin: 0;">';
+      filtered.forEach(student => {
+        html += `
+          <div onclick="selectReportStudent('${escapeHtml(student.clientId)}', '${escapeHtml(student.name)}')"
+               style="padding: 12px; border-bottom: 1px solid #eee; cursor: pointer; transition: background 0.2s;"
+               onmouseover="this.style.background='#f5f5f5'"
+               onmouseout="this.style.background='white'">
+            <div style="font-weight: 600; color: #1e192b;">${escapeHtml(student.clientId)}</div>
+            <div style="font-size: 14px; color: #666;">${escapeHtml(student.name)} - ${escapeHtml(student.email)}</div>
+          </div>
+        `;
+      });
+      html += '</div>';
+      listContainer.innerHTML = html;
+    }
+
+    // Select student and load their tools
+    function selectReportStudent(clientId, name) {
+      currentReportStudent = { clientId, name };
+      document.getElementById('reportStudentId').textContent = clientId;
+      document.getElementById('reportStudentName').textContent = name;
+      document.getElementById('reportStudentSearch').value = clientId;
+      document.getElementById('reportStudentList').innerHTML =
+        '<div style="padding: 20px; text-align: center; color: #999;">Loading tools...</div>';
+
+      loadStudentTools(clientId);
+    }
+
+    // Load student tools with completion status
+    function loadStudentTools(clientId) {
+      const container = document.getElementById('reportToolsGrid');
+      container.innerHTML = '<div class="loading"><div class="spinner"></div><p>Loading tools...</p></div>';
+      document.getElementById('reportToolsContainer').style.display = 'block';
+
+      google.script.run
+        .withSuccessHandler((response) => {
+          if (response.success) {
+            renderToolCards(response.tools);
+          } else {
+            container.innerHTML = `<div class="error">${response.error}</div>`;
+          }
+        })
+        .withFailureHandler((error) => {
+          container.innerHTML = `<div class="error">Error loading tools: ${error.message}</div>`;
+        })
+        .getStudentTools(clientId);
+    }
+
+    // Render tool cards
+    function renderToolCards(tools) {
+      const container = document.getElementById('reportToolsGrid');
+
+      if (!tools || tools.length === 0) {
+        container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📭</div><p>No tools found</p></div>';
+        return;
+      }
+
+      let html = '<div class="tool-cards-grid">';
+      tools.forEach(tool => {
+        const isCompleted = tool.status === 'completed';
+        const statusClass = isCompleted ? 'completed' : 'not-completed';
+        const statusText = isCompleted ? '✅ Completed' : '⭕ Not Completed';
+        const dateText = isCompleted && tool.completedDate ?
+          `Completed: ${new Date(tool.completedDate).toLocaleDateString()}` :
+          '';
+
+        html += `
+          <div class="tool-card ${statusClass}" ${isCompleted ? `onclick="viewToolReport('${tool.toolId}')"` : ''}>
+            <div class="tool-card-header">
+              <div class="tool-card-title">${escapeHtml(tool.name)}</div>
+              <span class="tool-card-status ${statusClass}">${statusText}</span>
+            </div>
+            <div style="font-size: 14px; color: #999;">${tool.toolId}</div>
+            ${dateText ? `<div class="tool-card-date">${dateText}</div>` : ''}
+            ${isCompleted ? '<div class="tool-card-action">Click to view report →</div>' : ''}
+          </div>
+        `;
+      });
+      html += '</div>';
+
+      container.innerHTML = html;
+    }
+
+    // View tool report
+    function viewToolReport(toolId) {
+      if (!currentReportStudent) {
+        showAlert('No student selected', 'error');
+        return;
+      }
+
+      // Show modal with loading state
+      const modal = document.getElementById('reportModal');
+      const body = document.getElementById('reportModalBody');
+      const title = document.getElementById('reportModalTitle');
+      const subtitle = document.getElementById('reportModalSubtitle');
+
+      title.textContent = 'Loading Report...';
+      subtitle.textContent = '';
+      body.innerHTML = '<div class="loading"><div class="spinner"></div><p>Loading report data...</p></div>';
+      modal.classList.add('show');
+
+      google.script.run
+        .withSuccessHandler((response) => {
+          if (response.success) {
+            renderToolReportHTML(response.html, toolId);
+          } else {
+            body.innerHTML = `<div class="error">${response.error}</div>`;
+          }
+        })
+        .withFailureHandler((error) => {
+          body.innerHTML = `<div class="error">Error loading report: ${error.message}</div>`;
+        })
+        .getToolReportHTML(currentReportStudent.clientId, toolId);
+    }
+
+    // Render tool report HTML (formatted student view)
+    function renderToolReportHTML(reportHTML, toolId) {
+      const title = document.getElementById('reportModalTitle');
+      const subtitle = document.getElementById('reportModalSubtitle');
+      const body = document.getElementById('reportModalBody');
+      const pdfButton = document.getElementById('reportPdfButton');
+
+      // Find tool name
+      const toolNames = {
+        'tool1': 'Personal Orientation',
+        'tool2': 'Financial Clarity',
+        'tool3': 'Identity & Validation',
+        'tool4': 'Work & Purpose',
+        'tool5': 'Love & Connection',
+        'tool6': 'Health & Vitality',
+        'tool7': 'Transcendence',
+        'tool8': 'Integration & Action'
+      };
+
+      // Hide modal header (report HTML has its own header)
+      title.style.display = 'none';
+      subtitle.style.display = 'none';
+
+      // Add PDF download button for tools that support it
+      const pdfTools = ['tool1', 'tool2', 'tool3', 'tool5'];
+      if (pdfTools.includes(toolId)) {
+        pdfButton.innerHTML = `
+          <button class="btn btn-primary" onclick="downloadReportPDF('${currentReportStudent.clientId}', '${toolId}')">
+            📥 Download PDF
+          </button>
+        `;
+      } else {
+        pdfButton.innerHTML = '';
+      }
+
+      // Extract styles from <head> section
+      const styleMatch = reportHTML.match(/<style[^>]*>([\s\S]*?)<\/style>/i);
+      let styles = styleMatch ? styleMatch[1] : '';
+
+      // Scope all styles to #reportModalBody to prevent affecting rest of page
+      // Replace global selectors with scoped selectors
+      styles = styles
+        .replace(/body\s*{/g, '#reportModalBody {')
+        .replace(/([^\w-])(\.[\w-]+)/g, '$1#reportModalBody $2')  // Scope class selectors
+        .replace(/#reportModalBody\s+#reportModalBody/g, '#reportModalBody')  // Remove duplicates
+        .replace(/(@[\w-]+[^{]*{[^}]*})/g, '$1');  // Keep @import and @keyframes as-is
+
+      // Extract body content
+      const bodyMatch = reportHTML.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+      let bodyContent = bodyMatch ? bodyMatch[1] : reportHTML;
+
+      // Remove loading overlay from the HTML (it interferes with display)
+      bodyContent = bodyContent.replace(/<div[^>]*id="loadingOverlay"[^>]*>[\s\S]*?<\/div>\s*<\/div>/gi, '');
+
+      // Create/update scoped style element
+      let styleElement = document.getElementById('reportStyles');
+      if (!styleElement) {
+        styleElement = document.createElement('style');
+        styleElement.id = 'reportStyles';
+        document.head.appendChild(styleElement);
+      }
+      styleElement.textContent = styles;
+
+      // Inject the report HTML
+      body.innerHTML = bodyContent;
+
+      // Remove action buttons from the report (they're for student view, not admin)
+      const actionButtons = body.querySelector('.action-buttons');
+      if (actionButtons) {
+        actionButtons.remove();
+      }
+
+      // Remove feedback widget if present
+      const feedbackWidget = body.querySelector('[data-feedback-widget]');
+      if (feedbackWidget) {
+        feedbackWidget.remove();
+      }
+
+      // Remove any paragraph with "To edit your responses" text
+      const paragraphs = body.querySelectorAll('p');
+      paragraphs.forEach(p => {
+        if (p.textContent.includes('To edit your responses')) {
+          p.remove();
+        }
+      });
+
+      // Remove all buttons (navigation, PDF download, etc - we have our own PDF button in modal footer)
+      const buttons = body.querySelectorAll('button');
+      buttons.forEach(btn => btn.remove());
+
+      // Remove all inline scripts
+      const scripts = body.querySelectorAll('script');
+      scripts.forEach(script => script.remove());
+    }
+
+    // Download report PDF
+    function downloadReportPDF(clientId, toolId) {
+      showAlert('Generating PDF...', 'info');
+
+      const functionMap = {
+        'tool1': 'generateTool1PDF',
+        'tool2': 'generateTool2PDF',
+        'tool3': 'generateTool3PDF',
+        'tool5': 'generateTool5PDF'
+      };
+
+      const functionName = functionMap[toolId];
+      if (!functionName) {
+        showAlert('PDF generation not available for this tool', 'error');
+        return;
+      }
+
+      google.script.run
+        .withSuccessHandler((response) => {
+          if (response.success) {
+            // Create download link
+            const link = document.createElement('a');
+            link.href = 'data:' + response.mimeType + ';base64,' + response.pdf;
+            link.download = response.fileName;
+            link.click();
+            showAlert('PDF downloaded successfully!', 'success');
+          } else {
+            showAlert(response.error || 'Failed to generate PDF', 'error');
+          }
+        })
+        .withFailureHandler((error) => {
+          showAlert('Error generating PDF: ' + error.message, 'error');
+        })
+        [functionName](clientId);
+    }
+
+    // Close report modal
+    function closeReportModal() {
+      document.getElementById('reportModal').classList.remove('show');
     }
   </script>
 </body>

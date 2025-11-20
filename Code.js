@@ -1167,6 +1167,27 @@ function adminLogout() {
   return clearAdminSession();
 }
 
+/**
+ * Get student tools with completion status
+ */
+function getStudentTools(clientId) {
+  return handleGetStudentToolsRequest(clientId);
+}
+
+/**
+ * Get tool report data
+ */
+function getToolReport(clientId, toolId) {
+  return handleGetToolReportRequest(clientId, toolId);
+}
+
+/**
+ * Get tool report HTML (formatted view for admins)
+ */
+function getToolReportHTML(clientId, toolId) {
+  return handleGetToolReportHTMLRequest(clientId, toolId);
+}
+
 // ========================================
 // END OF CODE.JS
 // ========================================
