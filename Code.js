@@ -1055,6 +1055,7 @@ function addDefaultInsightMappings() {
 // ADMIN DASHBOARD API
 // ========================================
 // Exposed functions for admin dashboard (called via google.script.run)
+// No sessionToken needed - UserProperties is automatically user-scoped
 
 /**
  * Admin login handler
@@ -1066,50 +1067,50 @@ function adminLogin(username, password) {
 /**
  * Get all students
  */
-function getStudents(sessionToken) {
-  return handleGetStudentsRequest(sessionToken);
+function getStudents() {
+  return handleGetStudentsRequest();
 }
 
 /**
  * Add new student
  */
-function addStudentViaAdmin(sessionToken, studentData) {
-  return handleAddStudentRequest(sessionToken, studentData);
+function addStudentViaAdmin(studentData) {
+  return handleAddStudentRequest(studentData);
 }
 
 /**
  * Get student access
  */
-function getStudentAccess(sessionToken, clientId) {
-  return handleGetStudentAccessRequest(sessionToken, clientId);
+function getStudentAccess(clientId) {
+  return handleGetStudentAccessRequest(clientId);
 }
 
 /**
  * Unlock tool for student
  */
-function unlockTool(sessionToken, clientId, toolId) {
-  return handleUnlockToolRequest(sessionToken, clientId, toolId);
+function unlockTool(clientId, toolId) {
+  return handleUnlockToolRequest(clientId, toolId);
 }
 
 /**
  * Lock tool for student
  */
-function lockTool(sessionToken, clientId, toolId, reason) {
-  return handleLockToolRequest(sessionToken, clientId, toolId, reason);
+function lockTool(clientId, toolId, reason) {
+  return handleLockToolRequest(clientId, toolId, reason);
 }
 
 /**
  * Get activity log
  */
-function getActivityLog(sessionToken, filters) {
-  return handleGetActivityLogRequest(sessionToken, filters);
+function getActivityLog(filters) {
+  return handleGetActivityLogRequest(filters);
 }
 
 /**
  * Update student status
  */
-function updateStudentStatus(sessionToken, clientId, newStatus) {
-  return handleUpdateStudentStatusRequest(sessionToken, clientId, newStatus);
+function updateStudentStatus(clientId, newStatus) {
+  return handleUpdateStudentStatusRequest(clientId, newStatus);
 }
 
 /**

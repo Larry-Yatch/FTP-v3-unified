@@ -246,9 +246,8 @@
 
     function handleLoginSuccess(response) {
       if (response.success) {
-        // Store session token
-        sessionStorage.setItem('adminToken', response.sessionToken);
-        sessionStorage.setItem('adminUser', JSON.stringify(response.admin));
+        // Session is stored server-side in UserProperties
+        // No need to store token client-side
 
         // Redirect to admin dashboard
         window.location.href = '<?= getScriptUrl() ?>?route=admin-dashboard';

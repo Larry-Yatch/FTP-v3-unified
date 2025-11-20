@@ -23,18 +23,17 @@
 
 /**
  * Check if user is authenticated as admin
+ * Checks UserProperties directly (no token needed since it's user-scoped)
  */
-function isAdminAuthenticated(sessionToken) {
-  if (!sessionToken) return false;
-
-  // TODO: Implement proper session validation
-  // For now, check against a simple session store
+function isAdminAuthenticated() {
+  // Check against UserProperties (automatically scoped to current user)
   const sessionData = PropertiesService.getUserProperties().getProperty('admin_session');
   if (!sessionData) return false;
 
   try {
     const session = JSON.parse(sessionData);
-    return session.token === sessionToken && session.expiresAt > Date.now();
+    // Check if session is still valid
+    return session.expiresAt > Date.now();
   } catch (e) {
     return false;
   }
@@ -140,8 +139,8 @@ function handleAdminLogin(username, password) {
 /**
  * Handle add student request
  */
-function handleAddStudentRequest(sessionToken, studentData) {
-  if (!isAdminAuthenticated(sessionToken)) {
+function handleAddStudentRequest(studentData) {
+  if (!isAdminAuthenticated()) {
     return { success: false, error: 'Not authenticated' };
   }
 
@@ -177,8 +176,8 @@ function handleAddStudentRequest(sessionToken, studentData) {
 /**
  * Handle get all students request
  */
-function handleGetStudentsRequest(sessionToken) {
-  if (!isAdminAuthenticated(sessionToken)) {
+function handleGetStudentsRequest() {
+  if (!isAdminAuthenticated()) {
     return { success: false, error: 'Not authenticated' };
   }
 
@@ -218,8 +217,8 @@ function handleGetStudentsRequest(sessionToken) {
 /**
  * Handle get student access request
  */
-function handleGetStudentAccessRequest(sessionToken, clientId) {
-  if (!isAdminAuthenticated(sessionToken)) {
+function handleGetStudentAccessRequest(clientId) {
+  if (!isAdminAuthenticated()) {
     return { success: false, error: 'Not authenticated' };
   }
 
@@ -235,8 +234,8 @@ function handleGetStudentAccessRequest(sessionToken, clientId) {
 /**
  * Handle unlock tool request
  */
-function handleUnlockToolRequest(sessionToken, clientId, toolId) {
-  if (!isAdminAuthenticated(sessionToken)) {
+function handleUnlockToolRequest(clientId, toolId) {
+  if (!isAdminAuthenticated()) {
     return { success: false, error: 'Not authenticated' };
   }
 
@@ -266,8 +265,8 @@ function handleUnlockToolRequest(sessionToken, clientId, toolId) {
 /**
  * Handle lock tool request
  */
-function handleLockToolRequest(sessionToken, clientId, toolId, reason) {
-  if (!isAdminAuthenticated(sessionToken)) {
+function handleLockToolRequest(clientId, toolId, reason) {
+  if (!isAdminAuthenticated()) {
     return { success: false, error: 'Not authenticated' };
   }
 
@@ -297,8 +296,8 @@ function handleLockToolRequest(sessionToken, clientId, toolId, reason) {
 /**
  * Handle get activity log request
  */
-function handleGetActivityLogRequest(sessionToken, filters) {
-  if (!isAdminAuthenticated(sessionToken)) {
+function handleGetActivityLogRequest(filters) {
+  if (!isAdminAuthenticated()) {
     return { success: false, error: 'Not authenticated' };
   }
 
@@ -354,8 +353,8 @@ function handleGetActivityLogRequest(sessionToken, filters) {
 /**
  * Handle update student status request
  */
-function handleUpdateStudentStatusRequest(sessionToken, clientId, newStatus) {
-  if (!isAdminAuthenticated(sessionToken)) {
+function handleUpdateStudentStatusRequest(clientId, newStatus) {
+  if (!isAdminAuthenticated()) {
     return { success: false, error: 'Not authenticated' };
   }
 
