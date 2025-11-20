@@ -711,12 +711,12 @@
       google.script.run
         .withSuccessHandler(renderDashboard)
         .withFailureHandler(handleError)
-        .handleGetStudentsRequest(sessionToken);
+        .getStudents(sessionToken);
 
       google.script.run
         .withSuccessHandler(renderRecentActivity)
         .withFailureHandler(handleError)
-        .handleGetActivityLogRequest(sessionToken, { limit: 10 });
+        .getActivityLog(sessionToken, { limit: 10 });
     }
 
     function renderDashboard(response) {
@@ -777,7 +777,7 @@
       google.script.run
         .withSuccessHandler(renderStudentTable)
         .withFailureHandler(handleError)
-        .handleGetStudentsRequest(sessionToken);
+        .getStudents(sessionToken);
     }
 
     function renderStudentTable(response) {
@@ -842,7 +842,7 @@
           }
         })
         .withFailureHandler(handleError)
-        .handleAddStudentRequest(sessionToken, studentData);
+        .addStudentViaAdmin(sessionToken, studentData);
     }
 
     function refreshStudentList() {
@@ -862,7 +862,7 @@
           }
         })
         .withFailureHandler(handleError)
-        .handleUpdateStudentStatusRequest(sessionToken, clientId, newStatus);
+        .updateStudentStatus(sessionToken, clientId, newStatus);
     }
 
     function viewStudentAccess(clientId) {
@@ -888,7 +888,7 @@
               loadAccessPage();
             }
           })
-          .handleGetStudentsRequest(sessionToken);
+          .getStudents(sessionToken);
       }
     }
 
@@ -906,7 +906,7 @@
       google.script.run
         .withSuccessHandler(renderAccessControl)
         .withFailureHandler(handleError)
-        .handleGetStudentAccessRequest(sessionToken, clientId);
+        .getStudentAccess(sessionToken, clientId);
     }
 
     function renderAccessControl(response) {
@@ -959,7 +959,7 @@
             }
           })
           .withFailureHandler(handleError)
-          .handleUnlockToolRequest(sessionToken, clientId, toolId);
+          .unlockTool(sessionToken, clientId, toolId);
       }
     }
 
@@ -976,7 +976,7 @@
             }
           })
           .withFailureHandler(handleError)
-          .handleLockToolRequest(sessionToken, clientId, toolId, reason);
+          .lockTool(sessionToken, clientId, toolId, reason);
       }
     }
 
@@ -993,7 +993,7 @@
       google.script.run
         .withSuccessHandler(renderActivityLog)
         .withFailureHandler(handleError)
-        .handleGetActivityLogRequest(sessionToken, filters);
+        .getActivityLog(sessionToken, filters);
     }
 
     function renderActivityLog(response) {

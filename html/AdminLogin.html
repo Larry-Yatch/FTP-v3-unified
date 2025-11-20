@@ -237,7 +237,7 @@
         google.script.run
           .withSuccessHandler(handleLoginSuccess)
           .withFailureHandler(handleLoginFailure)
-          .handleAdminLogin(username, password);
+          .adminLogin(username, password);
 
       } catch (error) {
         handleLoginFailure(error);
