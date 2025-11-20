@@ -1052,6 +1052,74 @@ function addDefaultInsightMappings() {
 }
 
 // ========================================
+// ADMIN DASHBOARD API
+// ========================================
+// Exposed functions for admin dashboard (called via google.script.run)
+
+/**
+ * Admin login handler
+ */
+function adminLogin(username, password) {
+  return handleAdminLogin(username, password);
+}
+
+/**
+ * Get all students
+ */
+function getStudents(sessionToken) {
+  return handleGetStudentsRequest(sessionToken);
+}
+
+/**
+ * Add new student
+ */
+function addStudentViaAdmin(sessionToken, studentData) {
+  return handleAddStudentRequest(sessionToken, studentData);
+}
+
+/**
+ * Get student access
+ */
+function getStudentAccess(sessionToken, clientId) {
+  return handleGetStudentAccessRequest(sessionToken, clientId);
+}
+
+/**
+ * Unlock tool for student
+ */
+function unlockTool(sessionToken, clientId, toolId) {
+  return handleUnlockToolRequest(sessionToken, clientId, toolId);
+}
+
+/**
+ * Lock tool for student
+ */
+function lockTool(sessionToken, clientId, toolId, reason) {
+  return handleLockToolRequest(sessionToken, clientId, toolId, reason);
+}
+
+/**
+ * Get activity log
+ */
+function getActivityLog(sessionToken, filters) {
+  return handleGetActivityLogRequest(sessionToken, filters);
+}
+
+/**
+ * Update student status
+ */
+function updateStudentStatus(sessionToken, clientId, newStatus) {
+  return handleUpdateStudentStatusRequest(sessionToken, clientId, newStatus);
+}
+
+/**
+ * Admin logout
+ */
+function adminLogout() {
+  return clearAdminSession();
+}
+
+// ========================================
 // END OF CODE.JS
 // ========================================
 //
