@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard - Financial TruPath</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: #f5f5f7;
+      min-height: 100vh;
+    }
+
+    /* Header */
+    .admin-header {
+      background: white;
+      border-bottom: 1px solid #e0e0e0;
+      padding: 16px 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+
+    .header-left h1 {
+      font-size: 20px;
+      color: #1e192b;
+    }
+
+    .header-left p {
+      font-size: 12px;
+      color: #666;
+      margin-top: 4px;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .admin-info {
+      text-align: right;
+    }
+
+    .admin-info .name {
+      font-size: 14px;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .admin-info .role {
+      font-size: 12px;
+      color: #999;
+    }
+
+    .logout-btn {
+      padding: 8px 16px;
+      background: #f0f0f0;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .logout-btn:hover {
+      background: #e0e0e0;
+    }
+
+    /* Layout */
+    .admin-container {
+      display: flex;
+      min-height: calc(100vh - 73px);
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 250px;
+      background: white;
+      border-right: 1px solid #e0e0e0;
+      padding: 24px 0;
+    }
+
+    .nav-item {
+      padding: 12px 24px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 14px;
+      color: #666;
+      transition: all 0.2s;
+      border-left: 3px solid transparent;
+    }
+
+    .nav-item:hover {
+      background: #f9f9f9;
+      color: #333;
+    }
+
+    .nav-item.active {
+      background: rgba(173, 145, 104, 0.1);
+      color: #ad9168;
+      border-left-color: #ad9168;
+      font-weight: 600;
+    }
+
+    .nav-icon {
+      width: 20px;
+      height: 20px;
+      display: inline-block;
+    }
+
+    /* Main Content */
+    .main-content {
+      flex: 1;
+      padding: 32px;
+      overflow-y: auto;
+    }
+
+    .page-section {
+      display: none;
+    }
+
+    .page-section.active {
+      display: block;
+    }
+
+    .section-header {
+      margin-bottom: 24px;
+    }
+
+    .section-header h2 {
+      font-size: 24px;
+      color: #1e192b;
+      margin-bottom: 8px;
+    }
+
+    .section-header p {
+      font-size: 14px;
+      color: #666;
+    }
+
+    /* Cards */
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      margin-bottom: 24px;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .card-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #1e192b;
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin-bottom: 32px;
+    }
+
+    .stat-card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    .stat-value {
+      font-size: 32px;
+      font-weight: 700;
+      color: #ad9168;
+      margin-bottom: 8px;
+    }
+
+    .stat-label {
+      font-size: 14px;
+      color: #666;
+    }
+
+    /* Buttons */
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: #ad9168;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #9a7f5a;
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: #f0f0f0;
+      color: #333;
+    }
+
+    .btn-secondary:hover {
+      background: #e0e0e0;
+    }
+
+    .btn-danger {
+      background: #dc3545;
+      color: white;
+    }
+
+    .btn-danger:hover {
+      background: #c82333;
+    }
+
+    .btn-small {
+      padding: 6px 12px;
+      font-size: 12px;
+    }
+
+    /* Table */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .data-table th {
+      background: #f9f9f9;
+      padding: 12px;
+      text-align: left;
+      font-size: 12px;
+      font-weight: 600;
+      color: #666;
+      text-transform: uppercase;
+      border-bottom: 2px solid #e0e0e0;
+    }
+
+    .data-table td {
+      padding: 16px 12px;
+      border-bottom: 1px solid #f0f0f0;
+      font-size: 14px;
+      color: #333;
+    }
+
+    .data-table tr:hover {
+      background: #f9f9f9;
+    }
+
+    /* Status badges */
+    .status-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .status-active {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .status-inactive {
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    .status-unlocked {
+      background: #d1ecf1;
+      color: #0c5460;
+    }
+
+    .status-locked {
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    .status-pending {
+      background: #fff3cd;
+      color: #856404;
+    }
+
+    /* Forms */
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 14px;
+      font-weight: 500;
+      color: #333;
+      margin-bottom: 8px;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 6px;
+      font-size: 14px;
+      transition: border-color 0.2s;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: #ad9168;
+    }
+
+    /* Modal */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal.show {
+      display: flex;
+    }
+
+    .modal-content {
+      background: white;
+      border-radius: 12px;
+      padding: 32px;
+      max-width: 500px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+
+    .modal-header {
+      margin-bottom: 24px;
+    }
+
+    .modal-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: #1e192b;
+    }
+
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    /* Loading */
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #666;
+    }
+
+    .spinner {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #ad9168;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 16px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #999;
+    }
+
+    .empty-state-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+
+    /* Action buttons in table */
+    .action-buttons {
+      display: flex;
+      gap: 8px;
+    }
+
+    /* Alert */
+    .alert {
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      display: none;
+    }
+
+    .alert.show {
+      display: block;
+    }
+
+    .alert-success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+
+    .alert-error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+
+    .alert-info {
+      background: #d1ecf1;
+      color: #0c5460;
+      border: 1px solid #bee5eb;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <div class="admin-header">
+    <div class="header-left">
+      <h1>Financial TruPath Admin</h1>
+      <p>Manage students, tool access, and view activity</p>
+    </div>
+    <div class="header-right">
+      <div class="admin-info">
+        <div class="name" id="adminName">Administrator</div>
+        <div class="role">Admin</div>
+      </div>
+      <button class="logout-btn" onclick="logout()">Logout</button>
+    </div>
+  </div>
+
+  <!-- Main Container -->
+  <div class="admin-container">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="nav-item active" onclick="switchPage('overview')" data-page="overview">
+        <span class="nav-icon">📊</span>
+        <span>Overview</span>
+      </div>
+      <div class="nav-item" onclick="switchPage('students')" data-page="students">
+        <span class="nav-icon">👥</span>
+        <span>Students</span>
+      </div>
+      <div class="nav-item" onclick="switchPage('access')" data-page="access">
+        <span class="nav-icon">🔐</span>
+        <span>Tool Access</span>
+      </div>
+      <div class="nav-item" onclick="switchPage('activity')" data-page="activity">
+        <span class="nav-icon">📝</span>
+        <span>Activity Log</span>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <div id="alertContainer"></div>
+
+      <!-- Overview Page -->
+      <div class="page-section active" id="overview-page">
+        <div class="section-header">
+          <h2>Dashboard Overview</h2>
+          <p>Quick stats and system health</p>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-value" id="stat-total-students">0</div>
+            <div class="stat-label">Total Students</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="stat-active-students">0</div>
+            <div class="stat-label">Active Students</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="stat-completions">0</div>
+            <div class="stat-label">Tool Completions</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="stat-activity">0</div>
+            <div class="stat-label">Recent Activities</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Recent Activity</div>
+          </div>
+          <div id="recent-activity-list" class="loading">
+            <div class="spinner"></div>
+            <p>Loading activity...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Students Page -->
+      <div class="page-section" id="students-page">
+        <div class="section-header">
+          <h2>Student Management</h2>
+          <p>Add, view, and manage student accounts</p>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Add New Student</div>
+          </div>
+          <form id="addStudentForm" onsubmit="handleAddStudent(event)">
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="studentId">Student ID *</label>
+                <input type="text" id="studentId" required placeholder="e.g., STU001">
+              </div>
+              <div class="form-group">
+                <label for="studentName">Full Name *</label>
+                <input type="text" id="studentName" required placeholder="e.g., John Doe">
+              </div>
+              <div class="form-group">
+                <label for="studentEmail">Email *</label>
+                <input type="email" id="studentEmail" required placeholder="e.g., john@example.com">
+              </div>
+            </div>
+            <button type="submit" class="btn btn-primary">Add Student</button>
+          </form>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">All Students</div>
+            <button class="btn btn-secondary btn-small" onclick="refreshStudentList()">Refresh</button>
+          </div>
+          <div id="students-table-container" class="loading">
+            <div class="spinner"></div>
+            <p>Loading students...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Access Page -->
+      <div class="page-section" id="access-page">
+        <div class="section-header">
+          <h2>Tool Access Control</h2>
+          <p>Manage tool unlocks and locks for students</p>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Select Student</div>
+          </div>
+          <div class="form-group">
+            <label for="accessStudentSelect">Student</label>
+            <select id="accessStudentSelect" onchange="loadStudentAccess()">
+              <option value="">-- Select a student --</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="access-control-container"></div>
+      </div>
+
+      <!-- Activity Page -->
+      <div class="page-section" id="activity-page">
+        <div class="section-header">
+          <h2>Activity Log</h2>
+          <p>View all system activities and events</p>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Filters</div>
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="filterClientId">Student ID</label>
+              <input type="text" id="filterClientId" placeholder="Leave empty for all">
+            </div>
+            <div class="form-group">
+              <label for="filterAction">Action Type</label>
+              <select id="filterAction">
+                <option value="">All Actions</option>
+                <option value="tool_unlocked">Tool Unlocked</option>
+                <option value="tool_completed">Tool Completed</option>
+                <option value="started_tool">Started Tool</option>
+                <option value="draft_saved">Draft Saved</option>
+              </select>
+            </div>
+          </div>
+          <button class="btn btn-primary btn-small" onclick="loadActivityLog()">Apply Filters</button>
+        </div>
+
+        <div class="card">
+          <div id="activity-log-container" class="loading">
+            <div class="spinner"></div>
+            <p>Loading activity log...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal for Access Control -->
+  <div id="accessModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title" id="accessModalTitle">Manage Tool Access</h3>
+      </div>
+      <div id="accessModalBody"></div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeAccessModal()">Cancel</button>
+        <button class="btn btn-primary" id="accessModalAction" onclick="executeAccessAction()">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Global state
+    let sessionToken = sessionStorage.getItem('adminToken');
+    let currentAccessAction = null;
+    let studentsData = [];
+
+    // Helper function to escape HTML and prevent XSS
+    function escapeHtml(unsafe) {
+      if (unsafe === null || unsafe === undefined) return '';
+      return String(unsafe)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    // Check authentication
+    if (!sessionToken) {
+      window.location.href = '<?= getScriptUrl() ?>?route=admin-login';
+    }
+
+    // Initialize dashboard
+    window.addEventListener('load', () => {
+      loadDashboardData();
+    });
+
+    function switchPage(pageName) {
+      // Update nav
+      document.querySelectorAll('.nav-item').forEach(item => {
+        item.classList.remove('active');
+      });
+      document.querySelector(`[data-page="${pageName}"]`).classList.add('active');
+
+      // Update content
+      document.querySelectorAll('.page-section').forEach(section => {
+        section.classList.remove('active');
+      });
+      document.getElementById(`${pageName}-page`).classList.add('active');
+
+      // Load page-specific data
+      if (pageName === 'students') {
+        loadStudentList();
+      } else if (pageName === 'access') {
+        loadAccessPage();
+      } else if (pageName === 'activity') {
+        loadActivityLog();
+      } else if (pageName === 'overview') {
+        loadDashboardData();
+      }
+    }
+
+    function loadDashboardData() {
+      // Load stats and recent activity
+      google.script.run
+        .withSuccessHandler(renderDashboard)
+        .withFailureHandler(handleError)
+        .handleGetStudentsRequest(sessionToken);
+
+      google.script.run
+        .withSuccessHandler(renderRecentActivity)
+        .withFailureHandler(handleError)
+        .handleGetActivityLogRequest(sessionToken, { limit: 10 });
+    }
+
+    function renderDashboard(response) {
+      if (!response.success) {
+        handleError(response.error);
+        return;
+      }
+
+      const students = response.students;
+      studentsData = students;
+
+      // Update stats
+      document.getElementById('stat-total-students').textContent = students.length;
+      document.getElementById('stat-active-students').textContent =
+        students.filter(s => s.status === 'active').length;
+      document.getElementById('stat-completions').textContent =
+        students.reduce((sum, s) => sum + (s.toolsCompleted || 0), 0);
+    }
+
+    function renderRecentActivity(response) {
+      if (!response.success) {
+        document.getElementById('recent-activity-list').innerHTML =
+          '<div class="empty-state">Failed to load activity</div>';
+        return;
+      }
+
+      const container = document.getElementById('recent-activity-list');
+      const activities = response.activities;
+
+      document.getElementById('stat-activity').textContent = activities.length;
+
+      if (activities.length === 0) {
+        container.innerHTML = '<div class="empty-state">No recent activity</div>';
+        return;
+      }
+
+      let html = '<table class="data-table"><thead><tr><th>Time</th><th>Student</th><th>Action</th><th>Tool</th></tr></thead><tbody>';
+
+      activities.forEach(activity => {
+        const time = new Date(activity.timestamp).toLocaleString();
+        html += `
+          <tr>
+            <td>${escapeHtml(time)}</td>
+            <td>${escapeHtml(activity.clientId)}</td>
+            <td>${escapeHtml(activity.action)}</td>
+            <td>${escapeHtml(activity.toolId || '-')}</td>
+          </tr>
+        `;
+      });
+
+      html += '</tbody></table>';
+      container.innerHTML = html;
+    }
+
+    function loadStudentList() {
+      document.getElementById('students-table-container').innerHTML = '<div class="loading"><div class="spinner"></div><p>Loading students...</p></div>';
+
+      google.script.run
+        .withSuccessHandler(renderStudentTable)
+        .withFailureHandler(handleError)
+        .handleGetStudentsRequest(sessionToken);
+    }
+
+    function renderStudentTable(response) {
+      if (!response.success) {
+        handleError(response.error);
+        return;
+      }
+
+      const container = document.getElementById('students-table-container');
+      const students = response.students;
+      studentsData = students;
+
+      if (students.length === 0) {
+        container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📭</div><p>No students yet. Add your first student above!</p></div>';
+        return;
+      }
+
+      let html = '<table class="data-table">';
+      html += '<thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Status</th><th>Tools Completed</th><th>Actions</th></tr></thead>';
+      html += '<tbody>';
+
+      students.forEach(student => {
+        const statusClass = student.status === 'active' ? 'status-active' : 'status-inactive';
+        html += `
+          <tr>
+            <td><strong>${escapeHtml(student.clientId)}</strong></td>
+            <td>${escapeHtml(student.name)}</td>
+            <td>${escapeHtml(student.email)}</td>
+            <td><span class="status-badge ${statusClass}">${escapeHtml(student.status)}</span></td>
+            <td>${student.toolsCompleted || 0} / 8</td>
+            <td class="action-buttons">
+              <button class="btn btn-secondary btn-small" onclick="viewStudentAccess('${escapeHtml(student.clientId)}')">View Access</button>
+              <button class="btn btn-secondary btn-small" onclick="toggleStudentStatus('${escapeHtml(student.clientId)}', '${escapeHtml(student.status)}')">
+                ${student.status === 'active' ? 'Deactivate' : 'Activate'}
+              </button>
+            </td>
+          </tr>
+        `;
+      });
+
+      html += '</tbody></table>';
+      container.innerHTML = html;
+    }
+
+    function handleAddStudent(event) {
+      event.preventDefault();
+
+      const studentData = {
+        clientId: document.getElementById('studentId').value.trim(),
+        name: document.getElementById('studentName').value.trim(),
+        email: document.getElementById('studentEmail').value.trim()
+      };
+
+      google.script.run
+        .withSuccessHandler((response) => {
+          if (response.success) {
+            showAlert('Student added successfully!', 'success');
+            document.getElementById('addStudentForm').reset();
+            loadStudentList();
+          } else {
+            showAlert(response.error, 'error');
+          }
+        })
+        .withFailureHandler(handleError)
+        .handleAddStudentRequest(sessionToken, studentData);
+    }
+
+    function refreshStudentList() {
+      loadStudentList();
+    }
+
+    function toggleStudentStatus(clientId, currentStatus) {
+      const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+
+      google.script.run
+        .withSuccessHandler((response) => {
+          if (response.success) {
+            showAlert(`Student status updated to ${newStatus}`, 'success');
+            loadStudentList();
+          } else {
+            showAlert(response.error, 'error');
+          }
+        })
+        .withFailureHandler(handleError)
+        .handleUpdateStudentStatusRequest(sessionToken, clientId, newStatus);
+    }
+
+    function viewStudentAccess(clientId) {
+      switchPage('access');
+      document.getElementById('accessStudentSelect').value = clientId;
+      loadStudentAccess();
+    }
+
+    function loadAccessPage() {
+      // Populate student dropdown
+      const select = document.getElementById('accessStudentSelect');
+      select.innerHTML = '<option value="">-- Select a student --</option>';
+
+      studentsData.forEach(student => {
+        select.innerHTML += `<option value="${escapeHtml(student.clientId)}">${escapeHtml(student.clientId)} - ${escapeHtml(student.name)}</option>`;
+      });
+
+      if (studentsData.length === 0) {
+        google.script.run
+          .withSuccessHandler((response) => {
+            if (response.success) {
+              studentsData = response.students;
+              loadAccessPage();
+            }
+          })
+          .handleGetStudentsRequest(sessionToken);
+      }
+    }
+
+    function loadStudentAccess() {
+      const clientId = document.getElementById('accessStudentSelect').value;
+      const container = document.getElementById('access-control-container');
+
+      if (!clientId) {
+        container.innerHTML = '';
+        return;
+      }
+
+      container.innerHTML = '<div class="loading"><div class="spinner"></div><p>Loading access data...</p></div>';
+
+      google.script.run
+        .withSuccessHandler(renderAccessControl)
+        .withFailureHandler(handleError)
+        .handleGetStudentAccessRequest(sessionToken, clientId);
+    }
+
+    function renderAccessControl(response) {
+      const container = document.getElementById('access-control-container');
+
+      if (!response.success) {
+        container.innerHTML = '<div class="empty-state">Failed to load access data</div>';
+        return;
+      }
+
+      const access = response.access;
+      const clientId = document.getElementById('accessStudentSelect').value;
+
+      let html = '<div class="card"><div class="card-header"><div class="card-title">Tool Access Status</div></div>';
+      html += '<table class="data-table"><thead><tr><th>Tool</th><th>Status</th><th>Unlocked Date</th><th>Actions</th></tr></thead><tbody>';
+
+      access.forEach(tool => {
+        const statusClass = tool.status === 'unlocked' ? 'status-unlocked' :
+                           tool.status === 'locked' ? 'status-locked' : 'status-pending';
+        const unlockedDate = tool.unlockedDate ? new Date(tool.unlockedDate).toLocaleDateString() : '-';
+
+        html += `
+          <tr>
+            <td><strong>${escapeHtml(tool.toolId)}</strong></td>
+            <td><span class="status-badge ${statusClass}">${escapeHtml(tool.status)}</span></td>
+            <td>${escapeHtml(unlockedDate)}</td>
+            <td class="action-buttons">
+              ${tool.status !== 'unlocked' ?
+                `<button class="btn btn-primary btn-small" onclick="unlockTool('${escapeHtml(clientId)}', '${escapeHtml(tool.toolId)}')">Unlock</button>` :
+                `<button class="btn btn-danger btn-small" onclick="lockTool('${escapeHtml(clientId)}', '${escapeHtml(tool.toolId)}')">Lock</button>`
+              }
+            </td>
+          </tr>
+        `;
+      });
+
+      html += '</tbody></table></div>';
+      container.innerHTML = html;
+    }
+
+    function unlockTool(clientId, toolId) {
+      if (confirm(`Unlock ${toolId} for ${clientId}?`)) {
+        google.script.run
+          .withSuccessHandler((response) => {
+            if (response.success) {
+              showAlert(`${toolId} unlocked successfully`, 'success');
+              loadStudentAccess();
+            } else {
+              showAlert(response.error, 'error');
+            }
+          })
+          .withFailureHandler(handleError)
+          .handleUnlockToolRequest(sessionToken, clientId, toolId);
+      }
+    }
+
+    function lockTool(clientId, toolId) {
+      const reason = prompt(`Why are you locking ${toolId} for ${clientId}?`, 'Manual lock via admin dashboard');
+      if (reason !== null) {
+        google.script.run
+          .withSuccessHandler((response) => {
+            if (response.success) {
+              showAlert(`${toolId} locked successfully`, 'success');
+              loadStudentAccess();
+            } else {
+              showAlert(response.error, 'error');
+            }
+          })
+          .withFailureHandler(handleError)
+          .handleLockToolRequest(sessionToken, clientId, toolId, reason);
+      }
+    }
+
+    function loadActivityLog() {
+      const container = document.getElementById('activity-log-container');
+      container.innerHTML = '<div class="loading"><div class="spinner"></div><p>Loading activity log...</p></div>';
+
+      const filters = {
+        clientId: document.getElementById('filterClientId').value.trim() || undefined,
+        action: document.getElementById('filterAction').value || undefined,
+        limit: 100
+      };
+
+      google.script.run
+        .withSuccessHandler(renderActivityLog)
+        .withFailureHandler(handleError)
+        .handleGetActivityLogRequest(sessionToken, filters);
+    }
+
+    function renderActivityLog(response) {
+      const container = document.getElementById('activity-log-container');
+
+      if (!response.success) {
+        container.innerHTML = '<div class="empty-state">Failed to load activity log</div>';
+        return;
+      }
+
+      const activities = response.activities;
+
+      if (activities.length === 0) {
+        container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📭</div><p>No activities found</p></div>';
+        return;
+      }
+
+      let html = '<table class="data-table">';
+      html += '<thead><tr><th>Timestamp</th><th>Student ID</th><th>Action</th><th>Tool</th><th>Details</th></tr></thead>';
+      html += '<tbody>';
+
+      activities.forEach(activity => {
+        const time = new Date(activity.timestamp).toLocaleString();
+        const details = typeof activity.details === 'string' ? activity.details : JSON.stringify(activity.details);
+
+        html += `
+          <tr>
+            <td>${escapeHtml(time)}</td>
+            <td>${escapeHtml(activity.clientId)}</td>
+            <td>${escapeHtml(activity.action)}</td>
+            <td>${escapeHtml(activity.toolId || '-')}</td>
+            <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(details)}</td>
+          </tr>
+        `;
+      });
+
+      html += '</tbody></table>';
+      container.innerHTML = html;
+    }
+
+    function showAlert(message, type) {
+      const container = document.getElementById('alertContainer');
+      const alert = document.createElement('div');
+      alert.className = `alert alert-${type} show`;
+      alert.textContent = message;
+
+      container.innerHTML = '';
+      container.appendChild(alert);
+
+      setTimeout(() => {
+        alert.classList.remove('show');
+      }, 5000);
+    }
+
+    function handleError(error) {
+      console.error('Error:', error);
+      showAlert(typeof error === 'string' ? error : 'An error occurred', 'error');
+    }
+
+    function logout() {
+      if (confirm('Are you sure you want to logout?')) {
+        google.script.run
+          .withSuccessHandler(() => {
+            sessionStorage.removeItem('adminToken');
+            sessionStorage.removeItem('adminUser');
+            window.location.href = '<?= getScriptUrl() ?>?route=admin-login';
+          })
+          .clearAdminSession();
+      }
+    }
+
+    function closeAccessModal() {
+      document.getElementById('accessModal').classList.remove('show');
+    }
+  </script>
+</body>
+</html>

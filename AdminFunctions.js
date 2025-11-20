@@ -6,6 +6,12 @@
  * These functions are for administrators to manage the system from the
  * Apps Script Editor. They are NOT part of the production web app.
  *
+ * ⚠️ PERFORMANCE NOTE:
+ * These functions use SpreadsheetApp.openById() directly and bypass the
+ * SpreadsheetCache system. This is intentional for occasional manual use,
+ * but they should NOT be called frequently or in loops to avoid 429 errors.
+ * For high-frequency operations, use the Admin Dashboard instead.
+ *
  * USAGE:
  * 1. Open Apps Script Editor
  * 2. Select function from dropdown at top

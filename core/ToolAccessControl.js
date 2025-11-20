@@ -103,6 +103,9 @@ const ToolAccessControl = {
         ]);
       }
 
+      // Invalidate cache to ensure fresh data on next read
+      SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.TOOL_ACCESS);
+
       // Log the action
       DataService.logActivity(clientId, 'tool_unlocked', {
         toolId: toolId,
@@ -156,6 +159,9 @@ const ToolAccessControl = {
           reason || 'Manual admin lock'
         ]);
       }
+
+      // Invalidate cache to ensure fresh data on next read
+      SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.TOOL_ACCESS);
 
       // Log the action
       DataService.logActivity(clientId, 'tool_locked', {
