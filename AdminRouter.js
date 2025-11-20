@@ -28,13 +28,20 @@
 function isAdminAuthenticated() {
   // Check against UserProperties (automatically scoped to current user)
   const sessionData = PropertiesService.getUserProperties().getProperty('admin_session');
-  if (!sessionData) return false;
+  console.log('[AUTH] Session data:', sessionData ? 'EXISTS' : 'NULL');
+
+  if (!sessionData) {
+    console.log('[AUTH] No session found');
+    return false;
+  }
 
   try {
     const session = JSON.parse(sessionData);
-    // Check if session is still valid
-    return session.expiresAt > Date.now();
+    const isValid = session.expiresAt > Date.now();
+    console.log('[AUTH] Session valid:', isValid, 'Expires:', new Date(session.expiresAt));
+    return isValid;
   } catch (e) {
+    console.log('[AUTH] Session parse error:', e);
     return false;
   }
 }
@@ -122,10 +129,20 @@ function clearAdminSession() {
  * Handle admin login request
  */
 function handleAdminLogin(username, password) {
+  console.log('[LOGIN] Attempting login for:', username);
   const validation = validateAdminCredentials(username, password);
 
   if (validation.success) {
+    console.log('[LOGIN] Credentials valid, creating session');
     const session = createAdminSession(validation.admin);
+    console.log('[LOGIN] Session created, expires:', new Date(session.expiresAt));
+
+    // Log admin login activity
+    DataService.logActivity('ADMIN', 'admin_login', {
+      toolId: '',
+      details: `Admin login: ${validation.admin.username}`
+    });
+
     return {
       success: true,
       sessionToken: session.token,
@@ -133,6 +150,7 @@ function handleAdminLogin(username, password) {
     };
   }
 
+  console.log('[LOGIN] Login failed:', validation.error);
   return validation;
 }
 
@@ -177,19 +195,27 @@ function handleAddStudentRequest(studentData) {
  * Handle get all students request
  */
 function handleGetStudentsRequest() {
+  console.log('[GET_STUDENTS] Request received');
+
   if (!isAdminAuthenticated()) {
+    console.log('[GET_STUDENTS] Not authenticated');
     return { success: false, error: 'Not authenticated' };
   }
+
+  console.log('[GET_STUDENTS] Authenticated, fetching students');
 
   try {
     const ss = SpreadsheetCache.getSpreadsheet();
     const studentsSheet = ss.getSheetByName(CONFIG.SHEETS.STUDENTS);
 
     if (!studentsSheet) {
+      console.log('[GET_STUDENTS] No students sheet, returning empty array');
       return { success: true, students: [] };
     }
 
     const data = studentsSheet.getDataRange().getValues();
+    console.log('[GET_STUDENTS] Found', data.length - 1, 'students');
+
     const students = [];
 
     // Skip header row
@@ -199,17 +225,18 @@ function handleGetStudentsRequest() {
         name: data[i][1],
         email: data[i][2],
         status: data[i][3],
-        enrolledDate: data[i][4],
-        lastActivity: data[i][5],
+        enrolledDate: data[i][4] ? data[i][4].toString() : '',
+        lastActivity: data[i][5] ? data[i][5].toString() : '',
         toolsCompleted: data[i][6] || 0,
         currentTool: data[i][7] || 'tool1'
       });
     }
 
+    console.log('[GET_STUDENTS] Returning', students.length, 'students');
     return { success: true, students: students };
 
   } catch (error) {
-    console.error('Error getting students:', error);
+    console.error('[GET_STUDENTS] Error:', error);
     return { success: false, error: error.toString() };
   }
 }
@@ -218,15 +245,33 @@ function handleGetStudentsRequest() {
  * Handle get student access request
  */
 function handleGetStudentAccessRequest(clientId) {
+  console.log('[GET_ACCESS] Request received for clientId:', clientId);
+
   if (!isAdminAuthenticated()) {
+    console.log('[GET_ACCESS] Not authenticated');
     return { success: false, error: 'Not authenticated' };
   }
 
+  console.log('[GET_ACCESS] Authenticated, fetching access');
+
   try {
     const access = ToolAccessControl.getStudentAccess(clientId);
-    return { success: true, access: access };
+
+    // Serialize dates to strings
+    const serializedAccess = access.map(record => ({
+      clientId: record.clientId,
+      toolId: record.toolId,
+      status: record.status,
+      prerequisites: record.prerequisites,
+      unlockedDate: record.unlockedDate ? record.unlockedDate.toString() : '',
+      lockedBy: record.lockedBy,
+      lockReason: record.lockReason
+    }));
+
+    console.log('[GET_ACCESS] Returning', serializedAccess.length, 'access records');
+    return { success: true, access: serializedAccess };
   } catch (error) {
-    console.error('Error getting student access:', error);
+    console.error('[GET_ACCESS] Error:', error);
     return { success: false, error: error.toString() };
   }
 }
@@ -297,33 +342,43 @@ function handleLockToolRequest(clientId, toolId, reason) {
  * Handle get activity log request
  */
 function handleGetActivityLogRequest(filters) {
+  console.log('[GET_ACTIVITY] Request received, filters:', JSON.stringify(filters));
+
   if (!isAdminAuthenticated()) {
+    console.log('[GET_ACTIVITY] Not authenticated');
     return { success: false, error: 'Not authenticated' };
   }
+
+  console.log('[GET_ACTIVITY] Authenticated, fetching activity log');
 
   try {
     const ss = SpreadsheetCache.getSpreadsheet();
     const activitySheet = ss.getSheetByName(CONFIG.SHEETS.ACTIVITY_LOG);
 
     if (!activitySheet) {
+      console.log('[GET_ACTIVITY] No activity sheet, returning empty array');
       return { success: true, activities: [] };
     }
 
     const data = activitySheet.getDataRange().getValues();
+    console.log('[GET_ACTIVITY] Found', data.length - 1, 'activity rows');
+
     const activities = [];
 
     // Check if there's any data beyond the header
     if (data.length <= 1) {
+      console.log('[GET_ACTIVITY] Only header row, returning empty array');
       return { success: true, activities: [] };
     }
 
     // Get last 100 activities (or apply filters)
     const limit = filters?.limit || 100;
     const startIndex = Math.max(1, data.length - limit);
+    console.log('[GET_ACTIVITY] Reading from index', startIndex, 'to', data.length - 1);
 
     for (let i = startIndex; i < data.length; i++) {
       const activity = {
-        timestamp: data[i][0],
+        timestamp: data[i][0] ? data[i][0].toString() : '',
         clientId: data[i][1],
         action: data[i][2],
         details: data[i][3],
@@ -342,10 +397,11 @@ function handleGetActivityLogRequest(filters) {
     // Reverse to show newest first
     activities.reverse();
 
+    console.log('[GET_ACTIVITY] Returning', activities.length, 'activities');
     return { success: true, activities: activities };
 
   } catch (error) {
-    console.error('Error getting activity log:', error);
+    console.error('[GET_ACTIVITY] Error:', error);
     return { success: false, error: error.toString() };
   }
 }
@@ -371,10 +427,18 @@ function handleUpdateStudentStatusRequest(clientId, newStatus) {
     // Find student row
     for (let i = 1; i < data.length; i++) {
       if (data[i][0] === clientId) {
+        const oldStatus = data[i][3];
+
         // Update status (column D, index 3)
         studentsSheet.getRange(i + 1, 4).setValue(newStatus);
 
         SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.STUDENTS);
+
+        // Log activity for status change
+        DataService.logActivity(clientId, 'student_status_changed', {
+          toolId: '',
+          details: `Status changed from ${oldStatus} to ${newStatus}`
+        });
 
         return {
           success: true,

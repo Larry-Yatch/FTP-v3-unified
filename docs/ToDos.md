@@ -7,13 +7,41 @@
 
 Bugs:
 - Add access to the investment tool - tool 8 now
-- change the position of the return to next and proceed to next page buttons on form
-- pull emogis from tool titles
+- Tool 5: last two domains have the same consequence look into that
+- Turn off automatic unlocking of tools.
+- I am worried that the subdomain insights are not being called or shown correctly - or maybe we do not need them for tool 3
 
-Tool 5: last two domains have the same consequence look into that
+Nov 19, 2025, 7:58:19 PM	Debug	✅ Tool registered: tool1 (Core Trauma Strategy Assessment)
+Nov 19, 2025, 7:58:19 PM	Debug	✅ Tool registered: tool2 (Financial Clarity & Values Assessment)
+Nov 19, 2025, 7:58:19 PM	Debug	✅ Tool registered: tool3 (Identity & Validation Grounding Tool)
+Nov 19, 2025, 7:58:19 PM	Debug	✅ Tool registered: tool5 (Love & Connection Grounding Tool)
+Nov 19, 2025, 7:58:19 PM	Debug	Tools registered successfully (Tool 1, Tool 2, Tool 3, Tool 5)
+Nov 19, 2025, 7:58:19 PM	Info	Saving final page 7 data before processing
+Nov 19, 2025, 7:58:19 PM	Info	[DraftService] Found draft for 6123LY on tool3
+Nov 19, 2025, 7:58:19 PM	Info	[DraftService] Saved tool3 page 7 data for 6123LY
+Nov 19, 2025, 7:58:19 PM	Info	[DraftService] Found draft for 6123LY on tool3
+Nov 19, 2025, 7:58:19 PM	Debug	SpreadsheetCache MISS - Opening spreadsheet (0 hits, 1 misses)
+Nov 19, 2025, 7:58:20 PM	Info	[Tool3] Skipping DRAFT save/update - already in edit mode with EDIT_DRAFT
+Nov 19, 2025, 7:58:20 PM	Info	[Tool3] Processing final submission for 6123LY
+Nov 19, 2025, 7:58:20 PM	Debug	SpreadsheetCache HIT (1 hits, 1 misses)
+Nov 19, 2025, 7:58:21 PM	Info	[Tool3] Found active draft with status: EDIT_DRAFT
+Nov 19, 2025, 7:58:21 PM	Info	[DraftService] Found draft for 6123LY on tool3
+Nov 19, 2025, 7:58:21 PM	Info	[Tool3] Scoring complete: Overall=24.305555555555554
+Nov 19, 2025, 7:58:21 PM	Info	⚠️ No cached insight for subdomain_1_1, will use fallback
+Nov 19, 2025, 7:58:21 PM	Info	⚠️ No cached insight for subdomain_1_2, will use fallback
+Nov 19, 2025, 7:58:21 PM	Info	⚠️ No cached insight for subdomain_1_3, will use fallback
+Nov 19, 2025, 7:58:21 PM	Info	⚠️ No cached insight for subdomain_2_1, will use fallback
+Nov 19, 2025, 7:58:21 PM	Info	⚠️ No cached insight for subdomain_2_2, will use fallback
+Nov 19, 2025, 7:58:21 PM	Info	⚠️ No cached insight for subdomain_2_3, will use fallback
+Nov 19, 2025, 7:58:21 PM	Info	[SYNTHESIS] Domain: 6123LY - False Self-View
+Nov 19, 2025, 7:58:25 PM	Info	✅ [SYNTHESIS] Domain success: False Self-View
+Nov 19, 2025, 7:58:25 PM	Info	[SYNTHESIS] Domain: 6123LY - External Validation
+Nov 19, 2025, 7:58:29 PM	Info	✅ [SYNTHESIS] Domain success: External Validation
+Nov 19, 2025, 7:58:29 PM	Info	[SYNTHESIS] Overall: 6123LY - tool3
 
 
-- What produces your action plan? Is that a GPT prompt? 
+Future features:
+- add persistance over time and trends over time
 
 
 ## 🎯 Immediate Actions (This Week)

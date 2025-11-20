@@ -27,3 +27,8 @@ test-*.js
 *-test.js
 validate-*.js
 console-*.js
+
+# Keep all tests, examples, and templates local only
+tests/**
+examples/**
+tools/MultiPageToolTemplate.js

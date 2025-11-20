@@ -42,9 +42,27 @@ const DataService = {
         'true'                     // Is_Latest
       ]);
 
-      // Update tool status only if COMPLETED
+      // Log activity and update status based on save type
       if (status === 'COMPLETED') {
         this.updateToolStatus(clientId, toolId, 'completed');
+
+        // Log activity for tool completion
+        this.logActivity(clientId, 'tool_completed', {
+          toolId: toolId,
+          details: `Completed ${toolId}`
+        });
+      } else if (status === 'DRAFT') {
+        // Log draft save
+        this.logActivity(clientId, 'draft_saved', {
+          toolId: toolId,
+          details: `Draft saved for ${toolId}`
+        });
+      } else if (status === 'EDIT_DRAFT') {
+        // Log edit completion
+        this.logActivity(clientId, 'edit_completed', {
+          toolId: toolId,
+          details: `Edit saved for ${toolId}`
+        });
       }
 
       return {

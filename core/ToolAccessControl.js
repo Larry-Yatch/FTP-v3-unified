@@ -106,11 +106,10 @@ const ToolAccessControl = {
       // Invalidate cache to ensure fresh data on next read
       SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.TOOL_ACCESS);
 
-      // Log the action
-      DataService.logActivity(clientId, 'tool_unlocked', {
+      // Log the admin unlock action
+      DataService.logActivity(clientId, 'admin_unlock', {
         toolId: toolId,
-        by: adminEmail,
-        reason: reason
+        details: `Admin unlocked by ${adminEmail}: ${reason || 'Manual unlock'}`
       });
 
       return {
@@ -163,11 +162,10 @@ const ToolAccessControl = {
       // Invalidate cache to ensure fresh data on next read
       SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.TOOL_ACCESS);
 
-      // Log the action
-      DataService.logActivity(clientId, 'tool_locked', {
+      // Log the admin lock action
+      DataService.logActivity(clientId, 'admin_lock', {
         toolId: toolId,
-        by: adminEmail,
-        reason: reason
+        details: `Admin locked by ${adminEmail}: ${reason || 'Manual lock'}`
       });
 
       return {
@@ -188,36 +186,45 @@ const ToolAccessControl = {
    */
   initializeStudent(clientId) {
     try {
+      console.log(`[INIT_STUDENT] Starting initialization for ${clientId}`);
       const sheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.TOOL_ACCESS);
 
       if (!sheet) {
+        console.error('[INIT_STUDENT] TOOL_ACCESS sheet not found!');
         return { success: false, error: 'TOOL_ACCESS sheet not found' };
       }
 
-      const tools = ToolRegistry.getAllTools();
+      console.log('[INIT_STUDENT] TOOL_ACCESS sheet found, creating 8 tool records');
 
-      tools.forEach(tool => {
-        const toolNumber = parseInt(tool.id.replace('tool', ''));
-        const status = toolNumber === 1 ? 'unlocked' : 'pending';
+      // Initialize all 8 tools (tool1 through tool8)
+      // Tool 1 is unlocked, rest are locked initially
+      for (let i = 1; i <= 8; i++) {
+        const toolId = `tool${i}`;
+        const status = i === 1 ? 'unlocked' : 'locked';
 
         sheet.appendRow([
           clientId,
-          tool.id,
+          toolId,
           status,
-          JSON.stringify(tool.manifest.prerequisites || []),
+          '[]',  // Prerequisites (empty array)
           new Date(),
-          '',  // Locked_By
-          ''   // Lock_Reason
+          i === 1 ? 'system' : '',  // Locked_By (system for tool1, empty for rest)
+          i === 1 ? 'Initial unlock' : 'Locked until prerequisites met'  // Lock_Reason
         ]);
-      });
+        console.log(`[INIT_STUDENT] Added ${toolId} with status: ${status}`);
+      }
 
+      // Invalidate cache after initialization
+      SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.TOOL_ACCESS);
+
+      console.log(`[INIT_STUDENT] Successfully initialized 8 tools for ${clientId}`);
       return {
         success: true,
-        message: `Initialized ${tools.length} tools for ${clientId}`
+        message: `Initialized 8 tools for ${clientId}`
       };
 
     } catch (error) {
-      console.error('Error initializing student:', error);
+      console.error('[INIT_STUDENT] Error initializing student:', error);
       return { success: false, error: error.toString() };
     }
   },
@@ -272,6 +279,13 @@ const ToolAccessControl = {
           sheet.getRange(i + 1, 5).setValue(new Date());
           sheet.getRange(i + 1, 6).setValue('system');
           sheet.getRange(i + 1, 7).setValue('Auto-unlocked (prerequisites met)');
+
+          // Log auto-unlock
+          DataService.logActivity(clientId, 'auto_unlock', {
+            toolId: toolId,
+            details: `Auto-unlocked ${toolId} (prerequisites met)`
+          });
+
           return;
         }
       }
@@ -286,6 +300,12 @@ const ToolAccessControl = {
         'system',
         'Auto-unlocked (prerequisites met)'
       ]);
+
+      // Log auto-unlock for new record
+      DataService.logActivity(clientId, 'auto_unlock', {
+        toolId: toolId,
+        details: `Auto-unlocked ${toolId} (prerequisites met)`
+      });
 
     } catch (error) {
       console.error('Error auto-unlocking tool:', error);

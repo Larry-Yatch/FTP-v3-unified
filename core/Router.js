@@ -45,7 +45,7 @@ const Router = {
    * @private
    */
   _isSystemRoute(route) {
-    const systemRoutes = ['login', 'dashboard', 'admin', 'logout', 'tool1_report', 'tool2_report', 'tool3_report', 'tool5_report'];
+    const systemRoutes = ['login', 'dashboard', 'admin', 'admin-login', 'admin-dashboard', 'logout', 'tool1_report', 'tool2_report', 'tool3_report', 'tool5_report'];
     return systemRoutes.includes(route);
   },
 
@@ -62,7 +62,11 @@ const Router = {
         return this._createDashboard(params);
 
       case 'admin':
-        return this._createAdminPanel(params);
+      case 'admin-login':
+        return this._createAdminLogin(params);
+
+      case 'admin-dashboard':
+        return this._createAdminDashboard(params);
 
       case 'logout':
         return this._handleLogout(params);
@@ -120,6 +124,27 @@ const Router = {
     try {
       const clientId = params.client || params.clientId;
       const sessionId = params.session || params.sessionId;
+      const page = parseInt(params.page) || 1;
+
+      // Log tool_started when accessing page 1 for first time (not edit mode)
+      if (page === 1 && clientId) {
+        if (params.editMode) {
+          // Log edit_started when entering edit mode
+          DataService.logActivity(clientId, 'edit_started', {
+            toolId: tool.id,
+            details: `Started editing ${tool.name}`
+          });
+        } else {
+          const existingResponse = DataService.getToolResponse(clientId, tool.id);
+          // Only log if this is truly the first time (no existing response or draft)
+          if (!existingResponse || existingResponse.length === 0) {
+            DataService.logActivity(clientId, 'tool_started', {
+              toolId: tool.id,
+              details: `Started ${tool.name}`
+            });
+          }
+        }
+      }
 
       // Initialize tool
       const initResult = FrameworkCore.initializeTool(tool.id, clientId);
@@ -134,7 +159,7 @@ const Router = {
         sessionId: sessionId,
         insights: initResult.insights || [],
         adaptations: initResult.adaptations || {},
-        page: parseInt(params.page) || 1,
+        page: page,
         // Pass through URL parameters for immediate navigation actions
         editMode: params.editMode,
         clearDraft: params.clearDraft
@@ -405,6 +430,12 @@ const Router = {
       Logger.log(`Dashboard: Discarding draft for ${clientId} / ${toolId}`);
       DataService.cancelEditDraft(clientId, toolId);
       SpreadsheetApp.flush(); // Ensure changes are committed
+
+      // Log draft discard activity
+      DataService.logActivity(clientId, 'draft_discarded', {
+        toolId: toolId,
+        details: `Draft discarded for ${toolId}`
+      });
     }
 
     // Check Tool 1 status
@@ -930,15 +961,27 @@ const Router = {
   },
 
   /**
-   * Create admin panel
+   * Create admin login page
    * @private
    */
-  _createAdminPanel(params) {
-    // TODO: Implement admin panel
-    return HtmlService.createHtmlOutput(`
-      <h1>Admin Panel</h1>
-      <p>Admin interface coming soon...</p>
-    `);
+  _createAdminLogin(params) {
+    const template = HtmlService.createTemplateFromFile('html/AdminLogin');
+    template.getScriptUrl = () => ScriptApp.getService().getUrl();
+    return template.evaluate()
+      .setTitle('Admin Login - Financial TruPath')
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  },
+
+  /**
+   * Create admin dashboard
+   * @private
+   */
+  _createAdminDashboard(params) {
+    const template = HtmlService.createTemplateFromFile('html/AdminDashboard');
+    template.getScriptUrl = () => ScriptApp.getService().getUrl();
+    return template.evaluate()
+      .setTitle('Admin Dashboard - Financial TruPath')
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
   },
 
   /**

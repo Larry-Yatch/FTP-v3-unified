@@ -276,7 +276,17 @@ function startFreshAttempt(clientId, toolId) {
  * Called from client-side via google.script.run
  */
 function generateTool1PDF(clientId) {
-  return PDFGenerator.generateTool1PDF(clientId);
+  const result = PDFGenerator.generateTool1PDF(clientId);
+
+  // Log PDF download activity if successful
+  if (result.success) {
+    DataService.logActivity(clientId, 'pdf_downloaded', {
+      toolId: 'tool1',
+      details: 'Downloaded Tool 1 PDF report'
+    });
+  }
+
+  return result;
 }
 
 /**
@@ -285,7 +295,17 @@ function generateTool1PDF(clientId) {
  * @returns {object} {success, pdf, fileName, mimeType} or {success: false, error}
  */
 function generateTool2PDF(clientId) {
-  return PDFGenerator.generateTool2PDF(clientId);
+  const result = PDFGenerator.generateTool2PDF(clientId);
+
+  // Log PDF download activity if successful
+  if (result.success) {
+    DataService.logActivity(clientId, 'pdf_downloaded', {
+      toolId: 'tool2',
+      details: 'Downloaded Tool 2 PDF report'
+    });
+  }
+
+  return result;
 }
 
 /**
@@ -294,7 +314,17 @@ function generateTool2PDF(clientId) {
  * @returns {object} {success, pdf, fileName, mimeType} or {success: false, error}
  */
 function generateTool3PDF(clientId) {
-  return PDFGenerator.generateTool3PDF(clientId);
+  const result = PDFGenerator.generateTool3PDF(clientId);
+
+  // Log PDF download activity if successful
+  if (result.success) {
+    DataService.logActivity(clientId, 'pdf_downloaded', {
+      toolId: 'tool3',
+      details: 'Downloaded Tool 3 PDF report'
+    });
+  }
+
+  return result;
 }
 
 /**
@@ -303,7 +333,17 @@ function generateTool3PDF(clientId) {
  * @returns {object} {success, pdf, fileName, mimeType} or {success: false, error}
  */
 function generateTool5PDF(clientId) {
-  return PDFGenerator.generateTool5PDF(clientId);
+  const result = PDFGenerator.generateTool5PDF(clientId);
+
+  // Log PDF download activity if successful
+  if (result.success) {
+    DataService.logActivity(clientId, 'pdf_downloaded', {
+      toolId: 'tool5',
+      details: 'Downloaded Tool 5 PDF report'
+    });
+  }
+
+  return result;
 }
 
 /**
@@ -1056,6 +1096,13 @@ function addDefaultInsightMappings() {
 // ========================================
 // Exposed functions for admin dashboard (called via google.script.run)
 // No sessionToken needed - UserProperties is automatically user-scoped
+
+/**
+ * Check if admin is authenticated
+ */
+function checkAdminAuth() {
+  return { authenticated: isAdminAuthenticated() };
+}
 
 /**
  * Admin login handler

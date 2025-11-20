@@ -562,7 +562,12 @@
                 <input type="email" id="studentEmail" required placeholder="e.g., john@example.com">
               </div>
             </div>
-            <button type="submit" class="btn btn-primary">Add Student</button>
+            <button type="submit" class="btn btn-primary" id="addStudentBtn">
+              <span class="btn-text">Add Student</span>
+              <span class="btn-spinner" style="display:none;">
+                <span class="spinner" style="width:16px;height:16px;border-width:2px;"></span> Adding...
+              </span>
+            </button>
           </form>
         </div>
 
@@ -570,6 +575,10 @@
           <div class="card-header">
             <div class="card-title">All Students</div>
             <button class="btn btn-secondary btn-small" onclick="refreshStudentList()">Refresh</button>
+          </div>
+          <div class="form-group" style="margin-bottom: 20px;">
+            <input type="text" id="studentSearchInput" placeholder="🔍 Search by ID, name, or email..."
+                   onkeyup="filterStudents()" style="width: 100%; padding: 12px;">
           </div>
           <div id="students-table-container" class="loading">
             <div class="spinner"></div>
@@ -590,10 +599,14 @@
             <div class="card-title">Select Student</div>
           </div>
           <div class="form-group">
-            <label for="accessStudentSelect">Student</label>
-            <select id="accessStudentSelect" onchange="loadStudentAccess()">
-              <option value="">-- Select a student --</option>
-            </select>
+            <label for="accessStudentSearch">Search Student</label>
+            <input type="text" id="accessStudentSearch" placeholder="🔍 Type student ID, name, or email..."
+                   onkeyup="filterAccessStudents()" style="width: 100%; padding: 12px; margin-bottom: 12px;">
+            <div id="accessStudentList" style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd; border-radius: 6px;">
+              <div style="padding: 20px; text-align: center; color: #999;">
+                Start typing to search for a student
+              </div>
+            </div>
           </div>
         </div>
 
@@ -670,12 +683,25 @@
         .replace(/'/g, "&#039;");
     }
 
-    // Authentication is checked server-side via UserProperties
-    // No client-side token needed
+    // Check authentication on page load
+    function checkAuth() {
+      google.script.run
+        .withSuccessHandler((response) => {
+          if (response.authenticated) {
+            loadDashboardData();
+          } else {
+            window.location.href = '<?= getScriptUrl() ?>?route=admin';
+          }
+        })
+        .withFailureHandler(() => {
+          window.location.href = '<?= getScriptUrl() ?>?route=admin';
+        })
+        .checkAdminAuth();
+    }
 
     // Initialize dashboard
     window.addEventListener('load', () => {
-      loadDashboardData();
+      checkAuth();
     });
 
     function switchPage(pageName) {
@@ -717,8 +743,11 @@
     }
 
     function renderDashboard(response) {
-      if (!response.success) {
-        handleError(response.error);
+      console.log('[CLIENT] renderDashboard called, response:', response);
+
+      if (!response || !response.success) {
+        console.error('[CLIENT] Invalid response:', response);
+        handleError(response?.error || 'No data received');
         return;
       }
 
@@ -729,12 +758,20 @@
       document.getElementById('stat-total-students').textContent = students.length;
       document.getElementById('stat-active-students').textContent =
         students.filter(s => s.status === 'active').length;
-      document.getElementById('stat-completions').textContent =
-        students.reduce((sum, s) => sum + (s.toolsCompleted || 0), 0);
+
+      // Parse toolsCompleted as numbers to avoid string concatenation
+      const totalCompletions = students.reduce((sum, s) => {
+        const completed = parseInt(s.toolsCompleted) || 0;
+        return sum + completed;
+      }, 0);
+      document.getElementById('stat-completions').textContent = totalCompletions;
     }
 
     function renderRecentActivity(response) {
-      if (!response.success) {
+      console.log('[CLIENT] renderRecentActivity called, response:', response);
+
+      if (!response || !response.success) {
+        console.error('[CLIENT] Invalid activity response:', response);
         document.getElementById('recent-activity-list').innerHTML =
           '<div class="empty-state">Failed to load activity</div>';
         return;
@@ -822,6 +859,15 @@
     function handleAddStudent(event) {
       event.preventDefault();
 
+      const btn = document.getElementById('addStudentBtn');
+      const btnText = btn.querySelector('.btn-text');
+      const btnSpinner = btn.querySelector('.btn-spinner');
+
+      // Show loading animation
+      btn.disabled = true;
+      btnText.style.display = 'none';
+      btnSpinner.style.display = 'inline-block';
+
       const studentData = {
         clientId: document.getElementById('studentId').value.trim(),
         name: document.getElementById('studentName').value.trim(),
@@ -830,6 +876,11 @@
 
       google.script.run
         .withSuccessHandler((response) => {
+          // Hide loading animation
+          btn.disabled = false;
+          btnText.style.display = 'inline';
+          btnSpinner.style.display = 'none';
+
           if (response.success) {
             showAlert('Student added successfully!', 'success');
             document.getElementById('addStudentForm').reset();
@@ -838,12 +889,85 @@
             showAlert(response.error, 'error');
           }
         })
-        .withFailureHandler(handleError)
+        .withFailureHandler((error) => {
+          // Hide loading animation
+          btn.disabled = false;
+          btnText.style.display = 'inline';
+          btnSpinner.style.display = 'none';
+          handleError(error);
+        })
         .addStudentViaAdmin(studentData);
     }
 
     function refreshStudentList() {
       loadStudentList();
+    }
+
+    // Filter students table based on search input
+    function filterStudents() {
+      const searchTerm = document.getElementById('studentSearchInput').value.toLowerCase();
+      const table = document.querySelector('#students-table-container table');
+
+      if (!table) return;
+
+      const rows = table.querySelectorAll('tbody tr');
+      rows.forEach(row => {
+        const clientId = row.cells[0]?.textContent.toLowerCase() || '';
+        const name = row.cells[1]?.textContent.toLowerCase() || '';
+        const email = row.cells[2]?.textContent.toLowerCase() || '';
+
+        if (clientId.includes(searchTerm) || name.includes(searchTerm) || email.includes(searchTerm)) {
+          row.style.display = '';
+        } else {
+          row.style.display = 'none';
+        }
+      });
+    }
+
+    // Filter students for tool access page
+    function filterAccessStudents() {
+      const searchTerm = document.getElementById('accessStudentSearch').value.toLowerCase();
+      const listContainer = document.getElementById('accessStudentList');
+
+      if (searchTerm.length < 2) {
+        listContainer.innerHTML = '<div style="padding: 20px; text-align: center; color: #999;">Type at least 2 characters to search</div>';
+        return;
+      }
+
+      // Filter from studentsData
+      const filtered = studentsData.filter(s =>
+        s.clientId.toLowerCase().includes(searchTerm) ||
+        s.name.toLowerCase().includes(searchTerm) ||
+        s.email.toLowerCase().includes(searchTerm)
+      );
+
+      if (filtered.length === 0) {
+        listContainer.innerHTML = '<div style="padding: 20px; text-align: center; color: #999;">No students found</div>';
+        return;
+      }
+
+      let html = '<div style="list-style: none; padding: 0; margin: 0;">';
+      filtered.forEach(student => {
+        html += `
+          <div onclick="selectAccessStudent('${escapeHtml(student.clientId)}')"
+               style="padding: 12px; border-bottom: 1px solid #eee; cursor: pointer; transition: background 0.2s;"
+               onmouseover="this.style.background='#f5f5f5'"
+               onmouseout="this.style.background='white'">
+            <div style="font-weight: 600; color: #1e192b;">${escapeHtml(student.clientId)}</div>
+            <div style="font-size: 14px; color: #666;">${escapeHtml(student.name)} - ${escapeHtml(student.email)}</div>
+          </div>
+        `;
+      });
+      html += '</div>';
+      listContainer.innerHTML = html;
+    }
+
+    // Select student from search results
+    function selectAccessStudent(clientId) {
+      document.getElementById('accessStudentSearch').value = clientId;
+      document.getElementById('accessStudentList').innerHTML =
+        '<div style="padding: 20px; text-align: center; color: #999;">Loading...</div>';
+      loadStudentAccessById(clientId);
     }
 
     function toggleStudentStatus(clientId, currentStatus) {
@@ -864,58 +988,41 @@
 
     function viewStudentAccess(clientId) {
       switchPage('access');
-      document.getElementById('accessStudentSelect').value = clientId;
-      loadStudentAccess();
+      document.getElementById('accessStudentSearch').value = clientId;
+      loadStudentAccessById(clientId);
+    }
+
+    function loadStudentAccessById(clientId) {
+      const container = document.getElementById('access-control-container');
+      container.innerHTML = '<div class="loading"><div class="spinner"></div><p>Loading access control...</p></div>';
+
+      google.script.run
+        .withSuccessHandler((response) => {
+          if (response.success) {
+            renderAccessControl(clientId, response.access);
+          } else {
+            container.innerHTML = `<div class="error">${response.error}</div>`;
+          }
+        })
+        .withFailureHandler(handleError)
+        .getStudentAccess(clientId);
     }
 
     function loadAccessPage() {
-      // Populate student dropdown
-      const select = document.getElementById('accessStudentSelect');
-      select.innerHTML = '<option value="">-- Select a student --</option>';
-
-      studentsData.forEach(student => {
-        select.innerHTML += `<option value="${escapeHtml(student.clientId)}">${escapeHtml(student.clientId)} - ${escapeHtml(student.name)}</option>`;
-      });
-
+      // Load students data if needed for search
       if (studentsData.length === 0) {
         google.script.run
           .withSuccessHandler((response) => {
             if (response.success) {
               studentsData = response.students;
-              loadAccessPage();
             }
           })
           .getStudents();
       }
     }
 
-    function loadStudentAccess() {
-      const clientId = document.getElementById('accessStudentSelect').value;
+    function renderAccessControl(clientId, access) {
       const container = document.getElementById('access-control-container');
-
-      if (!clientId) {
-        container.innerHTML = '';
-        return;
-      }
-
-      container.innerHTML = '<div class="loading"><div class="spinner"></div><p>Loading access data...</p></div>';
-
-      google.script.run
-        .withSuccessHandler(renderAccessControl)
-        .withFailureHandler(handleError)
-        .getStudentAccess(clientId);
-    }
-
-    function renderAccessControl(response) {
-      const container = document.getElementById('access-control-container');
-
-      if (!response.success) {
-        container.innerHTML = '<div class="empty-state">Failed to load access data</div>';
-        return;
-      }
-
-      const access = response.access;
-      const clientId = document.getElementById('accessStudentSelect').value;
 
       let html = '<div class="card"><div class="card-header"><div class="card-title">Tool Access Status</div></div>';
       html += '<table class="data-table"><thead><tr><th>Tool</th><th>Status</th><th>Unlocked Date</th><th>Actions</th></tr></thead><tbody>';

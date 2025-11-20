@@ -87,6 +87,13 @@ function addStudent(clientId, name, email) {
 
     if (result.success) {
       console.log('✅ Initialized tool access');
+
+      // Log activity for student creation
+      DataService.logActivity(clientId, 'student_created', {
+        toolId: '',
+        details: `Student created: ${name} (${email})`
+      });
+
       console.log(`✅ Student ${clientId} created successfully!`);
       console.log(`   Name: ${name}`);
       console.log(`   Email: ${email}`);
