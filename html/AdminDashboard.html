@@ -670,10 +670,8 @@
         .replace(/'/g, "&#039;");
     }
 
-    // Check authentication
-    if (!sessionToken) {
-      window.location.href = '<?= getScriptUrl() ?>?route=admin-login';
-    }
+    // Authentication is checked server-side via UserProperties
+    // No client-side token needed
 
     // Initialize dashboard
     window.addEventListener('load', () => {
