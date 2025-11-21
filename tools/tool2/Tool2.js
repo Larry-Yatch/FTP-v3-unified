@@ -1665,15 +1665,16 @@ const Tool2 = {
       PropertiesService.getUserProperties().deleteProperty(`tool2_draft_${clientId}`);
       PropertiesService.getUserProperties().deleteProperty(`tool2_gpt_${clientId}`);
 
-      // Unlock next tool (only on new submission, not edit)
-      if (!isEditMode) {
-        ToolAccessControl.adminUnlockTool(
-          clientId,
-          'tool3',
-          'system',
-          'Auto-unlocked after Tool 2 completion'
-        );
-      }
+      // AUTO-UNLOCK DISABLED - Tools are now unlocked manually by admin
+      // To re-enable, uncomment the following:
+      // if (!isEditMode) {
+      //   ToolAccessControl.adminUnlockTool(
+      //     clientId,
+      //     'tool3',
+      //     'system',
+      //     'Auto-unlocked after Tool 2 completion'
+      //   );
+      // }
 
       // Return redirect URL for client-side navigation
       const reportUrl = `${ScriptApp.getService().getUrl()}?route=tool2_report&client=${clientId}`;

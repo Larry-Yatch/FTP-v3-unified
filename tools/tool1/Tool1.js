@@ -573,11 +573,11 @@ const Tool1 = {
       // Clean up PropertiesService (prevent memory leak)
       DraftService.clearDraft('tool1', clientId);
 
-      // Unlock Tool 2 (completion is tracked via RESPONSES sheet)
-      // Only unlock if not already unlocked (editing shouldn't re-unlock)
-      if (!isEditMode) {
-        ToolAccessControl.adminUnlockTool(clientId, 'tool2', 'system', 'Auto-unlocked after Tool 1 completion');
-      }
+      // AUTO-UNLOCK DISABLED - Tools are now unlocked manually by admin
+      // To re-enable, uncomment the following:
+      // if (!isEditMode) {
+      //   ToolAccessControl.adminUnlockTool(clientId, 'tool2', 'system', 'Auto-unlocked after Tool 1 completion');
+      // }
 
       // Return redirect URL for client-side navigation
       const reportUrl = `${ScriptApp.getService().getUrl()}?route=tool1_report&client=${clientId}`;

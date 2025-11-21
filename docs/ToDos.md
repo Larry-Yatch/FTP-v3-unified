@@ -10,9 +10,7 @@ Bugs:
 - Tool 5: last two domains have the same consequence look into that
 - Turn off automatic unlocking of tools.
 
-- change the search function to be the same as the report page
-- Attendance sheet
-- Tool completion rates by tool
+
 
 
 - I am worried that the subdomain insights are not being called or shown correctly - or maybe we do not need them for tool 3
