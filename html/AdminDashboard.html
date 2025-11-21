@@ -2394,9 +2394,14 @@
 
     // Update attendance (from call view)
     function updateAttendance(clientId, callId, status, buttonEl) {
-      // Optimistic UI update
       const row = buttonEl.closest('.attendance-row');
       const buttons = row.querySelectorAll('.attendance-btn');
+
+      // Get previous status from the row
+      const prevStatus = row.querySelector('.attendance-btn.attended') ? 'attended' :
+                         row.querySelector('.attendance-btn.absent') ? 'absent' : 'unmarked';
+
+      // Optimistic UI update - update buttons
       buttons.forEach(btn => {
         btn.classList.remove('attended', 'absent', 'unmarked');
       });
@@ -2404,30 +2409,82 @@
         buttonEl.classList.add(status);
       }
 
+      // Show/hide clear button based on new status
+      let clearBtn = row.querySelector('.attendance-btn[title="Clear"]');
+      if (status === 'unmarked') {
+        if (clearBtn) clearBtn.remove();
+      } else if (!clearBtn) {
+        // Add clear button if it doesn't exist
+        const buttonsContainer = row.querySelector('.attendance-buttons');
+        const safeClientId = escapeJs(clientId);
+        const safeCallId = escapeJs(callId);
+        buttonsContainer.insertAdjacentHTML('beforeend', `
+          <button class="attendance-btn" style="padding: 8px;"
+                  onclick="updateAttendance('${safeClientId}', '${safeCallId}', 'unmarked', this)"
+                  title="Clear">
+            ✕
+          </button>
+        `);
+      }
+
+      // Update stats locally without reload
+      updateCallStatsLocally(prevStatus, status);
+
       google.script.run
         .withSuccessHandler((response) => {
-          if (response.success) {
-            // Reload to get updated stats
-            loadCallAttendance();
-          } else {
+          if (!response.success) {
             showAlert(response.error, 'error');
-            loadCallAttendance(); // Reload to restore correct state
+            loadCallAttendance(); // Only reload on error to restore correct state
           }
         })
         .withFailureHandler((error) => {
           handleError(error);
-          loadCallAttendance();
+          loadCallAttendance(); // Only reload on error
         })
         .updateAttendance(clientId, callId, status);
+    }
+
+    // Update call stats locally without reloading
+    function updateCallStatsLocally(prevStatus, newStatus) {
+      // Find the current stats from the displayed text
+      const statsEl = document.getElementById('callAttendanceStats');
+      const statsText = statsEl.innerHTML;
+
+      // Parse current values
+      const attendedMatch = statsText.match(/✅ (\d+) Attended/);
+      const absentMatch = statsText.match(/❌ (\d+) Absent/);
+      const unmarkedMatch = statsText.match(/⭕ (\d+) Unmarked/);
+
+      let attended = attendedMatch ? parseInt(attendedMatch[1]) : 0;
+      let absent = absentMatch ? parseInt(absentMatch[1]) : 0;
+      let unmarked = unmarkedMatch ? parseInt(unmarkedMatch[1]) : 0;
+
+      // Decrement previous status
+      if (prevStatus === 'attended') attended--;
+      else if (prevStatus === 'absent') absent--;
+      else if (prevStatus === 'unmarked') unmarked--;
+
+      // Increment new status
+      if (newStatus === 'attended') attended++;
+      else if (newStatus === 'absent') absent++;
+      else if (newStatus === 'unmarked') unmarked++;
+
+      // Update display
+      statsEl.innerHTML = `✅ ${attended} Attended | ❌ ${absent} Absent | ⭕ ${unmarked} Unmarked`;
     }
 
     // Update attendance (from student view)
     function updateStudentAttendance(callId, status, buttonEl) {
       if (!currentAttendanceStudent) return;
 
-      // Optimistic UI update
       const card = buttonEl.closest('.attendance-call-card');
       const buttons = card.querySelectorAll('.attendance-btn');
+
+      // Get previous status
+      const prevStatus = card.querySelector('.attendance-btn.attended') ? 'attended' :
+                         card.querySelector('.attendance-btn.absent') ? 'absent' : 'unmarked';
+
+      // Optimistic UI update - update buttons
       buttons.forEach(btn => {
         btn.classList.remove('attended', 'absent', 'unmarked');
       });
@@ -2435,21 +2492,71 @@
         buttonEl.classList.add(status);
       }
 
+      // Show/hide clear button based on new status
+      let clearBtn = card.querySelector('.attendance-btn[title="Clear"]');
+      if (status === 'unmarked') {
+        if (clearBtn) clearBtn.remove();
+      } else if (!clearBtn) {
+        // Add clear button if it doesn't exist
+        const buttonsContainer = card.querySelector('.attendance-buttons');
+        const safeCallId = escapeJs(callId);
+        buttonsContainer.insertAdjacentHTML('beforeend', `
+          <button class="attendance-btn" style="padding: 8px;"
+                  onclick="updateStudentAttendance('${safeCallId}', 'unmarked', this)"
+                  title="Clear">
+            ✕
+          </button>
+        `);
+      }
+
+      // Update stats locally without reload
+      updateStudentStatsLocally(prevStatus, status);
+
       google.script.run
         .withSuccessHandler((response) => {
-          if (response.success) {
-            // Reload to get updated stats
-            loadStudentAttendance(currentAttendanceStudent.clientId);
-          } else {
+          if (!response.success) {
             showAlert(response.error, 'error');
-            loadStudentAttendance(currentAttendanceStudent.clientId);
+            loadStudentAttendance(currentAttendanceStudent.clientId); // Only reload on error
           }
         })
         .withFailureHandler((error) => {
           handleError(error);
-          loadStudentAttendance(currentAttendanceStudent.clientId);
+          loadStudentAttendance(currentAttendanceStudent.clientId); // Only reload on error
         })
         .updateAttendance(currentAttendanceStudent.clientId, callId, status);
+    }
+
+    // Update student stats locally without reloading
+    function updateStudentStatsLocally(prevStatus, newStatus) {
+      const statsEl = document.getElementById('studentAttendanceStats');
+      const statsText = statsEl.innerHTML;
+
+      // Parse current values
+      const attendedMatch = statsText.match(/✅ (\d+) Attended/);
+      const absentMatch = statsText.match(/❌ (\d+) Absent/);
+      const unmarkedMatch = statsText.match(/⭕ (\d+) Unmarked/);
+
+      let attended = attendedMatch ? parseInt(attendedMatch[1]) : 0;
+      let absent = absentMatch ? parseInt(absentMatch[1]) : 0;
+      let unmarked = unmarkedMatch ? parseInt(unmarkedMatch[1]) : 0;
+
+      // Decrement previous status
+      if (prevStatus === 'attended') attended--;
+      else if (prevStatus === 'absent') absent--;
+      else if (prevStatus === 'unmarked') unmarked--;
+
+      // Increment new status
+      if (newStatus === 'attended') attended++;
+      else if (newStatus === 'absent') absent++;
+      else if (newStatus === 'unmarked') unmarked++;
+
+      // Calculate attendance rate
+      const marked = attended + absent;
+      const rate = marked > 0 ? Math.round((attended / marked) * 100) : 0;
+      const rateText = rate > 0 ? ` (${rate}% attendance)` : '';
+
+      // Update display
+      statsEl.innerHTML = `✅ ${attended} Attended | ❌ ${absent} Absent | ⭕ ${unmarked} Unmarked${rateText}`;
     }
 
     // Load attendance analytics
