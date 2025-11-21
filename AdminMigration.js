@@ -602,3 +602,255 @@ function runLegacyTool1Migration() {
     ui.alert('Migration Error', `Failed to run migration:\n${error}`, ui.ButtonSet.OK);
   }
 }
+
+/**
+ * Backfill Tool Completion Tracking Data
+ *
+ * PURPOSE:
+ * Historical tool completions were recorded in RESPONSES sheet but not properly
+ * tracked in STUDENTS, TOOL_STATUS, and ACTIVITY_LOG sheets. This function
+ * uses RESPONSES as the source of truth to backfill missing tracking data.
+ *
+ * WHAT IT DOES:
+ * 1. Reads all COMPLETED tools from RESPONSES sheet (Status='COMPLETED', Is_Latest='true')
+ * 2. Groups completions by student
+ * 3. Updates STUDENTS.Tools_Completed column with accurate counts
+ * 4. Updates TOOL_STATUS sheet to mark individual tools as 'completed'
+ * 5. Backfills ACTIVITY_LOG with 'tool_completed' entries (if missing)
+ * 6. Returns detailed report for verification
+ *
+ * RUN FROM: Apps Script Editor
+ * USAGE: backfillToolCompletions()
+ *
+ * @returns {Object} Migration report with before/after statistics
+ */
+function backfillToolCompletions() {
+  try {
+    console.log('=== BACKFILL TOOL COMPLETIONS MIGRATION ===');
+    console.log(`Started: ${new Date()}`);
+    console.log('');
+
+    const ss = SpreadsheetCache.getSpreadsheet();
+
+    // ========================================
+    // STEP 1: Read RESPONSES sheet (SOURCE OF TRUTH)
+    // ========================================
+    console.log('STEP 1: Reading RESPONSES sheet...');
+    const responsesSheet = ss.getSheetByName(CONFIG.SHEETS.RESPONSES);
+    if (!responsesSheet) {
+      throw new Error('RESPONSES sheet not found');
+    }
+
+    const responsesData = responsesSheet.getDataRange().getValues();
+    console.log(`Found ${responsesData.length - 1} total response rows`);
+
+    // Group completed tools by student
+    // Structure: { clientId: { toolId: timestamp } }
+    const studentCompletions = {};
+
+    // Columns: Timestamp, Client_ID, Tool_ID, Data, Version, Status, Is_Latest
+    for (let i = responsesData.length - 1; i > 0; i--) {
+      const timestamp = responsesData[i][0];
+      const clientId = responsesData[i][1];
+      const toolId = responsesData[i][2];
+      const status = responsesData[i][5];
+      const isLatest = responsesData[i][6];
+
+      if (status === 'COMPLETED' && (isLatest === 'true' || isLatest === true)) {
+        if (!studentCompletions[clientId]) {
+          studentCompletions[clientId] = {};
+        }
+
+        // Only store if not already found (working backwards, so first found is most recent)
+        if (!studentCompletions[clientId][toolId]) {
+          studentCompletions[clientId][toolId] = timestamp;
+        }
+      }
+    }
+
+    console.log(`Found ${Object.keys(studentCompletions).length} students with completions`);
+    console.log('');
+
+    // ========================================
+    // STEP 2: Update STUDENTS sheet
+    // ========================================
+    console.log('STEP 2: Updating STUDENTS sheet...');
+    const studentsSheet = ss.getSheetByName(CONFIG.SHEETS.STUDENTS);
+    if (!studentsSheet) {
+      throw new Error('STUDENTS sheet not found');
+    }
+
+    const studentsData = studentsSheet.getDataRange().getValues();
+    const studentsUpdated = [];
+
+    for (let i = 1; i < studentsData.length; i++) {
+      const clientId = studentsData[i][0];
+      const currentCount = studentsData[i][6] || 0; // Tools_Completed column
+
+      if (studentCompletions[clientId]) {
+        const actualCount = Object.keys(studentCompletions[clientId]).length;
+
+        if (currentCount !== actualCount) {
+          // Update Tools_Completed (column G, index 6)
+          studentsSheet.getRange(i + 1, 7).setValue(actualCount);
+
+          studentsUpdated.push({
+            clientId: clientId,
+            before: currentCount,
+            after: actualCount,
+            tools: Object.keys(studentCompletions[clientId])
+          });
+
+          console.log(`  ${clientId}: ${currentCount} → ${actualCount} (${Object.keys(studentCompletions[clientId]).join(', ')})`);
+        }
+      }
+    }
+
+    SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.STUDENTS);
+    console.log(`Updated ${studentsUpdated.length} students`);
+    console.log('');
+
+    // ========================================
+    // STEP 3: Update TOOL_STATUS sheet
+    // ========================================
+    console.log('STEP 3: Updating TOOL_STATUS sheet...');
+    const toolStatusSheet = ss.getSheetByName(CONFIG.SHEETS.TOOL_STATUS);
+    if (!toolStatusSheet) {
+      throw new Error('TOOL_STATUS sheet not found');
+    }
+
+    const toolStatusData = toolStatusSheet.getDataRange().getValues();
+    const toolStatusUpdated = [];
+
+    // Tool columns: B=tool1, C=tool2, D=tool3, E=tool4, F=tool5, G=tool6, H=tool7, I=tool8
+    const toolColumnMap = {
+      'tool1': 2, 'tool2': 3, 'tool3': 4, 'tool4': 5,
+      'tool5': 6, 'tool6': 7, 'tool7': 8, 'tool8': 9
+    };
+
+    for (let i = 1; i < toolStatusData.length; i++) {
+      const clientId = toolStatusData[i][0];
+
+      if (studentCompletions[clientId]) {
+        const changes = [];
+
+        for (const toolId in studentCompletions[clientId]) {
+          const colIndex = toolColumnMap[toolId];
+          if (colIndex) {
+            const currentStatus = toolStatusData[i][colIndex - 1];
+
+            if (currentStatus !== 'completed') {
+              toolStatusSheet.getRange(i + 1, colIndex).setValue('completed');
+              changes.push(toolId);
+            }
+          }
+        }
+
+        if (changes.length > 0) {
+          toolStatusUpdated.push({
+            clientId: clientId,
+            tools: changes
+          });
+          console.log(`  ${clientId}: marked ${changes.join(', ')} as completed`);
+        }
+      }
+    }
+
+    SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.TOOL_STATUS);
+    console.log(`Updated ${toolStatusUpdated.length} students in TOOL_STATUS`);
+    console.log('');
+
+    // ========================================
+    // STEP 4: Backfill ACTIVITY_LOG
+    // ========================================
+    console.log('STEP 4: Backfilling ACTIVITY_LOG...');
+    const activitySheet = ss.getSheetByName(CONFIG.SHEETS.ACTIVITY_LOG);
+    if (!activitySheet) {
+      throw new Error('ACTIVITY_LOG sheet not found');
+    }
+
+    // Read existing activity log to check what's already logged
+    const activityData = activitySheet.getDataRange().getValues();
+    const existingCompletions = new Set();
+
+    for (let i = 1; i < activityData.length; i++) {
+      const clientId = activityData[i][1];
+      const action = activityData[i][2];
+      const toolId = activityData[i][4];
+
+      if (action === 'tool_completed') {
+        existingCompletions.add(`${clientId}:${toolId}`);
+      }
+    }
+
+    console.log(`Found ${existingCompletions.size} existing tool_completed entries`);
+
+    // Add missing completion entries
+    const newEntries = [];
+
+    for (const clientId in studentCompletions) {
+      for (const toolId in studentCompletions[clientId]) {
+        const key = `${clientId}:${toolId}`;
+
+        if (!existingCompletions.has(key)) {
+          const timestamp = studentCompletions[clientId][toolId];
+
+          newEntries.push([
+            timestamp,                    // Timestamp
+            clientId,                     // Client_ID
+            'tool_completed',             // Action
+            `[BACKFILLED] Completed ${toolId}`, // Details
+            toolId,                       // Tool_ID
+            'BACKFILL_MIGRATION'          // Session_ID
+          ]);
+        }
+      }
+    }
+
+    if (newEntries.length > 0) {
+      activitySheet.getRange(activityData.length + 1, 1, newEntries.length, 6)
+        .setValues(newEntries);
+      SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.ACTIVITY_LOG);
+    }
+
+    console.log(`Added ${newEntries.length} missing activity log entries`);
+    console.log('');
+
+    // ========================================
+    // STEP 5: Generate Summary Report
+    // ========================================
+    console.log('=== MIGRATION SUMMARY ===');
+    console.log(`Completed: ${new Date()}`);
+    console.log('');
+    console.log(`Students processed: ${Object.keys(studentCompletions).length}`);
+    console.log(`STUDENTS sheet updated: ${studentsUpdated.length} rows`);
+    console.log(`TOOL_STATUS sheet updated: ${toolStatusUpdated.length} rows`);
+    console.log(`ACTIVITY_LOG backfilled: ${newEntries.length} entries`);
+    console.log('');
+
+    // Detailed breakdown by student
+    if (studentsUpdated.length > 0) {
+      console.log('STUDENTS UPDATED:');
+      studentsUpdated.forEach(s => {
+        console.log(`  ${s.clientId}: ${s.before} → ${s.after} completions`);
+      });
+      console.log('');
+    }
+
+    // Return results for verification
+    return {
+      success: true,
+      timestamp: new Date(),
+      studentsWithCompletions: Object.keys(studentCompletions).length,
+      studentsUpdated: studentsUpdated,
+      toolStatusUpdated: toolStatusUpdated,
+      activityLogBackfilled: newEntries.length,
+      totalChanges: studentsUpdated.length + toolStatusUpdated.length + newEntries.length
+    };
+
+  } catch (error) {
+    console.error('=== MIGRATION ERROR ===');
+    console.error(error);
+    throw error;
+  }
+}

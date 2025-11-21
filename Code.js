@@ -1188,6 +1188,13 @@ function getToolReportHTML(clientId, toolId) {
   return handleGetToolReportHTMLRequest(clientId, toolId);
 }
 
+/**
+ * Get tool completion analytics with date range
+ */
+function getToolCompletionAnalytics(startDate, endDate) {
+  return handleGetToolCompletionAnalytics(startDate, endDate);
+}
+
 // ========================================
 // END OF CODE.JS
 // ========================================

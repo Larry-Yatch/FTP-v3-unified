@@ -728,6 +728,129 @@ function handleGetToolReportHTMLRequest(clientId, toolId) {
 }
 
 // ========================================
+// ANALYTICS FUNCTIONS
+// ========================================
+
+/**
+ * Get tool completion analytics with optional date range filtering
+ * @param {string} startDate - Optional start date (YYYY-MM-DD)
+ * @param {string} endDate - Optional end date (YYYY-MM-DD)
+ * @returns {Object} Analytics data
+ */
+function handleGetToolCompletionAnalytics(startDate, endDate) {
+  console.log('[ANALYTICS] Request received, startDate:', startDate, 'endDate:', endDate);
+
+  if (!isAdminAuthenticated()) {
+    console.log('[ANALYTICS] Not authenticated');
+    return { success: false, error: 'Not authenticated' };
+  }
+
+  try {
+    const ss = SpreadsheetCache.getSpreadsheet();
+
+    // Get active students
+    const studentsSheet = ss.getSheetByName(CONFIG.SHEETS.STUDENTS);
+    if (!studentsSheet) {
+      return { success: false, error: 'Students sheet not found' };
+    }
+
+    const studentsData = studentsSheet.getDataRange().getValues();
+    const activeStudents = [];
+
+    for (let i = 1; i < studentsData.length; i++) {
+      if (studentsData[i][3] === 'active') {
+        activeStudents.push(studentsData[i][0]); // clientId
+      }
+    }
+
+    console.log('[ANALYTICS] Found', activeStudents.length, 'active students');
+
+    // Get completion data from RESPONSES sheet
+    const responsesSheet = ss.getSheetByName(CONFIG.SHEETS.RESPONSES);
+    if (!responsesSheet) {
+      return { success: false, error: 'Responses sheet not found' };
+    }
+
+    const responsesData = responsesSheet.getDataRange().getValues();
+
+    // Parse date range
+    const startDateObj = startDate ? new Date(startDate) : null;
+    const endDateObj = endDate ? new Date(endDate + 'T23:59:59') : null;
+
+    // Count completions by tool (only for active students)
+    // Structure: { toolId: { count: X, students: Set } }
+    const toolCompletions = {};
+    let totalCompletions = 0;
+
+    // Columns: Timestamp, Client_ID, Tool_ID, Data, Version, Status, Is_Latest
+    for (let i = responsesData.length - 1; i > 0; i--) {
+      const timestamp = responsesData[i][0];
+      const clientId = responsesData[i][1];
+      const toolId = responsesData[i][2];
+      const status = responsesData[i][5];
+      const isLatest = responsesData[i][6];
+
+      // Only count completed, latest responses for active students
+      if (status !== 'COMPLETED') continue;
+      if (isLatest !== 'true' && isLatest !== true) continue;
+      if (!activeStudents.includes(clientId)) continue;
+
+      // Apply date filter
+      if (startDateObj && new Date(timestamp) < startDateObj) continue;
+      if (endDateObj && new Date(timestamp) > endDateObj) continue;
+
+      // Initialize tool data if needed
+      if (!toolCompletions[toolId]) {
+        toolCompletions[toolId] = { count: 0, students: new Set() };
+      }
+
+      // Only count once per student per tool
+      if (!toolCompletions[toolId].students.has(clientId)) {
+        toolCompletions[toolId].students.add(clientId);
+        toolCompletions[toolId].count++;
+        totalCompletions++;
+      }
+    }
+
+    // Calculate rates
+    const totalActiveStudents = activeStudents.length;
+    const toolRates = {};
+
+    for (let i = 1; i <= 8; i++) {
+      const toolId = `tool${i}`;
+      const data = toolCompletions[toolId] || { count: 0, students: new Set() };
+      toolRates[toolId] = {
+        count: data.count,
+        rate: totalActiveStudents > 0 ? data.count / totalActiveStudents : 0
+      };
+    }
+
+    // Calculate average tools per student
+    const avgToolsPerStudent = totalActiveStudents > 0 ? totalCompletions / totalActiveStudents : 0;
+
+    console.log('[ANALYTICS] Total completions:', totalCompletions, 'Avg per student:', avgToolsPerStudent.toFixed(1));
+
+    return {
+      success: true,
+      data: {
+        totalActiveStudents: totalActiveStudents,
+        totalCompletions: totalCompletions,
+        avgToolsPerStudent: avgToolsPerStudent,
+        toolCompletions: toolRates,
+        dateRange: {
+          startDate: startDate || null,
+          endDate: endDate || null
+        }
+      }
+    };
+
+  } catch (error) {
+    console.error('[ANALYTICS] Error:', error);
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ========================================
 // HELPER FUNCTIONS
 // ========================================
 

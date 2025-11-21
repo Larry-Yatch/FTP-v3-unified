@@ -594,6 +594,10 @@
         <span class="nav-icon">📄</span>
         <span>Student Reports</span>
       </div>
+      <div class="nav-item" onclick="switchPage('analytics')" data-page="analytics">
+        <span class="nav-icon">📈</span>
+        <span>Analytics</span>
+      </div>
     </div>
 
     <!-- Main Content -->
@@ -727,8 +731,16 @@
           </div>
           <div class="form-grid">
             <div class="form-group">
-              <label for="filterClientId">Student ID</label>
-              <input type="text" id="filterClientId" placeholder="Leave empty for all">
+              <label for="activityStudentSearch">Student</label>
+              <input type="text" id="activityStudentSearch" placeholder="🔍 Type to search student (or leave empty for all)"
+                     onkeyup="filterActivityStudents()" style="width: 100%; padding: 12px; margin-bottom: 8px;">
+              <div id="activityStudentList" style="max-height: 200px; overflow-y: auto; border: 1px solid #ddd; border-radius: 6px; display: none;">
+              </div>
+              <input type="hidden" id="filterClientId" value="">
+              <div id="selectedActivityStudent" style="display: none; margin-top: 8px; padding: 8px 12px; background: #f0f0f0; border-radius: 6px;">
+                <span id="selectedActivityStudentText"></span>
+                <button onclick="clearActivityStudentFilter()" style="float: right; border: none; background: none; cursor: pointer; color: #999;">✕</button>
+              </div>
             </div>
             <div class="form-group">
               <label for="filterAction">Action Type</label>
@@ -738,6 +750,9 @@
                 <option value="tool_completed">Tool Completed</option>
                 <option value="started_tool">Started Tool</option>
                 <option value="draft_saved">Draft Saved</option>
+                <option value="pdf_downloaded">PDF Downloaded</option>
+                <option value="student_created">Student Created</option>
+                <option value="admin_login">Admin Login</option>
               </select>
             </div>
           </div>
@@ -783,6 +798,68 @@
             </div>
             <div id="reportToolsGrid" style="padding: 20px;">
               <!-- Tool cards will be inserted here -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Analytics Page -->
+      <div class="page-section" id="analytics-page">
+        <div class="section-header">
+          <h2>Analytics</h2>
+          <p>Tool completion rates and student progress metrics</p>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Date Range Filter</div>
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="analyticsStartDate">Start Date</label>
+              <input type="date" id="analyticsStartDate">
+            </div>
+            <div class="form-group">
+              <label for="analyticsEndDate">End Date</label>
+              <input type="date" id="analyticsEndDate">
+            </div>
+          </div>
+          <div style="display: flex; gap: 8px; margin-top: 12px;">
+            <button class="btn btn-secondary btn-small" onclick="setAnalyticsDateRange('all')">All Time</button>
+            <button class="btn btn-secondary btn-small" onclick="setAnalyticsDateRange('30')">Last 30 Days</button>
+            <button class="btn btn-secondary btn-small" onclick="setAnalyticsDateRange('90')">Last 90 Days</button>
+            <button class="btn btn-primary btn-small" onclick="loadAnalytics()">Apply Filter</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Tool Completion Rates (Active Students)</div>
+          </div>
+          <div id="analytics-completion-rates" class="loading">
+            <div class="spinner"></div>
+            <p>Loading analytics...</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Completion Summary</div>
+          </div>
+          <div id="analytics-summary">
+            <div class="stats-grid">
+              <div class="stat-card">
+                <div class="stat-value" id="analytics-total-active">-</div>
+                <div class="stat-label">Active Students</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-value" id="analytics-total-completions">-</div>
+                <div class="stat-label">Total Completions</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-value" id="analytics-avg-completion">-</div>
+                <div class="stat-label">Avg Tools/Student</div>
+              </div>
             </div>
           </div>
         </div>
@@ -883,6 +960,8 @@
         loadActivityLog();
       } else if (pageName === 'overview') {
         loadDashboardData();
+      } else if (pageName === 'analytics') {
+        loadAnalytics();
       }
     }
 
@@ -1608,6 +1687,171 @@
     // Close report modal
     function closeReportModal() {
       document.getElementById('reportModal').classList.remove('show');
+    }
+
+    // ========================================
+    // ACTIVITY LOG STUDENT SEARCH FUNCTIONS
+    // ========================================
+
+    // Filter students for activity log page
+    function filterActivityStudents() {
+      const searchTerm = document.getElementById('activityStudentSearch').value.toLowerCase();
+      const listContainer = document.getElementById('activityStudentList');
+
+      if (searchTerm.length < 2) {
+        listContainer.style.display = 'none';
+        return;
+      }
+
+      // Filter from studentsData
+      const filtered = studentsData.filter(s =>
+        s.clientId.toLowerCase().includes(searchTerm) ||
+        s.name.toLowerCase().includes(searchTerm) ||
+        s.email.toLowerCase().includes(searchTerm)
+      );
+
+      if (filtered.length === 0) {
+        listContainer.innerHTML = '<div style="padding: 12px; text-align: center; color: #999;">No students found</div>';
+        listContainer.style.display = 'block';
+        return;
+      }
+
+      let html = '';
+      filtered.slice(0, 10).forEach(student => {
+        html += `
+          <div onclick="selectActivityStudent('${escapeHtml(student.clientId)}', '${escapeHtml(student.name)}')"
+               style="padding: 12px; border-bottom: 1px solid #eee; cursor: pointer; transition: background 0.2s;"
+               onmouseover="this.style.background='#f5f5f5'"
+               onmouseout="this.style.background='white'">
+            <div style="font-weight: 600; color: #1e192b;">${escapeHtml(student.clientId)}</div>
+            <div style="font-size: 13px; color: #666;">${escapeHtml(student.name)}</div>
+          </div>
+        `;
+      });
+      listContainer.innerHTML = html;
+      listContainer.style.display = 'block';
+    }
+
+    // Select student for activity filter
+    function selectActivityStudent(clientId, name) {
+      document.getElementById('filterClientId').value = clientId;
+      document.getElementById('activityStudentSearch').value = '';
+      document.getElementById('activityStudentList').style.display = 'none';
+      document.getElementById('selectedActivityStudent').style.display = 'block';
+      document.getElementById('selectedActivityStudentText').textContent = `${clientId} - ${name}`;
+    }
+
+    // Clear activity student filter
+    function clearActivityStudentFilter() {
+      document.getElementById('filterClientId').value = '';
+      document.getElementById('activityStudentSearch').value = '';
+      document.getElementById('selectedActivityStudent').style.display = 'none';
+    }
+
+    // ========================================
+    // ANALYTICS FUNCTIONS
+    // ========================================
+
+    // Set analytics date range
+    function setAnalyticsDateRange(range) {
+      const startDate = document.getElementById('analyticsStartDate');
+      const endDate = document.getElementById('analyticsEndDate');
+
+      const today = new Date();
+      endDate.value = today.toISOString().split('T')[0];
+
+      if (range === 'all') {
+        startDate.value = '';
+        endDate.value = '';
+      } else {
+        const daysAgo = parseInt(range);
+        const start = new Date(today);
+        start.setDate(start.getDate() - daysAgo);
+        startDate.value = start.toISOString().split('T')[0];
+      }
+
+      loadAnalytics();
+    }
+
+    // Load analytics data
+    function loadAnalytics() {
+      const container = document.getElementById('analytics-completion-rates');
+      container.innerHTML = '<div class="loading"><div class="spinner"></div><p>Loading analytics...</p></div>';
+
+      const startDate = document.getElementById('analyticsStartDate').value;
+      const endDate = document.getElementById('analyticsEndDate').value;
+
+      google.script.run
+        .withSuccessHandler(renderAnalytics)
+        .withFailureHandler(handleError)
+        .getToolCompletionAnalytics(startDate, endDate);
+    }
+
+    // Render analytics data
+    function renderAnalytics(response) {
+      const container = document.getElementById('analytics-completion-rates');
+
+      if (!response.success) {
+        container.innerHTML = `<div class="empty-state">Error: ${response.error}</div>`;
+        return;
+      }
+
+      const data = response.data;
+
+      // Update summary stats
+      document.getElementById('analytics-total-active').textContent = data.totalActiveStudents;
+      document.getElementById('analytics-total-completions').textContent = data.totalCompletions;
+      document.getElementById('analytics-avg-completion').textContent = data.avgToolsPerStudent.toFixed(1);
+
+      // Build tool completion rates table
+      const toolNames = {
+        'tool1': 'Personal Orientation',
+        'tool2': 'Financial Clarity',
+        'tool3': 'Identity & Validation',
+        'tool4': 'Work & Purpose',
+        'tool5': 'Love & Connection',
+        'tool6': 'Health & Vitality',
+        'tool7': 'Transcendence',
+        'tool8': 'Integration & Action'
+      };
+
+      let html = '<table class="data-table">';
+      html += '<thead><tr><th>Tool</th><th>Completions</th><th>Completion Rate</th><th>Progress</th></tr></thead>';
+      html += '<tbody>';
+
+      for (let i = 1; i <= 8; i++) {
+        const toolId = `tool${i}`;
+        const toolData = data.toolCompletions[toolId] || { count: 0, rate: 0 };
+        const ratePercent = Math.round(toolData.rate * 100);
+        const barColor = ratePercent >= 50 ? '#28a745' : ratePercent >= 25 ? '#ffc107' : '#dc3545';
+
+        html += `
+          <tr>
+            <td><strong>${toolNames[toolId]}</strong><br><span style="font-size: 12px; color: #999;">${toolId}</span></td>
+            <td>${toolData.count} / ${data.totalActiveStudents}</td>
+            <td><strong>${ratePercent}%</strong></td>
+            <td style="width: 200px;">
+              <div style="background: #e0e0e0; border-radius: 4px; height: 20px; overflow: hidden;">
+                <div style="background: ${barColor}; height: 100%; width: ${ratePercent}%; transition: width 0.3s;"></div>
+              </div>
+            </td>
+          </tr>
+        `;
+      }
+
+      html += '</tbody></table>';
+
+      // Add date range info if filtered
+      const startDate = document.getElementById('analyticsStartDate').value;
+      const endDate = document.getElementById('analyticsEndDate').value;
+      if (startDate || endDate) {
+        const rangeText = startDate && endDate ? `${startDate} to ${endDate}` :
+                         startDate ? `From ${startDate}` :
+                         `Until ${endDate}`;
+        html = `<p style="margin-bottom: 16px; color: #666; font-size: 14px;">📅 Showing completions: ${rangeText}</p>` + html;
+      }
+
+      container.innerHTML = html;
     }
   </script>
 </body>
