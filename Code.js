@@ -1196,6 +1196,45 @@ function getToolCompletionAnalytics(startDate, endDate) {
 }
 
 // ========================================
+// ATTENDANCE TRACKING API
+// ========================================
+
+/**
+ * Get all course calls
+ */
+function getCalls() {
+  return handleGetCallsRequest();
+}
+
+/**
+ * Get attendance for a specific call
+ */
+function getCallAttendance(callId) {
+  return handleGetCallAttendanceRequest(callId);
+}
+
+/**
+ * Get attendance for a specific student
+ */
+function getStudentAttendance(clientId) {
+  return handleGetStudentAttendanceRequest(clientId);
+}
+
+/**
+ * Update attendance status
+ */
+function updateAttendance(clientId, callId, status) {
+  return handleUpdateAttendanceRequest(clientId, callId, status);
+}
+
+/**
+ * Get attendance analytics
+ */
+function getAttendanceAnalytics() {
+  return handleGetAttendanceAnalyticsRequest();
+}
+
+// ========================================
 // END OF CODE.JS
 // ========================================
 //

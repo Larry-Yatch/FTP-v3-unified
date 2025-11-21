@@ -552,6 +552,115 @@
     .report-data-table tr:last-child td {
       border-bottom: none;
     }
+
+    /* Attendance Styles */
+    .attendance-row {
+      display: flex;
+      align-items: center;
+      padding: 12px;
+      border-bottom: 1px solid #f0f0f0;
+      gap: 16px;
+    }
+
+    .attendance-row:hover {
+      background: #f9f9f9;
+    }
+
+    .attendance-student-info {
+      flex: 1;
+    }
+
+    .attendance-student-name {
+      font-weight: 600;
+      color: #1e192b;
+    }
+
+    .attendance-student-id {
+      font-size: 12px;
+      color: #999;
+    }
+
+    .attendance-buttons {
+      display: flex;
+      gap: 8px;
+    }
+
+    .attendance-btn {
+      padding: 8px 16px;
+      border: 2px solid #e0e0e0;
+      border-radius: 6px;
+      background: white;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+
+    .attendance-btn:hover {
+      border-color: #ccc;
+    }
+
+    .attendance-btn.attended {
+      background: #d4edda;
+      border-color: #28a745;
+      color: #155724;
+    }
+
+    .attendance-btn.absent {
+      background: #f8d7da;
+      border-color: #dc3545;
+      color: #721c24;
+    }
+
+    .attendance-btn.unmarked {
+      background: #fff3cd;
+      border-color: #ffc107;
+      color: #856404;
+    }
+
+    .status-attended {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .status-absent {
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    .status-unmarked {
+      background: #fff3cd;
+      color: #856404;
+    }
+
+    .attendance-call-card {
+      display: flex;
+      align-items: center;
+      padding: 16px;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      margin-bottom: 12px;
+      gap: 16px;
+    }
+
+    .attendance-call-card:hover {
+      background: #f9f9f9;
+    }
+
+    .attendance-call-info {
+      flex: 1;
+    }
+
+    .attendance-call-name {
+      font-weight: 600;
+      color: #1e192b;
+      margin-bottom: 4px;
+    }
+
+    .attendance-call-cycle {
+      font-size: 12px;
+      color: #666;
+    }
   </style>
 </head>
 <body>
@@ -597,6 +706,10 @@
       <div class="nav-item" onclick="switchPage('analytics')" data-page="analytics">
         <span class="nav-icon">📈</span>
         <span>Analytics</span>
+      </div>
+      <div class="nav-item" onclick="switchPage('attendance')" data-page="attendance">
+        <span class="nav-icon">📋</span>
+        <span>Attendance</span>
       </div>
     </div>
 
@@ -864,6 +977,98 @@
           </div>
         </div>
       </div>
+
+      <!-- Attendance Page -->
+      <div class="page-section" id="attendance-page">
+        <div class="section-header">
+          <h2>Class Attendance</h2>
+          <p>Track student attendance for each course call</p>
+        </div>
+
+        <!-- View Mode Toggle -->
+        <div class="card" style="margin-bottom: 20px;">
+          <div style="display: flex; gap: 12px;">
+            <button class="btn btn-primary" id="viewByCallBtn" onclick="setAttendanceViewMode('call')">View by Call</button>
+            <button class="btn btn-secondary" id="viewByStudentBtn" onclick="setAttendanceViewMode('student')">View by Student</button>
+          </div>
+        </div>
+
+        <!-- By Call View -->
+        <div id="attendance-by-call" class="attendance-view">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Select Call</div>
+            </div>
+            <div class="form-group">
+              <select id="attendanceCallSelect" onchange="loadCallAttendance()" style="width: 100%; padding: 12px; font-size: 14px;">
+                <option value="">-- Select a call --</option>
+              </select>
+            </div>
+          </div>
+
+          <div id="call-attendance-container" style="display: none;">
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title" id="callAttendanceTitle">Attendance</div>
+                <div id="callAttendanceStats" style="font-size: 14px; color: #666;"></div>
+              </div>
+              <div class="form-group" style="margin-bottom: 20px;">
+                <input type="text" id="attendanceStudentSearch" placeholder="🔍 Search students..."
+                       onkeyup="filterAttendanceStudents()" style="width: 100%; padding: 12px;">
+              </div>
+              <div id="call-attendance-list" class="loading">
+                <div class="spinner"></div>
+                <p>Loading attendance...</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- By Student View -->
+        <div id="attendance-by-student" class="attendance-view" style="display: none;">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Search Student</div>
+            </div>
+            <div class="form-group">
+              <input type="text" id="attendanceStudentLookup" placeholder="🔍 Type student ID, name, or email..."
+                     onkeyup="filterAttendanceLookupStudents()" style="width: 100%; padding: 12px; margin-bottom: 12px;">
+              <div id="attendanceStudentLookupList" style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd; border-radius: 6px;">
+                <div style="padding: 20px; text-align: center; color: #999;">
+                  Start typing to search for a student
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="student-attendance-container" style="display: none;">
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">
+                  Attendance for <span id="studentAttendanceName"></span> (<span id="studentAttendanceId"></span>)
+                </div>
+                <div id="studentAttendanceStats" style="font-size: 14px; color: #666;"></div>
+              </div>
+              <div id="student-attendance-list" class="loading">
+                <div class="spinner"></div>
+                <p>Loading attendance...</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Attendance Analytics -->
+        <div class="card" style="margin-top: 24px;">
+          <div class="card-header">
+            <div class="card-title">Attendance Analytics</div>
+            <button class="btn btn-secondary btn-small" onclick="loadAttendanceAnalytics()">Refresh</button>
+          </div>
+          <div id="attendance-analytics-container" class="loading">
+            <div class="spinner"></div>
+            <p>Loading analytics...</p>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -917,6 +1122,17 @@
         .replace(/'/g, "&#039;");
     }
 
+    // Helper function to escape strings for use in JavaScript string literals
+    function escapeJs(unsafe) {
+      if (unsafe === null || unsafe === undefined) return '';
+      return String(unsafe)
+        .replace(/\\/g, '\\\\')
+        .replace(/'/g, "\\'")
+        .replace(/"/g, '\\"')
+        .replace(/\n/g, '\\n')
+        .replace(/\r/g, '\\r');
+    }
+
     // Check authentication on page load
     function checkAuth() {
       google.script.run
@@ -962,6 +1178,8 @@
         loadDashboardData();
       } else if (pageName === 'analytics') {
         loadAnalytics();
+      } else if (pageName === 'attendance') {
+        loadAttendancePage();
       }
     }
 
@@ -1850,6 +2068,500 @@
                          `Until ${endDate}`;
         html = `<p style="margin-bottom: 16px; color: #666; font-size: 14px;">📅 Showing completions: ${rangeText}</p>` + html;
       }
+
+      container.innerHTML = html;
+    }
+
+    // ========================================
+    // ATTENDANCE FUNCTIONS
+    // ========================================
+
+    let callsData = [];
+    let currentCallId = null;
+    let currentAttendanceStudent = null;
+    let callAttendanceData = [];
+
+    // Load attendance page
+    function loadAttendancePage() {
+      // Load calls for dropdown
+      if (callsData.length === 0) {
+        google.script.run
+          .withSuccessHandler((response) => {
+            if (response.success) {
+              callsData = response.calls;
+              populateCallDropdown();
+            }
+          })
+          .getCalls();
+      }
+
+      // Load students data if needed
+      if (studentsData.length === 0) {
+        google.script.run
+          .withSuccessHandler((response) => {
+            if (response.success) {
+              studentsData = response.students;
+            }
+          })
+          .getStudents();
+      }
+
+      // Load analytics
+      loadAttendanceAnalytics();
+    }
+
+    // Populate call dropdown
+    function populateCallDropdown() {
+      const select = document.getElementById('attendanceCallSelect');
+      let html = '<option value="">-- Select a call --</option>';
+
+      let currentCycle = 0;
+      callsData.forEach(call => {
+        if (call.cycle !== currentCycle) {
+          if (currentCycle !== 0) {
+            html += '</optgroup>';
+          }
+          html += `<optgroup label="${call.cycleName}">`;
+          currentCycle = call.cycle;
+        }
+        html += `<option value="${call.id}">${call.name}</option>`;
+      });
+      if (currentCycle !== 0) {
+        html += '</optgroup>';
+      }
+
+      select.innerHTML = html;
+    }
+
+    // Set attendance view mode
+    function setAttendanceViewMode(mode) {
+      const byCallView = document.getElementById('attendance-by-call');
+      const byStudentView = document.getElementById('attendance-by-student');
+      const byCallBtn = document.getElementById('viewByCallBtn');
+      const byStudentBtn = document.getElementById('viewByStudentBtn');
+
+      if (mode === 'call') {
+        byCallView.style.display = 'block';
+        byStudentView.style.display = 'none';
+        byCallBtn.className = 'btn btn-primary';
+        byStudentBtn.className = 'btn btn-secondary';
+      } else {
+        byCallView.style.display = 'none';
+        byStudentView.style.display = 'block';
+        byCallBtn.className = 'btn btn-secondary';
+        byStudentBtn.className = 'btn btn-primary';
+      }
+    }
+
+    // Load call attendance
+    function loadCallAttendance() {
+      const callId = document.getElementById('attendanceCallSelect').value;
+      if (!callId) {
+        document.getElementById('call-attendance-container').style.display = 'none';
+        return;
+      }
+
+      currentCallId = callId;
+      const container = document.getElementById('call-attendance-list');
+      container.innerHTML = '<div class="loading"><div class="spinner"></div><p>Loading attendance...</p></div>';
+      document.getElementById('call-attendance-container').style.display = 'block';
+
+      // Find call name
+      const call = callsData.find(c => c.id === callId);
+      if (call) {
+        document.getElementById('callAttendanceTitle').textContent = call.name;
+      }
+
+      google.script.run
+        .withSuccessHandler(renderCallAttendance)
+        .withFailureHandler(handleError)
+        .getCallAttendance(callId);
+    }
+
+    // Render call attendance
+    function renderCallAttendance(response) {
+      const container = document.getElementById('call-attendance-list');
+
+      if (!response.success) {
+        container.innerHTML = `<div class="empty-state">Error: ${response.error}</div>`;
+        return;
+      }
+
+      callAttendanceData = response.attendance;
+      const stats = response.stats;
+
+      // Update stats
+      document.getElementById('callAttendanceStats').innerHTML =
+        `✅ ${stats.attended} Attended | ❌ ${stats.absent} Absent | ⭕ ${stats.unmarked} Unmarked`;
+
+      renderCallAttendanceList(callAttendanceData);
+    }
+
+    // Render call attendance list
+    function renderCallAttendanceList(attendance) {
+      const container = document.getElementById('call-attendance-list');
+
+      if (attendance.length === 0) {
+        container.innerHTML = '<div class="empty-state">No students found</div>';
+        return;
+      }
+
+      let html = '';
+      attendance.forEach(student => {
+        const safeClientId = escapeJs(student.clientId);
+        const safeCallId = escapeJs(currentCallId);
+        html += `
+          <div class="attendance-row" data-clientid="${escapeHtml(student.clientId)}" data-name="${escapeHtml(student.name.toLowerCase())}">
+            <div class="attendance-student-info">
+              <div class="attendance-student-name">${escapeHtml(student.name)}</div>
+              <div class="attendance-student-id">${escapeHtml(student.clientId)}</div>
+            </div>
+            <div class="attendance-buttons">
+              <button class="attendance-btn ${student.status === 'attended' ? 'attended' : ''}"
+                      onclick="updateAttendance('${safeClientId}', '${safeCallId}', 'attended', this)">
+                ✅ Attended
+              </button>
+              <button class="attendance-btn ${student.status === 'absent' ? 'absent' : ''}"
+                      onclick="updateAttendance('${safeClientId}', '${safeCallId}', 'absent', this)">
+                ❌ Absent
+              </button>
+              ${student.status !== 'unmarked' ? `
+                <button class="attendance-btn" style="padding: 8px;"
+                        onclick="updateAttendance('${safeClientId}', '${safeCallId}', 'unmarked', this)"
+                        title="Clear">
+                  ✕
+                </button>
+              ` : ''}
+            </div>
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
+    }
+
+    // Filter attendance students (by call view)
+    function filterAttendanceStudents() {
+      const searchTerm = document.getElementById('attendanceStudentSearch').value.toLowerCase();
+      const rows = document.querySelectorAll('#call-attendance-list .attendance-row');
+
+      rows.forEach(row => {
+        const clientId = row.dataset.clientid.toLowerCase();
+        const name = row.dataset.name;
+
+        if (clientId.includes(searchTerm) || name.includes(searchTerm)) {
+          row.style.display = '';
+        } else {
+          row.style.display = 'none';
+        }
+      });
+    }
+
+    // Filter students for attendance lookup (by student view)
+    function filterAttendanceLookupStudents() {
+      const searchTerm = document.getElementById('attendanceStudentLookup').value.toLowerCase();
+      const listContainer = document.getElementById('attendanceStudentLookupList');
+
+      if (searchTerm.length < 2) {
+        listContainer.innerHTML = '<div style="padding: 20px; text-align: center; color: #999;">Type at least 2 characters to search</div>';
+        return;
+      }
+
+      const filtered = studentsData.filter(s =>
+        s.clientId.toLowerCase().includes(searchTerm) ||
+        s.name.toLowerCase().includes(searchTerm) ||
+        s.email.toLowerCase().includes(searchTerm)
+      );
+
+      if (filtered.length === 0) {
+        listContainer.innerHTML = '<div style="padding: 20px; text-align: center; color: #999;">No students found</div>';
+        return;
+      }
+
+      let html = '';
+      filtered.forEach((student, idx) => {
+        html += `
+          <div onclick="selectAttendanceStudentByIndex(${idx})"
+               style="padding: 12px; border-bottom: 1px solid #eee; cursor: pointer; transition: background 0.2s;"
+               onmouseover="this.style.background='#f5f5f5'"
+               onmouseout="this.style.background='white'"
+               data-clientid="${escapeHtml(student.clientId)}"
+               data-name="${escapeHtml(student.name)}">
+            <div style="font-weight: 600; color: #1e192b;">${escapeHtml(student.clientId)}</div>
+            <div style="font-size: 14px; color: #666;">${escapeHtml(student.name)} - ${escapeHtml(student.email)}</div>
+          </div>
+        `;
+      });
+      listContainer.innerHTML = html;
+      // Store filtered list for click handler
+      window._filteredAttendanceStudents = filtered;
+    }
+
+    // Select student by index from filtered list
+    function selectAttendanceStudentByIndex(idx) {
+      const student = window._filteredAttendanceStudents[idx];
+      if (student) {
+        selectAttendanceStudent(student.clientId, student.name);
+      }
+    }
+
+    // Select student for attendance view
+    function selectAttendanceStudent(clientId, name) {
+      currentAttendanceStudent = { clientId, name };
+      document.getElementById('studentAttendanceId').textContent = clientId;
+      document.getElementById('studentAttendanceName').textContent = name;
+      document.getElementById('attendanceStudentLookup').value = clientId;
+      document.getElementById('student-attendance-container').style.display = 'block';
+
+      loadStudentAttendance(clientId);
+    }
+
+    // Load student attendance
+    function loadStudentAttendance(clientId) {
+      const container = document.getElementById('student-attendance-list');
+      container.innerHTML = '<div class="loading"><div class="spinner"></div><p>Loading attendance...</p></div>';
+
+      google.script.run
+        .withSuccessHandler(renderStudentAttendance)
+        .withFailureHandler(handleError)
+        .getStudentAttendance(clientId);
+    }
+
+    // Render student attendance
+    function renderStudentAttendance(response) {
+      const container = document.getElementById('student-attendance-list');
+
+      if (!response.success) {
+        container.innerHTML = `<div class="empty-state">Error: ${response.error}</div>`;
+        return;
+      }
+
+      const attendance = response.attendance;
+      const stats = response.stats;
+
+      // Update stats
+      const rateText = stats.attendanceRate > 0 ? `(${stats.attendanceRate}% attendance)` : '';
+      document.getElementById('studentAttendanceStats').innerHTML =
+        `✅ ${stats.attended} Attended | ❌ ${stats.absent} Absent | ⭕ ${stats.unmarked} Unmarked ${rateText}`;
+
+      let html = '';
+      let currentCycle = 0;
+
+      attendance.forEach(call => {
+        if (call.cycle !== currentCycle) {
+          if (currentCycle !== 0) {
+            html += '</div>';
+          }
+          html += `<div style="margin-bottom: 20px;"><h4 style="margin-bottom: 12px; color: #666;">${escapeHtml(call.cycleName)}</h4>`;
+          currentCycle = call.cycle;
+        }
+
+        const safeCallId = escapeJs(call.callId);
+        const callTitle = call.callName.split(': ')[1] || call.callName;
+        html += `
+          <div class="attendance-call-card">
+            <div class="attendance-call-info">
+              <div class="attendance-call-name">Call ${call.callNumber}: ${escapeHtml(callTitle)}</div>
+              <div class="attendance-call-cycle">${escapeHtml(call.callId)}</div>
+            </div>
+            <div class="attendance-buttons">
+              <button class="attendance-btn ${call.status === 'attended' ? 'attended' : ''}"
+                      onclick="updateStudentAttendance('${safeCallId}', 'attended', this)">
+                ✅ Attended
+              </button>
+              <button class="attendance-btn ${call.status === 'absent' ? 'absent' : ''}"
+                      onclick="updateStudentAttendance('${safeCallId}', 'absent', this)">
+                ❌ Absent
+              </button>
+              ${call.status !== 'unmarked' ? `
+                <button class="attendance-btn" style="padding: 8px;"
+                        onclick="updateStudentAttendance('${safeCallId}', 'unmarked', this)"
+                        title="Clear">
+                  ✕
+                </button>
+              ` : ''}
+            </div>
+          </div>
+        `;
+      });
+
+      if (currentCycle !== 0) {
+        html += '</div>';
+      }
+
+      container.innerHTML = html;
+    }
+
+    // Update attendance (from call view)
+    function updateAttendance(clientId, callId, status, buttonEl) {
+      // Optimistic UI update
+      const row = buttonEl.closest('.attendance-row');
+      const buttons = row.querySelectorAll('.attendance-btn');
+      buttons.forEach(btn => {
+        btn.classList.remove('attended', 'absent', 'unmarked');
+      });
+      if (status !== 'unmarked') {
+        buttonEl.classList.add(status);
+      }
+
+      google.script.run
+        .withSuccessHandler((response) => {
+          if (response.success) {
+            // Reload to get updated stats
+            loadCallAttendance();
+          } else {
+            showAlert(response.error, 'error');
+            loadCallAttendance(); // Reload to restore correct state
+          }
+        })
+        .withFailureHandler((error) => {
+          handleError(error);
+          loadCallAttendance();
+        })
+        .updateAttendance(clientId, callId, status);
+    }
+
+    // Update attendance (from student view)
+    function updateStudentAttendance(callId, status, buttonEl) {
+      if (!currentAttendanceStudent) return;
+
+      // Optimistic UI update
+      const card = buttonEl.closest('.attendance-call-card');
+      const buttons = card.querySelectorAll('.attendance-btn');
+      buttons.forEach(btn => {
+        btn.classList.remove('attended', 'absent', 'unmarked');
+      });
+      if (status !== 'unmarked') {
+        buttonEl.classList.add(status);
+      }
+
+      google.script.run
+        .withSuccessHandler((response) => {
+          if (response.success) {
+            // Reload to get updated stats
+            loadStudentAttendance(currentAttendanceStudent.clientId);
+          } else {
+            showAlert(response.error, 'error');
+            loadStudentAttendance(currentAttendanceStudent.clientId);
+          }
+        })
+        .withFailureHandler((error) => {
+          handleError(error);
+          loadStudentAttendance(currentAttendanceStudent.clientId);
+        })
+        .updateAttendance(currentAttendanceStudent.clientId, callId, status);
+    }
+
+    // Load attendance analytics
+    function loadAttendanceAnalytics() {
+      const container = document.getElementById('attendance-analytics-container');
+      container.innerHTML = '<div class="loading"><div class="spinner"></div><p>Loading analytics...</p></div>';
+
+      google.script.run
+        .withSuccessHandler(renderAttendanceAnalytics)
+        .withFailureHandler(handleError)
+        .getAttendanceAnalytics();
+    }
+
+    // Render attendance analytics
+    function renderAttendanceAnalytics(response) {
+      const container = document.getElementById('attendance-analytics-container');
+
+      if (!response.success) {
+        container.innerHTML = `<div class="empty-state">Error: ${response.error}</div>`;
+        return;
+      }
+
+      const data = response.data;
+
+      let html = '';
+
+      // Overall stats
+      html += `
+        <div class="stats-grid" style="margin-bottom: 24px;">
+          <div class="stat-card">
+            <div class="stat-value">${data.overallAttendanceRate !== null ? data.overallAttendanceRate + '%' : '-'}</div>
+            <div class="stat-label">Overall Attendance Rate</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">${data.totalStudents}</div>
+            <div class="stat-label">Active Students</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">${data.totalCalls}</div>
+            <div class="stat-label">Total Calls</div>
+          </div>
+        </div>
+      `;
+
+      // Per-call rates table
+      html += '<h4 style="margin-bottom: 12px;">Attendance by Call</h4>';
+      html += '<table class="data-table" style="margin-bottom: 24px;">';
+      html += '<thead><tr><th>Call</th><th>Attended</th><th>Absent</th><th>Unmarked</th><th>Rate</th></tr></thead>';
+      html += '<tbody>';
+
+      data.callStats.forEach(call => {
+        const rateDisplay = call.rate !== null ? `${call.rate}%` : '-';
+        const barColor = call.rate >= 75 ? '#28a745' : call.rate >= 50 ? '#ffc107' : '#dc3545';
+        const barWidth = call.rate || 0;
+        const callTitle = call.callName.split(': ')[1] || '';
+
+        html += `
+          <tr>
+            <td>
+              <strong>C${call.cycle} Call ${call.callNumber}</strong>
+              <br><span style="font-size: 12px; color: #999;">${escapeHtml(callTitle)}</span>
+            </td>
+            <td><span class="status-badge status-attended">${call.attended}</span></td>
+            <td><span class="status-badge status-absent">${call.absent}</span></td>
+            <td><span class="status-badge status-unmarked">${call.unmarked}</span></td>
+            <td style="width: 120px;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <div style="flex: 1; background: #e0e0e0; border-radius: 4px; height: 16px; overflow: hidden;">
+                  <div style="background: ${barColor}; height: 100%; width: ${barWidth}%;"></div>
+                </div>
+                <span style="font-weight: 600; min-width: 40px;">${rateDisplay}</span>
+              </div>
+            </td>
+          </tr>
+        `;
+      });
+
+      html += '</tbody></table>';
+
+      // Per-student rates table
+      html += '<h4 style="margin-bottom: 12px;">Attendance by Student</h4>';
+      html += '<table class="data-table">';
+      html += '<thead><tr><th>Student</th><th>Attended</th><th>Absent</th><th>Unmarked</th><th>Rate</th></tr></thead>';
+      html += '<tbody>';
+
+      data.studentStats.forEach(student => {
+        const rateDisplay = student.rate !== null ? `${student.rate}%` : '-';
+        const barColor = student.rate >= 75 ? '#28a745' : student.rate >= 50 ? '#ffc107' : '#dc3545';
+        const barWidth = student.rate || 0;
+
+        html += `
+          <tr>
+            <td>
+              <strong>${escapeHtml(student.name)}</strong>
+              <br><span style="font-size: 12px; color: #999;">${escapeHtml(student.clientId)}</span>
+            </td>
+            <td><span class="status-badge status-attended">${student.attended}</span></td>
+            <td><span class="status-badge status-absent">${student.absent}</span></td>
+            <td><span class="status-badge status-unmarked">${student.unmarked}</span></td>
+            <td style="width: 120px;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <div style="flex: 1; background: #e0e0e0; border-radius: 4px; height: 16px; overflow: hidden;">
+                  <div style="background: ${barColor}; height: 100%; width: ${barWidth}%;"></div>
+                </div>
+                <span style="font-weight: 600; min-width: 40px;">${rateDisplay}</span>
+              </div>
+            </td>
+          </tr>
+        `;
+      });
+
+      html += '</tbody></table>';
 
       container.innerHTML = html;
     }

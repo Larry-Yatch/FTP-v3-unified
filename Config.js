@@ -23,8 +23,25 @@ const CONFIG = {
     ACTIVITY_LOG: 'ACTIVITY_LOG',
     ADMINS: 'ADMINS',
     CONFIG: 'CONFIG',
-    STUDENTS: 'Students'
+    STUDENTS: 'Students',
+    ATTENDANCE: 'ATTENDANCE'
   },
+
+  // Course Call Structure (4 cycles x 3 calls each)
+  CALLS: [
+    { id: 'c1_call1', cycle: 1, callNumber: 1, name: 'Cycle 1 - Call 1: The Psychology of Financial Freedom', cycleName: 'Setting the Foundation' },
+    { id: 'c1_call2', cycle: 1, callNumber: 2, name: 'Cycle 1 - Call 2: The Structure of Financial Freedom', cycleName: 'Setting the Foundation' },
+    { id: 'c1_call3', cycle: 1, callNumber: 3, name: 'Cycle 1 - Call 3: Q&A and Review', cycleName: 'Setting the Foundation' },
+    { id: 'c2_call1', cycle: 2, callNumber: 1, name: 'Cycle 2 - Call 1: The Psychology of Financial Freedom', cycleName: 'Overcoming a False Self-View' },
+    { id: 'c2_call2', cycle: 2, callNumber: 2, name: 'Cycle 2 - Call 2: The Structure of Financial Freedom', cycleName: 'Overcoming a False Self-View' },
+    { id: 'c2_call3', cycle: 2, callNumber: 3, name: 'Cycle 2 - Call 3: Q&A and Review', cycleName: 'Overcoming a False Self-View' },
+    { id: 'c3_call1', cycle: 3, callNumber: 1, name: 'Cycle 3 - Call 1: The Psychology of Financial Freedom', cycleName: 'Overcoming Suffering and Dependence' },
+    { id: 'c3_call2', cycle: 3, callNumber: 2, name: 'Cycle 3 - Call 2: The Structure of Financial Freedom', cycleName: 'Overcoming Suffering and Dependence' },
+    { id: 'c3_call3', cycle: 3, callNumber: 3, name: 'Cycle 3 - Call 3: Q&A and Review', cycleName: 'Overcoming Suffering and Dependence' },
+    { id: 'c4_call1', cycle: 4, callNumber: 1, name: 'Cycle 4 - Call 1: The Psychology of Financial Freedom', cycleName: 'Overcoming Fear and the Need for Control' },
+    { id: 'c4_call2', cycle: 4, callNumber: 2, name: 'Cycle 4 - Call 2: The Structure of Financial Freedom', cycleName: 'Overcoming Fear and the Need for Control' },
+    { id: 'c4_call3', cycle: 4, callNumber: 3, name: 'Cycle 4 - Call 3: Q&A and Review', cycleName: 'Overcoming Fear and the Need for Control' }
+  ],
 
   // Tool Access Mode
   ACCESS_MODE: 'linear',  // 'linear' or 'flexible'

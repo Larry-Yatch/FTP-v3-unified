@@ -851,6 +851,398 @@ function handleGetToolCompletionAnalytics(startDate, endDate) {
 }
 
 // ========================================
+// ATTENDANCE TRACKING FUNCTIONS
+// ========================================
+
+/**
+ * Get all course calls with their metadata
+ * @returns {Object} { success: boolean, calls: Array }
+ */
+function handleGetCallsRequest() {
+  console.log('[GET_CALLS] Request received');
+
+  if (!isAdminAuthenticated()) {
+    console.log('[GET_CALLS] Not authenticated');
+    return { success: false, error: 'Not authenticated' };
+  }
+
+  try {
+    // Return calls from CONFIG
+    const calls = CONFIG.CALLS || [];
+    console.log('[GET_CALLS] Returning', calls.length, 'calls');
+    return { success: true, calls: calls };
+  } catch (error) {
+    console.error('[GET_CALLS] Error:', error);
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get attendance for a specific call (all students)
+ * @param {string} callId - The call ID (e.g., 'c1_call1')
+ * @returns {Object} { success: boolean, attendance: Array }
+ */
+function handleGetCallAttendanceRequest(callId) {
+  console.log('[GET_CALL_ATTENDANCE] Request received for callId:', callId);
+
+  if (!isAdminAuthenticated()) {
+    console.log('[GET_CALL_ATTENDANCE] Not authenticated');
+    return { success: false, error: 'Not authenticated' };
+  }
+
+  try {
+    const ss = SpreadsheetCache.getSpreadsheet();
+
+    // Get all active students
+    const studentsSheet = ss.getSheetByName(CONFIG.SHEETS.STUDENTS);
+    if (!studentsSheet) {
+      return { success: false, error: 'Students sheet not found' };
+    }
+
+    const studentsData = studentsSheet.getDataRange().getValues();
+    const students = [];
+
+    for (let i = 1; i < studentsData.length; i++) {
+      if (studentsData[i][3] === 'active') {
+        students.push({
+          clientId: studentsData[i][0],
+          name: studentsData[i][1],
+          email: studentsData[i][2]
+        });
+      }
+    }
+
+    // Get attendance records for this call
+    const attendanceSheet = ss.getSheetByName(CONFIG.SHEETS.ATTENDANCE);
+    const attendanceMap = {};
+
+    if (attendanceSheet) {
+      const attendanceData = attendanceSheet.getDataRange().getValues();
+      // Columns: Timestamp, Client_ID, Call_ID, Status, Marked_By, Updated_At
+      for (let i = 1; i < attendanceData.length; i++) {
+        const clientId = attendanceData[i][1];
+        const recordCallId = attendanceData[i][2];
+        const status = attendanceData[i][3];
+
+        if (recordCallId === callId) {
+          attendanceMap[clientId] = status;
+        }
+      }
+    }
+
+    // Build attendance list with all students
+    const attendance = students.map(student => ({
+      clientId: student.clientId,
+      name: student.name,
+      email: student.email,
+      status: attendanceMap[student.clientId] || 'unmarked'
+    }));
+
+    // Sort by name
+    attendance.sort((a, b) => a.name.localeCompare(b.name));
+
+    // Calculate stats
+    const stats = {
+      total: attendance.length,
+      attended: attendance.filter(a => a.status === 'attended').length,
+      absent: attendance.filter(a => a.status === 'absent').length,
+      unmarked: attendance.filter(a => a.status === 'unmarked').length
+    };
+
+    console.log('[GET_CALL_ATTENDANCE] Returning', attendance.length, 'students, stats:', stats);
+    return { success: true, attendance: attendance, stats: stats };
+
+  } catch (error) {
+    console.error('[GET_CALL_ATTENDANCE] Error:', error);
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get attendance for a specific student (all calls)
+ * @param {string} clientId - The student ID
+ * @returns {Object} { success: boolean, attendance: Array }
+ */
+function handleGetStudentAttendanceRequest(clientId) {
+  console.log('[GET_STUDENT_ATTENDANCE] Request received for clientId:', clientId);
+
+  if (!isAdminAuthenticated()) {
+    console.log('[GET_STUDENT_ATTENDANCE] Not authenticated');
+    return { success: false, error: 'Not authenticated' };
+  }
+
+  try {
+    const ss = SpreadsheetCache.getSpreadsheet();
+
+    // Get attendance records for this student
+    const attendanceSheet = ss.getSheetByName(CONFIG.SHEETS.ATTENDANCE);
+    const attendanceMap = {};
+
+    if (attendanceSheet) {
+      const attendanceData = attendanceSheet.getDataRange().getValues();
+      // Columns: Timestamp, Client_ID, Call_ID, Status, Marked_By, Updated_At
+      for (let i = 1; i < attendanceData.length; i++) {
+        const recordClientId = attendanceData[i][1];
+        const callId = attendanceData[i][2];
+        const status = attendanceData[i][3];
+
+        if (recordClientId === clientId) {
+          attendanceMap[callId] = status;
+        }
+      }
+    }
+
+    // Build attendance list with all calls
+    const calls = CONFIG.CALLS || [];
+    const attendance = calls.map(call => ({
+      callId: call.id,
+      callName: call.name,
+      cycle: call.cycle,
+      callNumber: call.callNumber,
+      cycleName: call.cycleName,
+      status: attendanceMap[call.id] || 'unmarked'
+    }));
+
+    // Calculate stats
+    const stats = {
+      total: attendance.length,
+      attended: attendance.filter(a => a.status === 'attended').length,
+      absent: attendance.filter(a => a.status === 'absent').length,
+      unmarked: attendance.filter(a => a.status === 'unmarked').length,
+      attendanceRate: 0
+    };
+
+    // Calculate attendance rate (attended / (attended + absent))
+    const markedCalls = stats.attended + stats.absent;
+    if (markedCalls > 0) {
+      stats.attendanceRate = Math.round((stats.attended / markedCalls) * 100);
+    }
+
+    console.log('[GET_STUDENT_ATTENDANCE] Returning', attendance.length, 'calls, stats:', stats);
+    return { success: true, attendance: attendance, stats: stats };
+
+  } catch (error) {
+    console.error('[GET_STUDENT_ATTENDANCE] Error:', error);
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Update attendance status for a student on a specific call
+ * @param {string} clientId - The student ID
+ * @param {string} callId - The call ID
+ * @param {string} status - 'attended', 'absent', or 'unmarked' (to clear)
+ * @returns {Object} { success: boolean }
+ */
+function handleUpdateAttendanceRequest(clientId, callId, status) {
+  console.log('[UPDATE_ATTENDANCE] Request:', clientId, callId, status);
+
+  if (!isAdminAuthenticated()) {
+    console.log('[UPDATE_ATTENDANCE] Not authenticated');
+    return { success: false, error: 'Not authenticated' };
+  }
+
+  // Validate status
+  const validStatuses = ['attended', 'absent', 'unmarked'];
+  if (!validStatuses.includes(status)) {
+    return { success: false, error: 'Invalid status. Must be: attended, absent, or unmarked' };
+  }
+
+  try {
+    const ss = SpreadsheetCache.getSpreadsheet();
+    let attendanceSheet = ss.getSheetByName(CONFIG.SHEETS.ATTENDANCE);
+
+    // Create sheet if it doesn't exist
+    if (!attendanceSheet) {
+      attendanceSheet = ss.insertSheet(CONFIG.SHEETS.ATTENDANCE);
+      attendanceSheet.getRange(1, 1, 1, 6).setValues([[
+        'Timestamp', 'Client_ID', 'Call_ID', 'Status', 'Marked_By', 'Updated_At'
+      ]]);
+      console.log('[UPDATE_ATTENDANCE] Created ATTENDANCE sheet');
+    }
+
+    // Get admin info
+    const sessionDataStr = PropertiesService.getUserProperties().getProperty('admin_session');
+    let markedBy = 'admin';
+    if (sessionDataStr) {
+      const sessionData = JSON.parse(sessionDataStr);
+      markedBy = sessionData.username || sessionData.email || 'admin';
+    }
+
+    const now = new Date();
+
+    // Check if record already exists
+    const data = attendanceSheet.getDataRange().getValues();
+    let existingRowIndex = -1;
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][1] === clientId && data[i][2] === callId) {
+        existingRowIndex = i + 1; // +1 because sheet rows are 1-indexed
+        break;
+      }
+    }
+
+    if (status === 'unmarked') {
+      // Delete the record if it exists
+      if (existingRowIndex > 0) {
+        attendanceSheet.deleteRow(existingRowIndex);
+        console.log('[UPDATE_ATTENDANCE] Deleted row', existingRowIndex);
+      }
+    } else if (existingRowIndex > 0) {
+      // Update existing record
+      attendanceSheet.getRange(existingRowIndex, 4).setValue(status);
+      attendanceSheet.getRange(existingRowIndex, 5).setValue(markedBy);
+      attendanceSheet.getRange(existingRowIndex, 6).setValue(now);
+      console.log('[UPDATE_ATTENDANCE] Updated row', existingRowIndex);
+    } else {
+      // Create new record
+      attendanceSheet.appendRow([
+        now,        // Timestamp
+        clientId,   // Client_ID
+        callId,     // Call_ID
+        status,     // Status
+        markedBy,   // Marked_By
+        now         // Updated_At
+      ]);
+      console.log('[UPDATE_ATTENDANCE] Created new record');
+    }
+
+    SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.ATTENDANCE);
+
+    // Log activity
+    DataService.logActivity(clientId, 'attendance_updated', {
+      toolId: '',
+      details: `Attendance for ${callId}: ${status} (by ${markedBy})`
+    });
+
+    return { success: true, message: `Attendance updated: ${clientId} - ${callId} - ${status}` };
+
+  } catch (error) {
+    console.error('[UPDATE_ATTENDANCE] Error:', error);
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get attendance analytics
+ * @returns {Object} { success: boolean, data: Object }
+ */
+function handleGetAttendanceAnalyticsRequest() {
+  console.log('[ATTENDANCE_ANALYTICS] Request received');
+
+  if (!isAdminAuthenticated()) {
+    console.log('[ATTENDANCE_ANALYTICS] Not authenticated');
+    return { success: false, error: 'Not authenticated' };
+  }
+
+  try {
+    const ss = SpreadsheetCache.getSpreadsheet();
+
+    // Get all active students
+    const studentsSheet = ss.getSheetByName(CONFIG.SHEETS.STUDENTS);
+    if (!studentsSheet) {
+      return { success: false, error: 'Students sheet not found' };
+    }
+
+    const studentsData = studentsSheet.getDataRange().getValues();
+    const activeStudents = [];
+
+    for (let i = 1; i < studentsData.length; i++) {
+      if (studentsData[i][3] === 'active') {
+        activeStudents.push({
+          clientId: studentsData[i][0],
+          name: studentsData[i][1]
+        });
+      }
+    }
+
+    // Get all attendance records
+    const attendanceSheet = ss.getSheetByName(CONFIG.SHEETS.ATTENDANCE);
+    const attendanceRecords = [];
+
+    if (attendanceSheet) {
+      const attendanceData = attendanceSheet.getDataRange().getValues();
+      for (let i = 1; i < attendanceData.length; i++) {
+        attendanceRecords.push({
+          clientId: attendanceData[i][1],
+          callId: attendanceData[i][2],
+          status: attendanceData[i][3]
+        });
+      }
+    }
+
+    // Calculate per-call stats
+    const calls = CONFIG.CALLS || [];
+    const callStats = calls.map(call => {
+      const callRecords = attendanceRecords.filter(r => r.callId === call.id);
+      const attended = callRecords.filter(r => r.status === 'attended').length;
+      const absent = callRecords.filter(r => r.status === 'absent').length;
+      const marked = attended + absent;
+      const rate = marked > 0 ? Math.round((attended / marked) * 100) : null;
+
+      return {
+        callId: call.id,
+        callName: call.name,
+        cycle: call.cycle,
+        callNumber: call.callNumber,
+        attended: attended,
+        absent: absent,
+        unmarked: activeStudents.length - marked,
+        rate: rate
+      };
+    });
+
+    // Calculate per-student stats
+    const studentStats = activeStudents.map(student => {
+      const studentRecords = attendanceRecords.filter(r => r.clientId === student.clientId);
+      const attended = studentRecords.filter(r => r.status === 'attended').length;
+      const absent = studentRecords.filter(r => r.status === 'absent').length;
+      const marked = attended + absent;
+      const rate = marked > 0 ? Math.round((attended / marked) * 100) : null;
+
+      return {
+        clientId: student.clientId,
+        name: student.name,
+        attended: attended,
+        absent: absent,
+        unmarked: calls.length - marked,
+        rate: rate
+      };
+    });
+
+    // Sort by attendance rate (nulls last, then by rate descending)
+    studentStats.sort((a, b) => {
+      if (a.rate === null && b.rate === null) return a.name.localeCompare(b.name);
+      if (a.rate === null) return 1;
+      if (b.rate === null) return -1;
+      return b.rate - a.rate;
+    });
+
+    // Overall stats
+    const totalAttended = attendanceRecords.filter(r => r.status === 'attended').length;
+    const totalAbsent = attendanceRecords.filter(r => r.status === 'absent').length;
+    const totalMarked = totalAttended + totalAbsent;
+    const overallRate = totalMarked > 0 ? Math.round((totalAttended / totalMarked) * 100) : null;
+
+    console.log('[ATTENDANCE_ANALYTICS] Returning analytics');
+    return {
+      success: true,
+      data: {
+        totalStudents: activeStudents.length,
+        totalCalls: calls.length,
+        overallAttendanceRate: overallRate,
+        callStats: callStats,
+        studentStats: studentStats
+      }
+    };
+
+  } catch (error) {
+    console.error('[ATTENDANCE_ANALYTICS] Error:', error);
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ========================================
 // HELPER FUNCTIONS
 // ========================================
 
