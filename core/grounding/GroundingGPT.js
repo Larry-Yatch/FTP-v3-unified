@@ -574,7 +574,8 @@ Focus on:
 3. The core disconnection this assessment addresses (or core strengths if healthy)
 4. A clear, specific path forward based on THEIR scores and responses
 
-Return plain-text only:
+Return ONLY the content below in plain-text format WITHOUT any markdown formatting (no **, *, or _).
+Do NOT repeat the section headers in your response - they are only labels for you to know what to write.
 
 Overview:
 (2-3 paragraphs connecting both domains. For healthy scores, emphasize integration and strengths. For problematic scores, explain the disconnection. For mixed, acknowledge complexity.)
@@ -725,7 +726,17 @@ Priority Focus: ${synthesis.priorityFocus}
       'i'
     );
     const match = text.match(regex);
-    return match ? match[1].trim() : '';
+    let extracted = match ? match[1].trim() : '';
+
+    // Strip markdown formatting (**, *, _)
+    extracted = extracted.replace(/\*\*/g, '');  // Remove bold **
+    extracted = extracted.replace(/\*/g, '');    // Remove italic *
+    extracted = extracted.replace(/_/g, '');     // Remove italic _
+
+    // Remove any embedded section headers (e.g., "**Integration:**" that GPT might include)
+    extracted = extracted.replace(/\*\*[A-Z][a-z\s]+:\*\*/g, '');
+
+    return extracted.trim();
   },
 
   /**
