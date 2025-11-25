@@ -1,6 +1,6 @@
 # Financial TruPath v3 - Active TODOs
 
-**Last Updated:** November 11, 2025
+**Last Updated:** November 25, 2025
 **Status:** Post-v3.9.0 Refactoring
 
 ---
@@ -8,41 +8,6 @@
 Bugs:
 - Add access to the investment tool - tool 8 now
 - Tool 5: last two domains have the same consequence look into that
-
-
-
-
-
-- I am worried that the subdomain insights are not being called or shown correctly - or maybe we do not need them for tool 3
-
-Nov 19, 2025, 7:58:19 PM	Debug	✅ Tool registered: tool1 (Core Trauma Strategy Assessment)
-Nov 19, 2025, 7:58:19 PM	Debug	✅ Tool registered: tool2 (Financial Clarity & Values Assessment)
-Nov 19, 2025, 7:58:19 PM	Debug	✅ Tool registered: tool3 (Identity & Validation Grounding Tool)
-Nov 19, 2025, 7:58:19 PM	Debug	✅ Tool registered: tool5 (Love & Connection Grounding Tool)
-Nov 19, 2025, 7:58:19 PM	Debug	Tools registered successfully (Tool 1, Tool 2, Tool 3, Tool 5)
-Nov 19, 2025, 7:58:19 PM	Info	Saving final page 7 data before processing
-Nov 19, 2025, 7:58:19 PM	Info	[DraftService] Found draft for 6123LY on tool3
-Nov 19, 2025, 7:58:19 PM	Info	[DraftService] Saved tool3 page 7 data for 6123LY
-Nov 19, 2025, 7:58:19 PM	Info	[DraftService] Found draft for 6123LY on tool3
-Nov 19, 2025, 7:58:19 PM	Debug	SpreadsheetCache MISS - Opening spreadsheet (0 hits, 1 misses)
-Nov 19, 2025, 7:58:20 PM	Info	[Tool3] Skipping DRAFT save/update - already in edit mode with EDIT_DRAFT
-Nov 19, 2025, 7:58:20 PM	Info	[Tool3] Processing final submission for 6123LY
-Nov 19, 2025, 7:58:20 PM	Debug	SpreadsheetCache HIT (1 hits, 1 misses)
-Nov 19, 2025, 7:58:21 PM	Info	[Tool3] Found active draft with status: EDIT_DRAFT
-Nov 19, 2025, 7:58:21 PM	Info	[DraftService] Found draft for 6123LY on tool3
-Nov 19, 2025, 7:58:21 PM	Info	[Tool3] Scoring complete: Overall=24.305555555555554
-Nov 19, 2025, 7:58:21 PM	Info	⚠️ No cached insight for subdomain_1_1, will use fallback
-Nov 19, 2025, 7:58:21 PM	Info	⚠️ No cached insight for subdomain_1_2, will use fallback
-Nov 19, 2025, 7:58:21 PM	Info	⚠️ No cached insight for subdomain_1_3, will use fallback
-Nov 19, 2025, 7:58:21 PM	Info	⚠️ No cached insight for subdomain_2_1, will use fallback
-Nov 19, 2025, 7:58:21 PM	Info	⚠️ No cached insight for subdomain_2_2, will use fallback
-Nov 19, 2025, 7:58:21 PM	Info	⚠️ No cached insight for subdomain_2_3, will use fallback
-Nov 19, 2025, 7:58:21 PM	Info	[SYNTHESIS] Domain: 6123LY - False Self-View
-Nov 19, 2025, 7:58:25 PM	Info	✅ [SYNTHESIS] Domain success: False Self-View
-Nov 19, 2025, 7:58:25 PM	Info	[SYNTHESIS] Domain: 6123LY - External Validation
-Nov 19, 2025, 7:58:29 PM	Info	✅ [SYNTHESIS] Domain success: External Validation
-Nov 19, 2025, 7:58:29 PM	Info	[SYNTHESIS] Overall: 6123LY - tool3
-
 
 Future features:
 - add persistance over time and trends over time
@@ -178,6 +143,14 @@ Future features:
 ---
 
 ## ✅ Recently Completed
+
+### November 25, 2025
+- ✅ Fixed Tool 3 GPT subdomain insights caching (moved trigger to server-side)
+- ✅ Fixed Tool 3 synthesis empty content bug (was caused by missing subdomain insights)
+- ✅ Added score-based tone differentiation to all GPT prompts (subdomain, domain, overall)
+- ✅ Created comprehensive test suite (testServerSideGPTTrigger, testAllSubdomainsGPT, testSynthesisCalls, testGPTScoreResponse)
+- ✅ Validated GPT properly differentiates healthy (+2) vs problematic (-2) scores
+- ✅ Tool 5 automatically benefits from prompt improvements (shares GroundingGPT.js)
 
 ### November 11, 2025
 - ✅ v3.9.0 refactoring complete
