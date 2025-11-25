@@ -20,10 +20,12 @@ This document captures ALL final decisions from the base weights optimization se
 
 1. ✅ **Progressive Unlock Model** - Priorities lock/unlock based on student's financial data
 2. ✅ **Hybrid Priority Selection** - System suggests, student can override (Option B)
-3. ✅ **Top 2 Priority Ranking** - Students rank top 2 priorities, weighted 70%/30%
+3. ✅ **Single Priority Selection** - Students select ONE priority (simplified from Top 2 ranking - see UPDATE below)
 4. ✅ **Hybrid Allocation UX** - Show recommended + adjusted allocations, offer 3 paths
 5. ✅ **Surplus-Based Unlocks** - Low threshold barriers for access
 6. ✅ **Keep All 10 Priorities** - No merging, all serve distinct purposes
+
+**⚠️ UPDATE (Nov 25, 2025):** Decision #3 changed from "Top 2 Priority Ranking" to "Single Priority Selection" for simplicity. Top 2 ranking (70%/30% weighting) was deemed too complex for students. See TOOL4-FINAL-SPECIFICATION.md for implementation details.
 
 ### **Key Innovation:**
 
