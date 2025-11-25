@@ -233,3 +233,220 @@ function testAllSubdomainsGPT() {
   Logger.log('TEST COMPLETE');
   Logger.log('======================================');
 }
+
+/**
+ * TEST SYNTHESIS CALLS
+ * Tests domain and overall synthesis with detailed logging
+ * This will reveal why synthesis content is empty
+ */
+function testSynthesisCalls() {
+  const clientId = '6123LY';
+  const toolId = 'tool3';
+
+  Logger.log('======================================');
+  Logger.log('TESTING SYNTHESIS CALLS');
+  Logger.log('======================================\n');
+
+  try {
+    // Get existing data
+    const allData = Tool3.getExistingData(clientId);
+
+    if (!allData || Object.keys(allData).length === 0) {
+      Logger.log('❌ No data found for client. Run testAllSubdomainsGPT() first to populate data.');
+      return;
+    }
+
+    Logger.log('✓ Found existing data (' + Object.keys(allData).length + ' fields)\n');
+
+    // Extract responses
+    const responses = Tool3.extractResponses(allData);
+    Logger.log('✓ Extracted ' + Object.keys(responses).length + ' responses\n');
+
+    // Calculate scores
+    Logger.log('📊 Calculating scores...');
+    const scoringResult = GroundingScoring.calculateScores(
+      responses,
+      Tool3.config.subdomains
+    );
+    Logger.log('✓ Scoring complete: Overall = ' + Math.round(scoringResult.overallQuotient) + '\n');
+
+    // Create mock subdomain insights using fallbacks
+    // (In real flow these would come from cached GPT calls)
+    Logger.log('📋 Creating subdomain insights (using fallbacks for testing)...');
+    const subdomainInsights = {};
+
+    Tool3.config.subdomains.forEach(function(subdomain, idx) {
+      const aspectScores = {
+        belief: -1 - idx % 2,
+        behavior: -1 - idx % 2,
+        feeling: -1 - idx % 2,
+        consequence: -1 - idx % 2
+      };
+
+      subdomainInsights[subdomain.key] = GroundingFallbacks.getSubdomainFallback(
+        toolId,
+        subdomain.key,
+        aspectScores,
+        {}
+      );
+    });
+    Logger.log('✓ Created insights for all 6 subdomains\n');
+
+    // ============================================================
+    // TEST DOMAIN 1 SYNTHESIS
+    // ============================================================
+    Logger.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    Logger.log('TESTING DOMAIN 1 SYNTHESIS');
+    Logger.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+
+    const domain1Insights = {};
+    domain1Insights[Tool3.config.subdomains[0].key] = subdomainInsights[Tool3.config.subdomains[0].key];
+    domain1Insights[Tool3.config.subdomains[1].key] = subdomainInsights[Tool3.config.subdomains[1].key];
+    domain1Insights[Tool3.config.subdomains[2].key] = subdomainInsights[Tool3.config.subdomains[2].key];
+
+    const domain1Scores = {};
+    domain1Scores[Tool3.config.subdomains[0].key] = scoringResult.subdomainQuotients[Tool3.config.subdomains[0].key];
+    domain1Scores[Tool3.config.subdomains[1].key] = scoringResult.subdomainQuotients[Tool3.config.subdomains[1].key];
+    domain1Scores[Tool3.config.subdomains[2].key] = scoringResult.subdomainQuotients[Tool3.config.subdomains[2].key];
+
+    const domain1Synthesis = GroundingGPT.synthesizeDomain({
+      toolId: toolId,
+      clientId: clientId,
+      domainConfig: {
+        key: 'domain1',
+        name: 'False Self-View',
+        description: Tool3.config.domain1Description
+      },
+      subdomainInsights: domain1Insights,
+      subdomainScores: domain1Scores,
+      domainScore: scoringResult.domainQuotients.domain1,
+      subdomainConfigs: Tool3.config.subdomains.slice(0, 3)
+    });
+
+    Logger.log('\n📊 Domain 1 Synthesis Result:');
+    Logger.log('  - Source: ' + domain1Synthesis.source);
+    Logger.log('  - Summary length: ' + (domain1Synthesis.summary ? domain1Synthesis.summary.length : 0));
+    Logger.log('  - Key themes count: ' + (domain1Synthesis.keyThemes ? domain1Synthesis.keyThemes.length : 0));
+    Logger.log('  - Priority focus length: ' + (domain1Synthesis.priorityFocus ? domain1Synthesis.priorityFocus.length : 0));
+
+    if (domain1Synthesis.source === 'gpt') {
+      Logger.log('\n✅ Domain 1 GPT synthesis succeeded!');
+      Logger.log('   Summary preview: ' + domain1Synthesis.summary.substring(0, 100) + '...');
+    } else {
+      Logger.log('\n⚠️ Domain 1 used fallback');
+    }
+
+    // ============================================================
+    // TEST DOMAIN 2 SYNTHESIS
+    // ============================================================
+    Logger.log('\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    Logger.log('TESTING DOMAIN 2 SYNTHESIS');
+    Logger.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+
+    const domain2Insights = {};
+    domain2Insights[Tool3.config.subdomains[3].key] = subdomainInsights[Tool3.config.subdomains[3].key];
+    domain2Insights[Tool3.config.subdomains[4].key] = subdomainInsights[Tool3.config.subdomains[4].key];
+    domain2Insights[Tool3.config.subdomains[5].key] = subdomainInsights[Tool3.config.subdomains[5].key];
+
+    const domain2Scores = {};
+    domain2Scores[Tool3.config.subdomains[3].key] = scoringResult.subdomainQuotients[Tool3.config.subdomains[3].key];
+    domain2Scores[Tool3.config.subdomains[4].key] = scoringResult.subdomainQuotients[Tool3.config.subdomains[4].key];
+    domain2Scores[Tool3.config.subdomains[5].key] = scoringResult.subdomainQuotients[Tool3.config.subdomains[5].key];
+
+    const domain2Synthesis = GroundingGPT.synthesizeDomain({
+      toolId: toolId,
+      clientId: clientId,
+      domainConfig: {
+        key: 'domain2',
+        name: 'External Validation',
+        description: Tool3.config.domain2Description
+      },
+      subdomainInsights: domain2Insights,
+      subdomainScores: domain2Scores,
+      domainScore: scoringResult.domainQuotients.domain2,
+      subdomainConfigs: Tool3.config.subdomains.slice(3, 6)
+    });
+
+    Logger.log('\n📊 Domain 2 Synthesis Result:');
+    Logger.log('  - Source: ' + domain2Synthesis.source);
+    Logger.log('  - Summary length: ' + (domain2Synthesis.summary ? domain2Synthesis.summary.length : 0));
+    Logger.log('  - Key themes count: ' + (domain2Synthesis.keyThemes ? domain2Synthesis.keyThemes.length : 0));
+    Logger.log('  - Priority focus length: ' + (domain2Synthesis.priorityFocus ? domain2Synthesis.priorityFocus.length : 0));
+
+    if (domain2Synthesis.source === 'gpt') {
+      Logger.log('\n✅ Domain 2 GPT synthesis succeeded!');
+      Logger.log('   Summary preview: ' + domain2Synthesis.summary.substring(0, 100) + '...');
+    } else {
+      Logger.log('\n⚠️ Domain 2 used fallback');
+    }
+
+    // ============================================================
+    // TEST OVERALL SYNTHESIS
+    // ============================================================
+    Logger.log('\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    Logger.log('TESTING OVERALL SYNTHESIS');
+    Logger.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+
+    const overallSynthesis = GroundingGPT.synthesizeOverall({
+      toolId: toolId,
+      clientId: clientId,
+      toolConfig: Tool3.config,
+      domainSyntheses: {
+        'False Self-View': domain1Synthesis,
+        'External Validation': domain2Synthesis
+      },
+      allScores: scoringResult
+    });
+
+    Logger.log('\n📊 Overall Synthesis Result:');
+    Logger.log('  - Source: ' + overallSynthesis.source);
+    Logger.log('  - Overview length: ' + (overallSynthesis.overview ? overallSynthesis.overview.length : 0));
+    Logger.log('  - Integration length: ' + (overallSynthesis.integration ? overallSynthesis.integration.length : 0));
+    Logger.log('  - Core work length: ' + (overallSynthesis.coreWork ? overallSynthesis.coreWork.length : 0));
+    Logger.log('  - Next steps count: ' + (overallSynthesis.nextSteps ? overallSynthesis.nextSteps.length : 0));
+
+    if (overallSynthesis.source === 'gpt') {
+      Logger.log('\n✅ Overall GPT synthesis succeeded!');
+      Logger.log('   Overview preview: ' + overallSynthesis.overview.substring(0, 100) + '...');
+    } else {
+      Logger.log('\n⚠️ Overall used fallback');
+    }
+
+    // ============================================================
+    // SUMMARY
+    // ============================================================
+    Logger.log('\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    Logger.log('TEST SUMMARY');
+    Logger.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+
+    const d1Success = domain1Synthesis.source === 'gpt';
+    const d2Success = domain2Synthesis.source === 'gpt';
+    const overallSuccess = overallSynthesis.source === 'gpt';
+
+    Logger.log('Results:');
+    Logger.log('  - Domain 1: ' + (d1Success ? '✅ GPT' : '⚠️ Fallback'));
+    Logger.log('  - Domain 2: ' + (d2Success ? '✅ GPT' : '⚠️ Fallback'));
+    Logger.log('  - Overall: ' + (overallSuccess ? '✅ GPT' : '⚠️ Fallback'));
+
+    if (d1Success && d2Success && overallSuccess) {
+      Logger.log('\n🎉 ALL SYNTHESES SUCCEEDED!');
+    } else {
+      Logger.log('\n⚠️ Some syntheses used fallbacks - check logs above for details');
+    }
+
+    Logger.log('\n💡 Key logs to review:');
+    Logger.log('   - Look for "[SYNTHESIS] Raw GPT response length"');
+    Logger.log('   - Look for "[SYNTHESIS] Parsed result"');
+    Logger.log('   - Look for any validation failures');
+
+  } catch (error) {
+    Logger.log('\n❌ ERROR during test:');
+    Logger.log(error.toString());
+    Logger.log('\nStack trace:');
+    Logger.log(error.stack);
+  }
+
+  Logger.log('\n======================================');
+  Logger.log('TEST COMPLETE');
+  Logger.log('======================================');
+}
