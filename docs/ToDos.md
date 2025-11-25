@@ -9,6 +9,8 @@ Bugs:
 - Add access to the investment tool - tool 8 now
 - Tool 5: last two domains have the same consequence look into that
 
+Tool3 - possibility that the continue edit function is not loading data
+
 Future features:
 - add persistance over time and trends over time
 

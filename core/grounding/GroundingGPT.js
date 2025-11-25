@@ -363,7 +363,11 @@ Analyze the student's open response in the context of these scores and the belie
 Write your response as if you are speaking directly to the student (use "you" and "your").
 CRITICAL: Ensure your tone and content match the score severity above.
 
-Return plain-text only:
+CRITICAL OUTPUT FORMAT:
+- Return ONLY plain text with NO markdown formatting whatsoever
+- DO NOT use ** (bold), * (italic), _ (underline), or any other markdown
+- DO NOT repeat section headers in your response (they are ONLY labels for you)
+- Start each section immediately with your content, not with the section name
 
 Pattern:
 (One sentence: What specific pattern appears in your response related to "${label}"? Tone should match score severity.)
@@ -472,7 +476,11 @@ names (e.g., "I'm Not Worthy of Financial Freedom") rather than technical
 identifiers (e.g., subdomain_1_1). Students need to understand which patterns
 you're referring to.
 
-Return plain-text only:
+CRITICAL OUTPUT FORMAT:
+- Return ONLY plain text with NO markdown formatting whatsoever
+- DO NOT use ** (bold), * (italic), _ (underline), or any other markdown
+- DO NOT repeat section headers in your response (they are ONLY labels for you)
+- Start each section immediately with your content, not with the section name
 
 Summary:
 (2-3 sentences synthesizing the domain pattern. Tone should match domain score: affirming for healthy, corrective for problematic, balanced for mixed.)
@@ -574,8 +582,11 @@ Focus on:
 3. The core disconnection this assessment addresses (or core strengths if healthy)
 4. A clear, specific path forward based on THEIR scores and responses
 
-Return ONLY the content below in plain-text format WITHOUT any markdown formatting (no **, *, or _).
-Do NOT repeat the section headers in your response - they are only labels for you to know what to write.
+CRITICAL OUTPUT FORMAT:
+- Return ONLY plain text with NO markdown formatting whatsoever
+- DO NOT use ** (bold), * (italic), _ (underline), or any other markdown
+- DO NOT repeat section headers in your response (they are ONLY labels for you)
+- Start each section immediately with your content, not with the section name
 
 Overview:
 (2-3 paragraphs connecting both domains. For healthy scores, emphasize integration and strengths. For problematic scores, explain the disconnection. For mixed, acknowledge complexity.)
@@ -721,20 +732,27 @@ Priority Focus: ${synthesis.priorityFocus}
    * Extract section from plain-text response
    */
   extractSection(text, sectionName) {
+    // More flexible regex that handles markdown in section headers
+    // Matches: "Overview:", "**Overview:**", "Overview", etc.
+    const escapedName = sectionName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const regex = new RegExp(
-      sectionName + '\\s*([\\s\\S]*?)(?=\\n\\n[A-Z][a-z\\s]+:|$)',
+      '\\*{0,2}' + escapedName + '\\*{0,2}\\s*:?\\s*([\\s\\S]*?)(?=\\n\\n\\*{0,2}[A-Z][a-z\\s]+\\*{0,2}\\s*:?\\s*|$)',
       'i'
     );
     const match = text.match(regex);
     let extracted = match ? match[1].trim() : '';
 
-    // Strip markdown formatting (**, *, _)
+    // Strip ALL markdown formatting (**, *, _)
     extracted = extracted.replace(/\*\*/g, '');  // Remove bold **
     extracted = extracted.replace(/\*/g, '');    // Remove italic *
     extracted = extracted.replace(/_/g, '');     // Remove italic _
 
-    // Remove any embedded section headers (e.g., "**Integration:**" that GPT might include)
-    extracted = extracted.replace(/\*\*[A-Z][a-z\s]+:\*\*/g, '');
+    // Remove any embedded section headers that GPT might include
+    // Match patterns like "**Integration:**", "Integration:", etc.
+    extracted = extracted.replace(/\*{0,2}[A-Z][a-z\s]+\*{0,2}:\s*/g, '');
+
+    // Remove any leading/trailing colons that might remain
+    extracted = extracted.replace(/^:\s*/, '').replace(/\s*:$/, '');
 
     return extracted.trim();
   },
