@@ -1,113 +1,103 @@
 /**
  * Tool3Tests.js
- * Manual test functions for Tool 3 GPT integration
- *
- * HOW TO USE IN GOOGLE APPS SCRIPT:
- * 1. Select the function from the dropdown at the top
- * 2. Click Run
- * 3. View → Execution log to see results
- *
- * AVAILABLE TESTS:
- * - testServerSideGPTTrigger() - Test single subdomain GPT caching
- * - testAllSubdomainsGPT() - Test all 6 subdomains GPT caching
+ * Server-side test functions for Tool 3 (Identity & Validation)
+ * Run these from Apps Script Editor to test GPT integration
  */
 
 /**
  * TEST SERVER-SIDE GPT TRIGGER
- * Tests the new server-side GPT analysis trigger in savePageData()
- * This verifies that GPT calls are properly cached after form submission
+ * Tests that background GPT calls execute and cache properly after page save
+ * Run this from Apps Script Editor to verify the fix
  */
 function testServerSideGPTTrigger() {
   const clientId = '6123LY';
-  const toolId = 'tool3';
+  const subdomainIndex = 0; // Test first subdomain (subdomain_1_1)
 
   Logger.log('======================================');
   Logger.log('TESTING SERVER-SIDE GPT TRIGGER');
   Logger.log('======================================\n');
 
-  try {
-    // Clear any existing cache for subdomain_1_1
-    const subdomainKey = 'subdomain_1_1';
-    GroundingGPT.clearCache(toolId, clientId);
-    Logger.log('✓ Cleared existing GPT cache\n');
+  Logger.log('Setup:');
+  Logger.log('  - Client: ' + clientId);
+  Logger.log('  - Subdomain Index: ' + subdomainIndex);
+  Logger.log('  - Tool: tool3\n');
 
-    // Create realistic form data for page 2 (subdomain_1_1)
+  try {
+    // Get subdomain config
+    const subdomain = Tool3.config.subdomains[subdomainIndex];
+    const page = subdomainIndex + 2; // Page 2 for first subdomain
+
+    Logger.log('Subdomain:');
+    Logger.log('  - Key: ' + subdomain.key);
+    Logger.log('  - Label: ' + subdomain.label);
+    Logger.log('  - Page: ' + page + '\n');
+
+    // Clear any existing cache for this subdomain
+    const cacheKey = 'tool3_' + clientId + '_' + subdomain.key + '_insight';
+    PropertiesService.getUserProperties().deleteProperty(cacheKey);
+    Logger.log('✓ Cleared existing cache\n');
+
+    // Create mock form data
     const mockFormData = {
       client: clientId,
-      page: '2',
-      subdomain_index: '0',
-      subdomain_key: 'subdomain_1_1',
-
-      // 4 scale questions with scores and labels
-      subdomain_1_1_belief: '-2',
-      subdomain_1_1_belief_label: 'Agree - I believe financial freedom is for other kinds of people, not someone like me',
-
-      subdomain_1_1_behavior: '-1',
-      subdomain_1_1_behavior_label: 'Often - I frequently avoid looking at accounts and/or have money in places I forget about',
-
-      subdomain_1_1_feeling: '-2',
-      subdomain_1_1_feeling_label: 'Very often - Shame and unworthiness are heavy, recurring feelings about money',
-
-      subdomain_1_1_consequence: '-1',
-      subdomain_1_1_consequence_label: 'Often - I frequently miss opportunities or make poor decisions because of this unworthiness',
-
-      // Open response (must be >= 10 characters)
-      subdomain_1_1_open_response: 'I am afraid that if I look at my finances clearly, I will see how badly I have messed things up and confirm that I really am not capable of managing money. I worry I will see debt I cannot handle or realize I have wasted opportunities that I can never get back. It feels safer to stay in the fog than to face the concrete reality of my failures.'
+      page: page.toString(),
+      subdomain_index: subdomainIndex.toString(),
+      subdomain_key: subdomain.key
     };
 
-    Logger.log('📋 Mock Form Data:');
-    Logger.log('  - Client: ' + clientId);
-    Logger.log('  - Page: 2 (subdomain_1_1)');
-    Logger.log('  - Belief: ' + mockFormData.subdomain_1_1_belief);
-    Logger.log('  - Behavior: ' + mockFormData.subdomain_1_1_behavior);
-    Logger.log('  - Feeling: ' + mockFormData.subdomain_1_1_feeling);
-    Logger.log('  - Consequence: ' + mockFormData.subdomain_1_1_consequence);
-    Logger.log('  - Open Response: ' + mockFormData.subdomain_1_1_open_response.substring(0, 80) + '...');
-    Logger.log('');
+    // Add scale questions with realistic scores (avoid 0, not allowed)
+    const aspects = ['belief', 'behavior', 'feeling', 'consequence'];
+    const scores = [-2, -1, 1, 2]; // Valid scores, skipping 0
+    aspects.forEach(function(aspect, idx) {
+      const fieldName = subdomain.key + '_' + aspect;
+      mockFormData[fieldName] = scores[idx].toString(); // Vary scores: -2, -1, 1, 2
+      mockFormData[fieldName + '_label'] = 'Test label for ' + aspect;
+    });
 
-    // Call Tool3.savePageData() which should trigger GPT analysis
-    Logger.log('🚀 Calling Tool3.savePageData()...');
-    const saveResult = Tool3.savePageData(clientId, 2, mockFormData);
+    // Add open response
+    mockFormData[subdomain.key + '_open_response'] =
+      'This is a test response for ' + subdomain.label + '. It contains enough content to trigger GPT analysis and provide meaningful context for the AI to analyze patterns and provide personalized insights.';
 
-    if (saveResult && saveResult.success) {
-      Logger.log('✓ savePageData() returned success\n');
-    } else {
-      Logger.log('❌ savePageData() did not return success\n');
+    Logger.log('Form Data:');
+    Logger.log('  - Belief: ' + mockFormData[subdomain.key + '_belief']);
+    Logger.log('  - Behavior: ' + mockFormData[subdomain.key + '_behavior']);
+    Logger.log('  - Feeling: ' + mockFormData[subdomain.key + '_feeling']);
+    Logger.log('  - Consequence: ' + mockFormData[subdomain.key + '_consequence']);
+    Logger.log('  - Open response length: ' + mockFormData[subdomain.key + '_open_response'].length + ' chars\n');
+
+    // Save page data (triggers GPT)
+    Logger.log('🚀 Calling Tool3.savePageData() (should trigger GPT)...\n');
+    const startTime = new Date().getTime();
+    const result = Tool3.savePageData(mockFormData);
+    const elapsed = new Date().getTime() - startTime;
+
+    Logger.log('✓ savePageData() completed in ' + elapsed + 'ms\n');
+
+    if (!result.success) {
+      Logger.log('❌ savePageData() failed');
+      return;
     }
 
-    // Wait a moment for GPT call to complete
-    Logger.log('⏳ Waiting 5 seconds for GPT analysis to complete...');
-    Utilities.sleep(5000);
-    Logger.log('');
+    // Check if GPT insight was cached
+    Logger.log('🔍 Checking cache for GPT insight...\n');
+    const cached = PropertiesService.getUserProperties().getProperty(cacheKey);
 
-    // Check if insight was cached
-    Logger.log('🔍 Checking GPT cache for ' + subdomainKey + '...');
-    const cachedInsight = GroundingGPT.getCachedInsight(toolId, clientId, subdomainKey);
+    if (cached) {
+      const insight = JSON.parse(cached);
+      Logger.log('✅ SUCCESS! GPT insight cached:');
+      Logger.log('  - Pattern: ' + insight.pattern);
+      Logger.log('  - Insight: ' + insight.insight);
+      Logger.log('  - Action: ' + insight.action);
+      Logger.log('  - Root Belief: ' + insight.rootBelief);
+      Logger.log('  - Source: ' + insight.source);
+      Logger.log('  - Timestamp: ' + insight.timestamp + '\n');
 
-    if (cachedInsight) {
-      Logger.log('✅ SUCCESS! GPT insight was cached!');
-      Logger.log('\n📊 Cached Insight:');
-      Logger.log('  - Source: ' + cachedInsight.source);
-      Logger.log('  - Pattern: ' + cachedInsight.pattern);
-      Logger.log('  - Insight: ' + cachedInsight.insight);
-      Logger.log('  - Action: ' + cachedInsight.action);
-      Logger.log('  - Root Belief: ' + cachedInsight.rootBelief);
-      Logger.log('  - Timestamp: ' + cachedInsight.timestamp);
-
-      if (cachedInsight.source === 'gpt' || cachedInsight.source === 'gpt_retry') {
-        Logger.log('\n🎉 GPT API call succeeded!');
-      } else if (cachedInsight.source === 'fallback') {
-        Logger.log('\n⚠️ GPT API call failed, fallback used');
-        Logger.log('   GPT Error: ' + (cachedInsight.gpt_error || 'Unknown'));
+      if (insight.source !== 'gpt') {
+        Logger.log('⚠️ Warning: Insight source is "' + insight.source + '" (expected "gpt")');
       }
-
     } else {
-      Logger.log('❌ FAILED! No insight found in cache');
-      Logger.log('\n🔧 Troubleshooting:');
-      Logger.log('1. Check execution logs above for GPT-related errors');
-      Logger.log('2. Verify OPENAI_API_KEY is set in Script Properties');
-      Logger.log('3. Check if GroundingGPT.analyzeSubdomain() was called');
-      Logger.log('4. Look for error messages starting with [TIER 1], [TIER 2], or [TIER 3]');
+      Logger.log('❌ FAILED: No GPT insight found in cache');
+      Logger.log('   This means the server-side trigger did not execute or failed silently\n');
     }
 
   } catch (error) {
@@ -123,29 +113,25 @@ function testServerSideGPTTrigger() {
 }
 
 /**
- * TEST ALL 6 SUBDOMAINS GPT CACHING
- * Simulates completing all 6 subdomain pages and verifies caching
+ * TEST ALL SUBDOMAINS GPT
+ * Saves data for all 6 subdomains to populate GPT cache
+ * Run this before testSynthesisCalls() to ensure all subdomain insights exist
  */
 function testAllSubdomainsGPT() {
   const clientId = '6123LY';
-  const toolId = 'tool3';
 
   Logger.log('======================================');
-  Logger.log('TESTING ALL 6 SUBDOMAINS GPT CACHING');
+  Logger.log('POPULATING ALL SUBDOMAIN INSIGHTS');
   Logger.log('======================================\n');
 
   try {
-    // Clear all caches
-    GroundingGPT.clearCache(toolId, clientId);
-    Logger.log('✓ Cleared all GPT caches\n');
-
-    // Test each subdomain (pages 2-7)
-    for (let page = 2; page <= 7; page++) {
-      const subdomainIndex = page - 2;
+    // Process each subdomain (pages 2-7)
+    for (let subdomainIndex = 0; subdomainIndex < 6; subdomainIndex++) {
       const subdomain = Tool3.config.subdomains[subdomainIndex];
+      const page = subdomainIndex + 2;
 
       Logger.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-      Logger.log('Testing Page ' + page + ': ' + subdomain.label);
+      Logger.log('Subdomain ' + (subdomainIndex + 1) + '/6: ' + subdomain.label);
       Logger.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
       // Create mock form data
@@ -170,58 +156,33 @@ function testAllSubdomainsGPT() {
         'This is a test response for ' + subdomain.label + '. It contains enough content to trigger GPT analysis and provide meaningful context for the AI to analyze patterns and provide personalized insights.';
 
       // Save page data (triggers GPT)
-      Tool3.savePageData(clientId, page, mockFormData);
-      Logger.log('✓ Called savePageData()');
+      Logger.log('Saving page ' + page + '...');
+      const result = Tool3.savePageData(mockFormData);
 
-      // Wait for GPT
-      Logger.log('⏳ Waiting 3 seconds...');
-      Utilities.sleep(3000);
+      if (result.success) {
+        // Check cache
+        const cacheKey = 'tool3_' + clientId + '_' + subdomain.key + '_insight';
+        const cached = PropertiesService.getUserProperties().getProperty(cacheKey);
 
-      // Check cache
-      const cached = GroundingGPT.getCachedInsight(toolId, clientId, subdomain.key);
-      if (cached) {
-        Logger.log('✅ Cached successfully (source: ' + cached.source + ')');
+        if (cached) {
+          const insight = JSON.parse(cached);
+          Logger.log('✅ Cached: ' + insight.source);
+        } else {
+          Logger.log('⚠️ No cache found');
+        }
       } else {
-        Logger.log('❌ NOT cached');
+        Logger.log('❌ Save failed');
       }
+
       Logger.log('');
     }
 
-    // Summary
-    Logger.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    Logger.log('SUMMARY: Checking all caches');
+    Logger.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    Logger.log('ALL SUBDOMAINS PROCESSED');
     Logger.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
-    let successCount = 0;
-    let fallbackCount = 0;
-    let failCount = 0;
-
-    Tool3.config.subdomains.forEach(function(subdomain) {
-      const cached = GroundingGPT.getCachedInsight(toolId, clientId, subdomain.key);
-      if (cached) {
-        if (cached.source === 'gpt' || cached.source === 'gpt_retry') {
-          successCount++;
-          Logger.log('✅ ' + subdomain.key + ': GPT success');
-        } else if (cached.source === 'fallback') {
-          fallbackCount++;
-          Logger.log('⚠️  ' + subdomain.key + ': Fallback used');
-        }
-      } else {
-        failCount++;
-        Logger.log('❌ ' + subdomain.key + ': NOT cached');
-      }
-    });
-
-    Logger.log('\n📊 Results:');
-    Logger.log('  - GPT Success: ' + successCount + '/6');
-    Logger.log('  - Fallback Used: ' + fallbackCount + '/6');
-    Logger.log('  - Failed: ' + failCount + '/6');
-
-    if (failCount === 0) {
-      Logger.log('\n🎉 ALL SUBDOMAINS CACHED SUCCESSFULLY!');
-    } else {
-      Logger.log('\n⚠️ Some subdomains failed to cache');
-    }
+    Logger.log('✅ All 6 subdomain insights should now be cached');
+    Logger.log('   Run testSynthesisCalls() next to test synthesis\n');
 
   } catch (error) {
     Logger.log('\n❌ ERROR during test:');
@@ -439,6 +400,151 @@ function testSynthesisCalls() {
     Logger.log('   - Look for "[SYNTHESIS] Raw GPT response length"');
     Logger.log('   - Look for "[SYNTHESIS] Parsed result"');
     Logger.log('   - Look for any validation failures');
+
+  } catch (error) {
+    Logger.log('\n❌ ERROR during test:');
+    Logger.log(error.toString());
+    Logger.log('\nStack trace:');
+    Logger.log(error.stack);
+  }
+
+  Logger.log('\n======================================');
+  Logger.log('TEST COMPLETE');
+  Logger.log('======================================');
+}
+
+/**
+ * TEST GPT RESPONSE VARIATION
+ * Compare GPT responses for healthy (+2) vs problematic (-2) scores
+ * This will reveal if GPT properly differentiates score severity
+ */
+function testGPTScoreResponse() {
+  const clientId = '6123LY';
+  const subdomain = Tool3.config.subdomains[0]; // Test first subdomain
+
+  Logger.log('======================================');
+  Logger.log('TESTING GPT SCORE RESPONSE VARIATION');
+  Logger.log('======================================\n');
+
+  try {
+    // Clear cache
+    const cacheKey = 'tool3_' + clientId + '_' + subdomain.key + '_insight';
+    PropertiesService.getUserProperties().deleteProperty(cacheKey);
+
+    // ============================================================
+    // TEST 1: PROBLEMATIC SCORES (-2, -2, -2, -2)
+    // ============================================================
+    Logger.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    Logger.log('TEST 1: PROBLEMATIC SCORES');
+    Logger.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+
+    const problematicScores = {
+      belief: -2,
+      behavior: -2,
+      feeling: -2,
+      consequence: -2
+    };
+
+    Logger.log('Scores: All -2 (highly problematic)');
+    Logger.log('Normalized: ~83 (problematic)\n');
+
+    const problematicResponses = {};
+    Object.keys(problematicScores).forEach(function(aspect) {
+      const fieldName = subdomain.key + '_' + aspect;
+      problematicResponses[fieldName] = problematicScores[aspect];
+      problematicResponses[fieldName + '_label'] = 'Test label';
+    });
+    problematicResponses[subdomain.key + '_open_response'] =
+      'I struggle with feeling worthy of financial success. I often feel like I don\'t deserve good things and sabotage opportunities when they come my way. This creates a lot of anxiety and keeps me stuck in negative patterns.';
+
+    Logger.log('Calling GPT with problematic scores...\n');
+    const problematicInsight = GroundingGPT.analyzeSubdomain({
+      toolId: 'tool3',
+      clientId: clientId + '_problematic',
+      subdomainKey: subdomain.key,
+      subdomainConfig: subdomain,
+      responses: problematicResponses,
+      aspectScores: problematicScores,
+      previousInsights: {}
+    });
+
+    Logger.log('📋 Problematic Score Response:');
+    Logger.log('  - Pattern: ' + problematicInsight.pattern);
+    Logger.log('  - Insight: ' + problematicInsight.insight);
+    Logger.log('  - Action: ' + problematicInsight.action);
+    Logger.log('  - Root Belief: ' + problematicInsight.rootBelief);
+    Logger.log('  - Source: ' + problematicInsight.source + '\n\n');
+
+    // Clear cache for next test
+    PropertiesService.getUserProperties().deleteProperty(cacheKey);
+    Utilities.sleep(1000); // Brief pause between API calls
+
+    // ============================================================
+    // TEST 2: HEALTHY SCORES (+2, +2, +2, +2)
+    // ============================================================
+    Logger.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    Logger.log('TEST 2: HEALTHY SCORES');
+    Logger.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+
+    const healthyScores = {
+      belief: 2,
+      behavior: 2,
+      feeling: 2,
+      consequence: 2
+    };
+
+    Logger.log('Scores: All +2 (very healthy)');
+    Logger.log('Normalized: ~17 (healthy)\n');
+
+    const healthyResponses = {};
+    Object.keys(healthyScores).forEach(function(aspect) {
+      const fieldName = subdomain.key + '_' + aspect;
+      healthyResponses[fieldName] = healthyScores[aspect];
+      healthyResponses[fieldName + '_label'] = 'Test label';
+    });
+    healthyResponses[subdomain.key + '_open_response'] =
+      'I feel worthy of financial success and recognize my value. I embrace opportunities when they come and trust in my ability to handle them well. This creates confidence and keeps me moving forward in positive ways.';
+
+    Logger.log('Calling GPT with healthy scores...\n');
+    const healthyInsight = GroundingGPT.analyzeSubdomain({
+      toolId: 'tool3',
+      clientId: clientId + '_healthy',
+      subdomainKey: subdomain.key,
+      subdomainConfig: subdomain,
+      responses: healthyResponses,
+      aspectScores: healthyScores,
+      previousInsights: {}
+    });
+
+    Logger.log('📋 Healthy Score Response:');
+    Logger.log('  - Pattern: ' + healthyInsight.pattern);
+    Logger.log('  - Insight: ' + healthyInsight.insight);
+    Logger.log('  - Action: ' + healthyInsight.action);
+    Logger.log('  - Root Belief: ' + healthyInsight.rootBelief);
+    Logger.log('  - Source: ' + healthyInsight.source + '\n\n');
+
+    // ============================================================
+    // COMPARISON
+    // ============================================================
+    Logger.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    Logger.log('COMPARISON');
+    Logger.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+
+    Logger.log('Does GPT differentiate between problematic and healthy scores?\n');
+
+    Logger.log('Problematic (-2):');
+    Logger.log('  Pattern: ' + problematicInsight.pattern.substring(0, 80) + '...');
+    Logger.log('  Tone: ' + (problematicInsight.insight.match(/struggle|stuck|sabotage|disconnect/i) ? 'Addressing problems ✓' : 'Not addressing problems ✗') + '\n');
+
+    Logger.log('Healthy (+2):');
+    Logger.log('  Pattern: ' + healthyInsight.pattern.substring(0, 80) + '...');
+    Logger.log('  Tone: ' + (healthyInsight.insight.match(/strength|positive|healthy|resource/i) ? 'Recognizing strengths ✓' : 'Not recognizing strengths ✗') + '\n');
+
+    if (problematicInsight.source === 'gpt' && healthyInsight.source === 'gpt') {
+      Logger.log('✅ Both insights from GPT - comparison valid');
+    } else {
+      Logger.log('⚠️ One or both used fallback - comparison may not be valid');
+    }
 
   } catch (error) {
     Logger.log('\n❌ ERROR during test:');
