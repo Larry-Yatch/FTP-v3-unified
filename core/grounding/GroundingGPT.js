@@ -182,6 +182,7 @@ const GroundingGPT = {
 
       const userPrompt = this.buildDomainUserPrompt(subdomainInsights, subdomainConfigs);
 
+      Logger.log(`[SYNTHESIS] Calling GPT for domain synthesis...`);
       const result = this.callGPT({
         systemPrompt,
         userPrompt,
@@ -190,10 +191,22 @@ const GroundingGPT = {
         maxTokens: 500
       });
 
+      Logger.log(`[SYNTHESIS] Raw GPT response length: ${result ? result.length : 0} characters`);
+      Logger.log(`[SYNTHESIS] Raw GPT response preview: ${result ? result.substring(0, 200) : 'NULL'}...`);
+
       const parsed = this.parseDomainSynthesis(result);
+
+      Logger.log(`[SYNTHESIS] Parsed result:`);
+      Logger.log(`  - summary length: ${parsed.summary ? parsed.summary.length : 0}`);
+      Logger.log(`  - keyThemes count: ${parsed.keyThemes ? parsed.keyThemes.length : 0}`);
+      Logger.log(`  - priorityFocus length: ${parsed.priorityFocus ? parsed.priorityFocus.length : 0}`);
 
       // Validate content is not empty
       if (!this.isValidDomainSynthesis(parsed)) {
+        Logger.log(`❌ [SYNTHESIS] Validation failed - parsed content is empty or incomplete`);
+        Logger.log(`   Summary: "${parsed.summary}"`);
+        Logger.log(`   KeyThemes: ${JSON.stringify(parsed.keyThemes)}`);
+        Logger.log(`   PriorityFocus: "${parsed.priorityFocus}"`);
         throw new Error('Empty synthesis content - GPT returned malformed response');
       }
 
@@ -207,6 +220,7 @@ const GroundingGPT = {
 
     } catch (error) {
       Logger.log(`❌ [SYNTHESIS] Domain failed: ${domainConfig.name} - ${error.message}`);
+      Logger.log(`   Error stack: ${error.stack}`);
 
       return GroundingFallbacks.getDomainFallback(
         toolId,
@@ -242,6 +256,7 @@ const GroundingGPT = {
 
       const userPrompt = this.buildOverallUserPrompt(domainSyntheses, allScores, toolConfig);
 
+      Logger.log(`[SYNTHESIS] Calling GPT for overall synthesis...`);
       const result = this.callGPT({
         systemPrompt,
         userPrompt,
@@ -250,10 +265,24 @@ const GroundingGPT = {
         maxTokens: 700
       });
 
+      Logger.log(`[SYNTHESIS] Raw GPT response length: ${result ? result.length : 0} characters`);
+      Logger.log(`[SYNTHESIS] Raw GPT response preview: ${result ? result.substring(0, 200) : 'NULL'}...`);
+
       const parsed = this.parseOverallSynthesis(result);
+
+      Logger.log(`[SYNTHESIS] Parsed result:`);
+      Logger.log(`  - overview length: ${parsed.overview ? parsed.overview.length : 0}`);
+      Logger.log(`  - integration length: ${parsed.integration ? parsed.integration.length : 0}`);
+      Logger.log(`  - coreWork length: ${parsed.coreWork ? parsed.coreWork.length : 0}`);
+      Logger.log(`  - nextSteps count: ${parsed.nextSteps ? parsed.nextSteps.length : 0}`);
 
       // Validate content is not empty
       if (!this.isValidOverallSynthesis(parsed)) {
+        Logger.log(`❌ [SYNTHESIS] Validation failed - parsed content is empty or incomplete`);
+        Logger.log(`   Overview: "${parsed.overview}"`);
+        Logger.log(`   Integration: "${parsed.integration}"`);
+        Logger.log(`   CoreWork: "${parsed.coreWork}"`);
+        Logger.log(`   NextSteps: ${JSON.stringify(parsed.nextSteps)}`);
         throw new Error('Empty synthesis content - GPT returned malformed response');
       }
 
