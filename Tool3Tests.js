@@ -156,11 +156,12 @@ function testAllSubdomainsGPT() {
         subdomain_key: subdomain.key
       };
 
-      // Add scale questions with realistic scores
+      // Add scale questions with realistic scores (avoid 0, not allowed)
       const aspects = ['belief', 'behavior', 'feeling', 'consequence'];
+      const scores = [-2, -1, 1, 2]; // Valid scores, skipping 0
       aspects.forEach(function(aspect, idx) {
         const fieldName = subdomain.key + '_' + aspect;
-        mockFormData[fieldName] = (-2 + idx).toString(); // Vary scores: -2, -1, 0, 1
+        mockFormData[fieldName] = scores[idx].toString(); // Vary scores: -2, -1, 1, 2
         mockFormData[fieldName + '_label'] = 'Test label for ' + aspect;
       });
 
