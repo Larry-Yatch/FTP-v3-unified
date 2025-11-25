@@ -27,8 +27,8 @@ test-*.js
 *-test.js
 validate-*.js
 console-*.js
-Tool3Tests.js
-Tool5Tests.js
+# Tool3Tests.js
+# Tool5Tests.js
 
 # Keep all tests, examples, and templates local only
 tests/**
