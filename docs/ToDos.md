@@ -8,7 +8,7 @@
 Bugs:
 - Add access to the investment tool - tool 8 now
 - Tool 5: last two domains have the same consequence look into that
-- Turn off automatic unlocking of tools.
+
 
 
 

@@ -594,6 +594,66 @@ const Tool3 = {
       Logger.log(`[Tool3] Skipping DRAFT save/update - already in edit mode with EDIT_DRAFT`);
     }
 
+    // ============================================================
+    // BACKGROUND GPT ANALYSIS (Server-Side)
+    // Trigger GPT analysis for subdomain pages (2-7) after save
+    // ============================================================
+    if (page >= 2 && page <= 7) {
+      const subdomainIndex = page - 2; // 0-5
+      const subdomain = this.config.subdomains[subdomainIndex];
+
+      try {
+        // Extract responses for this subdomain
+        const openResponseKey = `${subdomain.key}_open_response`;
+        const openResponse = formData[openResponseKey];
+
+        // Check if we have enough data for GPT analysis
+        if (openResponse && openResponse.trim().length >= 10) {
+          Logger.log(`[Tool3] Triggering GPT analysis for ${subdomain.key}`);
+
+          // Extract aspect scores for GPT context
+          const aspects = ['belief', 'behavior', 'feeling', 'consequence'];
+          const responses = {};
+          const aspectScores = {};
+
+          aspects.forEach(aspect => {
+            const fieldName = `${subdomain.key}_${aspect}`;
+            const score = parseInt(formData[fieldName]);
+            responses[fieldName] = score;
+            responses[`${fieldName}_label`] = formData[`${fieldName}_label`] || '';
+            aspectScores[aspect] = score;
+          });
+          responses[openResponseKey] = openResponse;
+
+          // Check for duplicate (prevent redundant API calls on back/forward navigation)
+          const existingInsight = GroundingGPT.getCachedInsight(this.config.id, clientId, subdomain.key);
+
+          if (existingInsight) {
+            Logger.log(`[Tool3] GPT insight already cached for ${subdomain.key} - skipping`);
+          } else {
+            // Trigger GPT analysis (non-blocking - uses try-catch internally)
+            GroundingGPT.analyzeSubdomain({
+              toolId: this.config.id,
+              clientId: clientId,
+              subdomainKey: subdomain.key,
+              subdomainConfig: subdomain,
+              responses: responses,
+              aspectScores: aspectScores,
+              previousInsights: {} // No cross-subdomain context for now
+            });
+
+            Logger.log(`[Tool3] GPT analysis completed for ${subdomain.key}`);
+          }
+        } else {
+          Logger.log(`[Tool3] Skipping GPT - insufficient open response for ${subdomain.key} (length: ${openResponse ? openResponse.length : 0})`);
+        }
+      } catch (error) {
+        // Don't let GPT failures block navigation
+        Logger.log(`[Tool3] GPT trigger failed (non-blocking): ${error.message}`);
+        Logger.log(error.stack);
+      }
+    }
+
     return { success: true };
   },
 

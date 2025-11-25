@@ -658,56 +658,14 @@ const GroundingFormBuilder = {
   },
 
   /**
-   * Generate background GPT trigger script
-   * Fires after form submission to trigger GPT analysis in background
+   * Generate background GPT trigger script (DEPRECATED - moved to server-side)
+   * GPT analysis is now triggered server-side in Tool.savePageData() after draft save
+   * This eliminates race conditions where page navigation would cancel GPT calls
    */
   getBackgroundGPTScript(toolId, subdomainKey, subdomainIndex) {
-    return `
-      <script>
-        /**
-         * Trigger background GPT analysis for this subdomain
-         * Called automatically after successful form submission
-         */
-        function triggerBackgroundGPT(clientId, subdomainKey, subdomainIndex, formData) {
-          console.log('[GPT] Triggering background analysis for:', subdomainKey);
-
-          // Fire-and-forget GPT call (don't wait for result)
-          google.script.run
-            .withSuccessHandler(function() {
-              console.log('[GPT] Background analysis started for:', subdomainKey);
-            })
-            .withFailureHandler(function(error) {
-              console.warn('[GPT] Background analysis failed (will use fallback):', error);
-            })
-            .triggerGroundingGPTAnalysis('${toolId}', clientId, subdomainKey, subdomainIndex, formData);
-        }
-
-        // Override the standard submitToolPage to add GPT trigger
-        // Use conditional to avoid redeclaration errors during page navigation
-        if (!window._originalSubmitToolPage) {
-          window._originalSubmitToolPage = window.submitToolPage;
-        }
-
-        window.submitToolPage = function(formId, page, nextRoute) {
-          const form = document.getElementById(formId);
-          if (!form) return false;
-
-          const formData = new FormData(form);
-          const data = Object.fromEntries(formData.entries());
-
-          // Trigger background GPT before submission
-          triggerBackgroundGPT(
-            data.client,
-            '${subdomainKey}',
-            ${subdomainIndex},
-            data
-          );
-
-          // Call original submission
-          return window._originalSubmitToolPage(formId, page, nextRoute);
-        };
-      </script>
-    `;
+    // Return empty string - no longer needed on client side
+    // GPT triggering now happens in Tool3.savePageData() and Tool5.savePageData()
+    return '';
   },
 
   /**
