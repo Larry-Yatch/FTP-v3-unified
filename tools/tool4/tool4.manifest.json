@@ -1,0 +1,34 @@
+{
+  "id": "tool4",
+  "name": "Financial Freedom Framework",
+  "version": "1.0.0",
+  "description": "Interactive budget allocation calculator that helps discover optimal financial allocation across 4 buckets (M/E/F/J)",
+  "category": "calculator",
+  "estimatedMinutes": 30,
+  "requires": [],
+  "unlocks": ["tool5"],
+  "manifest": {
+    "entryPoint": "Tool4.render",
+    "processor": "Tool4.processSubmission",
+    "dependencies": [
+      "Tool4Calculator",
+      "Tool4BaseWeights",
+      "Tool4Modifiers",
+      "Tool4ProgressiveUnlock",
+      "Tool4Report"
+    ]
+  },
+  "architecture": {
+    "type": "single-page-calculator",
+    "pattern": "calculator-report",
+    "storage": "TOOL4_SCENARIOS",
+    "multipleScenarios": true
+  },
+  "features": {
+    "progressiveUnlock": true,
+    "backupQuestions": true,
+    "scenarioManagement": true,
+    "pdfGeneration": true,
+    "customAllocation": true
+  }
+}

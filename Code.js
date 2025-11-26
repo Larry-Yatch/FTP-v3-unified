@@ -123,6 +123,30 @@ function registerTools() {
     Tool3.manifest = tool3Manifest;
     ToolRegistry.register('tool3', Tool3, tool3Manifest);
 
+    // Tool 4: Financial Freedom Framework
+    const tool4Manifest = {
+      id: "tool4",
+      version: "1.0.0",
+      name: "Financial Freedom Framework",
+      pattern: "single-page-calculator",
+      route: "tool4",
+      routes: ["/tool4"],
+      description: "Interactive budget allocation calculator for optimal M/E/F/J allocation",
+      icon: "💰",
+      estimatedTime: "30 minutes",
+      categories: ["budget_allocation", "financial_planning"],
+      outputs: {
+        report: true,
+        pdf: true,
+        scenarios: true
+      },
+      dependencies: [],  // Tools 1/2/3 optional (has backup questions)
+      unlocks: ["tool5"]
+    };
+
+    Tool4.manifest = tool4Manifest;
+    ToolRegistry.register('tool4', Tool4, tool4Manifest);
+
     // Tool 5: Love & Connection Grounding Tool
     const tool5Manifest = {
       id: "tool5",
@@ -149,7 +173,7 @@ function registerTools() {
     Tool5.manifest = tool5Manifest;
     ToolRegistry.register('tool5', Tool5, tool5Manifest);
 
-    console.log('Tools registered successfully (Tool 1, Tool 2, Tool 3, Tool 5)');
+    console.log('Tools registered successfully (Tool 1, Tool 2, Tool 3, Tool 4, Tool 5)');
   } catch (error) {
     console.error('Error registering tools:', error);
   }
