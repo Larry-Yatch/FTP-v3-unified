@@ -455,6 +455,12 @@ const Router = {
     const tool3Completed = tool3Latest && tool3Latest.status === 'COMPLETED';
     const tool3Access = ToolAccessControl.canAccessTool(clientId, 'tool3');
 
+    // Check Tool 4 status
+    const tool4Latest = DataService.getLatestResponse(clientId, 'tool4');
+    const tool4HasDraft = tool4Latest && (tool4Latest.status === 'DRAFT' || tool4Latest.status === 'EDIT_DRAFT');
+    const tool4Completed = tool4Latest && tool4Latest.status === 'COMPLETED';
+    const tool4Access = ToolAccessControl.canAccessTool(clientId, 'tool4');
+
     // Check Tool 5 status
     const tool5Latest = DataService.getLatestResponse(clientId, 'tool5');
     const tool5HasDraft = tool5Latest && (tool5Latest.status === 'DRAFT' || tool5Latest.status === 'EDIT_DRAFT');
@@ -580,6 +586,8 @@ const Router = {
             ${this._buildTool2Card(clientId, baseUrl, tool2Latest, tool2HasDraft, tool2Completed, tool2Access)}
 
             ${this._buildTool3Card(clientId, baseUrl, tool3Latest, tool3HasDraft, tool3Completed, tool3Access)}
+
+            ${this._buildTool4Card(clientId, baseUrl, tool4Latest, tool4HasDraft, tool4Completed, tool4Access)}
 
             ${this._buildTool5Card(clientId, baseUrl, tool5Latest, tool5HasDraft, tool5Completed, tool5Access)}
 
@@ -861,6 +869,62 @@ const Router = {
           <span class="badge">🔒 Locked</span>
           <p class="muted mt-10" style="font-size: 14px;">
             ${tool3Access.reason || 'Complete previous tools to unlock'}
+          </p>
+        </div>
+      `;
+    }
+  },
+
+  _buildTool4Card(clientId, baseUrl, tool4Latest, tool4HasDraft, tool4Completed, tool4Access) {
+    if (tool4Completed) {
+      const completedDate = new Date(tool4Latest.timestamp).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+
+      return `
+        <div class="tool-card" style="margin-bottom: 15px; border: 2px solid #4CAF50;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <h3 style="margin: 0;">Tool 4: Financial Freedom Framework</h3>
+            <span class="badge" style="background: #4CAF50; color: white;">✓ Completed</span>
+          </div>
+          <p class="muted" style="margin-bottom: 10px;">Completed on ${completedDate}</p>
+
+          <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px;">
+            <button class="btn-primary" onclick="viewTool4Calculator()">
+              💰 Open Calculator
+            </button>
+          </div>
+        </div>
+
+        <script>
+          function viewTool4Calculator() {
+            showLoading('Loading Calculator');
+            window.top.location.href = '${baseUrl}?route=tool4&client=${clientId}';
+          }
+        </script>
+      `;
+    } else if (tool4Access.allowed) {
+      return `
+        <div class="tool-card" style="margin-bottom: 15px;">
+          <h3>Tool 4: Financial Freedom Framework</h3>
+          <p class="muted">Discover your optimal budget allocation across 4 buckets (M/E/F/J)</p>
+          <span class="badge" style="background: #2196F3; color: white;">✓ Ready</span>
+          <br><br>
+          <button class="btn-primary" onclick="showLoading('Loading Calculator'); window.top.location.href='${baseUrl}?route=tool4&client=${clientId}'">
+            💰 Open Calculator
+          </button>
+        </div>
+      `;
+    } else {
+      return `
+        <div class="tool-card locked" style="margin-bottom: 15px; opacity: 0.6;">
+          <h3>Tool 4: Financial Freedom Framework</h3>
+          <p class="muted">Budget allocation calculator</p>
+          <span class="badge" style="background: #9E9E9E; color: white;">🔒 Locked</span>
+          <p class="muted mt-10" style="font-size: 0.9rem;">
+            ${tool4Access.reason || 'Complete Tool 3 to unlock'}
           </p>
         </div>
       `;

@@ -243,7 +243,8 @@ const GroundingGPT = {
       clientId,
       toolConfig,
       domainSyntheses,
-      allScores
+      allScores,
+      subdomainInsights = {}  // ADD: Accept subdomain insights for context
     } = params;
 
     try {
@@ -254,7 +255,7 @@ const GroundingGPT = {
         allScores
       );
 
-      const userPrompt = this.buildOverallUserPrompt(domainSyntheses, allScores, toolConfig);
+      const userPrompt = this.buildOverallUserPrompt(domainSyntheses, allScores, toolConfig, subdomainInsights);
 
       Logger.log(`[SYNTHESIS] Calling GPT for overall synthesis...`);
       const result = this.callGPT({
@@ -576,11 +577,20 @@ Create a cohesive narrative that connects both domains and provides an integrate
 Write your response as if you are speaking directly to the student (use "you" and "your").
 CRITICAL: Ensure your tone and content match the overall score severity above.
 
+CRITICAL CONTEXT ALIGNMENT:
+You will receive the EXISTING subdomain insights (pattern, insight, root belief, action) that have
+already been shared with this student. Your overall synthesis MUST align with and build upon these
+existing narratives. DO NOT contradict or ignore what the subdomains already established.
+
+If subdomain insights show healthy patterns, acknowledge those strengths in your overview.
+If subdomain insights show problematic patterns, address those issues in your overview.
+Your job is to CREATE A COHERENT WHOLE from the existing pieces, not to rewrite them.
+
 Focus on:
 1. The relationship between the two domains
 2. How patterns in one domain affect the other (positively or negatively)
 3. The core disconnection this assessment addresses (or core strengths if healthy)
-4. A clear, specific path forward based on THEIR scores and responses
+4. A clear, specific path forward based on THEIR scores, responses, AND existing subdomain narratives
 
 CRITICAL OUTPUT FORMAT:
 - Return ONLY plain text with NO markdown formatting whatsoever
@@ -616,13 +626,23 @@ Tone of steps should match overall score:
   /**
    * Build user prompt for overall synthesis
    */
-  buildOverallUserPrompt(domainSyntheses, allScores, toolConfig) {
-    // Build subdomain scores breakdown for context
-    let subdomainScoresText = '\n\nSUBDOMAIN SCORES (for reference in creating specific action steps):\n';
+  buildOverallUserPrompt(domainSyntheses, allScores, toolConfig, subdomainInsights = {}) {
+    // Build subdomain insights with full context (not just scores)
+    let subdomainContextText = '\n\nSUBDOMAIN INSIGHTS (ensure overall narrative aligns with these existing narratives):\n';
     if (allScores && allScores.subdomainQuotients && toolConfig && toolConfig.subdomains) {
       toolConfig.subdomains.forEach(subdomain => {
         const score = Math.round(allScores.subdomainQuotients[subdomain.key]);
-        subdomainScoresText += `- "${subdomain.label}": ${score}\n`;
+        const insight = subdomainInsights[subdomain.key];
+
+        subdomainContextText += `\n"${subdomain.label}" (Score: ${score}):\n`;
+        if (insight) {
+          subdomainContextText += `  Pattern: ${insight.pattern}\n`;
+          subdomainContextText += `  Insight: ${insight.insight}\n`;
+          subdomainContextText += `  Root Belief: ${insight.rootBelief}\n`;
+          subdomainContextText += `  Action: ${insight.action}\n`;
+        } else {
+          subdomainContextText += `  [No insight available - using fallback]\n`;
+        }
       });
     }
 
@@ -635,7 +655,7 @@ Priority Focus: ${synthesis.priorityFocus}
       `)
       .join('\n\n');
 
-    return domainSynthesesText + subdomainScoresText;
+    return domainSynthesesText + subdomainContextText;
   },
 
   // ============================================================
