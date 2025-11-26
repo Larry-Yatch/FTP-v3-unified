@@ -157,7 +157,7 @@ function testAllSubdomainsGPT() {
 
       // Save page data (triggers GPT)
       Logger.log('Saving page ' + page + '...');
-      const result = Tool3.savePageData(mockFormData);
+      const result = Tool3.savePageData(clientId, page, mockFormData);
 
       if (result.success) {
         // Check cache
