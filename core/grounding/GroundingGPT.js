@@ -569,7 +569,7 @@ ${isHealthy ? `This is a HEALTHY overall score (< 25). Your synthesis should:
 - Position next steps as a balanced mix of maintaining strengths and addressing gaps` : ''}
 
 DOMAIN BALANCE:
-${Math.abs(domain1Score - domain2Score) < 15 ? 'Both domains are relatively balanced.' : domain1Score > domain2Score + 15 ? `${toolConfig.domain1Name} is significantly more problematic (${Math.round(domain1Score - domain2Score)} points higher). Focus heavily on this domain.` : `${toolConfig.domain2Name} is significantly more problematic (${Math.round(domain2Score - domain1Score)} points higher). Focus heavily on this domain.`}
+${Math.abs(domain1Score - domain2Score) < 15 ? 'Both domains are relatively balanced.' : domain1Score > domain2Score + 15 ? `${toolConfig.domain1Name} is significantly more problematic (${Math.round(domain1Score - domain2Score)} points higher). Focus heavily on this domain. ${domain2Score < 25 ? `NOTE: ${toolConfig.domain2Name} is HEALTHY (score ${Math.round(domain2Score)}) - treat it as a STRENGTH, not a problem.` : ''}` : `${toolConfig.domain2Name} is significantly more problematic (${Math.round(domain2Score - domain1Score)} points higher). Focus heavily on this domain. ${domain1Score < 25 ? `NOTE: ${toolConfig.domain1Name} is HEALTHY (score ${Math.round(domain1Score)}) - treat it as a STRENGTH, not a problem.` : ''}`}
 
 YOUR TASK:
 Create a cohesive narrative that connects both domains and provides an integrated understanding.
@@ -589,7 +589,7 @@ CRITICAL OUTPUT FORMAT:
 - Start each section immediately with your content, not with the section name
 
 Overview:
-(2-3 paragraphs connecting both domains. For healthy scores, emphasize integration and strengths. For problematic scores, explain the disconnection. For mixed, acknowledge complexity.)
+(2-3 paragraphs connecting both domains. CRITICAL: If one domain is HEALTHY (score < 25), present it as a STRENGTH and resource, NOT as a problem. Only discuss problematic patterns for domains scoring 25+. Acknowledge which specific domain(s) need work.)
 
 Integration:
 (How do the two domains interact and influence each other in your financial life? Tone should match overall score: celebrate synergy if healthy, address vicious cycles if problematic, acknowledge mixed dynamics if mixed.)
