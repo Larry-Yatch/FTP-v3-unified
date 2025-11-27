@@ -326,8 +326,6 @@ const Tool4 = {
   </style>
 </head>
 <body>
-  ${loadingAnimation}
-
   <div class="tool4-container">
     <!-- Header -->
     <header style="margin-bottom: 30px;">
