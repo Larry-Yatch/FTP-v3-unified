@@ -506,49 +506,70 @@ const Tool4 = {
         name: 'Feel Financially Secure',
         icon: '🛡️',
         tier: 2,
-        checkUnlock: function(data) { return data.emergencyFund >= 6000 || data.surplus >= 500; }
+        checkUnlock: function(data) {
+          // Unlock if: Emergency fund >= 2 months essentials OR surplus >= 10% income
+          return data.emergencyFund >= (data.essentials * 2) || data.surplus >= (data.income * 0.10);
+        }
       },
       {
         id: 'enjoy',
         name: 'Enjoy Life More',
         icon: '🎉',
         tier: 2,
-        checkUnlock: function(data) { return data.surplus >= 200; }
+        checkUnlock: function(data) {
+          // Unlock if: Surplus >= 5% of income
+          return data.surplus >= (data.income * 0.05);
+        }
       },
       {
         id: 'reduce_hours',
         name: 'Reduce Working Hours',
         icon: '⏰',
         tier: 2,
-        checkUnlock: function(data) { return data.emergencyFund >= 6000 && data.surplus >= 400; }
+        checkUnlock: function(data) {
+          // Unlock if: Emergency fund >= 2 months essentials AND surplus >= 10% income
+          return data.emergencyFund >= (data.essentials * 2) && data.surplus >= (data.income * 0.10);
+        }
       },
       {
         id: 'kids_education',
         name: 'Save for Kids\\' Education',
         icon: '🎓',
         tier: 3,
-        checkUnlock: function(data) { return data.emergencyFund >= 12000 && data.surplus >= 600; }
+        checkUnlock: function(data) {
+          // Unlock if: Emergency fund >= 4 months essentials AND surplus >= 15% income
+          return data.emergencyFund >= (data.essentials * 4) && data.surplus >= (data.income * 0.15);
+        }
       },
       {
         id: 'wealth',
         name: 'Build Long-Term Wealth',
         icon: '📈',
         tier: 3,
-        checkUnlock: function(data) { return data.emergencyFund >= 18000 && data.surplus >= 800; }
+        checkUnlock: function(data) {
+          // Unlock if: Emergency fund >= 6 months essentials AND surplus >= 20% income
+          return data.emergencyFund >= (data.essentials * 6) && data.surplus >= (data.income * 0.20);
+        }
       },
       {
         id: 'lifestyle',
         name: 'Upgrade My Lifestyle',
         icon: '✨',
         tier: 3,
-        checkUnlock: function(data) { return data.emergencyFund >= 12000 && data.surplus >= 1000; }
+        checkUnlock: function(data) {
+          // Unlock if: Emergency fund >= 4 months essentials AND surplus >= 25% income
+          return data.emergencyFund >= (data.essentials * 4) && data.surplus >= (data.income * 0.25);
+        }
       },
       {
         id: 'generational',
         name: 'Create Generational Wealth',
         icon: '👨‍👩‍👧‍👦',
         tier: 4,
-        checkUnlock: function(data) { return data.emergencyFund >= 36000 && data.surplus >= 2000; }
+        checkUnlock: function(data) {
+          // Unlock if: Emergency fund >= 12 months essentials AND surplus >= 40% income
+          return data.emergencyFund >= (data.essentials * 12) && data.surplus >= (data.income * 0.40);
+        }
       }
     ];
 
@@ -610,7 +631,32 @@ const Tool4 = {
           if (priority.id === 'debt') {
             lockReason = 'Need debt balance > $0';
           } else if (priority.id === 'secure') {
-            lockReason = 'Need: $6,000 emergency fund OR $500 surplus | You have: $' + financialData.emergencyFund.toLocaleString() + ' fund, $' + financialData.surplus.toLocaleString() + ' surplus';
+            var needFund = Math.round(financialData.essentials * 2);
+            var needSurplus = Math.round(financialData.income * 0.10);
+            lockReason = 'Need: $' + needFund.toLocaleString() + ' emergency fund (2 months) OR $' + needSurplus.toLocaleString() + ' surplus (10%) | You have: $' + financialData.emergencyFund.toLocaleString() + ' fund, $' + financialData.surplus.toLocaleString() + ' surplus';
+          } else if (priority.id === 'enjoy') {
+            var needSurplus = Math.round(financialData.income * 0.05);
+            lockReason = 'Need: $' + needSurplus.toLocaleString() + ' surplus (5% of income) | You have: $' + financialData.surplus.toLocaleString();
+          } else if (priority.id === 'reduce_hours') {
+            var needFund = Math.round(financialData.essentials * 2);
+            var needSurplus = Math.round(financialData.income * 0.10);
+            lockReason = 'Need: $' + needFund.toLocaleString() + ' emergency fund (2 months) + $' + needSurplus.toLocaleString() + ' surplus (10%)';
+          } else if (priority.id === 'kids_education') {
+            var needFund = Math.round(financialData.essentials * 4);
+            var needSurplus = Math.round(financialData.income * 0.15);
+            lockReason = 'Need: $' + needFund.toLocaleString() + ' emergency fund (4 months) + $' + needSurplus.toLocaleString() + ' surplus (15%)';
+          } else if (priority.id === 'wealth') {
+            var needFund = Math.round(financialData.essentials * 6);
+            var needSurplus = Math.round(financialData.income * 0.20);
+            lockReason = 'Need: $' + needFund.toLocaleString() + ' emergency fund (6 months) + $' + needSurplus.toLocaleString() + ' surplus (20%)';
+          } else if (priority.id === 'lifestyle') {
+            var needFund = Math.round(financialData.essentials * 4);
+            var needSurplus = Math.round(financialData.income * 0.25);
+            lockReason = 'Need: $' + needFund.toLocaleString() + ' emergency fund (4 months) + $' + needSurplus.toLocaleString() + ' surplus (25%)';
+          } else if (priority.id === 'generational') {
+            var needFund = Math.round(financialData.essentials * 12);
+            var needSurplus = Math.round(financialData.income * 0.40);
+            lockReason = 'Need: $' + needFund.toLocaleString() + ' emergency fund (12 months) + $' + needSurplus.toLocaleString() + ' surplus (40%)';
           } else {
             lockReason = 'Requires higher emergency fund and surplus';
           }
@@ -663,12 +709,12 @@ const Tool4 = {
       const unlocked = priorities.filter(function(p) { return p.unlocked; });
       if (unlocked.length === 0) return null;
 
-      // Recommendation logic
+      // Recommendation logic based on financial situation
       if (data.surplus < 0) return unlocked.find(function(p) { return p.id === 'stabilize'; });
       if (data.debt > data.income * 0.5) return unlocked.find(function(p) { return p.id === 'debt'; });
-      if (data.emergencyFund < data.income * 3) return unlocked.find(function(p) { return p.id === 'secure'; });
-      if (data.emergencyFund >= data.income * 6 && data.surplus >= 800) return unlocked.find(function(p) { return p.id === 'wealth'; });
-      if (data.emergencyFund >= data.income * 12 && data.surplus >= 2000) return unlocked.find(function(p) { return p.id === 'generational'; });
+      if (data.emergencyFund < data.essentials * 3) return unlocked.find(function(p) { return p.id === 'secure'; });
+      if (data.emergencyFund >= data.essentials * 6 && data.surplus >= data.income * 0.20) return unlocked.find(function(p) { return p.id === 'wealth'; });
+      if (data.emergencyFund >= data.essentials * 12 && data.surplus >= data.income * 0.40) return unlocked.find(function(p) { return p.id === 'generational'; });
 
       return unlocked.sort(function(a, b) { return b.tier - a.tier; })[0];
     }
