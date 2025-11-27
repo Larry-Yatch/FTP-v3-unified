@@ -128,7 +128,7 @@ function registerTools() {
       id: "tool4",
       version: "1.0.0",
       name: "Financial Freedom Framework",
-      pattern: "single-page-calculator",
+      pattern: "calculator",
       route: "tool4",
       routes: ["/tool4"],
       description: "Interactive budget allocation calculator for optimal M/E/F/J allocation",
@@ -145,7 +145,8 @@ function registerTools() {
     };
 
     Tool4.manifest = tool4Manifest;
-    ToolRegistry.register('tool4', Tool4, tool4Manifest);
+    const tool4Registration = ToolRegistry.register('tool4', Tool4, tool4Manifest);
+    console.log('Tool 4 registration result:', tool4Registration);
 
     // Tool 5: Love & Connection Grounding Tool
     const tool5Manifest = {
