@@ -32,10 +32,17 @@ const Tool4 = {
       // Check Tools 1/2/3 completion status
       const toolStatus = this.checkToolCompletion(clientId);
 
-      // Build calculator page HTML (already has values substituted)
-      const html = this.buildCalculatorPage(clientId, baseUrl, toolStatus);
+      // Build calculator page using Apps Script template (like Tools 1/2/3/5)
+      const template = HtmlService.createTemplate(
+        this.buildCalculatorPage(clientId, baseUrl, toolStatus)
+      );
 
-      return HtmlService.createHtmlOutput(html)
+      // Make variables available to template
+      template.clientId = clientId;
+      template.baseUrl = baseUrl;
+      template.toolStatusJson = JSON.stringify(toolStatus);
+
+      return template.evaluate()
         .setTitle('TruPath - Financial Freedom Framework')
         .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 
@@ -75,27 +82,11 @@ const Tool4 = {
   },
 
   /**
-   * Safely escape JSON for embedding in HTML script tags
-   */
-  escapeJsonForScript(obj) {
-    return JSON.stringify(obj)
-      .replace(/</g, '\\u003c')
-      .replace(/>/g, '\\u003e')
-      .replace(/&/g, '\\u0026')
-      .replace(/'/g, '\\u0027')
-      .replace(/"/g, '\\u0022');
-  },
-
-  /**
    * Build main calculator page
    */
   buildCalculatorPage(clientId, baseUrl, toolStatus) {
-    const styles = HtmlService.createHtmlOutputFromFile('shared/styles').getContent();
-    const loadingAnimation = HtmlService.createHtmlOutputFromFile('shared/loading-animation').getContent();
-
-    // Safely escape toolStatus for embedding in script
-    const escapedToolStatus = this.escapeJsonForScript(toolStatus);
-
+    // Use Apps Script template syntax (like Tools 1/2/3/5)
+    // Don't use JavaScript template literals - they break when styles contain backticks
     return `
 <!DOCTYPE html>
 <html>
@@ -103,7 +94,8 @@ const Tool4 = {
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <base target="_top">
-  ${styles}
+  <?!= include('shared/styles') ?>
+  <?!= include('shared/loading-animation') ?>
   <style>
     /* Tool 4 Specific Styles */
     .tool4-container {
@@ -465,9 +457,9 @@ const Tool4 = {
 
   <script>
     // Make variables and functions globally accessible
-    window.clientId = '${clientId}';
-    window.baseUrl = '${baseUrl}';
-    window.toolStatus = JSON.parse('${escapedToolStatus}');
+    window.clientId = '<?= clientId ?>';
+    window.baseUrl = '<?= baseUrl ?>';
+    window.toolStatus = <?!= toolStatusJson ?>;
 
     // Financial data object
     window.financialData = {
