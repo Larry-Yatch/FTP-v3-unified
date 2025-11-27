@@ -513,12 +513,16 @@ const Tool4 = {
       },
       {
         id: 'enjoy',
-        name: 'Enjoy Life More',
+        name: 'Enjoy Life Now',
         icon: '🎉',
-        tier: 2,
+        tier: 3,
         checkUnlock: function(data) {
-          // Unlock if: Surplus >= 5% of income
-          return data.surplus >= (data.income * 0.05);
+          // HARD TO UNLOCK: For financially stable people who can sustain low essentials
+          // Requires: 3 months emergency fund + debt < 2x income + essentials <= 35% income + income >= $5K
+          return data.emergencyFund >= (data.essentials * 3) &&
+                 data.debt < (data.income * 2) &&
+                 data.essentials <= (data.income * 0.35) &&
+                 data.income >= 5000;
         }
       },
       {
@@ -635,8 +639,10 @@ const Tool4 = {
             var needSurplus = Math.round(financialData.income * 0.10);
             lockReason = 'Need: $' + needFund.toLocaleString() + ' emergency fund (2 months) OR $' + needSurplus.toLocaleString() + ' surplus (10%) | You have: $' + financialData.emergencyFund.toLocaleString() + ' fund, $' + financialData.surplus.toLocaleString() + ' surplus';
           } else if (priority.id === 'enjoy') {
-            var needSurplus = Math.round(financialData.income * 0.05);
-            lockReason = 'Need: $' + needSurplus.toLocaleString() + ' surplus (5% of income) | You have: $' + financialData.surplus.toLocaleString();
+            var needFund = Math.round(financialData.essentials * 3);
+            var maxEssentials = Math.round(financialData.income * 0.35);
+            var essentialsPercent = Math.round((financialData.essentials / financialData.income) * 100);
+            lockReason = 'Need: $' + needFund.toLocaleString() + ' emergency fund (3 months) + debt < $' + Math.round(financialData.income * 2).toLocaleString() + ' + essentials <= $' + maxEssentials.toLocaleString() + ' (35%) + income >= $5,000 | You: ' + essentialsPercent + '% essentials';
           } else if (priority.id === 'reduce_hours') {
             var needFund = Math.round(financialData.essentials * 2);
             var needSurplus = Math.round(financialData.income * 0.10);
