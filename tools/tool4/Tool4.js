@@ -83,6 +83,9 @@ const Tool4 = {
     const styles = HtmlService.createHtmlOutputFromFile('shared/styles').getContent();
     const loadingAnimation = HtmlService.createHtmlOutputFromFile('shared/loading-animation').getContent();
 
+    // Safely escape JSON for embedding in HTML - encode to base64 to avoid ALL special char issues
+    const toolStatusJson = Utilities.base64Encode(JSON.stringify(toolStatus));
+
     return `
 <!DOCTYPE html>
 <html>
@@ -454,7 +457,9 @@ const Tool4 = {
     // Make variables and functions globally accessible
     window.clientId = '${clientId}';
     window.baseUrl = '${baseUrl}';
-    window.toolStatus = ${JSON.stringify(toolStatus)};
+
+    // Decode base64-encoded JSON to avoid special character issues
+    window.toolStatus = JSON.parse(atob('${toolStatusJson}'));
 
     // Financial data object
     window.financialData = {
