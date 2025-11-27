@@ -32,12 +32,10 @@ const Tool4 = {
       // Check Tools 1/2/3 completion status
       const toolStatus = this.checkToolCompletion(clientId);
 
-      // Build calculator page
-      const template = HtmlService.createTemplate(
-        this.buildCalculatorPage(clientId, baseUrl, toolStatus)
-      );
+      // Build calculator page HTML (already has values substituted)
+      const html = this.buildCalculatorPage(clientId, baseUrl, toolStatus);
 
-      return template.evaluate()
+      return HtmlService.createHtmlOutput(html)
         .setTitle('TruPath - Financial Freedom Framework')
         .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 
