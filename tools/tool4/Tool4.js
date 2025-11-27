@@ -451,12 +451,13 @@ const Tool4 = {
   </div>
 
   <script>
-    const clientId = '${clientId}';
-    const baseUrl = '${baseUrl}';
-    const toolStatus = ${JSON.stringify(toolStatus)};
+    // Make variables and functions globally accessible
+    window.clientId = '${clientId}';
+    window.baseUrl = '${baseUrl}';
+    window.toolStatus = ${JSON.stringify(toolStatus)};
 
     // Financial data object
-    let financialData = {
+    window.financialData = {
       income: 0,
       essentials: 0,
       debt: 0,
@@ -466,9 +467,9 @@ const Tool4 = {
     };
 
     // Check Tool 2 data for business ownership
-    if (toolStatus.hasTool2 && toolStatus.tool2Data && toolStatus.tool2Data.employment) {
-      financialData.isBusinessOwner = (toolStatus.tool2Data.employment === 'business-owner' ||
-                                        toolStatus.tool2Data.employment === 'self-employed');
+    if (window.toolStatus.hasTool2 && window.toolStatus.tool2Data && window.toolStatus.tool2Data.employment) {
+      window.financialData.isBusinessOwner = (window.toolStatus.tool2Data.employment === 'business-owner' ||
+                                                window.toolStatus.tool2Data.employment === 'self-employed');
     }
 
     // BASE WEIGHTS DATA (Final Spec - TOOL4-BASE-WEIGHTS-FINAL-DECISIONS.md)
@@ -606,8 +607,9 @@ const Tool4 = {
 
     /**
      * Calculate surplus and unlock appropriate priorities
+     * Attach to window to make accessible from onclick handlers
      */
-    function calculateSurplusAndUnlock() {
+    window.calculateSurplusAndUnlock = function() {
       const income = parseFloat(document.getElementById('income').value) || 0;
       const essentials = parseFloat(document.getElementById('essentials').value) || 0;
       const debt = parseFloat(document.getElementById('debt').value) || 0;
@@ -641,9 +643,16 @@ const Tool4 = {
 
       // Calculate surplus and update financial data
       const surplus = income - essentials;
-      financialData = { income, essentials, debt, emergencyFund, surplus };
+      window.financialData = {
+        income,
+        essentials,
+        debt,
+        emergencyFund,
+        surplus,
+        isBusinessOwner: window.financialData.isBusinessOwner // Preserve business owner flag
+      };
 
-      console.log('Financial Data:', financialData);
+      console.log('Financial Data:', window.financialData);
 
       // Evaluate all priorities with unlock logic
       calculatePriorities();
@@ -655,14 +664,14 @@ const Tool4 = {
     function calculatePriorities() {
       // Evaluate all priorities
       const evaluatedPriorities = PRIORITIES.map(function(priority) {
-        const unlocked = priority.checkUnlock(financialData);
+        const unlocked = priority.checkUnlock(window.financialData);
 
         let hint, lockReason;
         if (unlocked) {
           if (priority.id === 'debt') {
-            hint = financialData.debt > 0 ? 'Debt: $' + financialData.debt.toLocaleString() : 'No debt';
+            hint = window.financialData.debt > 0 ? 'Debt: $' + window.financialData.debt.toLocaleString() : 'No debt';
           } else if (priority.id === 'secure' || priority.id === 'enjoy' || priority.tier >= 2) {
-            hint = 'Emergency fund: $' + financialData.emergencyFund.toLocaleString() + ', Surplus: $' + financialData.surplus.toLocaleString();
+            hint = 'Emergency fund: $' + window.financialData.emergencyFund.toLocaleString() + ', Surplus: $' + window.financialData.surplus.toLocaleString();
           } else {
             hint = priority.id === 'stabilize' ? 'Focus on immediate stability' : 'Trauma recovery focus';
           }
@@ -670,26 +679,26 @@ const Tool4 = {
           if (priority.id === 'debt') {
             lockReason = 'Need: Debt > $5,000 + $200 surplus to make progress';
           } else if (priority.id === 'secure') {
-            var needFund = Math.round(financialData.essentials);
+            var needFund = Math.round(window.financialData.essentials);
             lockReason = 'Need: $' + needFund.toLocaleString() + ' emergency fund (1 month) + essentials <= 60% income + $300 surplus';
           } else if (priority.id === 'balance') {
-            var needFund = Math.round(financialData.essentials * 2);
+            var needFund = Math.round(window.financialData.essentials * 2);
             lockReason = 'Need: $' + needFund.toLocaleString() + ' emergency fund (2 months) + debt < 3x income + essentials <= 50% income + $500 surplus';
           } else if (priority.id === 'business') {
             lockReason = 'For business owners and self-employed only (complete Tool 2 or update employment status)';
           } else if (priority.id === 'big_goal') {
-            var needFund = Math.round(financialData.essentials * 3);
+            var needFund = Math.round(window.financialData.essentials * 3);
             lockReason = 'Need: $' + needFund.toLocaleString() + ' emergency fund (3 months) + debt < 3x income + $500 surplus';
           } else if (priority.id === 'wealth') {
-            var needFund = Math.round(financialData.essentials * 6);
+            var needFund = Math.round(window.financialData.essentials * 6);
             lockReason = 'Need: $' + needFund.toLocaleString() + ' emergency fund (6 months) + debt < 2x income + $800 surplus';
           } else if (priority.id === 'enjoy') {
-            var needFund = Math.round(financialData.essentials * 3);
-            var maxEssentials = Math.round(financialData.income * 0.35);
-            var essentialsPercent = Math.round((financialData.essentials / financialData.income) * 100);
+            var needFund = Math.round(window.financialData.essentials * 3);
+            var maxEssentials = Math.round(window.financialData.income * 0.35);
+            var essentialsPercent = Math.round((window.financialData.essentials / window.financialData.income) * 100);
             lockReason = 'Need: $' + needFund.toLocaleString() + ' emergency fund (3 months) + debt < 2x income + essentials <= $' + maxEssentials.toLocaleString() + ' (35%) + $1,000 surplus | You: ' + essentialsPercent + '% essentials';
           } else if (priority.id === 'generational') {
-            var needFund = Math.round(financialData.essentials * 12);
+            var needFund = Math.round(window.financialData.essentials * 12);
             lockReason = 'Need: $' + needFund.toLocaleString() + ' emergency fund (12 months) + NO debt + $2,000 surplus';
           } else {
             lockReason = 'Requires higher emergency fund and surplus';
@@ -708,7 +717,7 @@ const Tool4 = {
       });
 
       // Recommend best priority
-      const recommended = recommendPriority(evaluatedPriorities, financialData);
+      const recommended = recommendPriority(evaluatedPriorities, window.financialData);
 
       // Render priority grid
       const prioritiesGrid = document.getElementById('prioritiesGrid');
@@ -755,8 +764,9 @@ const Tool4 = {
 
     /**
      * Select priority and calculate allocation
+     * Attach to window to make accessible from onclick handlers
      */
-    function selectPriority(priorityId) {
+    window.selectPriority = function(priorityId) {
       console.log('Selected priority:', priorityId);
 
       // Get base weights for this priority
@@ -768,10 +778,10 @@ const Tool4 = {
 
       // Calculate dollar amounts
       const dollars = {
-        M: Math.round((weights.M / 100) * financialData.income),
-        E: Math.round((weights.E / 100) * financialData.income),
-        F: Math.round((weights.F / 100) * financialData.income),
-        J: Math.round((weights.J / 100) * financialData.income)
+        M: Math.round((weights.M / 100) * window.financialData.income),
+        E: Math.round((weights.E / 100) * window.financialData.income),
+        F: Math.round((weights.F / 100) * window.financialData.income),
+        J: Math.round((weights.J / 100) * window.financialData.income)
       };
 
       // Render allocation
@@ -819,17 +829,19 @@ const Tool4 = {
 
     /**
      * Customize allocation
+     * Attach to window to make accessible from onclick handlers
      */
-    function customizeAllocation() {
+    window.customizeAllocation = function() {
       alert('Customize allocation feature coming in Week 6!');
-    }
+    };
 
     /**
      * Save scenario
+     * Attach to window to make accessible from onclick handlers
      */
-    function saveScenario() {
+    window.saveScenario = function() {
       alert('Save scenario feature coming in Week 6!');
-    }
+    };
   </script>
 </body>
 </html>
