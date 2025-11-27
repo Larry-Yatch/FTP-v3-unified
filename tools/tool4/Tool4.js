@@ -461,8 +461,15 @@ const Tool4 = {
       essentials: 0,
       debt: 0,
       emergencyFund: 0,
-      surplus: 0
+      surplus: 0,
+      isBusinessOwner: false
     };
+
+    // Check Tool 2 data for business ownership
+    if (toolStatus.hasTool2 && toolStatus.tool2Data && toolStatus.tool2Data.employment) {
+      financialData.isBusinessOwner = (toolStatus.tool2Data.employment === 'business-owner' ||
+                                        toolStatus.tool2Data.employment === 'self-employed');
+    }
 
     // BASE WEIGHTS DATA (Final Spec - TOOL4-BASE-WEIGHTS-FINAL-DECISIONS.md)
     const BASE_WEIGHTS = {
@@ -535,15 +542,14 @@ const Tool4 = {
         icon: '💼',
         tier: 2,
         checkUnlock: function(data) {
-          // NOTE: In production, this should check for business ownership flag
-          // For now, always available for business owners to select manually
-          return true;
+          // Unlock if business owner (from Tool 2) or self-employed
+          return data.isBusinessOwner === true;
         }
       },
       {
         id: 'big_goal',
         name: 'Save for a Big Goal',
-        icon: '🎯',
+        icon: '🏆',
         tier: 3,
         checkUnlock: function(data) {
           // Unlock if: 3 months emergency fund + manageable debt + can save meaningfully
@@ -618,6 +624,21 @@ const Tool4 = {
         return;
       }
 
+      if (essentials > income) {
+        alert('Essentials ($' + essentials.toLocaleString() + ') cannot exceed your income ($' + income.toLocaleString() + '). Please adjust your numbers.');
+        return;
+      }
+
+      if (debt < 0) {
+        alert('Debt cannot be negative. Enter 0 if you have no debt.');
+        return;
+      }
+
+      if (emergencyFund < 0) {
+        alert('Emergency fund cannot be negative. Enter 0 if you have no emergency fund.');
+        return;
+      }
+
       // Calculate surplus and update financial data
       const surplus = income - essentials;
       financialData = { income, essentials, debt, emergencyFund, surplus };
@@ -655,7 +676,7 @@ const Tool4 = {
             var needFund = Math.round(financialData.essentials * 2);
             lockReason = 'Need: $' + needFund.toLocaleString() + ' emergency fund (2 months) + debt < 3x income + essentials <= 50% income + $500 surplus';
           } else if (priority.id === 'business') {
-            lockReason = 'For business owners (self-select if applicable)';
+            lockReason = 'For business owners and self-employed only (complete Tool 2 or update employment status)';
           } else if (priority.id === 'big_goal') {
             var needFund = Math.round(financialData.essentials * 3);
             lockReason = 'Need: $' + needFund.toLocaleString() + ' emergency fund (3 months) + debt < 3x income + $500 surplus';
