@@ -81,7 +81,8 @@ const Tool4 = {
    */
   buildCalculatorPage(clientId, baseUrl, toolStatus) {
     const styles = HtmlService.createHtmlOutputFromFile('shared/styles').getContent();
-    const loadingAnimation = HtmlService.createHtmlOutputFromFile('shared/loading-animation').getContent();
+    // REMOVED loading-animation.html - Tool4 is a calculator, not a multi-page form
+    // The loading-animation file contains document.write() which breaks template literals
 
     // Safely escape JSON for embedding in HTML - encode to base64 to avoid ALL special char issues
     const toolStatusJson = Utilities.base64Encode(JSON.stringify(toolStatus));
@@ -324,8 +325,6 @@ const Tool4 = {
   </style>
 </head>
 <body>
-  ${loadingAnimation}
-
   <div class="tool4-container">
     <!-- Header -->
     <header style="margin-bottom: 30px;">
