@@ -464,21 +464,21 @@ const Tool4 = {
       surplus: 0
     };
 
-    // BASE WEIGHTS DATA
+    // BASE WEIGHTS DATA (Final Spec - TOOL4-BASE-WEIGHTS-FINAL-DECISIONS.md)
     const BASE_WEIGHTS = {
       stabilize: { M: 5, E: 60, F: 30, J: 5 },
       reclaim: { M: 10, E: 45, F: 35, J: 10 },
       debt: { M: 15, E: 35, F: 40, J: 10 },
       secure: { M: 25, E: 35, F: 30, J: 10 },
-      enjoy: { M: 15, E: 25, F: 25, J: 35 },
-      reduce_hours: { M: 20, E: 30, F: 35, J: 15 },
-      kids_education: { M: 25, E: 25, F: 40, J: 10 },
+      balance: { M: 15, E: 25, F: 25, J: 35 },
+      business: { M: 20, E: 30, F: 35, J: 15 },
+      big_goal: { M: 25, E: 25, F: 40, J: 10 },
       wealth: { M: 40, E: 25, F: 20, J: 15 },
-      lifestyle: { M: 20, E: 20, F: 15, J: 45 },
+      enjoy: { M: 20, E: 20, F: 15, J: 45 },
       generational: { M: 50, E: 20, F: 20, J: 10 }
     };
 
-    // PRIORITIES DATA
+    // PRIORITIES DATA (Final Spec - 10 Priorities)
     const PRIORITIES = [
       {
         id: 'stabilize',
@@ -499,7 +499,10 @@ const Tool4 = {
         name: 'Get Out of Debt',
         icon: '💳',
         tier: 1,
-        checkUnlock: function(data) { return data.debt > 0; }
+        checkUnlock: function(data) {
+          // Unlock if: Has significant debt + can make progress
+          return data.debt > 5000 && data.surplus >= 200;
+        }
       },
       {
         id: 'secure',
@@ -507,42 +510,46 @@ const Tool4 = {
         icon: '🛡️',
         tier: 2,
         checkUnlock: function(data) {
-          // Unlock if: Emergency fund >= 2 months essentials OR surplus >= 10% income
-          return data.emergencyFund >= (data.essentials * 2) || data.surplus >= (data.income * 0.10);
+          // Unlock if: Emergency fund >= 1 month essentials + not overspending + has surplus
+          return data.emergencyFund >= data.essentials &&
+                 data.essentials <= (data.income * 0.6) &&
+                 data.surplus >= 300;
         }
       },
       {
-        id: 'enjoy',
-        name: 'Enjoy Life Now',
-        icon: '🎉',
-        tier: 3,
-        checkUnlock: function(data) {
-          // HARD TO UNLOCK: For financially stable people who can sustain low essentials
-          // Requires: 3 months emergency fund + debt < 2x income + essentials <= 35% income + income >= $5K
-          return data.emergencyFund >= (data.essentials * 3) &&
-                 data.debt < (data.income * 2) &&
-                 data.essentials <= (data.income * 0.35) &&
-                 data.income >= 5000;
-        }
-      },
-      {
-        id: 'reduce_hours',
-        name: 'Reduce Working Hours',
-        icon: '⏰',
+        id: 'balance',
+        name: 'Create Life Balance',
+        icon: '⚖️',
         tier: 2,
         checkUnlock: function(data) {
-          // Unlock if: Emergency fund >= 2 months essentials AND surplus >= 10% income
-          return data.emergencyFund >= (data.essentials * 2) && data.surplus >= (data.income * 0.10);
+          // Unlock if: 2 months emergency fund + manageable debt + room for enjoyment + surplus
+          return data.emergencyFund >= (data.essentials * 2) &&
+                 data.debt < (data.income * 3) &&
+                 data.essentials <= (data.income * 0.5) &&
+                 data.surplus >= 500;
         }
       },
       {
-        id: 'kids_education',
-        name: 'Save for Kids\\' Education',
-        icon: '🎓',
+        id: 'business',
+        name: 'Build/Stabilize Business',
+        icon: '💼',
+        tier: 2,
+        checkUnlock: function(data) {
+          // NOTE: In production, this should check for business ownership flag
+          // For now, always available for business owners to select manually
+          return true;
+        }
+      },
+      {
+        id: 'big_goal',
+        name: 'Save for a Big Goal',
+        icon: '🎯',
         tier: 3,
         checkUnlock: function(data) {
-          // Unlock if: Emergency fund >= 4 months essentials AND surplus >= 15% income
-          return data.emergencyFund >= (data.essentials * 4) && data.surplus >= (data.income * 0.15);
+          // Unlock if: 3 months emergency fund + manageable debt + can save meaningfully
+          return data.emergencyFund >= (data.essentials * 3) &&
+                 data.debt < (data.income * 3) &&
+                 data.surplus >= 500;
         }
       },
       {
@@ -551,18 +558,23 @@ const Tool4 = {
         icon: '📈',
         tier: 3,
         checkUnlock: function(data) {
-          // Unlock if: Emergency fund >= 6 months essentials AND surplus >= 20% income
-          return data.emergencyFund >= (data.essentials * 6) && data.surplus >= (data.income * 0.20);
+          // Unlock if: 6 months emergency fund + minimal debt + can invest 40%
+          return data.emergencyFund >= (data.essentials * 6) &&
+                 data.debt < (data.income * 2) &&
+                 data.surplus >= 800;
         }
       },
       {
-        id: 'lifestyle',
-        name: 'Upgrade My Lifestyle',
-        icon: '✨',
+        id: 'enjoy',
+        name: 'Enjoy Life Now',
+        icon: '🎉',
         tier: 3,
         checkUnlock: function(data) {
-          // Unlock if: Emergency fund >= 4 months essentials AND surplus >= 25% income
-          return data.emergencyFund >= (data.essentials * 4) && data.surplus >= (data.income * 0.25);
+          // HARD TO UNLOCK: 3mo fund + low debt + can sustain 20% E + high surplus
+          return data.emergencyFund >= (data.essentials * 3) &&
+                 data.debt < (data.income * 2) &&
+                 data.essentials <= (data.income * 0.35) &&
+                 data.surplus >= 1000;
         }
       },
       {
@@ -571,8 +583,10 @@ const Tool4 = {
         icon: '👨‍👩‍👧‍👦',
         tier: 4,
         checkUnlock: function(data) {
-          // Unlock if: Emergency fund >= 12 months essentials AND surplus >= 40% income
-          return data.emergencyFund >= (data.essentials * 12) && data.surplus >= (data.income * 0.40);
+          // Unlock if: 12 months emergency fund + no debt + can invest 50%
+          return data.emergencyFund >= (data.essentials * 12) &&
+                 data.debt === 0 &&
+                 data.surplus >= 2000;
         }
       }
     ];
@@ -633,36 +647,29 @@ const Tool4 = {
           }
         } else {
           if (priority.id === 'debt') {
-            lockReason = 'Need debt balance > $0';
+            lockReason = 'Need: Debt > $5,000 + $200 surplus to make progress';
           } else if (priority.id === 'secure') {
+            var needFund = Math.round(financialData.essentials);
+            lockReason = 'Need: $' + needFund.toLocaleString() + ' emergency fund (1 month) + essentials <= 60% income + $300 surplus';
+          } else if (priority.id === 'balance') {
             var needFund = Math.round(financialData.essentials * 2);
-            var needSurplus = Math.round(financialData.income * 0.10);
-            lockReason = 'Need: $' + needFund.toLocaleString() + ' emergency fund (2 months) OR $' + needSurplus.toLocaleString() + ' surplus (10%) | You have: $' + financialData.emergencyFund.toLocaleString() + ' fund, $' + financialData.surplus.toLocaleString() + ' surplus';
+            lockReason = 'Need: $' + needFund.toLocaleString() + ' emergency fund (2 months) + debt < 3x income + essentials <= 50% income + $500 surplus';
+          } else if (priority.id === 'business') {
+            lockReason = 'For business owners (self-select if applicable)';
+          } else if (priority.id === 'big_goal') {
+            var needFund = Math.round(financialData.essentials * 3);
+            lockReason = 'Need: $' + needFund.toLocaleString() + ' emergency fund (3 months) + debt < 3x income + $500 surplus';
+          } else if (priority.id === 'wealth') {
+            var needFund = Math.round(financialData.essentials * 6);
+            lockReason = 'Need: $' + needFund.toLocaleString() + ' emergency fund (6 months) + debt < 2x income + $800 surplus';
           } else if (priority.id === 'enjoy') {
             var needFund = Math.round(financialData.essentials * 3);
             var maxEssentials = Math.round(financialData.income * 0.35);
             var essentialsPercent = Math.round((financialData.essentials / financialData.income) * 100);
-            lockReason = 'Need: $' + needFund.toLocaleString() + ' emergency fund (3 months) + debt < $' + Math.round(financialData.income * 2).toLocaleString() + ' + essentials <= $' + maxEssentials.toLocaleString() + ' (35%) + income >= $5,000 | You: ' + essentialsPercent + '% essentials';
-          } else if (priority.id === 'reduce_hours') {
-            var needFund = Math.round(financialData.essentials * 2);
-            var needSurplus = Math.round(financialData.income * 0.10);
-            lockReason = 'Need: $' + needFund.toLocaleString() + ' emergency fund (2 months) + $' + needSurplus.toLocaleString() + ' surplus (10%)';
-          } else if (priority.id === 'kids_education') {
-            var needFund = Math.round(financialData.essentials * 4);
-            var needSurplus = Math.round(financialData.income * 0.15);
-            lockReason = 'Need: $' + needFund.toLocaleString() + ' emergency fund (4 months) + $' + needSurplus.toLocaleString() + ' surplus (15%)';
-          } else if (priority.id === 'wealth') {
-            var needFund = Math.round(financialData.essentials * 6);
-            var needSurplus = Math.round(financialData.income * 0.20);
-            lockReason = 'Need: $' + needFund.toLocaleString() + ' emergency fund (6 months) + $' + needSurplus.toLocaleString() + ' surplus (20%)';
-          } else if (priority.id === 'lifestyle') {
-            var needFund = Math.round(financialData.essentials * 4);
-            var needSurplus = Math.round(financialData.income * 0.25);
-            lockReason = 'Need: $' + needFund.toLocaleString() + ' emergency fund (4 months) + $' + needSurplus.toLocaleString() + ' surplus (25%)';
+            lockReason = 'Need: $' + needFund.toLocaleString() + ' emergency fund (3 months) + debt < 2x income + essentials <= $' + maxEssentials.toLocaleString() + ' (35%) + $1,000 surplus | You: ' + essentialsPercent + '% essentials';
           } else if (priority.id === 'generational') {
             var needFund = Math.round(financialData.essentials * 12);
-            var needSurplus = Math.round(financialData.income * 0.40);
-            lockReason = 'Need: $' + needFund.toLocaleString() + ' emergency fund (12 months) + $' + needSurplus.toLocaleString() + ' surplus (40%)';
+            lockReason = 'Need: $' + needFund.toLocaleString() + ' emergency fund (12 months) + NO debt + $2,000 surplus';
           } else {
             lockReason = 'Requires higher emergency fund and surplus';
           }
