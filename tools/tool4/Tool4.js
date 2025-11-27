@@ -729,7 +729,7 @@ const Tool4 = {
       evaluatedPriorities.forEach(function(priority) {
         const isRecommended = recommended && priority.id === recommended.id;
         const cssClass = priority.unlocked ? 'priority-card available' : 'priority-card locked';
-        const clickHandler = priority.unlocked ? 'onclick="selectPriority(\'' + priority.id + '\')"' : '';
+        const clickHandler = priority.unlocked ? "onclick=\\"selectPriority('" + priority.id + "')\\"" : '';
 
         html += '<div class="' + cssClass + '" ' + clickHandler + '>';
         html += '<div class="priority-icon">' + (priority.unlocked ? '✅' : '🔒') + ' ' + priority.icon + '</div>';
