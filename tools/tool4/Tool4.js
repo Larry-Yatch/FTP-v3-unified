@@ -455,6 +455,103 @@ const Tool4 = {
     const baseUrl = '${baseUrl}';
     const toolStatus = ${JSON.stringify(toolStatus)};
 
+    // Financial data object
+    let financialData = {
+      income: 0,
+      essentials: 0,
+      debt: 0,
+      emergencyFund: 0,
+      surplus: 0
+    };
+
+    // BASE WEIGHTS DATA
+    const BASE_WEIGHTS = {
+      stabilize: { M: 5, E: 60, F: 30, J: 5 },
+      reclaim: { M: 10, E: 45, F: 35, J: 10 },
+      debt: { M: 15, E: 35, F: 40, J: 10 },
+      secure: { M: 25, E: 35, F: 30, J: 10 },
+      enjoy: { M: 15, E: 25, F: 25, J: 35 },
+      reduce_hours: { M: 20, E: 30, F: 35, J: 15 },
+      kids_education: { M: 25, E: 25, F: 40, J: 10 },
+      wealth: { M: 40, E: 25, F: 20, J: 15 },
+      lifestyle: { M: 20, E: 20, F: 15, J: 45 },
+      generational: { M: 50, E: 20, F: 20, J: 10 }
+    };
+
+    // PRIORITIES DATA
+    const PRIORITIES = [
+      {
+        id: 'stabilize',
+        name: 'Stabilize to Survive',
+        icon: '🚨',
+        tier: 1,
+        checkUnlock: function() { return true; }
+      },
+      {
+        id: 'reclaim',
+        name: 'Reclaim Financial Control',
+        icon: '🎯',
+        tier: 1,
+        checkUnlock: function() { return true; }
+      },
+      {
+        id: 'debt',
+        name: 'Get Out of Debt',
+        icon: '💳',
+        tier: 1,
+        checkUnlock: function(data) { return data.debt > 0; }
+      },
+      {
+        id: 'secure',
+        name: 'Feel Financially Secure',
+        icon: '🛡️',
+        tier: 2,
+        checkUnlock: function(data) { return data.emergencyFund >= 6000 || data.surplus >= 500; }
+      },
+      {
+        id: 'enjoy',
+        name: 'Enjoy Life More',
+        icon: '🎉',
+        tier: 2,
+        checkUnlock: function(data) { return data.surplus >= 200; }
+      },
+      {
+        id: 'reduce_hours',
+        name: 'Reduce Working Hours',
+        icon: '⏰',
+        tier: 2,
+        checkUnlock: function(data) { return data.emergencyFund >= 6000 && data.surplus >= 400; }
+      },
+      {
+        id: 'kids_education',
+        name: 'Save for Kids\\' Education',
+        icon: '🎓',
+        tier: 3,
+        checkUnlock: function(data) { return data.emergencyFund >= 12000 && data.surplus >= 600; }
+      },
+      {
+        id: 'wealth',
+        name: 'Build Long-Term Wealth',
+        icon: '📈',
+        tier: 3,
+        checkUnlock: function(data) { return data.emergencyFund >= 18000 && data.surplus >= 800; }
+      },
+      {
+        id: 'lifestyle',
+        name: 'Upgrade My Lifestyle',
+        icon: '✨',
+        tier: 3,
+        checkUnlock: function(data) { return data.emergencyFund >= 12000 && data.surplus >= 1000; }
+      },
+      {
+        id: 'generational',
+        name: 'Create Generational Wealth',
+        icon: '👨‍👩‍👧‍👦',
+        tier: 4,
+        checkUnlock: function(data) { return data.emergencyFund >= 36000 && data.surplus >= 2000; }
+      }
+    ];
+
     // Initialize
     document.addEventListener('DOMContentLoaded', function() {
       console.log('Tool 4 Calculator initialized');
@@ -482,76 +579,98 @@ const Tool4 = {
         return;
       }
 
-      // Calculate surplus
+      // Calculate surplus and update financial data
       const surplus = income - essentials;
+      financialData = { income, essentials, debt, emergencyFund, surplus };
 
-      console.log('Financial Data:', { income, essentials, debt, emergencyFund, surplus });
+      console.log('Financial Data:', financialData);
 
-      // TODO: Call server-side progressive unlock logic
-      // For now, show mock priorities
-      showAvailablePriorities(surplus, emergencyFund, debt);
+      // Evaluate all priorities with unlock logic
+      calculatePriorities();
     }
 
     /**
-     * Show available priorities (mock for now)
+     * Calculate and display priorities with progressive unlock
      */
-    function showAvailablePriorities(surplus, emergencyFund, debt) {
-      const prioritiesSection = document.getElementById('prioritiesSection');
-      const prioritiesGrid = document.getElementById('prioritiesGrid');
+    function calculatePriorities() {
+      // Evaluate all priorities
+      const evaluatedPriorities = PRIORITIES.map(function(priority) {
+        const unlocked = priority.checkUnlock(financialData);
 
-      // Mock priority data (will be replaced with actual unlock logic)
-      const priorities = [
-        {
-          id: 'stabilize',
-          name: 'Stabilize to Survive',
-          icon: '🚨',
-          hint: 'Focus on immediate stability',
-          unlocked: true,
-          requirement: null
-        },
-        {
-          id: 'reclaim',
-          name: 'Reclaim Financial Control',
-          icon: '🎯',
-          hint: 'Trauma recovery focus',
-          unlocked: true,
-          requirement: null
-        },
-        {
-          id: 'debt',
-          name: 'Get Out of Debt',
-          icon: '💳',
-          hint: debt > 0 ? \`Debt: $\${debt.toLocaleString()}\` : 'No debt',
-          unlocked: debt > 0,
-          requirement: debt > 0 ? null : 'Need debt balance > $0'
-        },
-        {
-          id: 'secure',
-          name: 'Feel Financially Secure',
-          icon: '🛡️',
-          hint: \`Emergency fund: $\${emergencyFund.toLocaleString()}\`,
-          unlocked: emergencyFund >= 6000 || surplus >= 500,
-          requirement: 'Need: Emergency fund ≥ $6,000 OR surplus ≥ $500'
+        let hint, lockReason;
+        if (unlocked) {
+          if (priority.id === 'debt') {
+            hint = financialData.debt > 0 ? 'Debt: $' + financialData.debt.toLocaleString() : 'No debt';
+          } else if (priority.id === 'secure' || priority.id === 'enjoy' || priority.tier >= 2) {
+            hint = 'Emergency fund: $' + financialData.emergencyFund.toLocaleString() + ', Surplus: $' + financialData.surplus.toLocaleString();
+          } else {
+            hint = priority.id === 'stabilize' ? 'Focus on immediate stability' : 'Trauma recovery focus';
+          }
+        } else {
+          if (priority.id === 'debt') {
+            lockReason = 'Need debt balance > $0';
+          } else if (priority.id === 'secure') {
+            lockReason = 'Need: $6,000 emergency fund OR $500 surplus | You have: $' + financialData.emergencyFund.toLocaleString() + ' fund, $' + financialData.surplus.toLocaleString() + ' surplus';
+          } else {
+            lockReason = 'Requires higher emergency fund and surplus';
+          }
         }
-      ];
 
+        return {
+          id: priority.id,
+          name: priority.name,
+          icon: priority.icon,
+          tier: priority.tier,
+          unlocked: unlocked,
+          hint: hint,
+          lockReason: lockReason
+        };
+      });
+
+      // Recommend best priority
+      const recommended = recommendPriority(evaluatedPriorities, financialData);
+
+      // Render priority grid
+      const prioritiesGrid = document.getElementById('prioritiesGrid');
       let html = '';
-      priorities.forEach(priority => {
-        html += \`
-          <div class="priority-card \${priority.unlocked ? 'available' : 'locked'}"
-               onclick="\${priority.unlocked ? \`selectPriority('\${priority.id}')\` : ''}"}>
-            <div class="priority-icon">\${priority.unlocked ? '✅' : '🔒'} \${priority.icon}</div>
-            <div class="priority-title">\${priority.name}</div>
-            <div class="\${priority.unlocked ? 'priority-hint' : 'unlock-requirement'}">
-              \${priority.unlocked ? priority.hint : priority.requirement}
-            </div>
-          </div>
-        \`;
+
+      evaluatedPriorities.forEach(function(priority) {
+        const isRecommended = recommended && priority.id === recommended.id;
+        const cssClass = priority.unlocked ? 'priority-card available' : 'priority-card locked';
+        const clickHandler = priority.unlocked ? 'onclick="selectPriority(\'' + priority.id + '\')"' : '';
+
+        html += '<div class="' + cssClass + '" ' + clickHandler + '>';
+        html += '<div class="priority-icon">' + (priority.unlocked ? '✅' : '🔒') + ' ' + priority.icon + '</div>';
+        html += '<div class="priority-title">' + priority.name;
+        if (isRecommended) {
+          html += '<div style="font-size: 0.75rem; color: #fbbf24; margin-top: 4px;">⭐ Recommended</div>';
+        }
+        html += '</div>';
+        html += '<div class="' + (priority.unlocked ? 'priority-hint' : 'unlock-requirement') + '">';
+        html += priority.unlocked ? priority.hint : priority.lockReason;
+        html += '</div></div>';
       });
 
       prioritiesGrid.innerHTML = html;
-      prioritiesSection.style.display = 'block';
-      prioritiesSection.scrollIntoView({ behavior: 'smooth' });
+      document.getElementById('prioritiesSection').style.display = 'block';
+      document.getElementById('prioritiesSection').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    /**
+     * Recommend best priority based on financial situation
+     */
+    function recommendPriority(priorities, data) {
+      const unlocked = priorities.filter(function(p) { return p.unlocked; });
+      if (unlocked.length === 0) return null;
+
+      // Recommendation logic
+      if (data.surplus < 0) return unlocked.find(function(p) { return p.id === 'stabilize'; });
+      if (data.debt > data.income * 0.5) return unlocked.find(function(p) { return p.id === 'debt'; });
+      if (data.emergencyFund < data.income * 3) return unlocked.find(function(p) { return p.id === 'secure'; });
+      if (data.emergencyFund >= data.income * 6 && data.surplus >= 800) return unlocked.find(function(p) { return p.id === 'wealth'; });
+      if (data.emergencyFund >= data.income * 12 && data.surplus >= 2000) return unlocked.find(function(p) { return p.id === 'generational'; });
+
+      return unlocked.sort(function(a, b) { return b.tier - a.tier; })[0];
     }
 
     /**
@@ -560,83 +679,60 @@ const Tool4 = {
     function selectPriority(priorityId) {
       console.log('Selected priority:', priorityId);
 
-      // TODO: Call server-side calculation with modifiers
-      // For now, show mock allocation
-      showAllocation(priorityId);
-    }
+      // Get base weights for this priority
+      const weights = BASE_WEIGHTS[priorityId];
+      if (!weights) {
+        alert('Error: Priority weights not found');
+        return;
+      }
 
-    /**
-     * Show allocation results (mock for now)
-     */
-    function showAllocation(priorityId) {
-      const income = parseFloat(document.getElementById('income').value) || 0;
-
-      // Mock allocation (will be replaced with actual calculation)
-      const allocation = {
-        M: 15,
-        E: 35,
-        F: 40,
-        J: 10
-      };
-
+      // Calculate dollar amounts
       const dollars = {
-        M: Math.round((allocation.M / 100) * income),
-        E: Math.round((allocation.E / 100) * income),
-        F: Math.round((allocation.F / 100) * income),
-        J: Math.round((allocation.J / 100) * income)
+        M: Math.round((weights.M / 100) * financialData.income),
+        E: Math.round((weights.E / 100) * financialData.income),
+        F: Math.round((weights.F / 100) * financialData.income),
+        J: Math.round((weights.J / 100) * financialData.income)
       };
 
+      // Render allocation
       const allocationBars = document.getElementById('allocationBars');
-      allocationBars.innerHTML = \`
-        <div class="allocation-bar multiply" style="--width: \${allocation.M}%">
-          <div class="bar-content" style="width: \${allocation.M}%">
-            <span class="bar-label">💰 Multiply</span>
-            <div style="text-align: right;">
-              <div class="bar-percent">\${allocation.M}%</div>
-              <div class="bar-dollars">$\${dollars.M.toLocaleString()}/mo</div>
-            </div>
-          </div>
-        </div>
+      let html = '';
 
-        <div class="allocation-bar essentials" style="--width: \${allocation.E}%">
-          <div class="bar-content" style="width: \${allocation.E}%">
-            <span class="bar-label">🏠 Essentials</span>
-            <div style="text-align: right;">
-              <div class="bar-percent">\${allocation.E}%</div>
-              <div class="bar-dollars">$\${dollars.E.toLocaleString()}/mo</div>
-            </div>
-          </div>
-        </div>
+      html += '<div class="allocation-bar multiply">';
+      html += '<div class="bar-content">';
+      html += '<span class="bar-label">💰 Multiply</span>';
+      html += '<div style="text-align: right;">';
+      html += '<div class="bar-percent">' + weights.M + '%</div>';
+      html += '<div class="bar-dollars">$' + dollars.M.toLocaleString() + '/mo</div>';
+      html += '</div></div></div>';
 
-        <div class="allocation-bar freedom" style="--width: \${allocation.F}%">
-          <div class="bar-content" style="width: \${allocation.F}%">
-            <span class="bar-label">🦅 Freedom</span>
-            <div style="text-align: right;">
-              <div class="bar-percent">\${allocation.F}%</div>
-              <div class="bar-dollars">$\${dollars.F.toLocaleString()}/mo</div>
-            </div>
-          </div>
-        </div>
+      html += '<div class="allocation-bar essentials">';
+      html += '<div class="bar-content">';
+      html += '<span class="bar-label">🏠 Essentials</span>';
+      html += '<div style="text-align: right;">';
+      html += '<div class="bar-percent">' + weights.E + '%</div>';
+      html += '<div class="bar-dollars">$' + dollars.E.toLocaleString() + '/mo</div>';
+      html += '</div></div></div>';
 
-        <div class="allocation-bar enjoyment" style="--width: \${allocation.J}%">
-          <div class="bar-content" style="width: \${allocation.J}%">
-            <span class="bar-label">🎉 Enjoyment</span>
-            <div style="text-align: right;">
-              <div class="bar-percent">\${allocation.J}%</div>
-              <div class="bar-dollars">$\${dollars.J.toLocaleString()}/mo</div>
-            </div>
-          </div>
-        </div>
-      \`;
+      html += '<div class="allocation-bar freedom">';
+      html += '<div class="bar-content">';
+      html += '<span class="bar-label">🦅 Freedom</span>';
+      html += '<div style="text-align: right;">';
+      html += '<div class="bar-percent">' + weights.F + '%</div>';
+      html += '<div class="bar-dollars">$' + dollars.F.toLocaleString() + '/mo</div>';
+      html += '</div></div></div>';
 
-      // Update bar widths visually
-      document.querySelectorAll('.allocation-bar').forEach((bar, index) => {
-        const width = Object.values(allocation)[index];
-        bar.querySelector('.bar-content').style.width = width + '%';
-        const before = bar;
-        before.style.setProperty('--width', width + '%');
-      });
+      html += '<div class="allocation-bar enjoyment">';
+      html += '<div class="bar-content">';
+      html += '<span class="bar-label">🎉 Enjoyment</span>';
+      html += '<div style="text-align: right;">';
+      html += '<div class="bar-percent">' + weights.J + '%</div>';
+      html += '<div class="bar-dollars">$' + dollars.J.toLocaleString() + '/mo</div>';
+      html += '</div></div></div>';
 
+      allocationBars.innerHTML = html;
+
+      // Show allocation section
       document.getElementById('allocationSection').style.display = 'block';
       document.getElementById('allocationSection').scrollIntoView({ behavior: 'smooth' });
     }

@@ -34,3 +34,10 @@ console-*.js
 tests/**
 examples/**
 tools/MultiPageToolTemplate.js
+
+# Tool 4 module files (integrated into Tool4.js)
+tools/tool4/Tool4Categories.js
+tools/tool4/Tool4ProgressiveUnlock.js
+tools/tool4/Tool4BaseWeights.js
+tools/tool4/Tool4ClientLogic.js
+tools/tool4/Tool4ClientLogic_NoTemplates.js
