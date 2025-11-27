@@ -32,6 +32,7 @@ console-*.js
 
 # Keep all tests, examples, and templates local only
 tests/**
+!tests/Tool4Tests.js
 examples/**
 tools/MultiPageToolTemplate.js
 

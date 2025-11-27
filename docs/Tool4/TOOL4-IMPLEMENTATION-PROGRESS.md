@@ -1,25 +1,26 @@
 # Tool 4: Implementation Progress
 
-**Last Updated:** November 26, 2025  
-**Status:** Week 2 Complete - Progressive Unlock with Trauma-Informed Thresholds  
+**Last Updated:** November 27, 2025
+**Status:** Week 2 VALIDATED - All Tests Passing ✅
 **Branch:** `feature/grounding-tools`
+**Latest Deployment:** v261 (@262)
 
 ---
 
-## 🎯 **Current Status: Week 2 Complete**
+## 🎯 **Current Status: Week 2 Complete & Validated**
 
 ### ✅ **What's Implemented:**
 
 #### **Week 1: Basic Calculator UI**
 - ✅ Single-page calculator interface
-- ✅ Financial inputs form (income, essentials, debt, emergency fund, stability)
+- ✅ Financial inputs form (income, essentials, debt, emergency fund, business ownership)
 - ✅ Tool 1/2/3 completion status badges
-- ✅ Basic priority selection (mock data)
-- ✅ Basic allocation display (mock data)
+- ✅ Basic priority selection
+- ✅ Basic allocation display
 - ✅ Framework integration (ToolRegistry, Router, ToolAccessControl)
 - ✅ TOOL4_SCENARIOS sheet created (36 columns A-AJ)
 
-#### **Week 2: Progressive Unlock + Base Weights**
+#### **Week 2: Progressive Unlock + Base Weights + Testing**
 - ✅ All 10 priorities from TOOL4-BASE-WEIGHTS-FINAL-DECISIONS.md
 - ✅ BASE_WEIGHTS data structure (M/E/F/J for each priority)
 - ✅ PRIORITIES data structure with unlock logic
@@ -27,7 +28,46 @@
 - ✅ Smart priority recommendations
 - ✅ Real-time priority unlocking based on financial data
 - ✅ Dynamic allocation calculation from BASE_WEIGHTS
-- ✅ **IMPROVEMENT:** Trauma-informed dynamic thresholds (see below)
+- ✅ **IMPROVEMENT:** Trauma-informed dynamic thresholds
+- ✅ **Comprehensive automated test suite (9 tests, 100% passing)**
+- ✅ **Bug fixes:** Template literal syntax issues resolved
+- ✅ **Validation:** All Week 2 logic tested and verified
+
+---
+
+## 🧪 **Week 2 Validation Results**
+
+### **Automated Test Suite: 9/9 Tests Passing ✅**
+
+**Test Coverage:**
+1. ✅ Base Weights Validation - All 10 priorities sum to 100%
+2. ✅ Progressive Unlock - Crisis Student (Tier 1 only)
+3. ✅ Progressive Unlock - Recovering Student (Tier 1-2)
+4. ✅ Progressive Unlock - Stable Student (Tier 1-3)
+5. ✅ Progressive Unlock - Wealthy Student (Tier 1-4 including "enjoy")
+6. ✅ Dynamic Emergency Fund Thresholds (scales with essentials)
+7. ✅ Recommendation Algorithm (prioritizes security > debt)
+8. ✅ Input Validation Edge Cases
+9. ✅ Business Priority Unlock (business owner flag)
+
+**Test File:** `/tests/Tool4Tests.js` (enabled in .claspignore)
+**Run Command:** `runAllTool4Tests()` in Apps Script Editor
+**Last Run:** November 27, 2025 - 100% Success Rate
+
+---
+
+## 🐛 **Bug Fixed: Week 2 Deployment Issue**
+
+**Critical Bug Resolved (Nov 27, 2025):**
+- **Issue:** Tool4 failed to render with `document.write()` syntax error
+- **Root Cause:** Mixed JavaScript template literals with Apps Script template processing
+- **Primary Fix:** Changed from `createTemplate()` to `createHtmlOutput()`
+- **Secondary Fix:** Base64 encoding for JSON data embedding
+- **Tertiary Fix:** Fixed escaped quotes in onclick handlers
+- **Result:** Tool4 now renders correctly with no console errors
+
+**Documentation:** See `/docs/Tool4/BUG-WEEK2-DEPLOYMENT-ISSUE.md` for complete analysis
+**Prevention Guide:** See `/docs/TEMPLATE-LITERAL-GUIDELINES.md`
 
 ---
 
@@ -73,19 +113,23 @@ Both are equally achievable relative to their situation - **trauma-informed and 
 |----------|---------------|------------|---------|-------|
 | Stabilize to Survive | None | None | None | Always available |
 | Reclaim Financial Control | None | None | None | Always available |
-| Get Out of Debt | None | Debt > $5K | $200 | - |
+| Get Out of Debt | None | Debt > $0 | $200 | - |
 | Feel Financially Secure | **1 month essentials** | None | $300 | Essentials ≤ 60% income |
 | Create Life Balance | **2 months essentials** | < 3x income | $500 | Essentials ≤ 50% income |
 | Build/Stabilize Business | None | None | None | Business owner (self-select) |
 | Save for a Big Goal | **3 months essentials** | < 3x income | $500 | - |
 | Build Long-Term Wealth | **6 months essentials** | < 2x income | $800 | - |
-| Enjoy Life Now | **3 months essentials** | < 2x income | $1,000 | Essentials ≤ 35% income |
+| Enjoy Life Now | **3 months essentials** | < 2x income | $1,000 | Essentials **< 35%** income |
 | Create Generational Wealth | **12 months essentials** | $0 (NO debt) | $2,000 | - |
 
 **Key Pattern:**
 - Emergency fund = **multiples of essentials** (trauma-informed)
 - Debt limits = **multiples of income** (relative to earning power)
 - Surplus = **fixed amounts** (per spec - represents absolute capacity to invest)
+
+**Important Notes:**
+- "Enjoy Life Now" uses **strict <** (not <=) for 35% threshold - ensures only those with very low essential expenses unlock this priority
+- Recommendation algorithm prioritizes **emergency fund security BEFORE debt payoff** (modern financial advisor approach vs. Dave Ramsey approach)
 
 ---
 
@@ -103,7 +147,7 @@ Both are equally achievable relative to their situation - **trauma-informed and 
 
 ### **Priority 3: Get Out of Debt**
 - **Base Weights:** M:15, E:35, F:40, J:10
-- **Unlock:** Debt > $5,000 + $200 surplus
+- **Unlock:** Debt > $0 + $200 surplus
 - **Tier:** 1
 
 ### **Priority 4: Feel Financially Secure**
@@ -118,9 +162,8 @@ Both are equally achievable relative to their situation - **trauma-informed and 
 
 ### **Priority 6: Build/Stabilize Business**
 - **Base Weights:** M:20, E:30, F:35, J:15
-- **Unlock:** Business ownership (self-reported)
+- **Unlock:** Business ownership (self-reported via checkbox)
 - **Tier:** 2
-- **Note:** In production, add business ownership flag to form
 
 ### **Priority 7: Save for a Big Goal**
 - **Base Weights:** M:25, E:25, F:40, J:10
@@ -134,9 +177,9 @@ Both are equally achievable relative to their situation - **trauma-informed and 
 
 ### **Priority 9: Enjoy Life Now**
 - **Base Weights:** M:20, E:20, F:15, J:45
-- **Unlock:** Emergency fund >= 3 months essentials + debt < 2x income + essentials ≤ 35% income + $1,000 surplus
+- **Unlock:** Emergency fund >= 3 months essentials + debt < 2x income + essentials **< 35%** income + $1,000 surplus
 - **Tier:** 3
-- **Note:** INTENTIONALLY hard to unlock - only for those who can sustain 20% E allocation
+- **Note:** INTENTIONALLY hard to unlock - only for those who can sustain 20% Enjoyment allocation
 
 ### **Priority 10: Create Generational Wealth**
 - **Base Weights:** M:50, E:20, F:20, J:10
@@ -147,23 +190,32 @@ Both are equally achievable relative to their situation - **trauma-informed and 
 
 ## 🔧 **Technical Implementation**
 
+### **Architecture:**
+- **Pattern:** Single-page JavaScript calculator using template literals
+- **HTML Generation:** `HtmlService.createHtmlOutput()` (NOT `createTemplate()`)
+- **Data Embedding:** Base64 encoding for safe JSON embedding
+- **Client-Side:** All unlock logic and calculations run in browser
+- **Server-Side:** Tool status checking, deployment serving
+
 ### **Files Modified:**
-- `tools/tool4/Tool4.js` - Main calculator with integrated Week 2 logic (794 lines)
+- `tools/tool4/Tool4.js` - Main calculator with integrated Week 2 logic (879 lines)
+- `tests/Tool4Tests.js` - Comprehensive test suite (858 lines)
 - `Code.js` - Tool 4 registration
 - `core/Router.js` - Tool 4 dashboard card
-- `.claspignore` - Exclude standalone module files
-
-### **Files Created (Week 2 modules - integrated into Tool4.js):**
-- `tools/tool4/Tool4Categories.js` - Category breakdown logic (not yet integrated)
-- `tools/tool4/Tool4ProgressiveUnlock.js` - Original unlock spec
-- `tools/tool4/Tool4BaseWeights.js` - Original base weights spec
-- `tools/tool4/Tool4ClientLogic.js` - Client-side implementation
+- `.claspignore` - Exclude standalone module files, enable Tool4Tests.js
 
 ### **Key Technical Decisions:**
-1. ✅ **No Template Literals** - All JavaScript uses string concatenation for Apps Script compatibility
-2. ✅ **Inline Module Integration** - Embedded all Week 2 logic directly in Tool4.js to avoid .gs conversion issues
-3. ✅ **Dynamic Thresholds** - Emergency fund uses multiples of essentials instead of fixed amounts
-4. ✅ **Framework Pattern** - Uses ToolRegistry for routing (no hardcoded routes)
+1. ✅ **JavaScript Template Literals** - Entire HTML page built with backticks (requires careful escaping)
+2. ✅ **Base64 JSON Embedding** - Prevents quote/apostrophe issues from Tool 1/2/3 user data
+3. ✅ **createHtmlOutput()** - Direct HTML output, no Apps Script template processing
+4. ✅ **Quote Escaping** - Use double quotes in onclick handlers: `"onclick=\"selectPriority('id')\"`
+5. ✅ **No loading-animation.html** - Contains `document.write()` which breaks template literals
+6. ✅ **Dynamic Thresholds** - Emergency fund uses multiples of essentials instead of fixed amounts
+
+### **Deployment History:**
+- **v260** - Fixed escaped quotes in template literal
+- **v261** - Fixed enjoy unlock logic (< not <=) and recommendation algorithm order
+- **v262** - Final validated version with all tests passing
 
 ---
 
@@ -184,19 +236,20 @@ Both are equally achievable relative to their situation - **trauma-informed and 
 
 ---
 
-## 🎯 **Next Steps:**
+## 🎯 **Next Steps for Next Session:**
 
 ### **Immediate (Week 3):**
-1. Add category breakdown UI section
+1. Add category breakdown UI section (8 categories: Housing, Food, etc.)
 2. Implement category validation (±$50 or ±2% tolerance)
 3. Add "Adjusted vs Recommended" allocation display
-4. Show gap analysis
+4. Show gap analysis visualization
+5. Save calculator results to TOOL4_SCENARIOS sheet
 
 ### **Short-Term (Week 4-5):**
 1. Implement 3-path choice system
 2. Add progress tracking
 3. Tool 2 data integration
-4. Scenario saving to sheet
+4. Enhanced lock messages with specific threshold details
 
 ### **Long-Term (Week 6+):**
 1. Modifiers system
@@ -206,48 +259,48 @@ Both are equally achievable relative to their situation - **trauma-informed and 
 
 ---
 
-## 🐛 **Known Issues / Technical Debt:**
+## 📝 **Lessons Learned from Week 2 Bug:**
 
-1. **Business Priority Unlock** - Currently always available; needs business ownership flag in form
-2. **Category Breakdown** - Module created but not yet integrated into UI
-3. **Lock Messages** - Could be more detailed about specific thresholds being missed
-4. **No Save Functionality** - Calculator results not yet saved to TOOL4_SCENARIOS sheet
-5. **No Tool 2 Integration** - Wasteful spending detection not implemented
+### **Template Literal Best Practices:**
+1. **Never mix patterns:** Choose ONE of:
+   - JavaScript template literals (`` ` ` ``) with `createHtmlOutput()`
+   - Apps Script templates (`<?= ?>`) with `createTemplate()`
+2. **Always use base64** for embedding user data: `Utilities.base64Encode(JSON.stringify(data))`
+3. **Quote escaping:** In template literals, use `"onclick=\"func('id')\""` not `'onclick="func(\'' + id + '\')"'`
+4. **Avoid document.write()** in embedded HTML files
+5. **Test with real user data** that contains quotes/apostrophes
 
----
-
-## 📝 **Documentation Updates Needed:**
-
-1. ✅ Update TOOL4-BASE-WEIGHTS-FINAL-DECISIONS.md to reflect dynamic threshold improvement
-2. ⏳ Create Week 2 completion summary
-3. ⏳ Update TOOL4-IMPLEMENTATION-CHECKLIST.md with Week 2 status
-4. ⏳ Document trauma-informed threshold rationale
+**Full Guidelines:** See `/docs/TEMPLATE-LITERAL-GUIDELINES.md`
 
 ---
 
-## ✅ **Testing Checklist:**
+## 📚 **Documentation Status:**
 
-### **Week 2 Features to Test:**
-- [ ] All 10 priorities display correctly
-- [ ] Progressive unlock works with different financial scenarios
-- [ ] Lock messages show correct dynamic thresholds
-- [ ] Recommended priority algorithm works correctly
-- [ ] Base weight allocation calculation correct for all 10 priorities
-- [ ] Tier 1 priorities always available
-- [ ] Tier 2 unlocks with basic stability
-- [ ] Tier 3 unlocks with strong foundation
-- [ ] Tier 4 unlocks with excellent foundation
-- [ ] "Enjoy Life Now" properly restricted (35% essentials rule)
+### **Up to Date:**
+- ✅ TOOL4-IMPLEMENTATION-PROGRESS.md (this file)
+- ✅ BUG-WEEK2-DEPLOYMENT-ISSUE.md (complete bug analysis)
+- ✅ TEMPLATE-LITERAL-GUIDELINES.md (prevention guide)
+- ✅ Tool4Tests.js (comprehensive test suite with correct expectations)
 
----
-
-**Source Documents:**
+### **Reference Documents:**
 - TOOL4-BASE-WEIGHTS-FINAL-DECISIONS.md (authoritative spec)
 - TOOL4-PROGRESSIVE-UNLOCK-MODEL.md (original framework)
 - TOOL4-FINAL-SPECIFICATION.md (overall design)
+- TOOL4-IMPLEMENTATION-CHECKLIST.md (phase tracking)
 
-**Git Commits:**
-- `576dc15` - Week 2 integration complete
-- `8a33872` - Dynamic thresholds (multiples of essentials)
-- `6a410d5` - "Enjoy Life Now" unlock correction
-- `8e7c9e6` - All 10 priorities corrected to match spec
+---
+
+## 🎉 **Week 2 Accomplishments:**
+
+1. ✅ Implemented all 10 priorities with correct base weights
+2. ✅ Built 4-tier progressive unlock system
+3. ✅ Created trauma-informed dynamic thresholds
+4. ✅ Developed smart recommendation algorithm
+5. ✅ Fixed critical template literal bug
+6. ✅ Built comprehensive test suite (9 tests)
+7. ✅ Achieved 100% test success rate
+8. ✅ Validated all unlock logic with automated tests
+9. ✅ Documented bug and prevention guidelines
+10. ✅ Ready for Week 3 category breakdown implementation
+
+**Week 2 is COMPLETE and VALIDATED. Ready to proceed with Week 3!** 🚀

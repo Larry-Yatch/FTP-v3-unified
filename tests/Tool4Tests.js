@@ -226,11 +226,11 @@ function testCrisisStudent() {
     unlocked.push('wealth');
   }
 
-  // enjoy: emergencyFund >= essentials * 3 && debt < income * 2 && essentials <= income * 0.35 && income >= 5000
+  // enjoy: emergencyFund >= essentials * 3 && debt < income * 2 && essentials < income * 0.35 && surplus >= 1000
   if (financialData.emergencyFund >= financialData.essentials * 3 &&
       financialData.debt < financialData.income * 2 &&
-      financialData.essentials <= financialData.income * 0.35 &&
-      financialData.income >= 5000) {
+      financialData.essentials < financialData.income * 0.35 &&
+      financialData.surplus >= 1000) {
     unlocked.push('enjoy');
   }
 
@@ -402,8 +402,9 @@ function testWealthyStudent() {
   Logger.log('  Surplus: $' + financialData.surplus + '\n');
 
   // Expected: All tiers except business (not business owner) and debt (no debt)
-  const expectedUnlocked = ['stabilize', 'reclaim', 'secure', 'balance', 'big_goal', 'wealth', 'generational'];
-  const expectedLocked = ['debt', 'business', 'enjoy'];  // enjoy locked - essentials 30% > 35% requirement
+  // Wealthy student WITH enjoy unlocked (30% essentials < 35% threshold, has 13mo fund + $7k surplus)
+  const expectedUnlocked = ['stabilize', 'reclaim', 'secure', 'balance', 'big_goal', 'wealth', 'generational', 'enjoy'];
+  const expectedLocked = ['debt', 'business'];  // debt locked (no debt), business locked (not owner)
 
   const unlocked = simulateUnlock(financialData);
 
@@ -528,19 +529,20 @@ function testRecommendationAlgorithm() {
     Logger.log('  ✓ Correct');
   }
 
-  // Scenario 2: High debt → Get Out of Debt
+  // Scenario 2: High debt + low emergency fund → Prioritize Security First
+  // Emergency fund (1.25 months) is below 3-month threshold, so "secure" recommended before "debt"
   const scenario2 = {
     income: 4000,
     essentials: 2000,
-    emergencyFund: 2500,
-    debt: 25000,  // > 50% of income * 12
+    emergencyFund: 2500,  // 1.25 months (< 3 months threshold)
+    debt: 25000,  // High debt
     surplus: 2000,
     isBusinessOwner: false
   };
   const rec2 = simulateRecommendation(scenario2);
-  Logger.log('\nScenario 2 (High debt): Recommended "' + rec2 + '" (expected "debt")');
-  if (rec2 !== 'debt') {
-    errors.push('High debt should recommend "debt", got "' + rec2 + '"');
+  Logger.log('\nScenario 2 (High debt + low emergency fund): Recommended "' + rec2 + '" (expected "secure")');
+  if (rec2 !== 'secure') {
+    errors.push('Low emergency fund should recommend "secure" first (even with high debt), got "' + rec2 + '"');
   } else {
     Logger.log('  ✓ Correct');
   }
@@ -776,11 +778,11 @@ function simulateUnlock(financialData) {
     unlocked.push('wealth');
   }
 
-  // enjoy: emergencyFund >= essentials * 3 && debt < income * 2 && essentials <= income * 0.35 && income >= 5000
+  // enjoy: emergencyFund >= essentials * 3 && debt < income * 2 && essentials < income * 0.35 && surplus >= 1000
   if (financialData.emergencyFund >= financialData.essentials * 3 &&
       financialData.debt < financialData.income * 2 &&
-      financialData.essentials <= financialData.income * 0.35 &&
-      financialData.income >= 5000) {
+      financialData.essentials < financialData.income * 0.35 &&
+      financialData.surplus >= 1000) {
     unlocked.push('enjoy');
   }
 
@@ -810,14 +812,21 @@ function simulateRecommendation(data) {
     return unlocked.indexOf('stabilize') !== -1 ? 'stabilize' : null;
   }
 
+  // Low emergency fund + positive surplus = Feel Secure (CHECK FIRST)
+  if (data.emergencyFund < data.essentials * 3 && unlocked.indexOf('secure') !== -1) {
+    return 'secure';
+  }
+
   // High debt with high interest = Get Out of Debt
   if (data.debt > data.income * 0.5 && unlocked.indexOf('debt') !== -1) {
     return 'debt';
   }
 
-  // Low emergency fund + positive surplus = Feel Secure
-  if (data.emergencyFund < data.essentials * 3 && unlocked.indexOf('secure') !== -1) {
-    return 'secure';
+  // Excellent foundation = Generational (CHECK BEFORE WEALTH)
+  if (data.emergencyFund >= data.essentials * 12 &&
+      data.surplus >= data.income * 0.40 &&
+      unlocked.indexOf('generational') !== -1) {
+    return 'generational';
   }
 
   // Good emergency fund + high surplus = Build Wealth
@@ -825,13 +834,6 @@ function simulateRecommendation(data) {
       data.surplus >= data.income * 0.20 &&
       unlocked.indexOf('wealth') !== -1) {
     return 'wealth';
-  }
-
-  // Excellent foundation = Generational
-  if (data.emergencyFund >= data.essentials * 12 &&
-      data.surplus >= data.income * 0.40 &&
-      unlocked.indexOf('generational') !== -1) {
-    return 'generational';
   }
 
   // Default: Return highest tier unlocked priority

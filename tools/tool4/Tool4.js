@@ -580,10 +580,10 @@ const Tool4 = {
         icon: '🎉',
         tier: 3,
         checkUnlock: function(data) {
-          // HARD TO UNLOCK: 3mo fund + low debt + can sustain 20% E + high surplus
+          // HARD TO UNLOCK: 3mo fund + low debt + can sustain <35% essentials + high surplus
           return data.emergencyFund >= (data.essentials * 3) &&
                  data.debt < (data.income * 2) &&
-                 data.essentials <= (data.income * 0.35) &&
+                 data.essentials < (data.income * 0.35) &&
                  data.surplus >= 1000;
         }
       },
@@ -755,12 +755,12 @@ const Tool4 = {
       const unlocked = priorities.filter(function(p) { return p.unlocked; });
       if (unlocked.length === 0) return null;
 
-      // Recommendation logic based on financial situation
+      // Recommendation logic based on financial situation (ordered by priority)
       if (data.surplus < 0) return unlocked.find(function(p) { return p.id === 'stabilize'; });
-      if (data.debt > data.income * 0.5) return unlocked.find(function(p) { return p.id === 'debt'; });
       if (data.emergencyFund < data.essentials * 3) return unlocked.find(function(p) { return p.id === 'secure'; });
-      if (data.emergencyFund >= data.essentials * 6 && data.surplus >= data.income * 0.20) return unlocked.find(function(p) { return p.id === 'wealth'; });
+      if (data.debt > data.income * 0.5) return unlocked.find(function(p) { return p.id === 'debt'; });
       if (data.emergencyFund >= data.essentials * 12 && data.surplus >= data.income * 0.40) return unlocked.find(function(p) { return p.id === 'generational'; });
+      if (data.emergencyFund >= data.essentials * 6 && data.surplus >= data.income * 0.20) return unlocked.find(function(p) { return p.id === 'wealth'; });
 
       return unlocked.sort(function(a, b) { return b.tier - a.tier; })[0];
     }
