@@ -29,11 +29,6 @@ const Tool4 = {
     const baseUrl = ScriptApp.getService().getUrl();
 
     try {
-      // Validate student ID via roster
-      if (!this.validateStudent(clientId)) {
-        return this.renderInvalidStudent();
-      }
-
       // Check Tools 1/2/3 completion status
       const toolStatus = this.checkToolCompletion(clientId);
 
@@ -49,35 +44,6 @@ const Tool4 = {
     } catch (error) {
       Logger.log(`Error rendering Tool 4: ${error}`);
       return this.renderError(error);
-    }
-  },
-
-  /**
-   * Validate student via roster
-   */
-  validateStudent(clientId) {
-    try {
-      const ss = SpreadsheetApp.openById(CONFIG.MASTER_SHEET_ID);
-      const rosterSheet = ss.getSheetByName('ROSTER');
-
-      if (!rosterSheet) {
-        Logger.log('ROSTER sheet not found');
-        return false;
-      }
-
-      const data = rosterSheet.getDataRange().getValues();
-
-      // Check if clientId exists in roster (Column A)
-      for (let i = 1; i < data.length; i++) {
-        if (data[i][0] === clientId) {
-          return true;
-        }
-      }
-
-      return false;
-    } catch (error) {
-      Logger.log(`Error validating student: ${error}`);
-      return false;
     }
   },
 
@@ -692,28 +658,6 @@ const Tool4 = {
 </body>
 </html>
     `;
-  },
-
-  /**
-   * Render invalid student error
-   */
-  renderInvalidStudent() {
-    return HtmlService.createHtmlOutput(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <style>
-          body { font-family: system-ui; padding: 40px; text-align: center; }
-          .error { color: #ef4444; font-size: 1.2rem; margin: 20px 0; }
-        </style>
-      </head>
-      <body>
-        <h1>Access Denied</h1>
-        <p class="error">Student ID not found in roster.</p>
-        <p>Please contact your instructor for access.</p>
-      </body>
-      </html>
-    `).setTitle('TruPath - Access Denied');
   },
 
   /**
