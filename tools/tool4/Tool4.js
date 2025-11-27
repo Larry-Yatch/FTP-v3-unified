@@ -75,11 +75,26 @@ const Tool4 = {
   },
 
   /**
+   * Safely escape JSON for embedding in HTML script tags
+   */
+  escapeJsonForScript(obj) {
+    return JSON.stringify(obj)
+      .replace(/</g, '\\u003c')
+      .replace(/>/g, '\\u003e')
+      .replace(/&/g, '\\u0026')
+      .replace(/'/g, '\\u0027')
+      .replace(/"/g, '\\u0022');
+  },
+
+  /**
    * Build main calculator page
    */
   buildCalculatorPage(clientId, baseUrl, toolStatus) {
     const styles = HtmlService.createHtmlOutputFromFile('shared/styles').getContent();
     const loadingAnimation = HtmlService.createHtmlOutputFromFile('shared/loading-animation').getContent();
+
+    // Safely escape toolStatus for embedding in script
+    const escapedToolStatus = this.escapeJsonForScript(toolStatus);
 
     return `
 <!DOCTYPE html>
@@ -452,7 +467,7 @@ const Tool4 = {
     // Make variables and functions globally accessible
     window.clientId = '${clientId}';
     window.baseUrl = '${baseUrl}';
-    window.toolStatus = ${JSON.stringify(toolStatus)};
+    window.toolStatus = JSON.parse('${escapedToolStatus}');
 
     // Financial data object
     window.financialData = {
