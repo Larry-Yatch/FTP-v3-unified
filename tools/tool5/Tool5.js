@@ -839,7 +839,8 @@ const Tool5 = {
         [this.config.domain1Name]: syntheses.domain1,
         [this.config.domain2Name]: syntheses.domain2
       },
-      allScores: scoringResult
+      allScores: scoringResult,
+      subdomainInsights: gptInsights.subdomains  // ADD: Pass subdomain insights for context
     });
 
     return syntheses;
