@@ -1165,7 +1165,7 @@ const Tool4 = {
       } else if (total > income) {
         validationDiv.className = 'validation-error';
         const over = total - income;
-        messageDiv.innerHTML = '<strong>⚠ Over budget by $' + over.toLocaleString() + '</strong><br>You\'re allocating more than your income. Please reduce some categories.';
+        messageDiv.innerHTML = '<strong>⚠ Over budget by $' + over.toLocaleString() + '</strong><br>You are allocating more than your income. Please reduce some categories.';
       } else {
         validationDiv.className = 'validation-warning';
         const under = income - total;
@@ -1218,7 +1218,7 @@ const Tool4 = {
 
       // Build gap analysis HTML
       let html = '<div style="margin-bottom: 30px;">';
-      html += '<p style="color: var(--color-text-secondary);">Here\'s how your planned allocation compares to our recommendation based on your "' + getPriorityName(window.selectedPriority) + '" priority.</p>';
+      html += '<p style="color: var(--color-text-secondary);">Here is how your planned allocation compares to our recommendation based on your "' + getPriorityName(window.selectedPriority) + '" priority.</p>';
       html += '</div>';
 
       const categories = [
