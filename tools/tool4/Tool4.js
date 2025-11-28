@@ -312,6 +312,114 @@ const Tool4 = {
       color: #fbbf24;
     }
 
+    /* Week 3: Category Breakdown Styles */
+    .recommended-amount {
+      display: block;
+      margin-top: 4px;
+      color: var(--color-text-muted);
+      font-size: 0.85rem;
+    }
+
+    .category-input {
+      transition: border-color 0.2s;
+    }
+
+    .category-input.over-budget {
+      border-color: #ef4444;
+    }
+
+    .category-input.under-budget {
+      border-color: #fbbf24;
+    }
+
+    .category-input.on-target {
+      border-color: #22c55e;
+    }
+
+    .validation-ok {
+      background: rgba(34, 197, 94, 0.1);
+      border-left: 4px solid #22c55e;
+      color: #22c55e;
+    }
+
+    .validation-warning {
+      background: rgba(251, 191, 36, 0.1);
+      border-left: 4px solid #fbbf24;
+      color: #fbbf24;
+    }
+
+    .validation-error {
+      background: rgba(239, 68, 68, 0.1);
+      border-left: 4px solid #ef4444;
+      color: #ef4444;
+    }
+
+    .gap-bar-container {
+      margin-bottom: 20px;
+      padding: 15px;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 8px;
+    }
+
+    .gap-bar-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+
+    .gap-bar-wrapper {
+      position: relative;
+      height: 40px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .gap-bar-recommended {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      background: rgba(59, 130, 246, 0.3);
+      border-right: 2px solid #3b82f6;
+      display: flex;
+      align-items: center;
+      padding-left: 10px;
+      font-size: 0.9rem;
+    }
+
+    .gap-bar-actual {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      background: rgba(34, 197, 94, 0.5);
+      display: flex;
+      align-items: center;
+      padding-left: 10px;
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+
+    .gap-bar-actual.over {
+      background: rgba(239, 68, 68, 0.5);
+    }
+
+    .gap-difference {
+      margin-top: 5px;
+      font-size: 0.85rem;
+      color: var(--color-text-muted);
+    }
+
+    .gap-difference.positive {
+      color: #22c55e;
+    }
+
+    .gap-difference.negative {
+      color: #ef4444;
+    }
+
     @media (max-width: 768px) {
       .form-grid {
         grid-template-columns: 1fr;
@@ -438,13 +546,99 @@ const Tool4 = {
     <div id="allocationSection" class="allocation-output" style="display: none;">
       <h2 style="font-size: 1.5rem; margin-bottom: 20px;">📊 Your Recommended Allocation</h2>
       <div id="allocationBars" class="allocation-bars"></div>
+    </div>
 
-      <div class="btn-group">
-        <button class="btn btn-secondary" onclick="customizeAllocation()">
-          🎛️ Customize This Allocation
+    <!-- Category Breakdown Section (Week 3) -->
+    <div id="categorySection" class="calculator-section" style="display: none;">
+      <h2 class="section-header">🏷️ Break Down Your Spending by Category</h2>
+      <p style="color: var(--color-text-secondary); margin-bottom: 20px;">
+        Enter how much you plan to allocate to each category. We'll show you how it compares to your recommended allocation.
+      </p>
+
+      <div class="form-grid">
+        <div class="form-field">
+          <label class="form-label" for="cat_housing">🏠 Housing (Rent/Mortgage)</label>
+          <input type="number" id="cat_housing" class="form-input category-input" placeholder="0" min="0" step="10">
+          <small class="recommended-amount" id="rec_housing"></small>
+        </div>
+
+        <div class="form-field">
+          <label class="form-label" for="cat_food">🍽️ Food (Groceries & Dining)</label>
+          <input type="number" id="cat_food" class="form-input category-input" placeholder="0" min="0" step="10">
+          <small class="recommended-amount" id="rec_food"></small>
+        </div>
+
+        <div class="form-field">
+          <label class="form-label" for="cat_transportation">🚗 Transportation</label>
+          <input type="number" id="cat_transportation" class="form-input category-input" placeholder="0" min="0" step="10">
+          <small class="recommended-amount" id="rec_transportation"></small>
+        </div>
+
+        <div class="form-field">
+          <label class="form-label" for="cat_healthcare">🏥 Healthcare & Insurance</label>
+          <input type="number" id="cat_healthcare" class="form-input category-input" placeholder="0" min="0" step="10">
+          <small class="recommended-amount" id="rec_healthcare"></small>
+        </div>
+
+        <div class="form-field">
+          <label class="form-label" for="cat_debt">💳 Debt Payments</label>
+          <input type="number" id="cat_debt" class="form-input category-input" placeholder="0" min="0" step="10">
+          <small class="recommended-amount" id="rec_debt"></small>
+        </div>
+
+        <div class="form-field">
+          <label class="form-label" for="cat_savings">💰 Savings & Investments</label>
+          <input type="number" id="cat_savings" class="form-input category-input" placeholder="0" min="0" step="10">
+          <small class="recommended-amount" id="rec_savings"></small>
+        </div>
+
+        <div class="form-field">
+          <label class="form-label" for="cat_discretionary">🎉 Discretionary & Fun</label>
+          <input type="number" id="cat_discretionary" class="form-input category-input" placeholder="0" min="0" step="10">
+          <small class="recommended-amount" id="rec_discretionary"></small>
+        </div>
+
+        <div class="form-field">
+          <label class="form-label" for="cat_personal">📦 Personal & Other</label>
+          <input type="number" id="cat_personal" class="form-input category-input" placeholder="0" min="0" step="10">
+          <small class="recommended-amount" id="rec_personal"></small>
+        </div>
+      </div>
+
+      <!-- Category Validation Feedback -->
+      <div id="categoryValidation" style="margin-top: 20px; padding: 15px; border-radius: 8px; display: none;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+          <div>
+            <strong>Category Total:</strong> <span id="categoryTotal">$0</span>
+          </div>
+          <div>
+            <strong>Monthly Income:</strong> <span id="incomeDisplay">$0</span>
+          </div>
+        </div>
+        <div id="validationMessage"></div>
+      </div>
+
+      <div class="btn-group" style="margin-top: 20px;">
+        <button class="btn btn-secondary" onclick="autoDistributeCategories()">
+          🎯 Auto-Distribute to Recommended
         </button>
-        <button class="btn btn-primary" onclick="saveScenario()">
-          💾 Save Scenario
+        <button class="btn btn-primary" onclick="showGapAnalysis()">
+          📊 Show Gap Analysis →
+        </button>
+      </div>
+    </div>
+
+    <!-- Gap Analysis Section (Week 3) -->
+    <div id="gapAnalysisSection" class="calculator-section" style="display: none;">
+      <h2 class="section-header">📈 Gap Analysis: Your Allocation vs Recommended</h2>
+      <div id="gapAnalysisContent"></div>
+
+      <div class="btn-group" style="margin-top: 30px;">
+        <button class="btn btn-secondary" onclick="goBackToCategories()">
+          ← Edit Categories
+        </button>
+        <button class="btn btn-primary" onclick="saveScenario(event)">
+          💾 Save This Scenario
         </button>
       </div>
     </div>
@@ -779,6 +973,10 @@ const Tool4 = {
         return;
       }
 
+      // Store selected priority
+      window.selectedPriority = priorityId;
+      window.selectedWeights = weights;
+
       // Calculate dollar amounts
       const dollars = {
         M: Math.round((weights.M / 100) * window.financialData.income),
@@ -786,6 +984,8 @@ const Tool4 = {
         F: Math.round((weights.F / 100) * window.financialData.income),
         J: Math.round((weights.J / 100) * window.financialData.income)
       };
+
+      window.selectedDollars = dollars;
 
       // Render allocation
       const allocationBars = document.getElementById('allocationBars');
@@ -828,27 +1028,426 @@ const Tool4 = {
       // Show allocation section
       document.getElementById('allocationSection').style.display = 'block';
       document.getElementById('allocationSection').scrollIntoView({ behavior: 'smooth' });
+
+      // Week 3: Show category breakdown section
+      showCategoryBreakdown();
     }
 
     /**
-     * Customize allocation
-     * Attach to window to make accessible from onclick handlers
+     * Week 3: Show category breakdown section
      */
-    window.customizeAllocation = function() {
-      alert('Customize allocation feature coming in Week 6!');
+    function showCategoryBreakdown() {
+      if (!window.selectedDollars || !window.selectedPriority) {
+        console.error('No priority selected');
+        return;
+      }
+
+      // Calculate recommended category amounts based on bucket allocation
+      const recommended = calculateRecommendedCategories(window.selectedDollars);
+      window.recommendedCategories = recommended;
+
+      // Populate recommended amounts
+      document.getElementById('rec_housing').textContent = 'Recommended: $' + recommended.housing.toLocaleString();
+      document.getElementById('rec_food').textContent = 'Recommended: $' + recommended.food.toLocaleString();
+      document.getElementById('rec_transportation').textContent = 'Recommended: $' + recommended.transportation.toLocaleString();
+      document.getElementById('rec_healthcare').textContent = 'Recommended: $' + recommended.healthcare.toLocaleString();
+      document.getElementById('rec_debt').textContent = 'Recommended: $' + recommended.debt.toLocaleString();
+      document.getElementById('rec_savings').textContent = 'Recommended: $' + recommended.savings.toLocaleString();
+      document.getElementById('rec_discretionary').textContent = 'Recommended: $' + recommended.discretionary.toLocaleString();
+      document.getElementById('rec_personal').textContent = 'Recommended: $' + recommended.personal.toLocaleString();
+
+      // Auto-fill with recommended amounts
+      document.getElementById('cat_housing').value = recommended.housing;
+      document.getElementById('cat_food').value = recommended.food;
+      document.getElementById('cat_transportation').value = recommended.transportation;
+      document.getElementById('cat_healthcare').value = recommended.healthcare;
+      document.getElementById('cat_debt').value = recommended.debt;
+      document.getElementById('cat_savings').value = recommended.savings;
+      document.getElementById('cat_discretionary').value = recommended.discretionary;
+      document.getElementById('cat_personal').value = recommended.personal;
+
+      // Add event listeners for real-time validation
+      const categoryInputs = document.querySelectorAll('.category-input');
+      categoryInputs.forEach(function(input) {
+        input.addEventListener('input', validateCategories);
+      });
+
+      // Show category section
+      document.getElementById('categorySection').style.display = 'block';
+      document.getElementById('incomeDisplay').textContent = '$' + window.financialData.income.toLocaleString();
+      validateCategories();
+      document.getElementById('categorySection').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    /**
+     * Calculate recommended category amounts based on M/E/F/J allocation
+     * Uses typical breakdown percentages per Implementation Details spec
+     */
+    function calculateRecommendedCategories(dollars) {
+      // Validate input
+      if (!dollars || typeof dollars.M !== 'number' || typeof dollars.E !== 'number' ||
+          typeof dollars.F !== 'number' || typeof dollars.J !== 'number') {
+        console.error('Invalid dollars object:', dollars);
+        // Return safe defaults
+        return {
+          housing: 0, food: 0, transportation: 0, healthcare: 0,
+          personal: 0, debt: 0, savings: 0, discretionary: 0
+        };
+      }
+
+      // Essentials bucket breakdown (Housing, Food, Transportation, Healthcare, Personal)
+      // Freedom bucket breakdown (Debt Payments, Savings)
+      // Enjoyment bucket breakdown (Discretionary)
+      // Multiply bucket goes to Savings
+
+      const income = window.financialData.income;
+      const isLowIncome = income < 3500;
+      const isMidIncome = income >= 3500 && income < 7000;
+
+      // Essentials breakdown - based on income tier
+      let housingPct, foodPct, transPct, healthPct, personalPct;
+      if (isLowIncome) {
+        housingPct = 0.50; foodPct = 0.25; transPct = 0.15; healthPct = 0.05; personalPct = 0.05;
+      } else if (isMidIncome) {
+        housingPct = 0.45; foodPct = 0.22; transPct = 0.18; healthPct = 0.10; personalPct = 0.05;
+      } else {
+        housingPct = 0.40; foodPct = 0.20; transPct = 0.20; healthPct = 0.15; personalPct = 0.05;
+      }
+
+      // Freedom bucket splits between debt and savings
+      const hasDebt = window.financialData.debt > 0;
+      const debtPct = hasDebt ? 0.60 : 0.0; // 60% of Freedom to debt if exists
+      const freedomSavingsPct = hasDebt ? 0.40 : 1.0; // Rest to savings
+
+      return {
+        housing: Math.round(dollars.E * housingPct),
+        food: Math.round(dollars.E * foodPct),
+        transportation: Math.round(dollars.E * transPct),
+        healthcare: Math.round(dollars.E * healthPct),
+        personal: Math.round(dollars.E * personalPct),
+        debt: Math.round(dollars.F * debtPct),
+        savings: Math.round(dollars.M + (dollars.F * freedomSavingsPct)), // Multiply + Freedom savings
+        discretionary: Math.round(dollars.J)
+      };
+    }
+
+    /**
+     * Validate category totals with tolerance
+     */
+    function validateCategories() {
+      const housing = parseFloat(document.getElementById('cat_housing').value) || 0;
+      const food = parseFloat(document.getElementById('cat_food').value) || 0;
+      const transportation = parseFloat(document.getElementById('cat_transportation').value) || 0;
+      const healthcare = parseFloat(document.getElementById('cat_healthcare').value) || 0;
+      const debt = parseFloat(document.getElementById('cat_debt').value) || 0;
+      const savings = parseFloat(document.getElementById('cat_savings').value) || 0;
+      const discretionary = parseFloat(document.getElementById('cat_discretionary').value) || 0;
+      const personal = parseFloat(document.getElementById('cat_personal').value) || 0;
+
+      const total = housing + food + transportation + healthcare + debt + savings + discretionary + personal;
+      const income = window.financialData.income;
+
+      // Update total display
+      document.getElementById('categoryTotal').textContent = '$' + total.toLocaleString();
+
+      // Validation tolerance: ±$50 or ±2% (whichever is larger)
+      const tolerance = Math.max(50, income * 0.02);
+      const difference = Math.abs(total - income);
+
+      const validationDiv = document.getElementById('categoryValidation');
+      const messageDiv = document.getElementById('validationMessage');
+
+      validationDiv.style.display = 'block';
+
+      if (difference <= tolerance) {
+        validationDiv.className = 'validation-ok';
+        messageDiv.innerHTML = '<strong>✓ Allocation looks good!</strong> Your categories are within tolerance.';
+      } else if (total > income) {
+        validationDiv.className = 'validation-error';
+        const over = total - income;
+        messageDiv.innerHTML = '<strong>⚠ Over budget by $' + over.toLocaleString() + '</strong><br>You\'re allocating more than your income. Please reduce some categories.';
+      } else {
+        validationDiv.className = 'validation-warning';
+        const under = income - total;
+        messageDiv.innerHTML = '<strong>⚠ $' + under.toLocaleString() + ' unallocated</strong><br>You have money not assigned to any category. Consider increasing savings or another category.';
+      }
+    }
+
+    /**
+     * Auto-distribute categories to recommended amounts
+     */
+    window.autoDistributeCategories = function() {
+      if (!window.recommendedCategories) {
+        alert('No recommendations available');
+        return;
+      }
+
+      const rec = window.recommendedCategories;
+      document.getElementById('cat_housing').value = rec.housing;
+      document.getElementById('cat_food').value = rec.food;
+      document.getElementById('cat_transportation').value = rec.transportation;
+      document.getElementById('cat_healthcare').value = rec.healthcare;
+      document.getElementById('cat_debt').value = rec.debt;
+      document.getElementById('cat_savings').value = rec.savings;
+      document.getElementById('cat_discretionary').value = rec.discretionary;
+      document.getElementById('cat_personal').value = rec.personal;
+
+      validateCategories();
     };
 
     /**
-     * Save scenario
-     * Attach to window to make accessible from onclick handlers
+     * Show gap analysis comparing actual vs recommended
      */
-    window.saveScenario = function() {
-      alert('Save scenario feature coming in Week 6!');
+    window.showGapAnalysis = function() {
+      // Get current category values
+      const actual = {
+        housing: parseFloat(document.getElementById('cat_housing').value) || 0,
+        food: parseFloat(document.getElementById('cat_food').value) || 0,
+        transportation: parseFloat(document.getElementById('cat_transportation').value) || 0,
+        healthcare: parseFloat(document.getElementById('cat_healthcare').value) || 0,
+        debt: parseFloat(document.getElementById('cat_debt').value) || 0,
+        savings: parseFloat(document.getElementById('cat_savings').value) || 0,
+        discretionary: parseFloat(document.getElementById('cat_discretionary').value) || 0,
+        personal: parseFloat(document.getElementById('cat_personal').value) || 0
+      };
+
+      window.actualCategories = actual;
+
+      const recommended = window.recommendedCategories;
+      const income = window.financialData.income;
+
+      // Build gap analysis HTML
+      let html = '<div style="margin-bottom: 30px;">';
+      html += '<p style="color: var(--color-text-secondary);">Here\'s how your planned allocation compares to our recommendation based on your "' + getPriorityName(window.selectedPriority) + '" priority.</p>';
+      html += '</div>';
+
+      const categories = [
+        { key: 'housing', label: '🏠 Housing', icon: '🏠' },
+        { key: 'food', label: '🍽️ Food', icon: '🍽️' },
+        { key: 'transportation', label: '🚗 Transportation', icon: '🚗' },
+        { key: 'healthcare', label: '🏥 Healthcare', icon: '🏥' },
+        { key: 'debt', label: '💳 Debt Payments', icon: '💳' },
+        { key: 'savings', label: '💰 Savings & Investments', icon: '💰' },
+        { key: 'discretionary', label: '🎉 Discretionary', icon: '🎉' },
+        { key: 'personal', label: '📦 Personal', icon: '📦' }
+      ];
+
+      categories.forEach(function(cat) {
+        const rec = recommended[cat.key];
+        const act = actual[cat.key];
+        const diff = act - rec;
+        const diffPct = rec > 0 ? Math.round((diff / rec) * 100) : 0;
+
+        html += '<div class="gap-bar-container">';
+        html += '<div class="gap-bar-header">';
+        html += '<span>' + cat.label + '</span>';
+        html += '<span>Your: $' + act.toLocaleString() + ' | Recommended: $' + rec.toLocaleString() + '</span>';
+        html += '</div>';
+
+        html += '<div class="gap-bar-wrapper">';
+        // Constrain widths to max 100% to prevent overflow
+        const recWidth = Math.min(100, (rec / income) * 100);
+        const actWidth = Math.min(100, (act / income) * 100);
+
+        html += '<div class="gap-bar-recommended" style="width: ' + recWidth + '%;">';
+        if (recWidth > 10) html += '$' + rec.toLocaleString();
+        html += '</div>';
+
+        html += '<div class="gap-bar-actual ' + (act > rec ? 'over' : '') + '" style="width: ' + actWidth + '%;">';
+        if (actWidth > 10) html += '$' + act.toLocaleString();
+        html += '</div>';
+        html += '</div>';
+
+        if (diff !== 0) {
+          html += '<div class="gap-difference ' + (diff > 0 ? 'negative' : 'positive') + '">';
+          html += diff > 0 ? '+$' + diff.toLocaleString() + ' over' : '$' + Math.abs(diff).toLocaleString() + ' under';
+          html += ' (' + (diffPct > 0 ? '+' : '') + diffPct + '%)';
+          html += '</div>';
+        }
+
+        html += '</div>';
+      });
+
+      document.getElementById('gapAnalysisContent').innerHTML = html;
+      document.getElementById('gapAnalysisSection').style.display = 'block';
+      document.getElementById('gapAnalysisSection').scrollIntoView({ behavior: 'smooth' });
+    };
+
+    /**
+     * Go back to edit categories
+     */
+    window.goBackToCategories = function() {
+      document.getElementById('gapAnalysisSection').style.display = 'none';
+      document.getElementById('categorySection').scrollIntoView({ behavior: 'smooth' });
+    };
+
+    /**
+     * Get priority display name
+     */
+    function getPriorityName(priorityId) {
+      const priority = PRIORITIES.find(function(p) { return p.id === priorityId; });
+      return priority ? priority.name : priorityId;
+    }
+
+    /**
+     * Save scenario to TOOL4_SCENARIOS sheet
+     */
+    window.saveScenario = function(event) {
+      // Validate we have all required data
+      if (!window.selectedPriority || !window.actualCategories) {
+        alert('Please complete the category breakdown before saving');
+        return;
+      }
+
+      const scenarioName = prompt('Name this scenario:', 'Scenario ' + new Date().toLocaleDateString());
+      if (!scenarioName) return;
+
+      // Prepare scenario data
+      const scenarioData = {
+        clientId: window.clientId,
+        scenarioName: scenarioName,
+        priority: window.selectedPriority,
+        financialInputs: window.financialData,
+        recommendedAllocation: {
+          percentages: window.selectedWeights,
+          dollars: window.selectedDollars
+        },
+        categoryBreakdown: {
+          recommended: window.recommendedCategories,
+          actual: window.actualCategories
+        },
+        timestamp: new Date().toISOString()
+      };
+
+      console.log('Saving scenario:', scenarioData);
+
+      // Show loading state (use event.target if available, otherwise querySelector)
+      const btn = event && event.target ? event.target : document.querySelector('button[onclick*="saveScenario"]');
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = '💾 Saving...';
+      }
+
+      // Call server-side save function
+      google.script.run
+        .withSuccessHandler(function(result) {
+          if (btn) {
+            btn.disabled = false;
+            btn.textContent = '💾 Save This Scenario';
+          }
+          alert('✓ Scenario saved successfully!\\n\\n"' + scenarioName + '" has been saved to your scenarios.');
+        })
+        .withFailureHandler(function(error) {
+          if (btn) {
+            btn.disabled = false;
+            btn.textContent = '💾 Save This Scenario';
+          }
+          alert('Error saving scenario: ' + error.message);
+          console.error('Save error:', error);
+        })
+        .Tool4.saveScenarioToSheet(scenarioData);
+    };
+
+    /**
+     * Customize allocation (Week 6 feature)
+     */
+    window.customizeAllocation = function() {
+      alert('Customize allocation feature coming in Week 6!');
     };
   </script>
 </body>
 </html>
     `;
+  },
+
+  /**
+   * Week 3: Save scenario to TOOL4_SCENARIOS sheet
+   */
+  saveScenarioToSheet(scenarioData) {
+    try {
+      const ss = SpreadsheetApp.getActiveSpreadsheet();
+      let sheet = ss.getSheetByName('TOOL4_SCENARIOS');
+
+      // Create sheet if it doesn't exist
+      if (!sheet) {
+        sheet = ss.insertSheet('TOOL4_SCENARIOS');
+        // Add header row (36 columns A-AJ per spec)
+        const headers = [
+          'Timestamp', 'Client_ID', 'Scenario_Name', 'Priority_Selected',
+          // Financial Inputs
+          'Monthly_Income', 'Current_Essentials', 'Debt_Balance', 'Interest_Rate',
+          'Emergency_Fund', 'Income_Stability',
+          // Category Breakdown - Recommended
+          'Rec_Housing', 'Rec_Food', 'Rec_Transportation', 'Rec_Healthcare',
+          'Rec_Debt', 'Rec_Savings', 'Rec_Discretionary', 'Rec_Personal',
+          // Category Breakdown - Actual
+          'Act_Housing', 'Act_Food', 'Act_Transportation', 'Act_Healthcare',
+          'Act_Debt', 'Act_Savings', 'Act_Discretionary', 'Act_Personal',
+          // Recommended Allocation (M/E/F/J)
+          'Rec_M_Percent', 'Rec_E_Percent', 'Rec_F_Percent', 'Rec_J_Percent',
+          'Rec_M_Dollars', 'Rec_E_Dollars', 'Rec_F_Dollars', 'Rec_J_Dollars',
+          // Metadata
+          'Tool_Status'
+        ];
+        sheet.appendRow(headers);
+        sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold');
+      }
+
+      // Prepare row data
+      const rowData = [
+        new Date(scenarioData.timestamp),
+        scenarioData.clientId,
+        scenarioData.scenarioName,
+        scenarioData.priority,
+        // Financial inputs
+        scenarioData.financialInputs.income,
+        scenarioData.financialInputs.essentials,
+        scenarioData.financialInputs.debt,
+        'Medium', // Default interest rate
+        scenarioData.financialInputs.emergencyFund,
+        'Stable', // Default stability
+        // Recommended categories
+        scenarioData.categoryBreakdown.recommended.housing,
+        scenarioData.categoryBreakdown.recommended.food,
+        scenarioData.categoryBreakdown.recommended.transportation,
+        scenarioData.categoryBreakdown.recommended.healthcare,
+        scenarioData.categoryBreakdown.recommended.debt,
+        scenarioData.categoryBreakdown.recommended.savings,
+        scenarioData.categoryBreakdown.recommended.discretionary,
+        scenarioData.categoryBreakdown.recommended.personal,
+        // Actual categories
+        scenarioData.categoryBreakdown.actual.housing,
+        scenarioData.categoryBreakdown.actual.food,
+        scenarioData.categoryBreakdown.actual.transportation,
+        scenarioData.categoryBreakdown.actual.healthcare,
+        scenarioData.categoryBreakdown.actual.debt,
+        scenarioData.categoryBreakdown.actual.savings,
+        scenarioData.categoryBreakdown.actual.discretionary,
+        scenarioData.categoryBreakdown.actual.personal,
+        // Recommended allocation percentages
+        scenarioData.recommendedAllocation.percentages.M,
+        scenarioData.recommendedAllocation.percentages.E,
+        scenarioData.recommendedAllocation.percentages.F,
+        scenarioData.recommendedAllocation.percentages.J,
+        // Recommended allocation dollars
+        scenarioData.recommendedAllocation.dollars.M,
+        scenarioData.recommendedAllocation.dollars.E,
+        scenarioData.recommendedAllocation.dollars.F,
+        scenarioData.recommendedAllocation.dollars.J,
+        // Metadata
+        'COMPLETED'
+      ];
+
+      // Append to sheet
+      sheet.appendRow(rowData);
+
+      Logger.log('Scenario saved successfully for client: ' + scenarioData.clientId);
+      return { success: true, message: 'Scenario saved successfully' };
+
+    } catch (error) {
+      Logger.log('Error saving scenario: ' + error);
+      throw new Error('Failed to save scenario: ' + error.message);
+    }
   },
 
   /**

@@ -855,3 +855,345 @@ function simulateRecommendation(data) {
 
   return recommendation;
 }
+
+// ============================================
+// WEEK 3 TESTS - Category Breakdown
+// ============================================
+
+/**
+ * TEST 10: Category Validation - Tolerance Check
+ * Validates that ±$50 or ±2% tolerance works correctly
+ */
+function testCategoryValidation() {
+  const testName = 'Category Validation - Tolerance Check';
+
+  try {
+    // Test Case 1: Within tolerance ($50)
+    const income1 = 5000;
+    const tolerance1 = Math.max(50, income1 * 0.02); // Should be 100 (2% of 5000)
+    const categoryTotal1 = 4980; // $20 under
+    const difference1 = Math.abs(categoryTotal1 - income1);
+
+    if (difference1 <= tolerance1) {
+      Logger.log('✓ Within tolerance test passed: $' + difference1 + ' <= $' + tolerance1);
+    } else {
+      throw new Error('Within tolerance test failed: $' + difference1 + ' > $' + tolerance1);
+    }
+
+    // Test Case 2: Outside tolerance
+    const income2 = 5000;
+    const tolerance2 = Math.max(50, income2 * 0.02); // $100
+    const categoryTotal2 = 4850; // $150 under
+    const difference2 = Math.abs(categoryTotal2 - income2);
+
+    if (difference2 > tolerance2) {
+      Logger.log('✓ Outside tolerance test passed: $' + difference2 + ' > $' + tolerance2);
+    } else {
+      throw new Error('Outside tolerance test failed: $' + difference2 + ' <= $' + tolerance2);
+    }
+
+    // Test Case 3: Low income uses $50 minimum
+    const income3 = 2000;
+    const tolerance3 = Math.max(50, income3 * 0.02); // Should be 50 (2% = $40, but min is $50)
+
+    if (tolerance3 === 50) {
+      Logger.log('✓ Minimum tolerance test passed: $50 used for low income');
+    } else {
+      throw new Error('Minimum tolerance test failed: Expected $50, got $' + tolerance3);
+    }
+
+    Logger.log('✅ PASSED: ' + testName);
+    return { name: testName, passed: true };
+
+  } catch (error) {
+    Logger.log('❌ FAILED: ' + testName);
+    Logger.log('Error: ' + error.message);
+    return { name: testName, passed: false, error: error.message };
+  }
+}
+
+/**
+ * TEST 11: Category Breakdown Calculation
+ * Validates that recommended categories are calculated correctly from M/E/F/J allocation
+ */
+function testCategoryBreakdownCalculation() {
+  const testName = 'Category Breakdown Calculation';
+
+  try {
+    // Simulate "Get Out of Debt" priority: M:15, E:35, F:40, J:10
+    const income = 5000;
+    const weights = { M: 15, E: 35, F: 40, J: 10 };
+    const dollars = {
+      M: Math.round((weights.M / 100) * income), // $750
+      E: Math.round((weights.E / 100) * income), // $1,750
+      F: Math.round((weights.F / 100) * income), // $2,000
+      J: Math.round((weights.J / 100) * income)  // $500
+    };
+
+    // Mid-income tier breakdown percentages
+    const housingPct = 0.45;
+    const foodPct = 0.22;
+    const transPct = 0.18;
+    const healthPct = 0.10;
+    const personalPct = 0.05;
+
+    // Calculate expected categories
+    const hasDebt = true;
+    const debtPct = hasDebt ? 0.60 : 0.0;
+    const freedomSavingsPct = hasDebt ? 0.40 : 1.0;
+
+    const expected = {
+      housing: Math.round(dollars.E * housingPct), // $1,750 * 0.45 = $788
+      food: Math.round(dollars.E * foodPct), // $1,750 * 0.22 = $385
+      transportation: Math.round(dollars.E * transPct), // $1,750 * 0.18 = $315
+      healthcare: Math.round(dollars.E * healthPct), // $1,750 * 0.10 = $175
+      personal: Math.round(dollars.E * personalPct), // $1,750 * 0.05 = $88
+      debt: Math.round(dollars.F * debtPct), // $2,000 * 0.60 = $1,200
+      savings: Math.round(dollars.M + (dollars.F * freedomSavingsPct)), // $750 + ($2,000 * 0.40) = $1,550
+      discretionary: Math.round(dollars.J) // $500
+    };
+
+    // Verify totals approximately match income
+    const categoryTotal = expected.housing + expected.food + expected.transportation +
+                         expected.healthcare + expected.personal + expected.debt +
+                         expected.savings + expected.discretionary;
+
+    const tolerance = Math.max(50, income * 0.02);
+    const difference = Math.abs(categoryTotal - income);
+
+    Logger.log('Category Total: $' + categoryTotal + ' | Income: $' + income + ' | Difference: $' + difference);
+    Logger.log('Housing: $' + expected.housing);
+    Logger.log('Food: $' + expected.food);
+    Logger.log('Transportation: $' + expected.transportation);
+    Logger.log('Healthcare: $' + expected.healthcare);
+    Logger.log('Debt: $' + expected.debt);
+    Logger.log('Savings: $' + expected.savings);
+    Logger.log('Discretionary: $' + expected.discretionary);
+    Logger.log('Personal: $' + expected.personal);
+
+    if (difference <= tolerance) {
+      Logger.log('✓ Category breakdown totals within tolerance');
+    } else {
+      throw new Error('Category breakdown totals outside tolerance: $' + difference + ' > $' + tolerance);
+    }
+
+    // Verify Essentials categories sum to approximately Essentials dollar amount
+    const essentialsCategories = expected.housing + expected.food + expected.transportation +
+                                expected.healthcare + expected.personal;
+    const essentialsDiff = Math.abs(essentialsCategories - dollars.E);
+
+    if (essentialsDiff <= 10) { // Allow small rounding differences
+      Logger.log('✓ Essentials categories sum to Essentials bucket: $' + essentialsCategories + ' ≈ $' + dollars.E);
+    } else {
+      throw new Error('Essentials categories mismatch: $' + essentialsCategories + ' vs $' + dollars.E);
+    }
+
+    Logger.log('✅ PASSED: ' + testName);
+    return { name: testName, passed: true };
+
+  } catch (error) {
+    Logger.log('❌ FAILED: ' + testName);
+    Logger.log('Error: ' + error.message);
+    return { name: testName, passed: false, error: error.message };
+  }
+}
+
+/**
+ * TEST 12: Save Scenario Data Structure
+ * Validates that scenario data is structured correctly for sheet storage
+ */
+function testSaveScenarioDataStructure() {
+  const testName = 'Save Scenario Data Structure';
+
+  try {
+    // Mock scenario data
+    const scenarioData = {
+      clientId: 'TEST_CLIENT_001',
+      scenarioName: 'Test Scenario',
+      priority: 'debt',
+      financialInputs: {
+        income: 5000,
+        essentials: 2500,
+        debt: 15000,
+        emergencyFund: 1000,
+        surplus: 2500,
+        isBusinessOwner: false
+      },
+      recommendedAllocation: {
+        percentages: { M: 15, E: 35, F: 40, J: 10 },
+        dollars: { M: 750, E: 1750, F: 2000, J: 500 }
+      },
+      categoryBreakdown: {
+        recommended: {
+          housing: 788,
+          food: 385,
+          transportation: 315,
+          healthcare: 175,
+          personal: 88,
+          debt: 1200,
+          savings: 1550,
+          discretionary: 500
+        },
+        actual: {
+          housing: 800,
+          food: 400,
+          transportation: 300,
+          healthcare: 200,
+          personal: 100,
+          debt: 1200,
+          savings: 1500,
+          discretionary: 500
+        }
+      },
+      timestamp: new Date().toISOString()
+    };
+
+    // Validate required fields exist
+    const requiredFields = ['clientId', 'scenarioName', 'priority', 'financialInputs',
+                           'recommendedAllocation', 'categoryBreakdown', 'timestamp'];
+
+    requiredFields.forEach(function(field) {
+      if (!scenarioData[field]) {
+        throw new Error('Missing required field: ' + field);
+      }
+    });
+
+    Logger.log('✓ All required fields present');
+
+    // Validate nested structures
+    if (!scenarioData.financialInputs.income || !scenarioData.financialInputs.essentials) {
+      throw new Error('Missing financial input fields');
+    }
+
+    if (!scenarioData.recommendedAllocation.percentages || !scenarioData.recommendedAllocation.dollars) {
+      throw new Error('Missing allocation fields');
+    }
+
+    if (!scenarioData.categoryBreakdown.recommended || !scenarioData.categoryBreakdown.actual) {
+      throw new Error('Missing category breakdown fields');
+    }
+
+    Logger.log('✓ All nested structures valid');
+
+    // Validate 8 categories in both recommended and actual
+    const requiredCategories = ['housing', 'food', 'transportation', 'healthcare',
+                               'personal', 'debt', 'savings', 'discretionary'];
+
+    requiredCategories.forEach(function(cat) {
+      if (typeof scenarioData.categoryBreakdown.recommended[cat] !== 'number') {
+        throw new Error('Missing or invalid recommended category: ' + cat);
+      }
+      if (typeof scenarioData.categoryBreakdown.actual[cat] !== 'number') {
+        throw new Error('Missing or invalid actual category: ' + cat);
+      }
+    });
+
+    Logger.log('✓ All 8 categories present in both recommended and actual');
+
+    Logger.log('✅ PASSED: ' + testName);
+    return { name: testName, passed: true };
+
+  } catch (error) {
+    Logger.log('❌ FAILED: ' + testName);
+    Logger.log('Error: ' + error.message);
+    return { name: testName, passed: false, error: error.message };
+  }
+}
+
+/**
+ * RUN WEEK 3 TESTS
+ * Main entry point for Week 3 category breakdown tests
+ */
+function runWeek3Tests() {
+  Logger.log('==========================================');
+  Logger.log('TOOL 4 WEEK 3 - CATEGORY BREAKDOWN TESTS');
+  Logger.log('==========================================\n');
+
+  const results = {
+    passed: 0,
+    failed: 0,
+    tests: []
+  };
+
+  // Test 10: Category Validation
+  Logger.log('TEST 10: Category Validation');
+  Logger.log('----------------------------');
+  const validationResult = testCategoryValidation();
+  results.tests.push(validationResult);
+  if (validationResult.passed) results.passed++; else results.failed++;
+  Logger.log('');
+
+  // Test 11: Category Breakdown Calculation
+  Logger.log('TEST 11: Category Breakdown Calculation');
+  Logger.log('---------------------------------------');
+  const breakdownResult = testCategoryBreakdownCalculation();
+  results.tests.push(breakdownResult);
+  if (breakdownResult.passed) results.passed++; else results.failed++;
+  Logger.log('');
+
+  // Test 12: Save Scenario Data Structure
+  Logger.log('TEST 12: Save Scenario Data Structure');
+  Logger.log('-------------------------------------');
+  const saveResult = testSaveScenarioDataStructure();
+  results.tests.push(saveResult);
+  if (saveResult.passed) results.passed++; else results.failed++;
+  Logger.log('');
+
+  // Summary
+  Logger.log('==========================================');
+  Logger.log('WEEK 3 TEST SUMMARY');
+  Logger.log('==========================================');
+  Logger.log('Total Tests: ' + (results.passed + results.failed));
+  Logger.log('✅ Passed: ' + results.passed);
+  Logger.log('❌ Failed: ' + results.failed);
+  Logger.log('Success Rate: ' + Math.round((results.passed / (results.passed + results.failed)) * 100) + '%');
+  Logger.log('==========================================\n');
+
+  if (results.failed === 0) {
+    Logger.log('🎉 ALL WEEK 3 TESTS PASSED! 🎉');
+    Logger.log('Week 3 Category Breakdown is VALIDATED ✅');
+  } else {
+    Logger.log('⚠️ Some tests failed. Review errors above.');
+  }
+
+  return results;
+}
+
+/**
+ * RUN ALL TOOL 4 TESTS (Week 2 + Week 3)
+ * Complete test suite
+ */
+function runAllTool4TestsComplete() {
+  Logger.log('\n');
+  Logger.log('##############################################');
+  Logger.log('#  TOOL 4 COMPLETE TEST SUITE (WEEK 2 + 3)  #');
+  Logger.log('##############################################\n');
+
+  // Run Week 2 tests
+  const week2Results = runAllTool4Tests();
+
+  Logger.log('\n');
+
+  // Run Week 3 tests
+  const week3Results = runWeek3Tests();
+
+  // Combined summary
+  Logger.log('\n');
+  Logger.log('##############################################');
+  Logger.log('#          COMBINED TEST SUMMARY            #');
+  Logger.log('##############################################');
+  Logger.log('Week 2 Tests: ' + week2Results.passed + '/' + (week2Results.passed + week2Results.failed) + ' passed');
+  Logger.log('Week 3 Tests: ' + week3Results.passed + '/' + (week3Results.passed + week3Results.failed) + ' passed');
+  Logger.log('---');
+  Logger.log('Total Tests: ' + (week2Results.passed + week3Results.passed + week2Results.failed + week3Results.failed));
+  Logger.log('Total Passed: ' + (week2Results.passed + week3Results.passed));
+  Logger.log('Total Failed: ' + (week2Results.failed + week3Results.failed));
+  const overallRate = Math.round(((week2Results.passed + week3Results.passed) / (week2Results.passed + week3Results.passed + week2Results.failed + week3Results.failed)) * 100);
+  Logger.log('Overall Success Rate: ' + overallRate + '%');
+  Logger.log('##############################################\n');
+
+  if (week2Results.failed === 0 && week3Results.failed === 0) {
+    Logger.log('🎉🎉🎉 ALL TESTS PASSED! 🎉🎉🎉');
+    Logger.log('Tool 4 Week 2 + Week 3 are FULLY VALIDATED ✅');
+  }
+}
