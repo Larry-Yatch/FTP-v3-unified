@@ -64,6 +64,37 @@ const html = `
 `;
 ```
 
+### 3a. Apostrophes in JavaScript Strings Inside Template Literals
+
+**❌ NEVER use escaped apostrophes:**
+```javascript
+const html = `
+  <script>
+    messageDiv.innerHTML = '<strong>You\'re over budget</strong>';  // BREAKS!
+  </script>
+`;
+```
+
+**✅ CORRECT - Option 1 (rephrase):**
+```javascript
+const html = `
+  <script>
+    messageDiv.innerHTML = '<strong>You are over budget</strong>';  // Works!
+  </script>
+`;
+```
+
+**✅ CORRECT - Option 2 (use double quotes for string):**
+```javascript
+const html = `
+  <script>
+    messageDiv.innerHTML = "<strong>You're over budget</strong>";  // Works!
+  </script>
+`;
+```
+
+**WHY:** Template literals use backticks as delimiters. Inside a template literal, you should NOT escape apostrophes in JavaScript strings. The backslash-apostrophe `\'` is only needed when the string itself uses single quotes as delimiters (e.g., `'Don\'t'`).
+
 ### 4. Embedding External HTML
 
 **❌ RISKY:**
