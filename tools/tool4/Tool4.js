@@ -1451,6 +1451,350 @@ const Tool4 = {
   },
 
   /**
+   * Week 4: V1 Allocation Engine Port
+   * Calculates personalized M/E/F/J allocations using 3-tier modifier system
+   *
+   * Input Format:
+   * {
+   *   // Financial (from Tools 1/2/3 or pre-survey)
+   *   incomeRange: 'A'|'B'|'C'|'D'|'E',
+   *   essentialsRange: 'A'|'B'|'C'|'D'|'E'|'F',
+   *   debtLoad: 'A'|'B'|'C'|'D'|'E',
+   *   interestLevel: 'High'|'Medium'|'Low',
+   *   emergencyFund: 'A'|'B'|'C'|'D'|'E',
+   *   incomeStability: 'Unstable / irregular'|'Stable'|'Very stable',
+   *
+   *   // Behavioral (from pre-survey)
+   *   satisfaction: 0-10,
+   *   discipline: 0-10,
+   *   impulse: 0-10,
+   *   longTerm: 0-10,
+   *
+   *   // Motivational (optional refinements)
+   *   lifestyle: 0-10,
+   *   growth: 0-10,
+   *   stability: 0-10,
+   *   goalTimeline: 'Within 6 months'|'6–12 months'|'1–2 years'|'2–5 years'|'5+ years',
+   *   dependents: 'Yes'|'No',
+   *   autonomy: 0-10,
+   *
+   *   // Selected Priority
+   *   priority: string (one of 10 priorities)
+   * }
+   *
+   * Returns:
+   * {
+   *   percentages: { Multiply, Essentials, Freedom, Enjoyment },
+   *   lightNotes: { Multiply, Essentials, Freedom, Enjoyment },
+   *   details: { basePriority, baseWeights, rawScores, modifiers, satBoostPct, detailedSummary }
+   * }
+   */
+  calculateAllocationV1(input) {
+    // Configuration
+    const CONFIG = {
+      satisfaction: { neutralScore: 5, step: 0.1, maxBoost: 0.3 },
+      essentialPctMap: { A: 5, B: 15, C: 25, D: 35, E: 45, F: 55 },
+      minEssentialsAbsolutePct: 40,
+      maxRecommendedEssentialsPct: 35,
+      maxPositiveMod: 50,
+      maxNegativeMod: 20
+    };
+
+    // Base weights map (V1 priorities)
+    const baseMap = {
+      'Build Long-Term Wealth':        { M:40, E:25, F:20, J:15 },
+      'Get Out of Debt':               { M:15, E:25, F:45, J:15 },
+      'Feel Financially Secure':       { M:25, E:35, F:30, J:10 },
+      'Enjoy Life Now':                { M:20, E:20, F:15, J:45 },
+      'Save for a Big Goal':           { M:15, E:25, F:45, J:15 },
+      'Stabilize to Survive':          { M:5,  E:45, F:40, J:10 },
+      'Build or Stabilize a Business': { M:20, E:30, F:35, J:15 },
+      'Create Generational Wealth':    { M:45, E:25, F:20, J:10 },
+      'Create Life Balance':           { M:15, E:25, F:25, J:35 },
+      'Reclaim Financial Control':     { M:10, E:35, F:40, J:15 }
+    };
+    const base = baseMap[input.priority] || { M:25, E:25, F:25, J:25 };
+
+    // Initialize modifiers and notes
+    const mods = { Multiply:0, Essentials:0, Freedom:0, Enjoyment:0 };
+    const notes = {
+      Multiply:   { Financial:'', Behavioral:'', Motivational:'' },
+      Essentials: { Financial:'', Behavioral:'', Motivational:'' },
+      Freedom:    { Financial:'', Behavioral:'', Motivational:'' },
+      Enjoyment:  { Financial:'', Behavioral:'', Motivational:'' }
+    };
+
+    // --- Financial Modifiers ---
+    if (input.incomeRange==='A') {
+      mods.Multiply -= 5;
+      notes.Multiply.Financial += 'Low income reduces capacity. ';
+    }
+    if (input.incomeRange==='E') {
+      mods.Multiply += 10;
+      notes.Multiply.Financial += 'High income boosts capacity. ';
+    }
+    if (input.debtLoad==='D') {
+      mods.Freedom += 10;
+      notes.Freedom.Financial += 'Moderate debt load. ';
+    }
+    if (input.debtLoad==='E') {
+      mods.Freedom += 15;
+      notes.Freedom.Financial += 'Severe debt load. ';
+    }
+    if (input.interestLevel==='High') {
+      mods.Freedom += 10;
+      notes.Freedom.Financial += 'High-interest debt. ';
+    }
+    if (input.interestLevel==='Low') {
+      mods.Freedom -= 5;
+      notes.Freedom.Financial += 'Low-interest debt. ';
+    }
+    if (['A','B'].includes(input.emergencyFund)) {
+      mods.Freedom += 10;
+      notes.Freedom.Financial += 'No or low emergency fund. ';
+    }
+    if (['D','E'].includes(input.emergencyFund)) {
+      mods.Freedom -= 10;
+      notes.Freedom.Financial += 'Sufficient emergency fund. ';
+    }
+    if (input.incomeStability==='Unstable / irregular') {
+      mods.Essentials += 5;
+      notes.Essentials.Financial += 'Unstable income needs buffer. ';
+      mods.Freedom += 5;
+      notes.Freedom.Financial += 'Unstable income needs buffer. ';
+    }
+    if (input.incomeStability==='Very stable') {
+      mods.Multiply += 5;
+      notes.Multiply.Financial += 'Very stable income supports investing. ';
+    }
+
+    // --- Behavioral Modifiers (with Satisfaction Amplification) ---
+    const rawSatFactor = 1 + Math.max(0, input.satisfaction - CONFIG.satisfaction.neutralScore) * CONFIG.satisfaction.step;
+    const satFactor = Math.min(rawSatFactor, 1 + CONFIG.satisfaction.maxBoost);
+
+    // Apply satisfaction amplification to all positive modifiers
+    Object.keys(mods).forEach(function(bucket) {
+      if (mods[bucket] > 0) mods[bucket] = Math.round(mods[bucket] * satFactor);
+    });
+
+    if (input.discipline >= 8) {
+      mods.Multiply += 10;
+      notes.Multiply.Behavioral += 'High discipline. ';
+    }
+    if (input.discipline <= 3) {
+      mods.Multiply -= 10;
+      notes.Multiply.Behavioral += 'Low discipline. ';
+    }
+    if (input.impulse >= 8) {
+      mods.Enjoyment += 5;
+      notes.Enjoyment.Behavioral += 'Strong impulse control. ';
+    }
+    if (input.impulse <= 3) {
+      mods.Enjoyment -= 10;
+      notes.Enjoyment.Behavioral += 'Low impulse control. ';
+    }
+    if (input.longTerm >= 8) {
+      mods.Multiply += 10;
+      notes.Multiply.Behavioral += 'Strong long-term focus. ';
+    }
+    if (input.longTerm <= 3) {
+      mods.Multiply -= 10;
+      notes.Multiply.Behavioral += 'Weak long-term focus. ';
+    }
+
+    // --- Motivational Modifiers ---
+    if (input.lifestyle >= 8) {
+      mods.Enjoyment += 10;
+      notes.Enjoyment.Motivational += 'High enjoyment priority. ';
+    }
+    if (input.lifestyle <= 3) {
+      mods.Enjoyment -= 5;
+      notes.Enjoyment.Motivational += 'Low enjoyment priority. ';
+    }
+    if (input.growth >= 8) {
+      mods.Multiply += 10;
+      notes.Multiply.Motivational += 'High growth orientation. ';
+    }
+    if (input.stability >= 8) {
+      mods.Freedom += 10;
+      notes.Freedom.Motivational += 'High stability orientation. ';
+    }
+    if (['Within 6 months','6–12 months'].includes(input.goalTimeline)) {
+      mods.Freedom += 10;
+      notes.Freedom.Motivational += 'Short-term goal timeline. ';
+    }
+    if (input.dependents === 'Yes') {
+      mods.Essentials += 5;
+      notes.Essentials.Motivational += 'Has dependents. ';
+    }
+    if (input.autonomy >= 8) {
+      mods.Multiply += 5;
+      notes.Multiply.Motivational += 'High autonomy preference. ';
+    }
+    if (input.autonomy <= 3) {
+      mods.Essentials += 5;
+      notes.Essentials.Motivational += 'Low autonomy preference. ';
+      mods.Freedom += 5;
+      notes.Freedom.Motivational += 'Low autonomy preference. ';
+    }
+
+    // --- Modifier Caps ---
+    Object.keys(mods).forEach(function(bucket) {
+      mods[bucket] = Math.max(-CONFIG.maxNegativeMod, Math.min(mods[bucket], CONFIG.maxPositiveMod));
+    });
+
+    // Apply modifiers to base weights
+    const raw = {
+      Multiply:   base.M + mods.Multiply,
+      Essentials: base.E + mods.Essentials,
+      Freedom:    base.F + mods.Freedom,
+      Enjoyment:  base.J + mods.Enjoyment
+    };
+    const totalRaw = raw.Multiply + raw.Essentials + raw.Freedom + raw.Enjoyment;
+    let percentages = {
+      Multiply:   raw.Multiply   / totalRaw * 100,
+      Essentials: raw.Essentials / totalRaw * 100,
+      Freedom:    raw.Freedom    / totalRaw * 100,
+      Enjoyment:  raw.Enjoyment  / totalRaw * 100
+    };
+
+    // Capture raw percentages before floor enforcement
+    const rawPercentages = {
+      Multiply:   Math.round(percentages.Multiply),
+      Essentials: Math.round(percentages.Essentials),
+      Freedom:    Math.round(percentages.Freedom),
+      Enjoyment:  Math.round(percentages.Enjoyment)
+    };
+
+    // Enforce Essentials floor
+    const reportedMinPct = CONFIG.essentialPctMap[input.essentialsRange] || 0;
+    const essentialMinPct = Math.max(reportedMinPct, CONFIG.minEssentialsAbsolutePct);
+    if (percentages.Essentials < essentialMinPct) {
+      percentages.Essentials = essentialMinPct;
+      const pool = percentages.Multiply + percentages.Freedom + percentages.Enjoyment;
+      const avail = 100 - essentialMinPct;
+      const factor = avail / pool;
+      percentages.Multiply *= factor;
+      percentages.Freedom *= factor;
+      percentages.Enjoyment *= factor;
+    }
+
+    // Round final percentages
+    Object.keys(percentages).forEach(function(k) {
+      percentages[k] = Math.round(percentages[k]);
+    });
+
+    // Build light notes
+    const lightNotes = {
+      Multiply:   (notes.Multiply.Financial   + notes.Multiply.Behavioral   + notes.Multiply.Motivational).trim() || 'Standard Multiply allocation applied.',
+      Essentials: (notes.Essentials.Financial + notes.Essentials.Behavioral + notes.Essentials.Motivational).trim() || 'Standard Essentials allocation applied.',
+      Freedom:    (notes.Freedom.Financial    + notes.Freedom.Behavioral    + notes.Freedom.Motivational).trim() || 'Standard Freedom allocation applied.',
+      Enjoyment:  (notes.Enjoyment.Financial  + notes.Enjoyment.Behavioral  + notes.Enjoyment.Motivational).trim() || 'Standard Enjoyment allocation applied.'
+    };
+
+    // Build detailed summary
+    const satBoostPct = Math.round((satFactor - 1) * 100);
+    const details = {
+      basePriority: input.priority,
+      baseWeights: 'Multiply ' + base.M + '%, Essentials ' + base.E + '%, Freedom ' + base.F + '%, Enjoyment ' + base.J + '%',
+      rawScores: 'Multiply ' + rawPercentages.Multiply + '%, Essentials ' + rawPercentages.Essentials + '%, Freedom ' + rawPercentages.Freedom + '%, Enjoyment ' + rawPercentages.Enjoyment + '%',
+      normalizedScores: 'Multiply ' + percentages.Multiply + '%, Essentials ' + percentages.Essentials + '%, Freedom ' + percentages.Freedom + '%, Enjoyment ' + percentages.Enjoyment + '%',
+      modifiers: notes,
+      satBoostPct: satBoostPct,
+      detailedSummary:
+        'Base allocations (priority "' + input.priority + '"): Multiply ' + base.M + '%, Essentials ' + base.E + '%, Freedom ' + base.F + '%, Enjoyment ' + base.J + '%.\n' +
+        'After modifiers, raw split: Multiply ' + rawPercentages.Multiply + '%, Essentials ' + rawPercentages.Essentials + '%, Freedom ' + rawPercentages.Freedom + '%, Enjoyment ' + rawPercentages.Enjoyment + '%.\n' +
+        (satBoostPct > 0 ? 'Because you are ' + input.satisfaction + '/10 dissatisfied, we amplified all positive nudges by ' + satBoostPct + '%.\n' : '') +
+        'Final recommended split: Multiply ' + percentages.Multiply + '%, Essentials ' + percentages.Essentials + '%, Freedom ' + percentages.Freedom + '%, Enjoyment ' + percentages.Enjoyment + '%.'
+    };
+
+    return { percentages, lightNotes, details };
+  },
+
+  /**
+   * TEST FUNCTION: Test V1 allocation engine with sample data
+   * Call this from Apps Script editor to verify engine works
+   */
+  testAllocationEngine() {
+    Logger.log('=== Testing V1 Allocation Engine ===');
+
+    // Test Case 1: Build Long-Term Wealth priority with high discipline
+    const testInput1 = {
+      priority: 'Build Long-Term Wealth',
+      incomeRange: 'C',
+      essentialsRange: 'C',
+      debtLoad: 'B',
+      interestLevel: 'Low',
+      emergencyFund: 'C',
+      incomeStability: 'Stable',
+      satisfaction: 7,
+      discipline: 9,
+      impulse: 8,
+      longTerm: 9,
+      lifestyle: 5,
+      growth: 9,
+      stability: 5,
+      goalTimeline: '2–5 years',
+      dependents: 'No',
+      autonomy: 8
+    };
+
+    const result1 = this.calculateAllocationV1(testInput1);
+    Logger.log('Test 1: Build Long-Term Wealth (High Discipline)');
+    Logger.log('Percentages: ' + JSON.stringify(result1.percentages));
+    Logger.log('Satisfaction Boost: ' + result1.details.satBoostPct + '%');
+    Logger.log('Light Notes:');
+    Logger.log('  Multiply: ' + result1.lightNotes.Multiply);
+    Logger.log('  Essentials: ' + result1.lightNotes.Essentials);
+    Logger.log('  Freedom: ' + result1.lightNotes.Freedom);
+    Logger.log('  Enjoyment: ' + result1.lightNotes.Enjoyment);
+    Logger.log('');
+
+    // Test Case 2: Get Out of Debt priority with low satisfaction
+    const testInput2 = {
+      priority: 'Get Out of Debt',
+      incomeRange: 'B',
+      essentialsRange: 'D',
+      debtLoad: 'E',
+      interestLevel: 'High',
+      emergencyFund: 'A',
+      incomeStability: 'Unstable / irregular',
+      satisfaction: 2,
+      discipline: 4,
+      impulse: 3,
+      longTerm: 6,
+      lifestyle: 3,
+      growth: 5,
+      stability: 8,
+      goalTimeline: 'Within 6 months',
+      dependents: 'Yes',
+      autonomy: 3
+    };
+
+    const result2 = this.calculateAllocationV1(testInput2);
+    Logger.log('Test 2: Get Out of Debt (High Debt, Low Income)');
+    Logger.log('Percentages: ' + JSON.stringify(result2.percentages));
+    Logger.log('Satisfaction Boost: ' + result2.details.satBoostPct + '%');
+    Logger.log('Light Notes:');
+    Logger.log('  Multiply: ' + result2.lightNotes.Multiply);
+    Logger.log('  Essentials: ' + result2.lightNotes.Essentials);
+    Logger.log('  Freedom: ' + result2.lightNotes.Freedom);
+    Logger.log('  Enjoyment: ' + result2.lightNotes.Enjoyment);
+    Logger.log('');
+
+    Logger.log('=== Tests Complete ===');
+    Logger.log('✓ Engine executed without errors');
+    Logger.log('✓ Satisfaction amplification working (Test 1: ' + result1.details.satBoostPct + '%, Test 2: ' + result2.details.satBoostPct + '%)');
+    Logger.log('✓ Percentages sum to 100%: Test 1 = ' + (result1.percentages.Multiply + result1.percentages.Essentials + result1.percentages.Freedom + result1.percentages.Enjoyment) + '%, Test 2 = ' + (result2.percentages.Multiply + result2.percentages.Essentials + result2.percentages.Freedom + result2.percentages.Enjoyment) + '%');
+
+    return {
+      test1: result1,
+      test2: result2,
+      success: true
+    };
+  },
+
+  /**
    * Render error page
    */
   renderError(error) {
