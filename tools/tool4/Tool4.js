@@ -3648,6 +3648,428 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
     return 'Low';
   },
 
+  // ============================================================================
+  // PRIORITY RECOMMENDATION FUNCTIONS
+  // Calculate which priorities are recommended/cautioned based on user data
+  // ============================================================================
+
+  /**
+   * Map monthly income to tier (A-E)
+   */
+  mapIncomeToRange(monthlyIncome) {
+    if (monthlyIncome < 2500) return 'A';
+    if (monthlyIncome < 5000) return 'B';
+    if (monthlyIncome < 10000) return 'C';
+    if (monthlyIncome < 20000) return 'D';
+    return 'E';
+  },
+
+  /**
+   * Map monthly essentials to tier (A-F based on percentage of income)
+   */
+  mapEssentialsToRange(monthlyEssentials, monthlyIncome) {
+    const pct = (monthlyEssentials / monthlyIncome) * 100;
+    if (pct < 10) return 'A';
+    if (pct < 20) return 'B';
+    if (pct < 30) return 'C';
+    if (pct < 40) return 'D';
+    if (pct < 50) return 'E';
+    return 'F';
+  },
+
+  /**
+   * Score: Build Long-Term Wealth
+   */
+  scoreWealthPriority(data) {
+    let score = 0;
+    const { discipline, longTerm, debtLoad, incomeStability, growth, emergencyFund, autonomy, lifestyle } = data;
+
+    // Recommended factors
+    if (discipline >= 7) score += 30;
+    if (longTerm >= 7) score += 30;
+    if (['A','B'].includes(debtLoad)) score += 20;
+    if (incomeStability === 'Very stable' || incomeStability === 'Stable') score += 15;
+    if (growth >= 7) score += 20;
+    if (['D','E'].includes(emergencyFund)) score += 15;
+    if (autonomy >= 7) score += 10;
+
+    // Cautioned factors
+    if (discipline <= 3) score -= 40;
+    if (longTerm <= 3) score -= 30;
+    if (['D','E'].includes(debtLoad)) score -= 40;
+    if (incomeStability === 'Unstable / irregular') score -= 30;
+    if (['A','B'].includes(emergencyFund)) score -= 25;
+    if (lifestyle >= 7) score -= 20;
+
+    return score;
+  },
+
+  /**
+   * Score: Get Out of Debt
+   */
+  scoreDebtPriority(data) {
+    let score = 0;
+    const { debtLoad, interestLevel, satisfaction, stability, emergencyFund, lifestyle } = data;
+
+    // Recommended factors
+    if (['D','E'].includes(debtLoad)) score += 50;
+    if (interestLevel === 'High') score += 30;
+    if (satisfaction <= 3) score += 20;
+    if (stability >= 7) score += 20;
+    if (['A','B'].includes(emergencyFund)) score += 15;
+
+    // Cautioned factors
+    if (['A','B'].includes(debtLoad)) score -= 60;
+    if (['D','E'].includes(emergencyFund)) score -= 20;
+    if (lifestyle >= 7) score -= 25;
+
+    return score;
+  },
+
+  /**
+   * Score: Feel Financially Secure
+   */
+  scoreSecurityPriority(data) {
+    let score = 0;
+    const { incomeStability, emergencyFund, dependents, satisfaction, stability, impulse, discipline, growth } = data;
+
+    // Recommended factors
+    if (incomeStability === 'Unstable / irregular') score += 40;
+    if (['A','B'].includes(emergencyFund)) score += 40;
+    if (dependents === 'Yes') score += 25;
+    if (satisfaction <= 3 && stability >= 7) score += 20; // High emotional safety need
+    if (impulse <= 3) score += 15;
+    if (discipline <= 3) score += 15;
+
+    // Cautioned factors
+    if (incomeStability === 'Very stable') score -= 25;
+    if (['D','E'].includes(emergencyFund)) score -= 30;
+    if (dependents === 'No') score -= 10;
+    if (growth >= 7) score -= 20;
+
+    return score;
+  },
+
+  /**
+   * Score: Enjoy Life Now
+   */
+  scoreEnjoymentPriority(data) {
+    let score = 0;
+    const { satisfaction, lifestyle, incomeStability, debtLoad, emergencyFund, impulse, incomeRange, dependents } = data;
+
+    // Recommended factors
+    if (satisfaction <= 3) score += 30;
+    if (lifestyle >= 7) score += 40;
+    if (incomeStability === 'Stable' || incomeStability === 'Very stable') score += 25;
+    if (['A','B'].includes(debtLoad)) score += 30;
+    if (['D','E'].includes(emergencyFund)) score += 20;
+    if (impulse >= 7) score += 15;
+
+    // Cautioned factors
+    if (['D','E'].includes(debtLoad)) score -= 50;
+    if (incomeStability === 'Unstable / irregular') score -= 40;
+    if (['A','B'].includes(emergencyFund)) score -= 35;
+    if (dependents === 'Yes') score -= 25; // Simplified - would check count if available
+    if (impulse <= 3) score -= 30;
+    if (incomeRange === 'A') score -= 20;
+
+    return score;
+  },
+
+  /**
+   * Score: Save for a Big Goal
+   */
+  scoreBigGoalPriority(data) {
+    let score = 0;
+    const { debtLoad, emergencyFund, discipline, incomeStability } = data;
+
+    // Recommended factors
+    if (['C'].includes(debtLoad)) score += 10; // Moderate debt ok
+    if (['D','E'].includes(emergencyFund)) score += 20;
+    if (discipline >= 7) score += 25;
+    if (incomeStability === 'Stable' || incomeStability === 'Very stable') score += 20;
+
+    // Cautioned factors
+    if (debtLoad === 'E') score -= 35;
+    if (incomeStability === 'Unstable / irregular') score -= 25;
+    if (['A','B'].includes(emergencyFund)) score -= 30;
+    if (discipline <= 3) score -= 25;
+
+    return score;
+  },
+
+  /**
+   * Score: Stabilize to Survive
+   */
+  scoreSurvivalPriority(data) {
+    let score = 0;
+    const { debtLoad, incomeStability, emergencyFund, dependents, satisfaction, incomeRange } = data;
+
+    // Recommended factors
+    if (debtLoad === 'E') score += 40;
+    if (incomeStability === 'Unstable / irregular') score += 50;
+    if (emergencyFund === 'A') score += 50;
+    if (dependents === 'Yes') score += 30;
+    if (satisfaction <= 3) score += 25;
+    if (incomeRange === 'A') score += 30;
+
+    // Cautioned factors
+    if (['A','B'].includes(debtLoad)) score -= 40;
+    if (incomeStability === 'Very stable') score -= 40;
+    if (['D','E'].includes(emergencyFund)) score -= 40;
+    if (dependents === 'No') score -= 20;
+    if (incomeRange === 'E') score -= 25;
+
+    return score;
+  },
+
+  /**
+   * Score: Build or Stabilize a Business
+   */
+  scoreBusinessPriority(data) {
+    let score = 0;
+    const { autonomy, growth, emergencyFund, incomeStability, discipline, debtLoad, dependents } = data;
+
+    // Recommended factors
+    if (autonomy >= 7) score += 30;
+    if (growth >= 7) score += 25;
+    if (emergencyFund === 'C') score += 20; // Moderate reserves
+    if (incomeStability === 'Stable') score += 15;
+    if (discipline >= 7) score += 20;
+
+    // Cautioned factors
+    if (debtLoad === 'E') score -= 35;
+    if (incomeStability === 'Unstable / irregular') score -= 30;
+    if (['A','B'].includes(emergencyFund)) score -= 40;
+    if (autonomy <= 3) score -= 25;
+    if (discipline <= 3) score -= 30;
+    if (dependents === 'Yes') score -= 20; // Simplified
+
+    return score;
+  },
+
+  /**
+   * Score: Create Generational Wealth
+   */
+  scoreGenerationalPriority(data) {
+    let score = 0;
+    const { incomeRange, growth, discipline, emergencyFund, debtLoad, longTerm, dependents } = data;
+
+    // Recommended factors
+    if (incomeRange === 'E') score += 30;
+    if (growth >= 7) score += 35;
+    if (discipline >= 7) score += 30;
+    if (['D','E'].includes(emergencyFund)) score += 25;
+    if (['A','B'].includes(debtLoad)) score += 25;
+    if (longTerm >= 7) score += 30;
+    if (dependents === 'Yes') score += 20;
+
+    // Cautioned factors
+    if (['A','B'].includes(incomeRange)) score -= 40;
+    if (['D','E'].includes(debtLoad)) score -= 40;
+    if (discipline <= 3) score -= 40;
+    if (['A','B'].includes(emergencyFund)) score -= 30;
+    if (longTerm <= 3) score -= 35;
+
+    return score;
+  },
+
+  /**
+   * Score: Create Life Balance
+   */
+  scoreBalancePriority(data) {
+    let score = 0;
+    const { satisfaction, lifestyle, incomeStability, debtLoad, emergencyFund } = data;
+
+    // Recommended factors (moderate everything)
+    if (satisfaction >= 4 && satisfaction <= 6) score += 20;
+    if (lifestyle >= 4 && lifestyle <= 6) score += 15;
+    if (incomeStability === 'Stable') score += 20;
+    if (['B','C'].includes(debtLoad)) score += 10;
+    if (emergencyFund === 'C') score += 15;
+
+    // Cautioned factors (extremes)
+    if (debtLoad === 'A' || debtLoad === 'E') score -= 25;
+    if (satisfaction <= 2) score -= 20;
+    if (incomeStability === 'Unstable / irregular') score -= 20;
+    if (emergencyFund === 'A') score -= 25;
+
+    return score;
+  },
+
+  /**
+   * Score: Reclaim Financial Control
+   */
+  scoreControlPriority(data) {
+    let score = 0;
+    const { satisfaction, debtLoad, discipline, emergencyFund, incomeStability, impulse } = data;
+
+    // Recommended factors
+    if (satisfaction <= 3) score += 40;
+    if (['D','E'].includes(debtLoad)) score += 30;
+    if (discipline <= 3) score += 30;
+    if (['A','B'].includes(emergencyFund)) score += 25;
+    if (incomeStability === 'Unstable / irregular') score += 25;
+    if (impulse <= 3) score += 20;
+
+    // Cautioned factors
+    if (satisfaction >= 7) score -= 30;
+    if (debtLoad === 'A') score -= 25;
+    if (discipline >= 7) score -= 25;
+    if (['D','E'].includes(emergencyFund)) score -= 20;
+    if (incomeStability === 'Very stable') score -= 20;
+
+    return score;
+  },
+
+  /**
+   * Get one-line reason for priority recommendation
+   */
+  getPriorityReason(priorityName, indicator) {
+    const reasons = {
+      'Build Long-Term Wealth': {
+        recommended: 'Your discipline and long-term focus make this achievable',
+        challenging: 'Consider addressing debt/stability first before aggressive wealth building',
+        available: 'A solid long-term goal if you have the discipline and stability'
+      },
+      'Get Out of Debt': {
+        recommended: 'Your debt level suggests this should be your primary focus',
+        challenging: 'This priority is for those with significant debt to eliminate',
+        available: 'Consider this if debt is creating financial stress'
+      },
+      'Feel Financially Secure': {
+        recommended: 'Building security first will give you a stable foundation',
+        challenging: 'You may be ready for more growth-focused priorities',
+        available: 'A good foundation for long-term financial health'
+      },
+      'Enjoy Life Now': {
+        recommended: 'Your stable situation allows room for present enjoyment',
+        challenging: 'Consider addressing financial stability before increasing enjoyment spending',
+        available: 'Balance present enjoyment with future security'
+      },
+      'Save for a Big Goal': {
+        recommended: 'Your discipline and timeline align well with targeted saving',
+        challenging: 'Build emergency fund and stabilize income before big goal saving',
+        available: 'Good for specific short-term financial targets'
+      },
+      'Stabilize to Survive': {
+        recommended: 'Your situation calls for crisis-mode focus on stability',
+        challenging: 'This is for urgent financial crisis situations',
+        available: 'For those needing immediate financial stabilization'
+      },
+      'Build or Stabilize a Business': {
+        recommended: 'Your autonomy and discipline support entrepreneurial goals',
+        challenging: 'Stabilize personal finances before business investments',
+        available: 'Consider if you have reserves and entrepreneurial drive'
+      },
+      'Create Generational Wealth': {
+        recommended: 'Your long-term vision and resources support legacy building',
+        challenging: 'This requires financial stability and long-term commitment',
+        available: 'A multi-generational wealth building strategy'
+      },
+      'Create Life Balance': {
+        recommended: 'Balanced priorities fit your moderate risk profile',
+        challenging: 'Consider more focused priorities given your current situation',
+        available: 'A balanced approach across all four buckets'
+      },
+      'Reclaim Financial Control': {
+        recommended: 'Time to reset and rebuild your financial foundation',
+        challenging: 'This is for those needing a fresh start after struggle',
+        available: 'For those ready to take back control of their finances'
+      }
+    };
+
+    return reasons[priorityName]?.[indicator] || 'A valid financial priority';
+  },
+
+  /**
+   * Calculate priority recommendations based on pre-survey + Tool 2 data
+   * Returns array of priorities sorted by recommendation strength
+   */
+  calculatePriorityRecommendations(preSurveyData, tool2Data) {
+    // Derive tiers from pre-survey
+    const incomeRange = this.mapIncomeToRange(preSurveyData.monthlyIncome);
+    const essentialsRange = this.mapEssentialsToRange(preSurveyData.monthlyEssentials, preSurveyData.monthlyIncome);
+
+    // Get Tool 2 derived data (or use safe defaults)
+    const debtLoad = tool2Data ? this.deriveDebtLoad(tool2Data.currentDebts, tool2Data.debtStress) : 'C';
+    const interestLevel = tool2Data ? this.deriveInterestLevel(tool2Data.debtStress) : 'Medium';
+    const emergencyFund = tool2Data ? this.mapEmergencyFundMonths(tool2Data.emergencyFundMonths) : 'C';
+    const incomeStability = tool2Data ? this.mapIncomeStability(tool2Data.incomeConsistency) : 'Stable';
+    const dependents = tool2Data?.dependents || 'No';
+    const growth = tool2Data ? this.deriveGrowthFromTool2(tool2Data) : 5;
+    const stability = tool2Data ? this.deriveStabilityFromTool2(tool2Data) : 5;
+
+    // Extract pre-survey values
+    const { satisfaction, discipline, impulse, longTerm, lifestyle, autonomy } = preSurveyData;
+
+    // Calculate scores for each priority
+    const priorities = [
+      {
+        name: 'Build Long-Term Wealth',
+        score: this.scoreWealthPriority({ discipline, longTerm, debtLoad, incomeStability, growth, emergencyFund, autonomy, lifestyle }),
+        baseAllocation: { M:40, E:25, F:20, J:15 }
+      },
+      {
+        name: 'Get Out of Debt',
+        score: this.scoreDebtPriority({ debtLoad, interestLevel, satisfaction, stability, emergencyFund, lifestyle }),
+        baseAllocation: { M:15, E:25, F:45, J:15 }
+      },
+      {
+        name: 'Feel Financially Secure',
+        score: this.scoreSecurityPriority({ incomeStability, emergencyFund, dependents, satisfaction, stability, impulse, discipline, growth }),
+        baseAllocation: { M:25, E:35, F:30, J:10 }
+      },
+      {
+        name: 'Enjoy Life Now',
+        score: this.scoreEnjoymentPriority({ satisfaction, lifestyle, incomeStability, debtLoad, emergencyFund, impulse, incomeRange, dependents }),
+        baseAllocation: { M:20, E:20, F:15, J:45 }
+      },
+      {
+        name: 'Save for a Big Goal',
+        score: this.scoreBigGoalPriority({ debtLoad, emergencyFund, discipline, incomeStability }),
+        baseAllocation: { M:15, E:25, F:45, J:15 }
+      },
+      {
+        name: 'Stabilize to Survive',
+        score: this.scoreSurvivalPriority({ debtLoad, incomeStability, emergencyFund, dependents, satisfaction, incomeRange }),
+        baseAllocation: { M:5, E:45, F:40, J:10 }
+      },
+      {
+        name: 'Build or Stabilize a Business',
+        score: this.scoreBusinessPriority({ autonomy, growth, emergencyFund, incomeStability, discipline, debtLoad, dependents }),
+        baseAllocation: { M:20, E:30, F:35, J:15 }
+      },
+      {
+        name: 'Create Generational Wealth',
+        score: this.scoreGenerationalPriority({ incomeRange, growth, discipline, emergencyFund, debtLoad, longTerm, dependents }),
+        baseAllocation: { M:45, E:25, F:20, J:10 }
+      },
+      {
+        name: 'Create Life Balance',
+        score: this.scoreBalancePriority({ satisfaction, lifestyle, incomeStability, debtLoad, emergencyFund }),
+        baseAllocation: { M:15, E:25, F:25, J:35 }
+      },
+      {
+        name: 'Reclaim Financial Control',
+        score: this.scoreControlPriority({ satisfaction, debtLoad, discipline, emergencyFund, incomeStability, impulse }),
+        baseAllocation: { M:10, E:35, F:40, J:15 }
+      }
+    ];
+
+    // Add indicators and reasons
+    return priorities.map(p => ({
+      ...p,
+      indicator: p.score >= 50 ? 'recommended' : p.score <= -50 ? 'challenging' : 'available',
+      icon: p.score >= 50 ? '⭐' : p.score <= -50 ? '⚠️' : '⚪',
+      reason: this.getPriorityReason(p.name, p.indicator)
+    })).sort((a, b) => b.score - a.score); // Sort by recommendation strength
+  },
+
+  // ============================================================================
+  // RENDERING METHODS
+  // ============================================================================
+
   /**
    * Render error page
    */
