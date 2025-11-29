@@ -1741,6 +1741,202 @@ const Tool4 = {
   },
 
   /**
+   * Phase 1: Build V1 Input Mapper
+   * Maps Tool 1/2/3 data + pre-survey answers → V1 allocation engine input format
+   *
+   * @param {string} clientId - Client identifier
+   * @param {object} preSurveyAnswers - Pre-survey responses
+   * @returns {object} V1 engine input format
+   */
+  buildV1Input(clientId, preSurveyAnswers) {
+    try {
+      // Get Tool 1/2/3 data via DataService
+      const tool1Data = DataService.getLatestResponse(clientId, 'tool1');
+      const tool2Data = DataService.getLatestResponse(clientId, 'tool2');
+      const tool3Data = DataService.getLatestResponse(clientId, 'tool3');
+
+      // Extract Tool 2 form data (with safe defaults)
+      const tool2Form = tool2Data?.formData || {};
+
+      // Map to V1 input structure
+      return {
+        // From pre-survey (critical questions)
+        incomeRange: preSurveyAnswers.incomeRange || 'C',
+        essentialsRange: preSurveyAnswers.essentialsRange || 'C',
+        satisfaction: preSurveyAnswers.satisfaction || 5,
+        discipline: preSurveyAnswers.discipline || 5,
+        impulse: preSurveyAnswers.impulse || 5,
+        longTerm: preSurveyAnswers.longTerm || 5,
+        goalTimeline: preSurveyAnswers.goalTimeline || '1–2 years',
+        priority: preSurveyAnswers.selectedPriority || 'Feel Financially Secure',
+
+        // From pre-survey (optional - use defaults if not provided)
+        lifestyle: preSurveyAnswers.lifestyle || 5,
+        autonomy: preSurveyAnswers.autonomy || 5,
+
+        // Derived from Tool 2 data
+        growth: this.deriveGrowthFromTool2(tool2Form),
+        stability: this.deriveStabilityFromTool2(tool2Form),
+        stageOfLife: this.deriveStageOfLife(tool2Form),
+        emergencyFund: this.mapEmergencyFundMonths(tool2Form.emergencyFundMonths),
+        incomeStability: this.mapIncomeStability(tool2Form.incomeConsistency),
+        debtLoad: this.deriveDebtLoad(tool2Form.currentDebts, tool2Form.debtStress),
+        interestLevel: this.deriveInterestLevel(tool2Form.debtStress),
+        dependents: (tool2Form.dependents && tool2Form.dependents > 0) ? 'Yes' : 'No'
+      };
+    } catch (error) {
+      Logger.log('Error in buildV1Input: ' + error);
+      // Return safe defaults on error
+      return {
+        incomeRange: 'C',
+        essentialsRange: 'C',
+        satisfaction: 5,
+        discipline: 5,
+        impulse: 5,
+        longTerm: 5,
+        lifestyle: 5,
+        growth: 5,
+        stability: 5,
+        goalTimeline: '1–2 years',
+        dependents: 'No',
+        autonomy: 5,
+        emergencyFund: 'C',
+        incomeStability: 'Stable',
+        debtLoad: 'C',
+        interestLevel: 'Medium',
+        stageOfLife: 'Mid-Career',
+        priority: preSurveyAnswers?.selectedPriority || 'Feel Financially Secure'
+      };
+    }
+  },
+
+  /**
+   * Helper: Derive growth orientation from Tool 2 data
+   * Maps investment activity, savings regularity, retirement funding → 0-10 scale
+   */
+  deriveGrowthFromTool2(formData) {
+    if (!formData) return 5;
+
+    const investmentActivity = formData.investmentActivity || 0;
+    const savingsRegularity = formData.savingsRegularity || 0;
+    const retirementFunding = formData.retirementFunding || 0;
+
+    // Average the three fields (Tool 2 uses -5 to +5 scale)
+    // Convert to 0-10 scale
+    const avg = (investmentActivity + savingsRegularity + retirementFunding) / 3;
+    const normalized = Math.round(((avg + 5) / 10) * 10); // -5 to +5 → 0 to 10
+
+    return Math.max(0, Math.min(10, normalized));
+  },
+
+  /**
+   * Helper: Derive stability orientation from Tool 2 data
+   * Maps emergency fund maintenance, insurance confidence, debt trending → 0-10 scale
+   */
+  deriveStabilityFromTool2(formData) {
+    if (!formData) return 5;
+
+    const emergencyFundMaintenance = formData.emergencyFundMaintenance || 0;
+    const insuranceConfidence = formData.insuranceConfidence || 0;
+    const debtTrending = formData.debtTrending || 0;
+
+    // Average the three fields
+    const avg = (emergencyFundMaintenance + insuranceConfidence + debtTrending) / 3;
+    const normalized = Math.round(((avg + 5) / 10) * 10);
+
+    return Math.max(0, Math.min(10, normalized));
+  },
+
+  /**
+   * Helper: Derive life stage from age and employment
+   */
+  deriveStageOfLife(formData) {
+    if (!formData) return 'Mid-Career';
+
+    const age = formData.age || 35;
+    const employment = formData.employment || '';
+
+    if (employment.toLowerCase().includes('retired')) return 'Retirement';
+    if (age < 25) return 'Early Career';
+    if (age < 40) return 'Mid-Career';
+    if (age < 55) return 'Late Career';
+    if (age < 65) return 'Pre-Retirement';
+    return 'Retirement';
+  },
+
+  /**
+   * Helper: Map emergency fund months to V1 tier (A-E)
+   * Tool 2 uses -5 to +5 scale, need to map to A-E tiers
+   */
+  mapEmergencyFundMonths(months) {
+    if (months === undefined || months === null) return 'C';
+
+    // Tool 2 scale: -5 (worst) to +5 (best)
+    // Map to V1 tiers: A (0-1 month), B (1-2), C (2-3), D (3-6), E (6+)
+    if (months <= -3) return 'A';  // 0-1 months
+    if (months <= -1) return 'B';  // 1-2 months
+    if (months <= 1) return 'C';   // 2-3 months
+    if (months <= 3) return 'D';   // 3-6 months
+    return 'E';                     // 6+ months
+  },
+
+  /**
+   * Helper: Map income stability to categorical
+   */
+  mapIncomeStability(consistency) {
+    if (consistency === undefined || consistency === null) return 'Stable';
+
+    // Tool 2 scale: -5 (very inconsistent) to +5 (very consistent)
+    if (consistency <= -2) return 'Unstable / irregular';
+    if (consistency >= 3) return 'Very stable';
+    return 'Stable';
+  },
+
+  /**
+   * Helper: Derive debt load from text analysis + stress level
+   * Returns A (no debt) to E (severe debt)
+   */
+  deriveDebtLoad(debtsText, stressLevel) {
+    if (!debtsText || debtsText.trim() === '') {
+      return 'A'; // No debt
+    }
+
+    // Text analysis: Count debt types
+    const lowerText = debtsText.toLowerCase();
+    const hasMultiple = (lowerText.match(/,|;|\band\b/g) || []).length > 0;
+
+    // High-risk debt keywords
+    const hasHighInterest = /credit card|payday|personal loan/i.test(debtsText);
+    const hasMortgage = /mortgage|home/i.test(debtsText);
+    const hasStudent = /student/i.test(debtsText);
+
+    // Stress level factor (Tool 2: -5 to +5, where negative = more stress)
+    const stress = stressLevel || 0;
+    const highStress = stress <= -3;
+    const moderateStress = stress <= -1;
+
+    // Categorize
+    if (highStress && (hasHighInterest || hasMultiple)) return 'E'; // Severe
+    if (moderateStress || (hasHighInterest && hasMultiple)) return 'D'; // High
+    if (hasMultiple || hasMortgage) return 'C'; // Moderate
+    if (hasStudent || hasHighInterest) return 'B'; // Low
+    return 'A'; // No significant debt
+  },
+
+  /**
+   * Helper: Derive interest level from debt stress
+   */
+  deriveInterestLevel(stressLevel) {
+    if (stressLevel === undefined || stressLevel === null) return 'Medium';
+
+    // Tool 2 scale: -5 (high stress) to +5 (no stress)
+    // High stress = high interest debt likely
+    if (stressLevel <= -3) return 'High';
+    if (stressLevel <= 0) return 'Medium';
+    return 'Low';
+  },
+
+  /**
    * Render error page
    */
   renderError(error) {
