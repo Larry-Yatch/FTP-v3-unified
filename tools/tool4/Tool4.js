@@ -1568,71 +1568,22 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
     .error-message.show {
       display: block;
     }
-
-    /* Loading overlay */
-    .loading-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.8);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 9999;
-    }
-
-    .loading-overlay.show {
-      display: flex;
-    }
-
-    .loading-content {
-      text-align: center;
-    }
-
-    .spinner {
-      border: 4px solid rgba(255, 255, 255, 0.1);
-      border-top: 4px solid #4f46e5;
-      border-radius: 50%;
-      width: 50px;
-      height: 50px;
-      animation: spin 1s linear infinite;
-      margin: 0 auto 20px;
-    }
-
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-
-    .loading-text {
-      color: white;
-      font-size: 18px;
-      font-weight: 500;
-    }
-
-    .loading-subtext {
-      color: rgba(255, 255, 255, 0.7);
-      font-size: 14px;
-      margin-top: 8px;
-    }
   </style>
   <script>
     var clientId = '${clientId}';
   </script>
 </head>
 <body>
-  <!-- Loading Overlay -->
-  <div class="loading-overlay" id="loadingOverlay">
-    <div class="loading-content">
-      <div class="spinner"></div>
-      <div class="loading-text">Calculating Your Personalized Allocation...</div>
-      <div class="loading-subtext">Analyzing your financial profile</div>
-    </div>
-  </div>
+  <?!= include('shared/loading-animation') ?>
 
   <div class="unified-container">
+
+    <!-- Page Header -->
+    <div style="margin-bottom: 20px;">
+      <button type="button" class="btn-nav" onclick="returnToDashboard()">
+        ← Return to Dashboard
+      </button>
+    </div>
 
     ${!hasTool2 ? `
     <!-- Tool 2 Banner -->
@@ -1909,27 +1860,9 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
     }
 
     // Return to Dashboard function
+    // Alias for shared navigateToDashboard function for backward compatibility
     function returnToDashboard() {
-      var loadingOverlay = document.getElementById('loadingOverlay');
-      if (loadingOverlay) {
-        loadingOverlay.classList.add('show');
-      }
-
-      google.script.run
-        .withSuccessHandler(function(dashboardHtml) {
-          // Use document.write() pattern (GAS navigation rules)
-          if (dashboardHtml) {
-            document.open();
-            document.write(dashboardHtml);
-            document.close();
-            window.scrollTo(0, 0);
-          }
-        })
-        .withFailureHandler(function(error) {
-          if (loadingOverlay) loadingOverlay.classList.remove('show');
-          alert('Error returning to dashboard: ' + error.message);
-        })
-        .getDashboardPage('${clientId}');
+      navigateToDashboard('${clientId}', 'Returning to Dashboard');
     }
 
     // Priority picker functions
@@ -1981,11 +1914,8 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
 
       console.log('About to call server with priority:', selectedPriorityName, 'timeline:', timeline);
 
-      // Show loading overlay (same as profile button)
-      var loadingOverlay = document.getElementById('loadingOverlay');
-      if (loadingOverlay) {
-        loadingOverlay.classList.add('show');
-      }
+      // Show loading overlay using shared component
+      showLoading('Calculating Your Personalized Allocation');
 
       // Disable button
       const btn = document.getElementById('calculateAllocationBtn');
@@ -2006,7 +1936,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
             window.scrollTo(0, 0);
           } else {
             console.error('No nextPageHtml in result:', result);
-            if (loadingOverlay) loadingOverlay.classList.remove('show');
+            hideLoading();
             alert('Error: Server did not return page HTML');
             btn.disabled = false;
             btn.textContent = 'Calculate My Allocation';
@@ -2014,7 +1944,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
         })
         .withFailureHandler(function(error) {
           console.error('Server error:', error);
-          if (loadingOverlay) loadingOverlay.classList.remove('show');
+          hideLoading();
           alert('Error: ' + error.message);
           btn.disabled = false;
           btn.textContent = 'Calculate My Allocation';
@@ -2056,11 +1986,8 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
         autonomy: parseInt(document.getElementById('autonomy').value)
       };
 
-      // Show loading overlay
-      var loadingOverlay = document.getElementById('loadingOverlay');
-      if (loadingOverlay) {
-        loadingOverlay.classList.add('show');
-      }
+      // Show loading overlay using shared component
+      showLoading('Analyzing your financial profile');
 
       // Disable submit button
       var submitBtn = document.getElementById('calculateBtn');
@@ -2074,7 +2001,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
         .withSuccessHandler(function(result) {
           if (result && result.success === false) {
             // Hide loading and show error
-            if (loadingOverlay) loadingOverlay.classList.remove('show');
+            hideLoading();
             if (submitBtn) {
               submitBtn.disabled = false;
               submitBtn.style.opacity = '1';
@@ -2094,7 +2021,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
         })
         .withFailureHandler(function(error) {
           // Hide loading and show error
-          if (loadingOverlay) loadingOverlay.classList.remove('show');
+          hideLoading();
           if (submitBtn) {
             submitBtn.disabled = false;
             submitBtn.style.opacity = '1';
@@ -4036,7 +3963,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
    */
   scoreWealthPriority(data) {
     let score = 0;
-    const { discipline, longTerm, debtLoad, incomeStability, growth, emergencyFund, autonomy, lifestyle } = data;
+    const { discipline, longTerm, debtLoad, incomeStability, growth, emergencyFund, autonomy, lifestyle, essentialsPct, surplus } = data;
 
     // Recommended factors
     if (discipline >= 7) score += 30;
@@ -4047,6 +3974,10 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
     if (['D','E'].includes(emergencyFund)) score += 15;
     if (autonomy >= 7) score += 10;
 
+    // Cash flow health (critical for wealth building)
+    if (essentialsPct < 50) score += 25;  // Large surplus = excellent position
+    if (surplus >= 2000) score += 20;     // $2k+/mo surplus = wealth building ready
+
     // Cautioned factors
     if (discipline <= 3) score -= 40;
     if (longTerm <= 3) score -= 30;
@@ -4054,6 +3985,11 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
     if (incomeStability === 'Unstable / irregular') score -= 30;
     if (['A','B'].includes(emergencyFund)) score -= 25;
     if (lifestyle >= 7) score -= 20;
+
+    // Cash flow challenges (major barriers to wealth building)
+    if (essentialsPct > 80) score -= 40;  // Tight budget = hard to invest
+    if (essentialsPct > 90) score -= 60;  // Paycheck to paycheck = not viable
+    if (surplus < 500) score -= 30;       // Less than $500/mo = challenging
 
     return score;
   },
@@ -4063,7 +3999,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
    */
   scoreDebtPriority(data) {
     let score = 0;
-    const { debtLoad, interestLevel, satisfaction, stability, emergencyFund, lifestyle } = data;
+    const { debtLoad, interestLevel, satisfaction, stability, emergencyFund, lifestyle, essentialsPct, surplus } = data;
 
     // Recommended factors
     if (['D','E'].includes(debtLoad)) score += 50;
@@ -4071,6 +4007,10 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
     if (satisfaction <= 3) score += 20;
     if (stability >= 7) score += 20;
     if (['A','B'].includes(emergencyFund)) score += 15;
+
+    // Cash flow impact on debt payoff ability
+    if (essentialsPct < 70 && surplus >= 800) score += 25;  // Room to attack debt
+    if (essentialsPct > 85) score -= 20;  // Tight budget = harder to pay extra
 
     // Cautioned factors
     if (['A','B'].includes(debtLoad)) score -= 60;
@@ -4085,7 +4025,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
    */
   scoreSecurityPriority(data) {
     let score = 0;
-    const { incomeStability, emergencyFund, dependents, satisfaction, stability, impulse, discipline, growth } = data;
+    const { incomeStability, emergencyFund, dependents, satisfaction, stability, impulse, discipline, growth, essentialsPct, surplus } = data;
 
     // Recommended factors
     if (incomeStability === 'Unstable / irregular') score += 40;
@@ -4095,11 +4035,18 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
     if (impulse <= 3) score += 15;
     if (discipline <= 3) score += 15;
 
+    // Cash flow and security relationship
+    if (essentialsPct > 75 && essentialsPct < 90) score += 30;  // Tight but not crisis = security focus
+    if (surplus < 800 && surplus >= 200) score += 20;           // Modest surplus = build buffer
+
     // Cautioned factors
     if (incomeStability === 'Very stable') score -= 25;
     if (['D','E'].includes(emergencyFund)) score -= 30;
     if (dependents === 'No') score -= 10;
     if (growth >= 7) score -= 20;
+
+    // Already very secure cash flow
+    if (essentialsPct < 50 && surplus >= 2000) score -= 35;  // Already secure, aim higher
 
     return score;
   },
@@ -4109,7 +4056,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
    */
   scoreEnjoymentPriority(data) {
     let score = 0;
-    const { satisfaction, lifestyle, incomeStability, debtLoad, emergencyFund, impulse, incomeRange, dependents } = data;
+    const { satisfaction, lifestyle, incomeStability, debtLoad, emergencyFund, impulse, incomeRange, dependents, essentialsPct, surplus } = data;
 
     // Recommended factors
     if (satisfaction <= 3) score += 30;
@@ -4119,6 +4066,9 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
     if (['D','E'].includes(emergencyFund)) score += 20;
     if (impulse >= 7) score += 15;
 
+    // Cash flow enables enjoyment
+    if (surplus >= 1000 && essentialsPct < 70) score += 30;  // Ample room for enjoyment
+
     // Cautioned factors
     if (['D','E'].includes(debtLoad)) score -= 50;
     if (incomeStability === 'Unstable / irregular') score -= 40;
@@ -4126,6 +4076,10 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
     if (dependents === 'Yes') score -= 25; // Simplified - would check count if available
     if (impulse <= 3) score -= 30;
     if (incomeRange === 'A') score -= 20;
+
+    // Cash flow limits enjoyment
+    if (essentialsPct > 85) score -= 45;  // Tight budget = can't enjoy much
+    if (surplus < 300) score -= 40;       // Little room for extras
 
     return score;
   },
@@ -4135,7 +4089,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
    */
   scoreBigGoalPriority(data) {
     let score = 0;
-    const { debtLoad, emergencyFund, discipline, incomeStability } = data;
+    const { debtLoad, emergencyFund, discipline, incomeStability, essentialsPct, surplus } = data;
 
     // Recommended factors
     if (['C'].includes(debtLoad)) score += 10; // Moderate debt ok
@@ -4143,11 +4097,18 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
     if (discipline >= 7) score += 25;
     if (incomeStability === 'Stable' || incomeStability === 'Very stable') score += 20;
 
+    // Cash flow enables goal saving
+    if (surplus >= 600 && essentialsPct < 75) score += 25;  // Room to save for goal
+
     // Cautioned factors
     if (debtLoad === 'E') score -= 35;
     if (incomeStability === 'Unstable / irregular') score -= 25;
     if (['A','B'].includes(emergencyFund)) score -= 30;
     if (discipline <= 3) score -= 25;
+
+    // Cash flow limits goal saving
+    if (essentialsPct > 85) score -= 30;  // Tight budget = hard to save
+    if (surplus < 400) score -= 25;       // Need surplus to save for goals
 
     return score;
   },
@@ -4157,7 +4118,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
    */
   scoreSurvivalPriority(data) {
     let score = 0;
-    const { debtLoad, incomeStability, emergencyFund, dependents, satisfaction, incomeRange } = data;
+    const { debtLoad, incomeStability, emergencyFund, dependents, satisfaction, incomeRange, essentialsPct, surplus } = data;
 
     // Recommended factors
     if (debtLoad === 'E') score += 40;
@@ -4167,12 +4128,23 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
     if (satisfaction <= 3) score += 25;
     if (incomeRange === 'A') score += 30;
 
+    // Cash flow crisis indicators (CRITICAL)
+    if (essentialsPct > 100) score += 70;  // Spending more than earning = CRISIS
+    if (essentialsPct > 95) score += 60;   // Less than 5% breathing room = urgent
+    if (essentialsPct > 90) score += 50;   // Paycheck to paycheck = survival mode
+    if (surplus < 200) score += 40;        // Less than $200/mo = very tight
+    if (surplus < 0) score += 80;          // Negative cash flow = immediate crisis
+
     // Cautioned factors
     if (['A','B'].includes(debtLoad)) score -= 40;
     if (incomeStability === 'Very stable') score -= 40;
     if (['D','E'].includes(emergencyFund)) score -= 40;
     if (dependents === 'No') score -= 20;
     if (incomeRange === 'E') score -= 25;
+
+    // Cash flow health (reduces survival need)
+    if (essentialsPct < 60) score -= 40;   // Healthy surplus = not survival mode
+    if (surplus >= 1500) score -= 50;      // $1.5k+ surplus = beyond survival
 
     return score;
   },
@@ -4182,7 +4154,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
    */
   scoreBusinessPriority(data) {
     let score = 0;
-    const { autonomy, growth, emergencyFund, incomeStability, discipline, debtLoad, dependents } = data;
+    const { autonomy, growth, emergencyFund, incomeStability, discipline, debtLoad, dependents, essentialsPct, surplus } = data;
 
     // Recommended factors
     if (autonomy >= 7) score += 30;
@@ -4190,6 +4162,9 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
     if (emergencyFund === 'C') score += 20; // Moderate reserves
     if (incomeStability === 'Stable') score += 15;
     if (discipline >= 7) score += 20;
+
+    // Cash flow for business investment
+    if (surplus >= 1200 && essentialsPct < 70) score += 25;  // Capital available for business
 
     // Cautioned factors
     if (debtLoad === 'E') score -= 35;
@@ -4199,6 +4174,10 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
     if (discipline <= 3) score -= 30;
     if (dependents === 'Yes') score -= 20; // Simplified
 
+    // Cash flow too tight for business risk
+    if (essentialsPct > 90) score -= 45;  // Need buffer for business volatility
+    if (surplus < 500) score -= 35;       // Need capital cushion
+
     return score;
   },
 
@@ -4207,7 +4186,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
    */
   scoreGenerationalPriority(data) {
     let score = 0;
-    const { incomeRange, growth, discipline, emergencyFund, debtLoad, longTerm, dependents } = data;
+    const { incomeRange, growth, discipline, emergencyFund, debtLoad, longTerm, dependents, essentialsPct, surplus } = data;
 
     // Recommended factors
     if (incomeRange === 'E') score += 30;
@@ -4218,12 +4197,19 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
     if (longTerm >= 7) score += 30;
     if (dependents === 'Yes') score += 20;
 
+    // Cash flow enables long-term wealth building
+    if (surplus >= 2500 && essentialsPct < 50) score += 35;  // Significant capital for generational wealth
+
     // Cautioned factors
     if (['A','B'].includes(incomeRange)) score -= 40;
     if (['D','E'].includes(debtLoad)) score -= 40;
     if (discipline <= 3) score -= 40;
     if (['A','B'].includes(emergencyFund)) score -= 30;
     if (longTerm <= 3) score -= 35;
+
+    // Cash flow insufficient for generational wealth
+    if (essentialsPct > 75) score -= 45;  // Need large surplus for generational goals
+    if (surplus < 1000) score -= 40;      // Generational wealth needs significant capital
 
     return score;
   },
@@ -4233,7 +4219,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
    */
   scoreBalancePriority(data) {
     let score = 0;
-    const { satisfaction, lifestyle, incomeStability, debtLoad, emergencyFund } = data;
+    const { satisfaction, lifestyle, incomeStability, debtLoad, emergencyFund, essentialsPct, surplus } = data;
 
     // Recommended factors (moderate everything)
     if (satisfaction >= 4 && satisfaction <= 6) score += 20;
@@ -4242,11 +4228,19 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
     if (['B','C'].includes(debtLoad)) score += 10;
     if (emergencyFund === 'C') score += 15;
 
+    // Moderate cash flow enables balance
+    if (essentialsPct >= 60 && essentialsPct <= 75) score += 20;  // Balanced spending
+    if (surplus >= 500 && surplus <= 1500) score += 15;           // Moderate surplus
+
     // Cautioned factors (extremes)
     if (debtLoad === 'A' || debtLoad === 'E') score -= 25;
     if (satisfaction <= 2) score -= 20;
     if (incomeStability === 'Unstable / irregular') score -= 20;
     if (emergencyFund === 'A') score -= 25;
+
+    // Cash flow extremes reduce balance
+    if (essentialsPct > 90 || essentialsPct < 40) score -= 20;  // Either too tight or too loose
+    if (surplus < 300) score -= 25;                              // Too tight for balance
 
     return score;
   },
@@ -4256,7 +4250,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
    */
   scoreControlPriority(data) {
     let score = 0;
-    const { satisfaction, debtLoad, discipline, emergencyFund, incomeStability, impulse } = data;
+    const { satisfaction, debtLoad, discipline, emergencyFund, incomeStability, impulse, essentialsPct, surplus } = data;
 
     // Recommended factors
     if (satisfaction <= 3) score += 40;
@@ -4266,12 +4260,20 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
     if (incomeStability === 'Unstable / irregular') score += 25;
     if (impulse <= 3) score += 20;
 
+    // Cash flow out of control indicates need
+    if (essentialsPct > 90) score += 35;  // Paycheck to paycheck = need control
+    if (surplus < 300) score += 30;       // Very tight = need control
+    if (surplus < 0) score += 50;         // Deficit = urgent control needed
+
     // Cautioned factors
     if (satisfaction >= 7) score -= 30;
     if (debtLoad === 'A') score -= 25;
     if (discipline >= 7) score -= 25;
     if (['D','E'].includes(emergencyFund)) score -= 20;
     if (incomeStability === 'Very stable') score -= 20;
+
+    // Already have control
+    if (essentialsPct < 60 && surplus >= 1000) score -= 30;  // Healthy cash flow = already in control
 
     return score;
   },
@@ -4340,7 +4342,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
    * Get personalized reason based on user's actual data
    */
   getPersonalizedReason(priorityName, indicator, data) {
-    const { discipline, longTerm, debtLoad, satisfaction, incomeStability, emergencyFund, lifestyle, autonomy } = data;
+    const { discipline, longTerm, debtLoad, satisfaction, incomeStability, emergencyFund, lifestyle, autonomy, essentialsPct, surplus } = data;
 
     // Translate tiers to plain English
     const debtText = {
@@ -4352,13 +4354,20 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       'C': 'some emergency savings', 'D': 'a good emergency fund', 'E': 'a strong emergency fund'
     };
 
+    // Format surplus for readability
+    const surplusFormatted = surplus < 0 ? `$${Math.abs(surplus)} deficit` : `$${Math.round(surplus)} surplus`;
+    const essentialsText = Math.round(essentialsPct);
+
     // Build personalized reasons based on actual data
     const reasons = {
       'Build Long-Term Wealth': {
-        recommended: discipline >= 7 ? `Your high discipline (${discipline}/10) and long-term focus support wealth building` :
+        recommended: surplus >= 2000 ? `Your ${surplusFormatted}/month gives you excellent wealth-building capacity` :
+                     discipline >= 7 && surplus >= 1000 ? `Your high discipline (${discipline}/10) and ${surplusFormatted}/month support wealth building` :
                      incomeStability === 'Very stable' ? `Your stable income and ${savingsText[emergencyFund]} support this goal` :
                      `Your financial discipline and planning ability make this achievable`,
-        challenging: debtLoad >= 'D' ? `Your ${debtText[debtLoad]} suggests focusing on debt elimination first` :
+        challenging: essentialsPct > 90 ? `With essentials at ${essentialsText}% of income, focus on cash flow first` :
+                     surplus < 500 ? `Your ${surplusFormatted}/month makes aggressive investing challenging - build buffer first` :
+                     debtLoad >= 'D' ? `Your ${debtText[debtLoad]} suggests focusing on debt elimination first` :
                      emergencyFund <= 'B' ? `Build your emergency fund (currently ${savingsText[emergencyFund]}) before aggressive investing` :
                      `Consider building more financial stability before aggressive wealth building`,
         available: `A solid long-term goal with discipline ${discipline}/10 and ${debtText[debtLoad]}`
@@ -4372,10 +4381,13 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
         available: `Consider if your ${debtText[debtLoad]} is creating stress`
       },
       'Feel Financially Secure': {
-        recommended: emergencyFund <= 'B' ? `You have ${savingsText[emergencyFund]} - building this up will provide security` :
+        recommended: essentialsPct > 75 && essentialsPct < 90 ? `With essentials at ${essentialsText}% of income, building a buffer will provide security` :
+                     surplus < 800 && surplus >= 200 ? `Your ${surplusFormatted}/month suggests building security reserves` :
+                     emergencyFund <= 'B' ? `You have ${savingsText[emergencyFund]} - building this up will provide security` :
                      incomeStability === 'Unstable / irregular' ? `Your unstable income requires a strong safety net` :
                      `Building security will provide the foundation you need`,
-        challenging: emergencyFund >= 'D' && incomeStability === 'Very stable' ? `You have ${savingsText[emergencyFund]} and stable income - you're ready for growth` :
+        challenging: essentialsPct < 50 && surplus >= 2000 ? `With ${surplusFormatted}/month, you're beyond security - aim for growth` :
+                     emergencyFund >= 'D' && incomeStability === 'Very stable' ? `You have ${savingsText[emergencyFund]} and stable income - you're ready for growth` :
                      `You may be ready for more growth-focused priorities`,
         available: `A good foundation goal with ${savingsText[emergencyFund]}`
       },
@@ -4396,10 +4408,14 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
         available: `Viable with discipline ${discipline}/10 and ${savingsText[emergencyFund]}`
       },
       'Stabilize to Survive': {
-        recommended: debtLoad === 'E' && emergencyFund === 'A' ? `Your ${debtText[debtLoad]} and ${savingsText[emergencyFund]} require crisis-mode focus` :
+        recommended: surplus < 0 ? `With a ${surplusFormatted}/month, you need immediate cash flow stabilization` :
+                     essentialsPct > 95 ? `With essentials at ${essentialsText}% of income, you're in crisis mode` :
+                     essentialsPct > 90 && debtLoad === 'E' ? `Paycheck-to-paycheck with ${debtText[debtLoad]} requires immediate stabilization` :
+                     debtLoad === 'E' && emergencyFund === 'A' ? `Your ${debtText[debtLoad]} and ${savingsText[emergencyFund]} require crisis-mode focus` :
                      incomeStability === 'Unstable / irregular' && emergencyFund <= 'B' ? `Your unstable income and ${savingsText[emergencyFund]} require immediate stabilization` :
                      `Your situation requires immediate stabilization focus`,
-        challenging: debtLoad <= 'B' && emergencyFund >= 'D' ? `Your ${debtText[debtLoad]} and ${savingsText[emergencyFund]} don't require crisis mode` :
+        challenging: essentialsPct < 60 && surplus >= 1500 ? `With ${surplusFormatted}/month, you're beyond survival mode` :
+                     debtLoad <= 'B' && emergencyFund >= 'D' ? `Your ${debtText[debtLoad]} and ${savingsText[emergencyFund]} don't require crisis mode` :
                      `This is for urgent crisis situations`,
         available: `For immediate stabilization with ${debtText[debtLoad]} and ${savingsText[emergencyFund]}`
       },
@@ -4442,8 +4458,15 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
    */
   calculatePriorityRecommendations(preSurveyData, tool2Data) {
     // Derive tiers from pre-survey
-    const incomeRange = this.mapIncomeToRange(preSurveyData.monthlyIncome);
-    const essentialsRange = this.mapEssentialsToRange(preSurveyData.monthlyEssentials, preSurveyData.monthlyIncome);
+    const monthlyIncome = preSurveyData.monthlyIncome || 3500;
+    const monthlyEssentials = preSurveyData.monthlyEssentials || 2000;
+    const incomeRange = this.mapIncomeToRange(monthlyIncome);
+    const essentialsRange = this.mapEssentialsToRange(monthlyEssentials, monthlyIncome);
+
+    // Calculate surplus/deficit (critical financial health indicator)
+    const surplus = monthlyIncome - monthlyEssentials;
+    const essentialsPct = (monthlyEssentials / monthlyIncome) * 100;
+    const surplusRate = (surplus / monthlyIncome) * 100; // Percentage of income left after essentials
 
     // Get Tool 2 derived data (or use safe defaults)
     const debtLoad = tool2Data ? this.deriveDebtLoad(tool2Data.currentDebts, tool2Data.debtStress) : 'C';
@@ -4461,59 +4484,60 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
     const allData = {
       satisfaction, discipline, impulse, longTerm, lifestyle, autonomy,
       debtLoad, interestLevel, emergencyFund, incomeStability, dependents,
-      growth, stability, incomeRange, essentialsRange
+      growth, stability, incomeRange, essentialsRange,
+      monthlyIncome, monthlyEssentials, surplus, essentialsPct, surplusRate
     };
 
-    // Calculate scores for each priority
+    // Calculate scores for each priority (now including surplus/essentialsPct data)
     const priorities = [
       {
         name: 'Build Long-Term Wealth',
-        score: this.scoreWealthPriority({ discipline, longTerm, debtLoad, incomeStability, growth, emergencyFund, autonomy, lifestyle }),
+        score: this.scoreWealthPriority({ discipline, longTerm, debtLoad, incomeStability, growth, emergencyFund, autonomy, lifestyle, essentialsPct, surplus }),
         baseAllocation: { M:40, E:25, F:20, J:15 }
       },
       {
         name: 'Get Out of Debt',
-        score: this.scoreDebtPriority({ debtLoad, interestLevel, satisfaction, stability, emergencyFund, lifestyle }),
+        score: this.scoreDebtPriority({ debtLoad, interestLevel, satisfaction, stability, emergencyFund, lifestyle, essentialsPct, surplus }),
         baseAllocation: { M:15, E:25, F:45, J:15 }
       },
       {
         name: 'Feel Financially Secure',
-        score: this.scoreSecurityPriority({ incomeStability, emergencyFund, dependents, satisfaction, stability, impulse, discipline, growth }),
+        score: this.scoreSecurityPriority({ incomeStability, emergencyFund, dependents, satisfaction, stability, impulse, discipline, growth, essentialsPct, surplus }),
         baseAllocation: { M:25, E:35, F:30, J:10 }
       },
       {
         name: 'Enjoy Life Now',
-        score: this.scoreEnjoymentPriority({ satisfaction, lifestyle, incomeStability, debtLoad, emergencyFund, impulse, incomeRange, dependents }),
+        score: this.scoreEnjoymentPriority({ satisfaction, lifestyle, incomeStability, debtLoad, emergencyFund, impulse, incomeRange, dependents, essentialsPct, surplus }),
         baseAllocation: { M:20, E:20, F:15, J:45 }
       },
       {
         name: 'Save for a Big Goal',
-        score: this.scoreBigGoalPriority({ debtLoad, emergencyFund, discipline, incomeStability }),
+        score: this.scoreBigGoalPriority({ debtLoad, emergencyFund, discipline, incomeStability, essentialsPct, surplus }),
         baseAllocation: { M:15, E:25, F:45, J:15 }
       },
       {
         name: 'Stabilize to Survive',
-        score: this.scoreSurvivalPriority({ debtLoad, incomeStability, emergencyFund, dependents, satisfaction, incomeRange }),
+        score: this.scoreSurvivalPriority({ debtLoad, incomeStability, emergencyFund, dependents, satisfaction, incomeRange, essentialsPct, surplus }),
         baseAllocation: { M:5, E:45, F:40, J:10 }
       },
       {
         name: 'Build or Stabilize a Business',
-        score: this.scoreBusinessPriority({ autonomy, growth, emergencyFund, incomeStability, discipline, debtLoad, dependents }),
+        score: this.scoreBusinessPriority({ autonomy, growth, emergencyFund, incomeStability, discipline, debtLoad, dependents, essentialsPct, surplus }),
         baseAllocation: { M:20, E:30, F:35, J:15 }
       },
       {
         name: 'Create Generational Wealth',
-        score: this.scoreGenerationalPriority({ incomeRange, growth, discipline, emergencyFund, debtLoad, longTerm, dependents }),
+        score: this.scoreGenerationalPriority({ incomeRange, growth, discipline, emergencyFund, debtLoad, longTerm, dependents, essentialsPct, surplus }),
         baseAllocation: { M:45, E:25, F:20, J:10 }
       },
       {
         name: 'Create Life Balance',
-        score: this.scoreBalancePriority({ satisfaction, lifestyle, incomeStability, debtLoad, emergencyFund }),
+        score: this.scoreBalancePriority({ satisfaction, lifestyle, incomeStability, debtLoad, emergencyFund, essentialsPct, surplus }),
         baseAllocation: { M:15, E:25, F:25, J:35 }
       },
       {
         name: 'Reclaim Financial Control',
-        score: this.scoreControlPriority({ satisfaction, debtLoad, discipline, emergencyFund, incomeStability, impulse }),
+        score: this.scoreControlPriority({ satisfaction, debtLoad, discipline, emergencyFund, incomeStability, impulse, essentialsPct, surplus }),
         baseAllocation: { M:10, E:35, F:40, J:15 }
       }
     ];
