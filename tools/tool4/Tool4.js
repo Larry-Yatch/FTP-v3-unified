@@ -1920,8 +1920,16 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       // Call server to calculate allocation with selected priority
       google.script.run
         .withSuccessHandler(function(result) {
-          // Reload page to show calculator with allocations
-          window.location.reload();
+          // Use document.write() pattern to avoid breaking GAS iframe chain
+          if (result && result.nextPageHtml) {
+            document.open();
+            document.write(result.nextPageHtml);
+            document.close();
+          } else {
+            alert('Error: Server did not return page HTML');
+            btn.disabled = false;
+            btn.textContent = 'Calculate My Allocation';
+          }
         })
         .withFailureHandler(function(error) {
           alert('Error: ' + error.message);
