@@ -1627,8 +1627,8 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
   <div class="loading-overlay" id="loadingOverlay">
     <div class="loading-content">
       <div class="spinner"></div>
-      <div class="loading-text">Calculating Your Personalized Allocation...</div>
-      <div class="loading-subtext">Analyzing your financial profile</div>
+      <div class="loading-text" id="loadingText">Loading...</div>
+      <div class="loading-subtext" id="loadingSubtext"></div>
     </div>
   </div>
 
@@ -1918,7 +1918,12 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
     // Return to Dashboard function
     function returnToDashboard() {
       var loadingOverlay = document.getElementById('loadingOverlay');
+      var loadingText = document.getElementById('loadingText');
+      var loadingSubtext = document.getElementById('loadingSubtext');
+
       if (loadingOverlay) {
+        if (loadingText) loadingText.textContent = 'Returning to Dashboard...';
+        if (loadingSubtext) loadingSubtext.textContent = 'Loading your overview';
         loadingOverlay.classList.add('show');
       }
 
@@ -1991,9 +1996,14 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
 
       console.log('About to call server with priority:', selectedPriorityName, 'timeline:', timeline);
 
-      // Show loading overlay
+      // Show loading overlay with specific message
       var loadingOverlay = document.getElementById('loadingOverlay');
+      var loadingText = document.getElementById('loadingText');
+      var loadingSubtext = document.getElementById('loadingSubtext');
+
       if (loadingOverlay) {
+        if (loadingText) loadingText.textContent = 'Calculating Your Personalized Allocation...';
+        if (loadingSubtext) loadingSubtext.textContent = 'Analyzing your financial profile and goals';
         loadingOverlay.classList.add('show');
       }
 
@@ -2066,9 +2076,14 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
         autonomy: parseInt(document.getElementById('autonomy').value)
       };
 
-      // Show loading overlay
+      // Show loading overlay with specific message
       var loadingOverlay = document.getElementById('loadingOverlay');
+      var loadingText = document.getElementById('loadingText');
+      var loadingSubtext = document.getElementById('loadingSubtext');
+
       if (loadingOverlay) {
+        if (loadingText) loadingText.textContent = 'Building Your Priority Recommendations...';
+        if (loadingSubtext) loadingSubtext.textContent = 'Analyzing your financial profile';
         loadingOverlay.classList.add('show');
       }
 
