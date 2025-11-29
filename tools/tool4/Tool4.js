@@ -1860,9 +1860,28 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
     }
 
     // Return to Dashboard function
-    // Alias for shared navigateToDashboard function for backward compatibility
+    // Standalone implementation (uses showLoading/hideLoading from shared/loading-animation.html)
     function returnToDashboard() {
-      navigateToDashboard('${clientId}', 'Returning to Dashboard');
+      showLoading('Returning to Dashboard');
+
+      google.script.run
+        .withSuccessHandler(function(dashboardHtml) {
+          if (dashboardHtml) {
+            document.open();
+            document.write(dashboardHtml);
+            document.close();
+            window.scrollTo(0, 0);
+          } else {
+            hideLoading();
+            alert('Error loading dashboard');
+          }
+        })
+        .withFailureHandler(function(error) {
+          hideLoading();
+          console.error('Dashboard navigation error:', error);
+          alert('Error loading dashboard: ' + error.message);
+        })
+        .getDashboardPage('${clientId}');
     }
 
     // Priority picker functions
