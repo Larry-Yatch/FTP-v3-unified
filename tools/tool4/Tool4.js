@@ -4412,12 +4412,18 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
     ];
 
     // Add indicators and reasons
-    return priorities.map(p => ({
-      ...p,
-      indicator: p.score >= 50 ? 'recommended' : p.score <= -50 ? 'challenging' : 'available',
-      icon: p.score >= 50 ? '⭐' : p.score <= -50 ? '⚠️' : '⚪',
-      reason: this.getPriorityReason(p.name, p.indicator)
-    })).sort((a, b) => b.score - a.score); // Sort by recommendation strength
+    return priorities.map(p => {
+      const indicator = p.score >= 50 ? 'recommended' : p.score <= -50 ? 'challenging' : 'available';
+      const icon = p.score >= 50 ? '⭐' : p.score <= -50 ? '⚠️' : '⚪';
+      const reason = this.getPriorityReason(p.name, indicator);
+
+      return {
+        ...p,
+        indicator: indicator,
+        icon: icon,
+        reason: reason
+      };
+    }).sort((a, b) => b.score - a.score); // Sort by recommendation strength
   },
 
   /**
