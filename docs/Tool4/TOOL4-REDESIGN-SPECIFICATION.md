@@ -804,15 +804,43 @@ Calculator appears with V1 allocations displayed
 
 ---
 
-### **Phase 3: Interactive Calculator (Week 5)** 🔄 READY TO START
+### **Phase 3: Smart Priority Picker + Interactive Calculator (Week 5)** 🔄 IN PROGRESS
+
+**UPDATED DESIGN DECISION (2025-11-29):**
+After user feedback, we've redesigned the flow to include an **intelligent priority recommendation system** that guides users to the most appropriate priorities based on their pre-survey data.
+
+**New UX Flow:**
+1. Pre-survey (8 behavioral questions) → "Calculate My Available Priorities"
+2. **Priority Picker** (NEW) → Shows all 10 priorities with smart indicators
+3. User selects priority + timeline → "Calculate My Allocation"
+4. Calculator displays M/E/F/J allocations with priority/timeline editable at top
 
 **Goals:**
-Transform the static allocation display into an interactive calculator where users can:
-- Adjust allocations with sliders
-- Lock buckets to prevent changes
-- See real-time redistribution
-- Compare multiple scenarios
-- Validate their custom allocations
+- Guide users to appropriate priorities before calculation (not after)
+- Show WHY certain priorities are recommended vs challenging
+- Preserve agency (show all priorities with warnings, don't hide)
+- Allow priority/timeline changes without re-doing pre-survey
+- Enable interactive allocation adjustment and scenario comparison
+
+**Phase 3A: Smart Priority Picker** ✅ LOGIC COMPLETE, UI PENDING
+
+**Tasks:**
+1. ✅ Design priority recommendation logic - PRIORITY-RECOMMENDATION-LOGIC.md
+2. ✅ Implement 10 priority scoring functions (Tool4.js:3651-4067)
+   - scoreWealthPriority, scoreDebtPriority, scoreSecurityPriority
+   - scoreEnjoymentPriority, scoreBigGoalPriority, scoreSurvivalPriority
+   - scoreBusinessPriority, scoreGenerationalPriority, scoreBalancePriority
+   - scoreControlPriority
+3. ✅ Implement income/essentials tier mapping
+4. ✅ Implement recommendation calculator (calculatePriorityRecommendations)
+5. ✅ Implement reason generator (getPriorityReason)
+6. ✅ Test with sample data - All tests passing
+7. ⏳ Build priority picker UI component (collapsible section)
+8. ⏳ Integrate into unified page flow
+9. ⏳ Remove priority from initial pre-survey (move to picker)
+10. ⏳ Add priority/timeline selector at top of calculator
+
+**Phase 3B: Interactive Calculator** ⏳ NOT STARTED
 
 **Tasks:**
 1. ✅ Build unified page (pre-survey + calculator single view) - Tool4.js:841-1740
@@ -877,11 +905,71 @@ First Visit:
 7. Add "Check My Plan" validation button
 8. Add "Save Scenario" functionality
 
+**Priority Recommendation System Details:**
+
+**Scoring Algorithm:**
+- Each priority receives a score from -100 to +100
+- ⭐ **Recommended** (50+): Based on user's discipline, debt, income stability, etc.
+- ⚪ **Available** (-49 to +49): Neutral option, no strong indicators either way
+- ⚠️ **Challenging** (-50 or below): May be difficult given current constraints
+
+**Data Sources:**
+- Pre-survey: income, essentials, satisfaction, discipline, impulse, long-term focus, lifestyle, autonomy
+- Tool 2 (optional): debt load, interest level, emergency fund, income stability, dependents, growth, stability
+- Safe defaults used when Tool 2 data unavailable
+
+**Example Recommendations:**
+- High debt (E tier) + unstable income → ⭐ "Get Out of Debt" (score: +135)
+- High discipline (8/10) + low debt (A tier) → ⭐ "Build Long-Term Wealth" (score: +140)
+- Low discipline (3/10) + high debt (E tier) → ⚠️ "Build Long-Term Wealth" (score: -135)
+
+**Implementation Files:**
+- Logic: Tool4.js lines 3651-4067 (13 methods, 416 lines)
+- Documentation: docs/Tool4/PRIORITY-RECOMMENDATION-LOGIC.md
+- Tests: test-priority-recommendations.js (all passing ✅)
+
 **Current Status:**
-- **Static Display:** ✅ Complete - Shows V1 allocations with insights
+- **Priority Recommendation Logic:** ✅ Complete - All 10 priorities scored correctly
+- **Priority Picker UI:** ⏳ Not started - Need collapsible section with sorted priorities
+- **Static Allocation Display:** ✅ Complete - Shows V1 allocations with insights
 - **Interactive Adjustment:** ⏳ Not started - Need sliders, locks, redistribution
 - **Validation:** ⏳ Not started - Need "Check My Plan" integration
 - **Scenarios:** ⏳ Not started - Need save/compare functionality
+
+**Updated UX Flow (Single Page with 3 Collapsible Sections):**
+```
+┌────────────────────────────────────────────────────────────┐
+│ 1. PRE-SURVEY SECTION (Initially Expanded)                │
+│    8 behavioral questions                                  │
+│    Button: "Calculate My Available Priorities"            │
+│    → Collapses to summary bar after submission            │
+├────────────────────────────────────────────────────────────┤
+│ 2. PRIORITY PICKER SECTION (Expands after pre-survey)     │
+│    ⭐ Recommended Priorities (green)                       │
+│       - "Your debt level suggests this should be your..."  │
+│    ⚪ Available Priorities (neutral)                       │
+│    ⚠️ Challenging Priorities (yellow/orange)              │
+│       - "Consider addressing stability first..."           │
+│    Timeline selector                                       │
+│    Button: "Calculate My Allocation"                      │
+│    → Stays visible but compacts after selection           │
+├────────────────────────────────────────────────────────────┤
+│ 3. CALCULATOR SECTION (Expands after priority selection)  │
+│    Selected priority/timeline at top (editable)           │
+│    M/E/F/J allocation cards                               │
+│    "Why These Numbers?" insights                          │
+│    [Future: Interactive sliders, locks, scenarios]        │
+└────────────────────────────────────────────────────────────┘
+```
+
+**Key Design Choices:**
+1. **Single-page architecture** - All sections on one page, no navigation
+2. **Progressive disclosure** - Sections expand as user completes previous step
+3. **Collapsible sections** - Pre-survey collapses to summary, priority picker compacts
+4. **Priority first, timeline second** - Most important decision gets most guidance
+5. **Show all priorities** - Don't hide challenging ones, just warn (preserves agency)
+6. **Medium explanations** - One-line reasons (not full detail, not just icons)
+7. **Recalculation without re-survey** - Can change priority/timeline without re-doing behavioral questions
 
 ---
 
@@ -1202,6 +1290,106 @@ First Visit:
 
 ---
 
-**Next Update:** After Phase 3 interactive calculator completion
+## 📊 Phase 3A Progress: Smart Priority Picker (2025-11-29)
+
+### What Was Accomplished
+
+**Phase 3A: Priority Recommendation Logic** - ✅ LOGIC COMPLETE, UI PENDING
+
+**Major Deliverables:**
+1. ✅ **Priority Scoring Algorithm** (10 priority-specific functions with 8+ data point analysis each)
+2. ✅ **Recommendation Engine** (calculatePriorityRecommendations - sorts priorities by fitness)
+3. ✅ **Tier Mapping Functions** (income → A-E, essentials → A-F based on % of income)
+4. ✅ **Reason Generator** (trauma-informed one-line explanations for each recommendation)
+5. ✅ **Comprehensive Documentation** (PRIORITY-RECOMMENDATION-LOGIC.md with full criteria)
+6. ✅ **Test Suite** (test-priority-recommendations.js - all tests passing)
+
+**Design Decision:**
+After user feedback, redesigned flow to show priority recommendations BEFORE user selects priority (proactive guidance vs reactive validation).
+
+**New Flow:**
+```
+Pre-Survey (8 questions)
+  ↓
+Calculate Priority Recommendations (server-side)
+  ↓
+Priority Picker (show all 10 with ⭐/⚪/⚠️ indicators)
+  ↓
+User selects priority + timeline
+  ↓
+Calculate Allocation (V1 engine with selected priority)
+  ↓
+Display M/E/F/J allocations (priority/timeline editable at top)
+```
+
+**Scoring Examples:**
+- High discipline (8/10) + low debt (A) + stable income → Build Long-Term Wealth: **+140** ⭐
+- High debt (E) + unstable income + low satisfaction → Get Out of Debt: **+135** ⭐
+- Low discipline (3/10) + high debt (E) → Build Long-Term Wealth: **-135** ⚠️
+- No debt (A) + high emergency fund (E) → Get Out of Debt: **-80** ⚠️
+
+**Implementation:**
+- Tool4.js: Lines 3651-4067 (13 new methods, 416 lines)
+  - `mapIncomeToRange()` - Maps dollar amounts to A-E tiers
+  - `mapEssentialsToRange()` - Maps essentials % to A-F tiers
+  - `scoreWealthPriority()` - Scores "Build Long-Term Wealth" (-100 to +100)
+  - `scoreDebtPriority()` - Scores "Get Out of Debt"
+  - `scoreSecurityPriority()` - Scores "Feel Financially Secure"
+  - `scoreEnjoymentPriority()` - Scores "Enjoy Life Now"
+  - `scoreBigGoalPriority()` - Scores "Save for a Big Goal"
+  - `scoreSurvivalPriority()` - Scores "Stabilize to Survive"
+  - `scoreBusinessPriority()` - Scores "Build or Stabilize a Business"
+  - `scoreGenerationalPriority()` - Scores "Create Generational Wealth"
+  - `scoreBalancePriority()` - Scores "Create Life Balance"
+  - `scoreControlPriority()` - Scores "Reclaim Financial Control"
+  - `getPriorityReason()` - Returns appropriate explanation based on indicator
+  - `calculatePriorityRecommendations()` - Main function that orchestrates scoring
+
+**Data Integration:**
+- Pre-survey provides: income, essentials, satisfaction, discipline, impulse, long-term focus, lifestyle, autonomy
+- Tool 2 provides (optional): debt load, interest level, emergency fund, income stability, dependents, growth orientation, stability orientation
+- Safe defaults used when Tool 2 unavailable (moderate values: C tier, Medium level, 5/10 scores)
+
+**Test Results:**
+```
+✅ Test Case 1: High-income, disciplined, low debt
+   - Build Wealth: +140 ⭐ RECOMMENDED
+   - Get Out of Debt: -80 ⚠️ CHALLENGING
+
+✅ Test Case 2: High debt, low discipline, unstable income
+   - Build Wealth: -135 ⚠️ CHALLENGING
+   - Get Out of Debt: +135 ⭐ RECOMMENDED
+
+✅ Income Tier Mapping:
+   - $2,000/mo → A
+   - $7,500/mo → C
+   - $25,000/mo → E
+```
+
+**Files Created/Modified:**
+- `tools/tool4/Tool4.js` - Added 13 priority recommendation methods
+- `docs/Tool4/PRIORITY-RECOMMENDATION-LOGIC.md` - Complete specification (10 priorities × 3 indicators)
+- `test-priority-recommendations.js` - Test suite with 2 comprehensive test cases
+
+**Git Commits:**
+- Commit b4272d0: "feat(tool4): Add priority recommendation logic for smart priority selection"
+- 3 files changed, 987 insertions(+)
+
+**Next Steps:**
+1. Build priority picker UI component (collapsible section)
+2. Remove priority question from pre-survey (move to picker)
+3. Add timeline to priority picker (currently in pre-survey)
+4. Integrate picker into unified page flow
+5. Update button text: "Calculate My Personalized Budget" → "Calculate My Available Priorities"
+6. Add priority/timeline selector at top of calculator section (for easy editing)
+
+**Current Status:**
+- **Recommendation Logic:** ✅ 100% Complete - All 10 priorities scored with trauma-informed reasoning
+- **Priority Picker UI:** ⏳ 0% Complete - Need to build collapsible section component
+- **Integration:** ⏳ 0% Complete - Need to wire into existing unified page
+
+---
+
+**Next Update:** After Phase 3A UI completion (priority picker interface)
 **Maintained By:** Claude Code & Larry Yatch
 **Repository:** https://github.com/Larry-Yatch/FTP-v3-unified
