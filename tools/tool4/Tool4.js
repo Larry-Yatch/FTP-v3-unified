@@ -913,9 +913,18 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
   // Calculate priority recommendations if pre-survey data exists
   let priorityRecommendations = [];
   if (hasPreSurvey) {
-    // Get Tool 2 data if available
-    const tool2Data = hasTool2 ? toolStatus.tool2Data : null;
-    priorityRecommendations = this.calculatePriorityRecommendations(preSurveyData, tool2Data);
+    try {
+      // Get Tool 2 data if available
+      const tool2Data = hasTool2 ? toolStatus.tool2Data : null;
+      Logger.log(`Calculating priorities for client ${clientId}`);
+      priorityRecommendations = this.calculatePriorityRecommendations(preSurveyData, tool2Data);
+      Logger.log(`Calculated ${priorityRecommendations.length} priority recommendations`);
+    } catch (error) {
+      Logger.log(`Error calculating priority recommendations: ${error.message}`);
+      Logger.log(`Stack: ${error.stack}`);
+      // Continue with empty array - will just not show picker
+      priorityRecommendations = [];
+    }
   }
 
   // Slider label definitions
