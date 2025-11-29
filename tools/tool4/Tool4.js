@@ -1756,12 +1756,20 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
     </div>
 
     <!-- Priority Picker Section (shown after pre-survey completion) -->
-    ${hasPreSurvey && priorityRecommendations.length > 0 ? this.buildPriorityPickerHtml(
+    ${hasPreSurvey && priorityRecommendations && priorityRecommendations.length > 0 ? this.buildPriorityPickerHtml(
       priorityRecommendations,
       formValues.selectedPriority,
       formValues.goalTimeline,
       !allocation  // Expanded if no allocation yet, collapsed if allocation exists
-    ) : ''}
+    ) : hasPreSurvey ? `
+      <!-- Debug: Priority recommendations failed or empty -->
+      <div style="background: rgba(239, 68, 68, 0.1); padding: 20px; margin: 20px 0; border-radius: 8px;">
+        <p style="color: var(--color-text-primary);">Debug: Priority calculation issue</p>
+        <p style="color: var(--color-text-secondary); font-size: 0.9rem;">
+          Recommendations calculated: ${priorityRecommendations ? priorityRecommendations.length : 'null'}
+        </p>
+      </div>
+    ` : ''}
 
     <!-- Calculator Section -->
     <div class="calculator-section">
@@ -1982,12 +1990,10 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
             return;
           }
 
-          // Replace page content with updated HTML (includes calculated allocations)
-          if (result.nextPageHtml) {
-            document.open();
-            document.write(result.nextPageHtml);
-            document.close();
-            window.scrollTo(0, 0);
+          // Reload page to show priority picker (GAS iframe navigation pattern)
+          // Using window.location.reload() instead of document.write() to avoid white screen
+          if (result.success) {
+            window.location.reload();
           }
         })
         .withFailureHandler(function(error) {
