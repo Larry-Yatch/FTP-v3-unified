@@ -100,14 +100,23 @@ const Tool4 = {
       PropertiesService.getUserProperties().setProperty(preSurveyKey, JSON.stringify(preSurveyData));
       Logger.log(`Pre-survey saved for client: ${clientId}`);
 
-      // Return updated HTML with priority picker (NO allocation yet - user needs to select priority first)
+      // Return updated HTML - calculate allocation ONLY if priority already selected
       const baseUrl = ScriptApp.getService().getUrl();
       const toolStatus = this.checkToolCompletion(clientId);
       const savedPreSurvey = this.getPreSurvey(clientId);
 
-      // DO NOT calculate allocation yet - we need user to select priority first!
-      // The priority picker will show after pre-survey, THEN user selects priority, THEN we calculate
-      const allocation = null;
+      // If user already selected a priority (updating profile), recalculate allocation
+      // If no priority yet (first time), show priority picker with no allocation
+      let allocation = null;
+      if (savedPreSurvey && savedPreSurvey.selectedPriority && savedPreSurvey.goalTimeline) {
+        try {
+          const v1Input = this.buildV1Input(clientId, savedPreSurvey);
+          allocation = this.calculateAllocationV1(v1Input);
+          Logger.log(`Recalculated allocation for priority: ${savedPreSurvey.selectedPriority}`);
+        } catch (allocError) {
+          Logger.log(`Error calculating allocation: ${allocError}`);
+        }
+      }
 
       const htmlContent = this.buildUnifiedPage(clientId, baseUrl, toolStatus, savedPreSurvey, allocation);
       return { success: true, nextPageHtml: htmlContent };
