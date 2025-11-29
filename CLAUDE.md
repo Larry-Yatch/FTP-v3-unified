@@ -68,4 +68,35 @@
 - Verify all type checks and linting pass
 - Check for console errors
 - Verify functionality matches requirements
+- **CRITICAL FOR GAS PROJECTS:** Check for forbidden navigation patterns:
+  ```bash
+  grep -rn "window.location.reload\|location.reload" tools/
+  ```
+  If found, replace with `document.write()` pattern per `docs/Navigation/GAS-NAVIGATION-RULES.md`
 - Use `/commit` command for clear git messages
+
+## 🚨 Google Apps Script Navigation Rules
+
+**NEVER use `window.location.reload()` or `window.location.href` after user interaction.**
+
+**ALWAYS use this pattern:**
+```javascript
+google.script.run
+  .withSuccessHandler(function(result) {
+    if (result && result.nextPageHtml) {
+      document.open();
+      document.write(result.nextPageHtml);
+      document.close();
+      window.scrollTo(0, 0);
+    }
+  })
+  .serverFunction(params);
+```
+
+**Reference:** `docs/Navigation/GAS-NAVIGATION-RULES.md`
+
+**Before writing ANY navigation code:**
+1. Read `docs/Navigation/GAS-NAVIGATION-RULES.md` FIRST
+2. Copy from `core/FormUtils.js` or working examples
+3. DO NOT write navigation from memory
+4. When debugging "X works but Y doesn't", immediately diff the two implementations

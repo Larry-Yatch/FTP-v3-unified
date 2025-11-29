@@ -92,6 +92,24 @@ const Tool4 = {
   },
 
   /**
+   * Prefill test data for faster testing (dev mode)
+   */
+  prefillTestData(clientId) {
+    const testData = {
+      monthlyIncome: 3500,
+      monthlyEssentials: 2000,
+      satisfaction: 5,
+      discipline: 7,
+      impulse: 6,
+      longTerm: 8,
+      lifestyle: 4,
+      autonomy: 6
+    };
+
+    return this.savePreSurvey(clientId, testData);
+  },
+
+  /**
    * Save pre-survey data and return updated page HTML (Phase 2)
    */
   savePreSurvey(clientId, preSurveyData) {
