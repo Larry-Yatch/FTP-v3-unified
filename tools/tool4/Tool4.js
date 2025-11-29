@@ -1568,13 +1568,69 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
     .error-message.show {
       display: block;
     }
+
+    /* Loading overlay */
+    .loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+
+    .loading-overlay.show {
+      display: flex;
+    }
+
+    .loading-content {
+      text-align: center;
+    }
+
+    .spinner {
+      border: 4px solid rgba(255, 255, 255, 0.1);
+      border-top: 4px solid #4f46e5;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 20px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .loading-text {
+      color: white;
+      font-size: 18px;
+      font-weight: 500;
+    }
+
+    .loading-subtext {
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 14px;
+      margin-top: 8px;
+    }
   </style>
   <script>
     var clientId = '${clientId}';
   </script>
 </head>
 <body>
-  <?!= include('shared/loading-animation') ?>
+  <!-- Loading Overlay -->
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-content">
+      <div class="spinner"></div>
+      <div class="loading-text">Calculating Your Personalized Allocation...</div>
+      <div class="loading-subtext">Analyzing your financial profile</div>
+    </div>
+  </div>
 
   <div class="unified-container">
 
@@ -1860,9 +1916,11 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
     }
 
     // Return to Dashboard function
-    // Standalone implementation (uses showLoading/hideLoading from shared/loading-animation.html)
     function returnToDashboard() {
-      showLoading('Returning to Dashboard');
+      var loadingOverlay = document.getElementById('loadingOverlay');
+      if (loadingOverlay) {
+        loadingOverlay.classList.add('show');
+      }
 
       google.script.run
         .withSuccessHandler(function(dashboardHtml) {
@@ -1872,12 +1930,12 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
             document.close();
             window.scrollTo(0, 0);
           } else {
-            hideLoading();
+            if (loadingOverlay) loadingOverlay.classList.remove('show');
             alert('Error loading dashboard');
           }
         })
         .withFailureHandler(function(error) {
-          hideLoading();
+          if (loadingOverlay) loadingOverlay.classList.remove('show');
           console.error('Dashboard navigation error:', error);
           alert('Error loading dashboard: ' + error.message);
         })
@@ -1933,8 +1991,11 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
 
       console.log('About to call server with priority:', selectedPriorityName, 'timeline:', timeline);
 
-      // Show loading overlay using shared component
-      showLoading('Calculating Your Personalized Allocation');
+      // Show loading overlay
+      var loadingOverlay = document.getElementById('loadingOverlay');
+      if (loadingOverlay) {
+        loadingOverlay.classList.add('show');
+      }
 
       // Disable button
       const btn = document.getElementById('calculateAllocationBtn');
@@ -1955,7 +2016,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
             window.scrollTo(0, 0);
           } else {
             console.error('No nextPageHtml in result:', result);
-            hideLoading();
+            if (loadingOverlay) loadingOverlay.classList.remove('show');
             alert('Error: Server did not return page HTML');
             btn.disabled = false;
             btn.textContent = 'Calculate My Allocation';
@@ -1963,7 +2024,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
         })
         .withFailureHandler(function(error) {
           console.error('Server error:', error);
-          hideLoading();
+          if (loadingOverlay) loadingOverlay.classList.remove('show');
           alert('Error: ' + error.message);
           btn.disabled = false;
           btn.textContent = 'Calculate My Allocation';
@@ -2005,8 +2066,11 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
         autonomy: parseInt(document.getElementById('autonomy').value)
       };
 
-      // Show loading overlay using shared component
-      showLoading('Analyzing your financial profile');
+      // Show loading overlay
+      var loadingOverlay = document.getElementById('loadingOverlay');
+      if (loadingOverlay) {
+        loadingOverlay.classList.add('show');
+      }
 
       // Disable submit button
       var submitBtn = document.getElementById('calculateBtn');
@@ -2020,7 +2084,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
         .withSuccessHandler(function(result) {
           if (result && result.success === false) {
             // Hide loading and show error
-            hideLoading();
+            if (loadingOverlay) loadingOverlay.classList.remove('show');
             if (submitBtn) {
               submitBtn.disabled = false;
               submitBtn.style.opacity = '1';
@@ -2040,7 +2104,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
         })
         .withFailureHandler(function(error) {
           // Hide loading and show error
-          hideLoading();
+          if (loadingOverlay) loadingOverlay.classList.remove('show');
           if (submitBtn) {
             submitBtn.disabled = false;
             submitBtn.style.opacity = '1';
