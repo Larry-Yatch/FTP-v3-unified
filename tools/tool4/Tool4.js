@@ -1929,15 +1929,13 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       });
 
       if (!allValid) {
-        document.getElementById('errorMessage').textContent = 'Please answer all 10 questions.';
+        document.getElementById('errorMessage').textContent = 'Please answer all 8 questions.';
         document.getElementById('errorMessage').classList.add('show');
         return;
       }
 
-      // Collect form data
+      // Collect form data (no priority/timeline - those come from picker)
       var formData = {
-        selectedPriority: document.getElementById('selectedPriority').value,
-        goalTimeline: document.getElementById('goalTimeline').value,
         monthlyIncome: parseFloat(document.getElementById('monthlyIncome').value),
         monthlyEssentials: parseFloat(document.getElementById('monthlyEssentials').value),
         satisfaction: parseInt(document.getElementById('satisfaction').value),
