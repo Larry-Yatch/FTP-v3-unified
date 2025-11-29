@@ -22,7 +22,7 @@ const Tool4 = {
 
   /**
    * Main render function
-   * Single-page calculator interface
+   * Phase 2: Pre-survey → Calculator flow
    */
   render(params) {
     const clientId = params.clientId;
@@ -32,10 +32,20 @@ const Tool4 = {
       // Check Tools 1/2/3 completion status
       const toolStatus = this.checkToolCompletion(clientId);
 
-      // Build calculator page (already processed with JS template literals)
-      const htmlContent = this.buildCalculatorPage(clientId, baseUrl, toolStatus);
+      // Check if pre-survey completed
+      const preSurveyData = this.getPreSurvey(clientId);
 
-      // Use createHtmlOutput (not createTemplate) since we've already done variable substitution
+      let htmlContent;
+      if (!preSurveyData) {
+        // Show pre-survey first
+        htmlContent = this.buildPreSurveyPage(clientId, baseUrl, toolStatus);
+      } else {
+        // Calculate V1 allocation and show calculator
+        const v1Input = this.buildV1Input(clientId, preSurveyData);
+        const allocation = this.calculateAllocationV1(v1Input);
+        htmlContent = this.buildCalculatorPage(clientId, baseUrl, toolStatus, allocation, preSurveyData);
+      }
+
       return HtmlService.createHtmlOutput(htmlContent)
         .setTitle('TruPath - Financial Freedom Framework')
         .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
@@ -105,9 +115,698 @@ const Tool4 = {
   },
 
   /**
+   * Phase 2: Build Pre-Survey Page
+   * 7 critical questions + 5 optional questions
+   */
+  buildPreSurveyPage(clientId, baseUrl, toolStatus) {
+    const styles = HtmlService.createHtmlOutputFromFile('shared/styles').getContent();
+
+    return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <base target="_top">
+  ${styles}
+  <style>
+    /* Pre-Survey Specific Styles */
+    .pre-survey-container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+
+    .survey-header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .survey-header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 12px;
+      color: var(--color-text-primary);
+    }
+
+    .survey-header p {
+      font-size: 1.1rem;
+      color: var(--color-text-secondary);
+      line-height: 1.6;
+    }
+
+    .survey-section {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      padding: 30px;
+      margin-bottom: 24px;
+    }
+
+    .section-title {
+      font-size: 1.3rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: var(--color-text-primary);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .required-badge {
+      background: var(--color-error);
+      color: white;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+
+    .optional-badge {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--color-text-secondary);
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+
+    .section-description {
+      font-size: 0.95rem;
+      color: var(--color-text-secondary);
+      margin-bottom: 24px;
+      line-height: 1.5;
+    }
+
+    .question-group {
+      margin-bottom: 28px;
+    }
+
+    .question-label {
+      display: block;
+      font-size: 1rem;
+      font-weight: 500;
+      margin-bottom: 12px;
+      color: var(--color-text-primary);
+    }
+
+    .question-required {
+      color: var(--color-error);
+      margin-left: 4px;
+    }
+
+    .question-help {
+      font-size: 0.85rem;
+      color: var(--color-text-secondary);
+      font-style: italic;
+      margin-top: 6px;
+    }
+
+    .scale-input-group {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-top: 12px;
+    }
+
+    .scale-input {
+      flex: 1;
+      height: 8px;
+      -webkit-appearance: none;
+      appearance: none;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+      outline: none;
+    }
+
+    .scale-input::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      background: var(--color-primary);
+      border-radius: 50%;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .scale-input::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+      background: var(--color-primary-dark);
+    }
+
+    .scale-value {
+      min-width: 40px;
+      text-align: center;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--color-primary);
+    }
+
+    .scale-labels {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 8px;
+      font-size: 0.85rem;
+      color: var(--color-text-secondary);
+    }
+
+    .form-select,
+    .form-input {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.2);
+      color: var(--color-text-primary);
+      font-size: 1rem;
+      transition: all 0.2s;
+    }
+
+    .form-select:focus,
+    .form-input:focus {
+      outline: none;
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    }
+
+    .optional-section {
+      border: 2px dashed rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 24px;
+      margin-top: 32px;
+    }
+
+    .toggle-optional-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 12px 24px;
+      border-radius: 8px;
+      color: var(--color-text-primary);
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      width: 100%;
+      margin-bottom: 20px;
+    }
+
+    .toggle-optional-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: var(--color-primary);
+    }
+
+    .optional-questions {
+      display: none;
+    }
+
+    .optional-questions.show {
+      display: block;
+    }
+
+    .submit-section {
+      margin-top: 40px;
+      text-align: center;
+    }
+
+    .submit-btn {
+      background: var(--color-primary);
+      color: white;
+      padding: 16px 48px;
+      border: none;
+      border-radius: 8px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .submit-btn:hover {
+      background: var(--color-primary-dark);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+    }
+
+    .submit-btn:disabled {
+      background: rgba(255, 255, 255, 0.1);
+      color: rgba(255, 255, 255, 0.3);
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .error-message {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid var(--color-error);
+      color: var(--color-error);
+      padding: 12px;
+      border-radius: 8px;
+      margin-top: 12px;
+      display: none;
+    }
+
+    .error-message.show {
+      display: block;
+    }
+
+    .loading-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.8);
+      z-index: 9999;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .loading-overlay.show {
+      display: flex;
+    }
+
+    .loading-content {
+      text-align: center;
+      color: white;
+    }
+
+    .loading-spinner {
+      width: 60px;
+      height: 60px;
+      border: 4px solid rgba(255, 255, 255, 0.1);
+      border-top-color: var(--color-primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 20px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .progress-indicator {
+      margin-bottom: 24px;
+      text-align: center;
+    }
+
+    .progress-text {
+      font-size: 0.9rem;
+      color: var(--color-text-secondary);
+      margin-bottom: 8px;
+    }
+
+    .progress-bar {
+      height: 6px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: var(--color-primary);
+      transition: width 0.3s ease;
+    }
+  </style>
+</head>
+<body>
+  <div class="pre-survey-container">
+    <!-- Header -->
+    <div class="survey-header">
+      <h1>🎯 Financial Freedom Framework</h1>
+      <p>Before we build your personalized budget, let's understand your unique financial situation and goals. This will help us create recommendations tailored specifically to you.</p>
+    </div>
+
+    <!-- Progress Indicator -->
+    <div class="progress-indicator">
+      <div class="progress-text">7 required questions</div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+      </div>
+    </div>
+
+    <form id="preSurveyForm">
+      <!-- Critical Questions Section -->
+      <div class="survey-section">
+        <div class="section-title">
+          <span>Essential Information</span>
+          <span class="required-badge">REQUIRED</span>
+        </div>
+        <div class="section-description">
+          These 7 questions help us create your baseline allocation. Each question takes just a moment to answer.
+        </div>
+
+        <!-- Q1: Satisfaction -->
+        <div class="question-group">
+          <label class="question-label">
+            1. How dissatisfied are you with your current financial situation?
+            <span class="question-required">*</span>
+          </label>
+          <div class="scale-input-group">
+            <span class="scale-labels" style="min-width: 80px">Not at all</span>
+            <input
+              type="range"
+              class="scale-input"
+              id="satisfaction"
+              name="satisfaction"
+              min="0"
+              max="10"
+              value="5"
+              required
+            >
+            <span class="scale-labels" style="min-width: 80px; text-align: right">Extremely</span>
+            <span class="scale-value" id="satisfactionValue">5</span>
+          </div>
+          <div class="question-help">Higher dissatisfaction amplifies our recommendations to help you change faster</div>
+        </div>
+
+        <!-- Q2: Discipline -->
+        <div class="question-group">
+          <label class="question-label">
+            2. How would you rate your financial discipline?
+            <span class="question-required">*</span>
+          </label>
+          <div class="scale-input-group">
+            <span class="scale-labels" style="min-width: 80px">Very low</span>
+            <input
+              type="range"
+              class="scale-input"
+              id="discipline"
+              name="discipline"
+              min="0"
+              max="10"
+              value="5"
+              required
+            >
+            <span class="scale-labels" style="min-width: 80px; text-align: right">Very high</span>
+            <span class="scale-value" id="disciplineValue">5</span>
+          </div>
+          <div class="question-help">Your ability to stick to financial plans and resist temptation</div>
+        </div>
+
+        <!-- Q3: Impulse Control -->
+        <div class="question-group">
+          <label class="question-label">
+            3. How strong is your impulse control with spending?
+            <span class="question-required">*</span>
+          </label>
+          <div class="scale-input-group">
+            <span class="scale-labels" style="min-width: 80px">Very weak</span>
+            <input
+              type="range"
+              class="scale-input"
+              id="impulse"
+              name="impulse"
+              min="0"
+              max="10"
+              value="5"
+              required
+            >
+            <span class="scale-labels" style="min-width: 80px; text-align: right">Very strong</span>
+            <span class="scale-value" id="impulseValue">5</span>
+          </div>
+          <div class="question-help">How well you resist unplanned purchases</div>
+        </div>
+
+        <!-- Q4: Long-term Focus -->
+        <div class="question-group">
+          <label class="question-label">
+            4. How focused are you on long-term financial goals?
+            <span class="question-required">*</span>
+          </label>
+          <div class="scale-input-group">
+            <span class="scale-labels" style="min-width: 80px">Not at all</span>
+            <input
+              type="range"
+              class="scale-input"
+              id="longTerm"
+              name="longTerm"
+              min="0"
+              max="10"
+              value="5"
+              required
+            >
+            <span class="scale-labels" style="min-width: 80px; text-align: right">Very focused</span>
+            <span class="scale-value" id="longTermValue">5</span>
+          </div>
+          <div class="question-help">Your orientation toward future vs. present financial needs</div>
+        </div>
+
+        <!-- Q5: Goal Timeline -->
+        <div class="question-group">
+          <label class="question-label">
+            5. When do you want to reach your primary financial goal?
+            <span class="question-required">*</span>
+          </label>
+          <select class="form-select" id="goalTimeline" name="goalTimeline" required>
+            <option value="">-- Select timeline --</option>
+            <option value="Within 6 months">Within 6 months</option>
+            <option value="6–12 months">6-12 months</option>
+            <option value="1–2 years">1-2 years</option>
+            <option value="2–5 years">2-5 years</option>
+            <option value="5+ years">5+ years</option>
+          </select>
+        </div>
+
+        <!-- Q6: Income Range -->
+        <div class="question-group">
+          <label class="question-label">
+            6. What is your monthly net income (after taxes)?
+            <span class="question-required">*</span>
+          </label>
+          <select class="form-select" id="incomeRange" name="incomeRange" required>
+            <option value="">-- Select income range --</option>
+            <option value="A">Less than $2,500/month</option>
+            <option value="B">$2,500 - $5,000/month</option>
+            <option value="C">$5,000 - $10,000/month</option>
+            <option value="D">$10,000 - $20,000/month</option>
+            <option value="E">More than $20,000/month</option>
+          </select>
+        </div>
+
+        <!-- Q7: Essentials Percentage -->
+        <div class="question-group">
+          <label class="question-label">
+            7. What percentage of your income goes to essentials (housing, food, utilities, insurance)?
+            <span class="question-required">*</span>
+          </label>
+          <select class="form-select" id="essentialsRange" name="essentialsRange" required>
+            <option value="">-- Select percentage --</option>
+            <option value="A">Less than 10%</option>
+            <option value="B">10-20%</option>
+            <option value="C">20-30%</option>
+            <option value="D">30-40%</option>
+            <option value="E">40-50%</option>
+            <option value="F">More than 50%</option>
+          </select>
+        </div>
+
+        <!-- Priority Selection (from existing Tool 4) -->
+        <div class="question-group">
+          <label class="question-label">
+            8. What is your primary financial priority right now?
+            <span class="question-required">*</span>
+          </label>
+          <select class="form-select" id="selectedPriority" name="selectedPriority" required>
+            <option value="">-- Select your priority --</option>
+            <option value="Build Long-Term Wealth">Build Long-Term Wealth</option>
+            <option value="Get Out of Debt">Get Out of Debt</option>
+            <option value="Feel Financially Secure">Feel Financially Secure</option>
+            <option value="Enjoy Life Now">Enjoy Life Now</option>
+            <option value="Save for a Big Goal">Save for a Big Goal</option>
+            <option value="Stabilize to Survive">Stabilize to Survive</option>
+            <option value="Build or Stabilize a Business">Build or Stabilize a Business</option>
+            <option value="Create Generational Wealth">Create Generational Wealth</option>
+            <option value="Create Life Balance">Create Life Balance</option>
+            <option value="Reclaim Financial Control">Reclaim Financial Control</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Optional Questions Section -->
+      <div class="optional-section">
+        <button type="button" class="toggle-optional-btn" id="toggleOptionalBtn">
+          📊 Want even better recommendations? Answer 5 more optional questions ▼
+        </button>
+
+        <div class="optional-questions" id="optionalQuestions">
+          <div class="section-title">
+            <span>Optional Refinements</span>
+            <span class="optional-badge">OPTIONAL</span>
+          </div>
+          <div class="section-description">
+            These questions help fine-tune your allocation for even more personalized recommendations.
+          </div>
+
+          <!-- Optional Q1: Lifestyle Priority -->
+          <div class="question-group">
+            <label class="question-label">
+              How important is enjoying life now vs. saving for later?
+            </label>
+            <div class="scale-input-group">
+              <span class="scale-labels" style="min-width: 80px">Save for later</span>
+              <input
+                type="range"
+                class="scale-input"
+                id="lifestyle"
+                name="lifestyle"
+                min="0"
+                max="10"
+                value="5"
+              >
+              <span class="scale-labels" style="min-width: 80px; text-align: right">Enjoy now</span>
+              <span class="scale-value" id="lifestyleValue">5</span>
+            </div>
+          </div>
+
+          <!-- Optional Q2: Autonomy Preference -->
+          <div class="question-group">
+            <label class="question-label">
+              Do you prefer following expert advice or making your own financial choices?
+            </label>
+            <div class="scale-input-group">
+              <span class="scale-labels" style="min-width: 80px">Expert advice</span>
+              <input
+                type="range"
+                class="scale-input"
+                id="autonomy"
+                name="autonomy"
+                min="0"
+                max="10"
+                value="5"
+              >
+              <span class="scale-labels" style="min-width: 80px; text-align: right">My own choices</span>
+              <span class="scale-value" id="autonomyValue">5</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Error Message -->
+      <div class="error-message" id="errorMessage"></div>
+
+      <!-- Submit Button -->
+      <div class="submit-section">
+        <button type="submit" class="submit-btn" id="submitBtn">
+          Build My Personalized Budget →
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-content">
+      <div class="loading-spinner"></div>
+      <h2>Building Your Personalized Plan...</h2>
+      <p>Analyzing your unique financial profile and goals</p>
+    </div>
+  </div>
+
+  <script>
+    // Update scale value displays
+    const scaleInputs = [
+      'satisfaction', 'discipline', 'impulse', 'longTerm',
+      'lifestyle', 'autonomy'
+    ];
+
+    scaleInputs.forEach(id => {
+      const input = document.getElementById(id);
+      const valueDisplay = document.getElementById(id + 'Value');
+      if (input && valueDisplay) {
+        input.addEventListener('input', () => {
+          valueDisplay.textContent = input.value;
+          updateProgress();
+        });
+      }
+    });
+
+    // Toggle optional questions
+    document.getElementById('toggleOptionalBtn').addEventListener('click', function() {
+      const optionalSection = document.getElementById('optionalQuestions');
+      optionalSection.classList.toggle('show');
+      this.textContent = optionalSection.classList.contains('show')
+        ? '📊 Hide optional questions ▲'
+        : '📊 Want even better recommendations? Answer 5 more optional questions ▼';
+    });
+
+    // Update progress indicator
+    function updateProgress() {
+      const requiredInputs = document.querySelectorAll('[required]');
+      let filled = 0;
+      requiredInputs.forEach(input => {
+        if (input.value && input.value !== '') filled++;
+      });
+      const progress = (filled / requiredInputs.length) * 100;
+      document.getElementById('progressFill').style.width = progress + '%';
+    }
+
+    // Add change listeners to all required fields
+    document.querySelectorAll('[required]').forEach(input => {
+      input.addEventListener('change', updateProgress);
+      input.addEventListener('input', updateProgress);
+    });
+
+    // Form validation and submission
+    document.getElementById('preSurveyForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+
+      // Validate all required fields
+      const requiredInputs = document.querySelectorAll('[required]');
+      let allValid = true;
+      requiredInputs.forEach(input => {
+        if (!input.value || input.value === '') {
+          allValid = false;
+          input.style.borderColor = 'var(--color-error)';
+        } else {
+          input.style.borderColor = '';
+        }
+      });
+
+      if (!allValid) {
+        document.getElementById('errorMessage').textContent = 'Please answer all required questions before continuing.';
+        document.getElementById('errorMessage').classList.add('show');
+        return;
+      }
+
+      // Collect form data
+      const formData = {
+        satisfaction: parseInt(document.getElementById('satisfaction').value),
+        discipline: parseInt(document.getElementById('discipline').value),
+        impulse: parseInt(document.getElementById('impulse').value),
+        longTerm: parseInt(document.getElementById('longTerm').value),
+        goalTimeline: document.getElementById('goalTimeline').value,
+        incomeRange: document.getElementById('incomeRange').value,
+        essentialsRange: document.getElementById('essentialsRange').value,
+        selectedPriority: document.getElementById('selectedPriority').value,
+        lifestyle: parseInt(document.getElementById('lifestyle').value) || 5,
+        autonomy: parseInt(document.getElementById('autonomy').value) || 5
+      };
+
+      // Show loading overlay
+      document.getElementById('loadingOverlay').classList.add('show');
+
+      // Save pre-survey data
+      google.script.run
+        .withSuccessHandler(function() {
+          // Reload page to show calculator with allocations
+          window.location.reload();
+        })
+        .withFailureHandler(function(error) {
+          document.getElementById('loadingOverlay').classList.remove('show');
+          document.getElementById('errorMessage').textContent = 'Error saving your data: ' + error.message;
+          document.getElementById('errorMessage').classList.add('show');
+        })
+        .savePreSurvey('${clientId}', formData);
+    });
+  </script>
+</body>
+</html>
+    `;
+  },
+
+  /**
    * Build main calculator page
    */
-  buildCalculatorPage(clientId, baseUrl, toolStatus) {
+  buildCalculatorPage(clientId, baseUrl, toolStatus, allocation, preSurveyData) {
     const styles = HtmlService.createHtmlOutputFromFile('shared/styles').getContent();
     // REMOVED loading-animation.html - Tool4 is a calculator, not a multi-page form
     // The loading-animation file contains document.write() which breaks template literals
