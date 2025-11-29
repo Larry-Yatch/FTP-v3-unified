@@ -1921,10 +1921,12 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       google.script.run
         .withSuccessHandler(function(result) {
           // Use document.write() pattern to avoid breaking GAS iframe chain
+          // (FormUtils pattern - lines 67-75)
           if (result && result.nextPageHtml) {
             document.open();
             document.write(result.nextPageHtml);
             document.close();
+            window.scrollTo(0, 0);
           } else {
             alert('Error: Server did not return page HTML');
             btn.disabled = false;
@@ -2001,10 +2003,12 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
           }
 
           // Use document.write() pattern (GAS iframe navigation)
+          // (FormUtils pattern - lines 67-75)
           if (result && result.nextPageHtml) {
             document.open();
             document.write(result.nextPageHtml);
             document.close();
+            window.scrollTo(0, 0);
           }
         })
         .withFailureHandler(function(error) {
