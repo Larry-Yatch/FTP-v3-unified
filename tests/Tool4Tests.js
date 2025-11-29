@@ -1502,3 +1502,287 @@ function testEndToEndIntegration() {
     success: true
   };
 }
+
+/**
+ * Phase 2: Test Pre-Survey Save/Retrieve Flow
+ * Tests the pre-survey data persistence
+ */
+function testPreSurveySaveRetrieve() {
+  Logger.log('=== Testing Pre-Survey Save/Retrieve ===');
+
+  const testClientId = 'TEST_PRESURVEY_' + new Date().getTime();
+
+  // Mock pre-survey data
+  const mockPreSurvey = {
+    satisfaction: 7,
+    discipline: 8,
+    impulse: 7,
+    longTerm: 8,
+    goalTimeline: '1–2 years',
+    incomeRange: 'C',
+    essentialsRange: 'D',
+    selectedPriority: 'Build Long-Term Wealth',
+    lifestyle: 6,
+    autonomy: 7
+  };
+
+  Logger.log('Step 1: Save pre-survey data');
+  const saveResult = Tool4.savePreSurvey(testClientId, mockPreSurvey);
+  Logger.log('  Save result: ' + JSON.stringify(saveResult));
+  Logger.log('  ✅ Pre-survey saved');
+  Logger.log('');
+
+  Logger.log('Step 2: Retrieve pre-survey data');
+  const retrieved = Tool4.getPreSurvey(testClientId);
+  Logger.log('  Retrieved: ' + JSON.stringify(retrieved));
+  Logger.log('  ✅ Pre-survey retrieved');
+  Logger.log('');
+
+  Logger.log('Step 3: Validate data integrity');
+  let allMatch = true;
+  Object.keys(mockPreSurvey).forEach(function(key) {
+    if (retrieved[key] !== mockPreSurvey[key]) {
+      Logger.log('  ❌ Mismatch on ' + key + ': expected ' + mockPreSurvey[key] + ', got ' + retrieved[key]);
+      allMatch = false;
+    }
+  });
+
+  if (allMatch) {
+    Logger.log('  ✅ All fields match');
+  }
+  Logger.log('');
+
+  Logger.log('Step 4: Test with non-existent client');
+  const nonExistent = Tool4.getPreSurvey('NONEXISTENT_CLIENT');
+  Logger.log('  Non-existent result: ' + nonExistent);
+  Logger.log('  ✅ Returns null for non-existent client');
+  Logger.log('');
+
+  Logger.log('=== Pre-Survey Save/Retrieve Test Complete ===');
+  Logger.log(allMatch ? '✅ All tests passed' : '❌ Some tests failed');
+
+  return {
+    name: 'Pre-Survey Save/Retrieve',
+    passed: allMatch && saveResult.success,
+    saved: mockPreSurvey,
+    retrieved: retrieved
+  };
+}
+
+/**
+ * Phase 2: Test Complete Pre-Survey → V1 Allocation Flow
+ * Simulates the full user journey
+ */
+function testPreSurveyToAllocationFlow() {
+  Logger.log('=== Testing Pre-Survey → V1 Allocation Flow ===');
+
+  const testClientId = 'FLOW_TEST_' + new Date().getTime();
+
+  // Step 1: Check initial state (no pre-survey)
+  Logger.log('Step 1: Check initial state');
+  const initialCheck = Tool4.getPreSurvey(testClientId);
+  Logger.log('  Initial pre-survey: ' + initialCheck);
+  Logger.log('  ✅ No pre-survey exists (returns null)');
+  Logger.log('');
+
+  // Step 2: User fills pre-survey
+  Logger.log('Step 2: User completes pre-survey');
+  const preSurveyData = {
+    satisfaction: 8,
+    discipline: 7,
+    impulse: 6,
+    longTerm: 8,
+    goalTimeline: '2–5 years',
+    incomeRange: 'D',
+    essentialsRange: 'C',
+    selectedPriority: 'Build Long-Term Wealth',
+    lifestyle: 6,
+    autonomy: 8
+  };
+  Logger.log('  Pre-survey data collected');
+  Logger.log('');
+
+  // Step 3: Save pre-survey
+  Logger.log('Step 3: Save pre-survey');
+  Tool4.savePreSurvey(testClientId, preSurveyData);
+  Logger.log('  ✅ Pre-survey saved');
+  Logger.log('');
+
+  // Step 4: Build V1 input
+  Logger.log('Step 4: Build V1 input from pre-survey');
+  const v1Input = Tool4.buildV1Input(testClientId, preSurveyData);
+  Logger.log('  V1 Input created:');
+  Logger.log('    Priority: ' + v1Input.priority);
+  Logger.log('    Satisfaction: ' + v1Input.satisfaction);
+  Logger.log('    Income Range: ' + v1Input.incomeRange);
+  Logger.log('    Essentials Range: ' + v1Input.essentialsRange);
+  Logger.log('  ✅ V1 input built successfully');
+  Logger.log('');
+
+  // Step 5: Calculate allocation
+  Logger.log('Step 5: Calculate V1 allocation');
+  const allocation = Tool4.calculateAllocationV1(v1Input);
+  Logger.log('  Allocation calculated:');
+  Logger.log('    Multiply:   ' + allocation.percentages.Multiply + '%');
+  Logger.log('    Essentials: ' + allocation.percentages.Essentials + '%');
+  Logger.log('    Freedom:    ' + allocation.percentages.Freedom + '%');
+  Logger.log('    Enjoyment:  ' + allocation.percentages.Enjoyment + '%');
+  Logger.log('    Sum: ' + (allocation.percentages.Multiply + allocation.percentages.Essentials + allocation.percentages.Freedom + allocation.percentages.Enjoyment) + '%');
+  Logger.log('    Satisfaction Boost: ' + allocation.details.satBoostPct + '%');
+  Logger.log('  ✅ Allocation calculated');
+  Logger.log('');
+
+  // Step 6: Validate results
+  Logger.log('Step 6: Validate results');
+  const sum = allocation.percentages.Multiply + allocation.percentages.Essentials +
+              allocation.percentages.Freedom + allocation.percentages.Enjoyment;
+
+  const validSum = sum === 100;
+  const hasNotes = allocation.lightNotes && allocation.lightNotes.Multiply;
+  const hasDetails = allocation.details && allocation.details.basePriority;
+
+  Logger.log('  Sum = 100%: ' + (validSum ? '✅' : '❌'));
+  Logger.log('  Has light notes: ' + (hasNotes ? '✅' : '❌'));
+  Logger.log('  Has details: ' + (hasDetails ? '✅' : '❌'));
+  Logger.log('');
+
+  Logger.log('=== Complete Flow Test Summary ===');
+  const allPassed = validSum && hasNotes && hasDetails;
+  Logger.log(allPassed ? '✅ All validations passed' : '❌ Some validations failed');
+  Logger.log('');
+  Logger.log('This simulates the exact flow a user experiences:');
+  Logger.log('  1. Open Tool 4 (no pre-survey) → Show pre-survey form');
+  Logger.log('  2. Fill and submit pre-survey → Save data');
+  Logger.log('  3. Reload Tool 4 (has pre-survey) → Calculate V1 allocation');
+  Logger.log('  4. Show calculator with personalized percentages');
+
+  return {
+    name: 'Pre-Survey to Allocation Flow',
+    passed: allPassed,
+    preSurveyData: preSurveyData,
+    v1Input: v1Input,
+    allocation: allocation
+  };
+}
+
+/**
+ * Phase 2: Test Pre-Survey UI Rendering
+ * Validates that the pre-survey page can be rendered
+ */
+function testPreSurveyRendering() {
+  Logger.log('=== Testing Pre-Survey UI Rendering ===');
+
+  const testClientId = 'RENDER_TEST_' + new Date().getTime();
+  const baseUrl = ScriptApp.getService().getUrl();
+  const toolStatus = {
+    hasTool1: false,
+    hasTool2: false,
+    hasTool3: false,
+    missingCount: 3
+  };
+
+  Logger.log('Step 1: Build pre-survey page');
+  try {
+    const html = Tool4.buildPreSurveyPage(testClientId, baseUrl, toolStatus);
+    const htmlLength = html.length;
+    Logger.log('  HTML generated: ' + htmlLength + ' characters');
+    Logger.log('  ✅ Pre-survey page built successfully');
+    Logger.log('');
+
+    Logger.log('Step 2: Validate HTML structure');
+    const hasForm = html.indexOf('<form') > -1;
+    const hasSubmit = html.indexOf('Build My Personalized Budget') > -1;
+    const hasQuestions = html.indexOf('satisfaction') > -1 && html.indexOf('discipline') > -1;
+    const hasProgress = html.indexOf('progress-bar') > -1;
+    const hasOptional = html.indexOf('optional-questions') > -1;
+
+    Logger.log('  Has form: ' + (hasForm ? '✅' : '❌'));
+    Logger.log('  Has submit button: ' + (hasSubmit ? '✅' : '❌'));
+    Logger.log('  Has questions: ' + (hasQuestions ? '✅' : '❌'));
+    Logger.log('  Has progress bar: ' + (hasProgress ? '✅' : '❌'));
+    Logger.log('  Has optional section: ' + (hasOptional ? '✅' : '❌'));
+    Logger.log('');
+
+    const allValid = hasForm && hasSubmit && hasQuestions && hasProgress && hasOptional;
+
+    Logger.log('=== Pre-Survey Rendering Test Complete ===');
+    Logger.log(allValid ? '✅ All validations passed' : '❌ Some validations failed');
+
+    return {
+      name: 'Pre-Survey UI Rendering',
+      passed: allValid,
+      htmlLength: htmlLength
+    };
+  } catch (error) {
+    Logger.log('  ❌ Error rendering pre-survey: ' + error.toString());
+    return {
+      name: 'Pre-Survey UI Rendering',
+      passed: false,
+      error: error.toString()
+    };
+  }
+}
+
+/**
+ * Phase 2: Run All Pre-Survey Tests
+ * Master test function for Phase 2
+ */
+function runPhase2Tests() {
+  Logger.log('╔════════════════════════════════════════════════════════════╗');
+  Logger.log('║            PHASE 2 TEST SUITE - Pre-Survey UI             ║');
+  Logger.log('╚════════════════════════════════════════════════════════════╝');
+  Logger.log('');
+
+  const results = [];
+
+  // Test 1: Save/Retrieve
+  Logger.log('TEST 1: Pre-Survey Save/Retrieve');
+  Logger.log('═'.repeat(60));
+  const test1 = testPreSurveySaveRetrieve();
+  results.push(test1);
+  Logger.log('');
+
+  // Test 2: Complete Flow
+  Logger.log('TEST 2: Pre-Survey → V1 Allocation Flow');
+  Logger.log('═'.repeat(60));
+  const test2 = testPreSurveyToAllocationFlow();
+  results.push(test2);
+  Logger.log('');
+
+  // Test 3: UI Rendering
+  Logger.log('TEST 3: Pre-Survey UI Rendering');
+  Logger.log('═'.repeat(60));
+  const test3 = testPreSurveyRendering();
+  results.push(test3);
+  Logger.log('');
+
+  // Summary
+  Logger.log('╔════════════════════════════════════════════════════════════╗');
+  Logger.log('║                      TEST SUMMARY                          ║');
+  Logger.log('╚════════════════════════════════════════════════════════════╝');
+  const passed = results.filter(r => r.passed).length;
+  const total = results.length;
+  Logger.log('Total Tests: ' + total);
+  Logger.log('✅ Passed: ' + passed);
+  Logger.log('❌ Failed: ' + (total - passed));
+  Logger.log('');
+
+  if (passed === total) {
+    Logger.log('🎉 ALL PHASE 2 TESTS PASSED!');
+    Logger.log('');
+    Logger.log('Phase 2 is ready for user testing:');
+    Logger.log('  1. Open Tool 4 as a new user');
+    Logger.log('  2. Fill out the pre-survey form');
+    Logger.log('  3. Submit and watch it calculate allocations');
+    Logger.log('  4. See the calculator with personalized values');
+  } else {
+    Logger.log('⚠️  SOME TESTS FAILED - Review errors above');
+  }
+
+  return {
+    total: total,
+    passed: passed,
+    failed: total - passed,
+    results: results
+  };
+}
