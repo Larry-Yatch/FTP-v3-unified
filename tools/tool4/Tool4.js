@@ -1902,17 +1902,30 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
     }
 
     function calculateAllocation() {
+      console.log('calculateAllocation() called');
+      console.log('selectedPriorityName:', selectedPriorityName);
+
       if (!selectedPriorityName) {
         alert('Please select a priority first');
         return;
       }
       const timeline = document.getElementById('goalTimeline').value;
+      console.log('timeline:', timeline);
+
       if (!timeline) {
         alert('Please select a timeline');
         return;
       }
 
-      // Show loading
+      console.log('About to call server with priority:', selectedPriorityName, 'timeline:', timeline);
+
+      // Show loading overlay (same as profile button)
+      var loadingOverlay = document.getElementById('loadingOverlay');
+      if (loadingOverlay) {
+        loadingOverlay.classList.add('show');
+      }
+
+      // Disable button
       const btn = document.getElementById('calculateAllocationBtn');
       btn.disabled = true;
       btn.textContent = 'Calculating...';
@@ -1920,20 +1933,26 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       // Call server to calculate allocation with selected priority
       google.script.run
         .withSuccessHandler(function(result) {
+          console.log('Server response received:', result);
           // Use document.write() pattern to avoid breaking GAS iframe chain
           // (FormUtils pattern - lines 67-75)
           if (result && result.nextPageHtml) {
+            console.log('Writing new page HTML');
             document.open();
             document.write(result.nextPageHtml);
             document.close();
             window.scrollTo(0, 0);
           } else {
+            console.error('No nextPageHtml in result:', result);
+            if (loadingOverlay) loadingOverlay.classList.remove('show');
             alert('Error: Server did not return page HTML');
             btn.disabled = false;
             btn.textContent = 'Calculate My Allocation';
           }
         })
         .withFailureHandler(function(error) {
+          console.error('Server error:', error);
+          if (loadingOverlay) loadingOverlay.classList.remove('show');
           alert('Error: ' + error.message);
           btn.disabled = false;
           btn.textContent = 'Calculate My Allocation';
