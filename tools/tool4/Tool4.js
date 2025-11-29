@@ -76,6 +76,35 @@ const Tool4 = {
   },
 
   /**
+   * Save pre-survey data (Phase 2)
+   */
+  savePreSurvey(clientId, preSurveyData) {
+    try {
+      const preSurveyKey = `tool4_presurvey_${clientId}`;
+      PropertiesService.getUserProperties().setProperty(preSurveyKey, JSON.stringify(preSurveyData));
+      Logger.log(`Pre-survey saved for client: ${clientId}`);
+      return { success: true };
+    } catch (error) {
+      Logger.log(`Error saving pre-survey: ${error}`);
+      throw new Error('Failed to save pre-survey: ' + error.message);
+    }
+  },
+
+  /**
+   * Get saved pre-survey data (Phase 2)
+   */
+  getPreSurvey(clientId) {
+    try {
+      const preSurveyKey = `tool4_presurvey_${clientId}`;
+      const preSurveyData = PropertiesService.getUserProperties().getProperty(preSurveyKey);
+      return preSurveyData ? JSON.parse(preSurveyData) : null;
+    } catch (error) {
+      Logger.log(`Error getting pre-survey: ${error}`);
+      return null;
+    }
+  },
+
+  /**
    * Build main calculator page
    */
   buildCalculatorPage(clientId, baseUrl, toolStatus) {

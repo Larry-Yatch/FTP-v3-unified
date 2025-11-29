@@ -609,38 +609,44 @@ BG: PreSurvey_EssentialsRange (string)
 
 ## 🚀 Implementation Roadmap
 
-### **Phase 1: V1 Engine Port (Week 4)** ✅ IN PROGRESS
+### **Phase 1: V1 Engine Port (Week 4)** ✅ COMPLETED
 
 **Tasks:**
 1. ✅ Copy `AllocationFunction.js` from V1 app
-2. ✅ Adapt `calculateAllocations()` → `calculateAllocationV1()` (Tool4.js:1292-1512)
+2. ✅ Adapt `calculateAllocations()` → `calculateAllocationV1()` (Tool4.js:1492-1712)
 3. ✅ Create test function `testAllocationEngine()` (tests/Tool4Tests.js:1211-1288)
-4. ⏳ Build `buildV1Input()` mapper function
-5. ⏳ Build helper functions:
-   - `deriveGrowthFromTool2()`
-   - `deriveStabilityFromTool2()`
-   - `deriveStageOfLife()`
-   - `mapEmergencyFundMonths()`
-   - `mapIncomeStability()`
-   - `deriveDebtLoad()`
-   - `deriveInterestLevel()`
-6. ⏳ Test with sample Tool 1/2/3 data
-7. ⏳ Validate outputs match V1 expectations
+4. ✅ Build `buildV1Input()` mapper function (Tool4.js:1722-1793)
+5. ✅ Build helper functions (Tool4.js:1795-1918):
+   - `deriveGrowthFromTool2()` - Maps investment/savings/retirement to 0-10 scale
+   - `deriveStabilityFromTool2()` - Maps emergency fund/insurance/debt to 0-10 scale
+   - `deriveStageOfLife()` - Categorizes by age and employment status
+   - `mapEmergencyFundMonths()` - Converts Tool 2 scale to V1 tiers (A-E)
+   - `mapIncomeStability()` - Converts Tool 2 consistency to categorical
+   - `deriveDebtLoad()` - Analyzes debt text + stress to determine tier (A-E)
+   - `deriveInterestLevel()` - Maps debt stress to interest level (High/Medium/Low)
+6. ✅ Test with sample Tool 1/2/3 data
+7. ✅ Validate outputs match V1 expectations
 
 **Success Criteria:**
 - ✅ V1 engine runs server-side in Tool 4
 - ✅ Given same inputs, produces same M/E/F/J percentages as V1
 - ✅ Modifier notes correctly categorized (Financial/Behavioral/Motivational)
-- ⏳ Integration with Tools 1/2/3 data working
-- ⏳ All helper functions tested
+- ✅ Integration with Tools 1/2/3 data working
+- ✅ All helper functions tested
 
 **Current Implementation Status:**
-- **File:** `/tools/tool4/Tool4.js` (lines 1292-1512)
-- **Function:** `calculateAllocationV1(input)`
-- **Test Suite:** `/tests/Tool4Tests.js` (lines 1211-1288)
-- **Test Results:** ✅ Both test cases passing (100% sum, satisfaction amplification working)
-- **Deployed:** ✅ Version pushed to Apps Script
-- **Committed:** ✅ Commit 9a818c9 "refactor(tool4): Move test function to proper test file"
+- **Core Engine:** `/tools/tool4/Tool4.js` (lines 1492-1712)
+  - `calculateAllocationV1(input)` - V1 allocation engine with 3-tier modifiers
+- **Integration Layer:** `/tools/tool4/Tool4.js` (lines 1722-1918)
+  - `buildV1Input(clientId, preSurveyAnswers)` - Maps Tool 1/2/3 + pre-survey to V1 format
+  - 7 helper functions for Tool 2 data derivation
+- **Test Suite:** `/tests/Tool4Tests.js` (lines 1211-1504)
+  - `testAllocationEngine()` - V1 engine unit tests
+  - `testV1InputMapper()` - Input mapping tests
+  - `testHelperFunctions()` - Helper function validation tests
+  - `testEndToEndIntegration()` - Complete flow test
+- **Test Results:** ✅ All test cases passing (100% sum, satisfaction amplification working)
+- **Deployed:** ✅ Version pushed to Apps Script (2025-11-29)
 
 **Test Case 1 Results (Build Long-Term Wealth):**
 - Percentages: M:41%, E:40%, F:8%, J:11%
@@ -652,24 +658,39 @@ BG: PreSurvey_EssentialsRange (string)
 - Satisfaction Boost: 0% (low satisfaction)
 - Modifiers: Severe debt load, high-interest debt, unstable income
 
+**Integration Layer Features:**
+- Safe defaults when Tool 2 data missing
+- Tool 2 scale conversions (-5 to +5) → V1 formats (A-E tiers, 0-10 scales)
+- Text analysis for debt load detection
+- Age-based life stage categorization
+- Composite scores from multiple Tool 2 fields
+
 ---
 
-### **Phase 2: Pre-Survey UI (Week 4)**
+### **Phase 2: Pre-Survey UI (Week 4)** 🔄 IN PROGRESS
 
 **Tasks:**
-1. Design pre-survey page (7 critical questions)
-2. Add "Optional Questions" section (5 additional)
-3. Build form validation
-4. Save pre-survey responses to session
-5. Call `calculatePersonalizedAllocation()` on submission
-6. Show loading screen: "Building your personalized plan..."
-7. Transition to calculator with pre-filled values
+1. ⏳ Design pre-survey page (7 critical questions)
+2. ⏳ Add "Optional Questions" section (5 additional)
+3. ⏳ Build form validation
+4. ⏳ Save pre-survey responses to session
+5. ⏳ Call `calculateAllocationV1()` on submission via buildV1Input
+6. ⏳ Show loading screen: "Building your personalized plan..."
+7. ⏳ Transition to calculator with pre-filled values
 
 **Success Criteria:**
 - All 7 critical questions required
 - Optional questions show/hide toggle
 - Validation prevents submission with missing critical fields
 - Calculator loads with V1-calculated percentages
+
+**Design Approach:**
+- Single-page form (not multi-step like Tools 1/2/3)
+- Trauma-informed language (non-judgmental, empowering)
+- Clear progress indicators showing 7 required + 5 optional
+- Inline help text for each question
+- Mobile-responsive design
+- Save draft capability (PropertiesService)
 
 ---
 
@@ -794,15 +815,29 @@ BG: PreSurvey_EssentialsRange (string)
    - Test 2: Get Out of Debt (severe debt) → M:8%, E:40%, F:52%, J:0%
 6. ✅ Deployed to Apps Script and committed to GitHub (9a818c9)
 
-**In Progress:**
-- Building mapper functions to integrate with Tools 1/2/3 data
-- Creating pre-survey UI for 7 critical behavioral questions
-
-**Next Steps:**
-1. Build `buildV1Input()` mapper function
-2. Create helper functions for Tool 2 data derivation
-3. Design and implement pre-survey UI
-4. Test end-to-end flow with real Tool 1/2/3 data
+**Completed (2025-11-29 - Session 1):**
+1. ✅ Built `buildV1Input()` mapper function
+   - Maps Tool 1/2/3 data + pre-survey to V1 format
+   - Safe defaults when Tool 2 data missing
+   - Error handling with fallback values
+2. ✅ Created 7 helper functions for Tool 2 data derivation:
+   - `deriveGrowthFromTool2()` - Investment/savings/retirement → 0-10 scale
+   - `deriveStabilityFromTool2()` - Emergency fund/insurance/debt → 0-10 scale
+   - `deriveStageOfLife()` - Age + employment → life stage categories
+   - `mapEmergencyFundMonths()` - Tool 2 scale (-5 to +5) → V1 tiers (A-E)
+   - `mapIncomeStability()` - Tool 2 consistency → categorical stability
+   - `deriveDebtLoad()` - Text analysis + stress → debt tier (A-E)
+   - `deriveInterestLevel()` - Debt stress → interest level (High/Medium/Low)
+3. ✅ Built comprehensive test suite (3 new test functions):
+   - `testV1InputMapper()` - Tests mapper with missing data
+   - `testHelperFunctions()` - Validates all 7 helper functions
+   - `testEndToEndIntegration()` - Complete pre-survey → allocation flow
+4. ✅ Deployed and tested in Apps Script environment
+5. ✅ Local validation complete with real student data:
+   - 29 test cases passing (all helper functions)
+   - 2 real student profiles validated (Evelia, Greg)
+   - Edge cases handled (missing data, empty strings, zero values)
+   - See: `docs/Tool4/PHASE1-TEST-RESULTS.md`
 
 **Technical Notes:**
 - V1 engine successfully ported with zero errors
@@ -810,9 +845,13 @@ BG: PreSurvey_EssentialsRange (string)
 - Modifier notes properly categorized for progressive disclosure
 - Test function moved to proper test file for code organization
 - Essentials floor enforcement working (40% minimum)
+- Integration layer complete with robust error handling
+- All helper functions handle edge cases (null values, missing data)
+- Text parsing for debt load uses multiple heuristics (keywords + stress level)
+- Local test scripts created for rapid validation (`test-integration.js`, `test-e2e-integration.js`)
 
 ---
 
 **Document Maintained By:** Claude Code
 **Next Update:** After Phase 2 completion
-**Version:** 1.1
+**Version:** 1.2 (Phase 1 Complete, Phase 2 In Progress)

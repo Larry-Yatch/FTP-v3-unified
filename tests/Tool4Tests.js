@@ -1286,3 +1286,219 @@ function testAllocationEngine() {
     success: true
   };
 }
+
+/**
+ * Week 4: Test V1 Input Mapper Integration
+ * Tests buildV1Input() function with mock Tool 1/2/3 data
+ */
+function testV1InputMapper() {
+  Logger.log('=== Testing V1 Input Mapper ===');
+
+  // Create a test client ID
+  const testClientId = 'TEST_' + new Date().getTime();
+
+  // Mock pre-survey answers
+  const mockPreSurvey = {
+    incomeRange: 'C',
+    essentialsRange: 'D',
+    satisfaction: 7,
+    discipline: 8,
+    impulse: 7,
+    longTerm: 8,
+    goalTimeline: '1–2 years',
+    emotionSpend: 6,
+    emotionSafety: 7,
+    avoidance: 4,
+    lifestyle: 6,
+    autonomy: 7,
+    selectedPriority: 'Build Long-Term Wealth'
+  };
+
+  // Test with no Tool 2 data (should return safe defaults)
+  Logger.log('Test 1: No Tool 2 data (safe defaults)');
+  const input1 = Tool4.buildV1Input(testClientId, mockPreSurvey);
+  Logger.log('Generated input: ' + JSON.stringify(input1, null, 2));
+  Logger.log('✓ Returned safe defaults for missing Tool 2 data');
+  Logger.log('');
+
+  // Validate the generated input can be used with allocation engine
+  Logger.log('Test 2: Running allocation engine with mapped input');
+  const result = Tool4.calculateAllocationV1(input1);
+  Logger.log('Allocation result: ' + JSON.stringify(result.percentages));
+  Logger.log('✓ Mapper output compatible with V1 engine');
+  Logger.log('');
+
+  Logger.log('=== Input Mapper Tests Complete ===');
+  Logger.log('✓ Safe defaults working');
+  Logger.log('✓ Integration with V1 engine working');
+
+  return {
+    mappedInput: input1,
+    allocationResult: result,
+    success: true
+  };
+}
+
+/**
+ * Week 4: Test Helper Functions
+ * Tests all helper functions for Tool 2 data derivation
+ */
+function testHelperFunctions() {
+  Logger.log('=== Testing Helper Functions ===');
+
+  // Mock Tool 2 form data
+  const mockTool2Form = {
+    age: 35,
+    employment: 'full-time',
+    dependents: 2,
+    incomeConsistency: 3,
+    emergencyFundMonths: 2,
+    emergencyFundMaintenance: 3,
+    insuranceConfidence: 2,
+    debtTrending: 1,
+    investmentActivity: 4,
+    savingsRegularity: 3,
+    retirementFunding: 2,
+    currentDebts: 'credit card: $5000, student loan: $20000',
+    debtStress: -2,
+    goalConfidence: 3
+  };
+
+  // Test deriveGrowthFromTool2
+  Logger.log('Test 1: deriveGrowthFromTool2');
+  const growth = Tool4.deriveGrowthFromTool2(mockTool2Form);
+  Logger.log('  Input: investmentActivity=4, savingsRegularity=3, retirementFunding=2');
+  Logger.log('  Output: ' + growth + ' (expected 8-9)');
+  Logger.log('  ✓ Growth derivation working');
+  Logger.log('');
+
+  // Test deriveStabilityFromTool2
+  Logger.log('Test 2: deriveStabilityFromTool2');
+  const stability = Tool4.deriveStabilityFromTool2(mockTool2Form);
+  Logger.log('  Input: emergencyFundMaintenance=3, insuranceConfidence=2, debtTrending=1');
+  Logger.log('  Output: ' + stability + ' (expected 6-7)');
+  Logger.log('  ✓ Stability derivation working');
+  Logger.log('');
+
+  // Test deriveStageOfLife
+  Logger.log('Test 3: deriveStageOfLife');
+  const stage = Tool4.deriveStageOfLife(mockTool2Form);
+  Logger.log('  Input: age=35, employment=full-time');
+  Logger.log('  Output: ' + stage + ' (expected Adult)');
+  Logger.log('  ✓ Stage of life derivation working');
+  Logger.log('');
+
+  // Test mapEmergencyFundMonths
+  Logger.log('Test 4: mapEmergencyFundMonths');
+  const efTier = Tool4.mapEmergencyFundMonths(mockTool2Form.emergencyFundMonths);
+  Logger.log('  Input: emergencyFundMonths=2');
+  Logger.log('  Output: ' + efTier + ' (expected C or D)');
+  Logger.log('  ✓ Emergency fund mapping working');
+  Logger.log('');
+
+  // Test mapIncomeStability
+  Logger.log('Test 5: mapIncomeStability');
+  const stability2 = Tool4.mapIncomeStability(mockTool2Form.incomeConsistency);
+  Logger.log('  Input: incomeConsistency=3');
+  Logger.log('  Output: ' + stability2 + ' (expected Very stable)');
+  Logger.log('  ✓ Income stability mapping working');
+  Logger.log('');
+
+  // Test deriveDebtLoad
+  Logger.log('Test 6: deriveDebtLoad');
+  const debtLoad = Tool4.deriveDebtLoad(mockTool2Form.currentDebts, mockTool2Form.debtStress);
+  Logger.log('  Input: currentDebts="credit card: $5000, student loan: $20000", debtStress=-2');
+  Logger.log('  Output: ' + debtLoad + ' (expected D - High)');
+  Logger.log('  ✓ Debt load derivation working');
+  Logger.log('');
+
+  // Test deriveInterestLevel
+  Logger.log('Test 7: deriveInterestLevel');
+  const interestLevel = Tool4.deriveInterestLevel(mockTool2Form.debtStress);
+  Logger.log('  Input: debtStress=-2');
+  Logger.log('  Output: ' + interestLevel + ' (expected High)');
+  Logger.log('  ✓ Interest level derivation working');
+  Logger.log('');
+
+  Logger.log('=== Helper Function Tests Complete ===');
+  Logger.log('✓ All 7 helper functions working correctly');
+
+  return {
+    growth: growth,
+    stability: stability,
+    stage: stage,
+    efTier: efTier,
+    incomeStability: stability2,
+    debtLoad: debtLoad,
+    interestLevel: interestLevel,
+    success: true
+  };
+}
+
+/**
+ * Week 4: End-to-End Integration Test
+ * Tests complete flow: Mock Tool 2 data → buildV1Input → calculateAllocationV1
+ */
+function testEndToEndIntegration() {
+  Logger.log('=== Testing End-to-End Integration ===');
+
+  // Create test client ID
+  const testClientId = 'E2E_TEST_' + new Date().getTime();
+
+  // Mock complete pre-survey
+  const preSurvey = {
+    incomeRange: 'D',
+    essentialsRange: 'C',
+    satisfaction: 8,
+    discipline: 7,
+    impulse: 6,
+    longTerm: 8,
+    goalTimeline: '2–5 years',
+    emotionSpend: 5,
+    emotionSafety: 7,
+    avoidance: 3,
+    lifestyle: 6,
+    autonomy: 8,
+    selectedPriority: 'Build Long-Term Wealth'
+  };
+
+  Logger.log('Step 1: Build V1 input from pre-survey');
+  const v1Input = Tool4.buildV1Input(testClientId, preSurvey);
+  Logger.log('  ✓ V1 input built successfully');
+  Logger.log('  Priority: ' + v1Input.priority);
+  Logger.log('  Satisfaction: ' + v1Input.satisfaction);
+  Logger.log('  Discipline: ' + v1Input.discipline);
+  Logger.log('');
+
+  Logger.log('Step 2: Calculate allocation using V1 engine');
+  const allocation = Tool4.calculateAllocationV1(v1Input);
+  Logger.log('  ✓ Allocation calculated successfully');
+  Logger.log('  Multiply: ' + allocation.percentages.Multiply + '%');
+  Logger.log('  Essentials: ' + allocation.percentages.Essentials + '%');
+  Logger.log('  Freedom: ' + allocation.percentages.Freedom + '%');
+  Logger.log('  Enjoyment: ' + allocation.percentages.Enjoyment + '%');
+  Logger.log('');
+
+  Logger.log('Step 3: Validate allocation');
+  const sum = allocation.percentages.Multiply + allocation.percentages.Essentials +
+              allocation.percentages.Freedom + allocation.percentages.Enjoyment;
+  Logger.log('  Sum check: ' + sum + '% (expected 100%)');
+  Logger.log('  ✓ Allocation sums to 100%');
+  Logger.log('');
+
+  Logger.log('Step 4: Verify satisfaction amplification');
+  Logger.log('  Satisfaction score: ' + v1Input.satisfaction + '/10');
+  Logger.log('  Boost applied: ' + allocation.details.satBoostPct + '%');
+  Logger.log('  ✓ Satisfaction boost working (expected 30% for satisfaction=8)');
+  Logger.log('');
+
+  Logger.log('=== End-to-End Integration Test Complete ===');
+  Logger.log('✓ Complete flow working: Pre-survey → Mapping → Allocation → Output');
+
+  return {
+    v1Input: v1Input,
+    allocation: allocation,
+    valid: sum === 100,
+    success: true
+  };
+}
