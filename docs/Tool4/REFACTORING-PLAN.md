@@ -204,25 +204,34 @@ navigateToDashboard(clientId, 'Returning to Dashboard')
 ---
 
 ### Phase 1 Summary
-- **Total Lines Removed:** ~70 lines (Phases 1.1 & 1.4 complete)
-- **Time Estimate:** 6-8 hours
-- **Risk Level:** Very Low
-- **Dependencies:** None - all using existing infrastructure
-- **Status:** ⚠️ PARTIALLY COMPLETE (2025-11-29)
-  - ✅ Phase 1.1: Shared loading animation implemented
-  - ⏸️ Phase 1.2: DEFERRED - Tool4 uses custom handlers for single-page architecture
-  - ⏸️ Phase 1.3: DEFERRED - Tool4 doesn't fit multi-page savePageData pattern
-  - ✅ Phase 1.4: Duplicate navigation function removed
+- **Total Lines Removed:** 0 lines (Phase 1 ABANDONED)
+- **Time Spent:** 3 hours (2025-11-29)
+- **Risk Level:** Low (failed attempts reverted)
+- **Status:** ❌ ABANDONED - Tool4 architecture incompatible with shared infrastructure
 
-**Testing Checklist:**
-  - [ ] Pre-survey form submission works
-  - [ ] Loading overlay displays correctly
-  - [ ] Priority selection saves correctly
-  - [ ] Navigation to dashboard works
-  - [ ] No console errors
-  - [ ] Data persists correctly
+**What We Tried:**
+  - ❌ Phase 1.1: Shared loading animation - `<?!= include() ?>` doesn't create global functions
+  - ❌ Phase 1.2: FormUtils form handlers - multi-page pattern doesn't fit single-page app
+  - ❌ Phase 1.3: Standard savePageData interface - Tool4 has custom save handlers
+  - ❌ Phase 1.4: Shared navigation - navigateToDashboard not in global scope
 
-**Note:** Phases 1.2 and 1.3 deferred because Tool4 uses a single-page progressive disclosure architecture, not a multi-page wizard like Tool2. The custom form handlers (`savePreSurvey`, `savePrioritySelection`) are better suited to this pattern than FormUtils' multi-page approach.
+**What Actually Happened:**
+  - Commits `eda8792` and `1c11241` attempted shared component integration
+  - Result: `showLoading()`, `hideLoading()`, `navigateToDashboard()` all undefined
+  - Root cause: `<?!= include('shared/loading-animation') ?>` executes in isolated scope
+  - Commit `15ce111` reverted all changes, restored custom loading overlay
+  - Commit `f607f76` improved custom loading with contextual messages
+
+**Key Learnings:**
+1. **Google Apps Script Include Limitation**: Server-side `<?!= include() ?>` inlines HTML/CSS/JS but scripts execute in separate scope, not globally accessible
+2. **Architecture Mismatch**: Tools 1-5 use multi-page wizard pattern; Tool4 is single-page progressive disclosure
+3. **Custom is OK**: Tool4's unique architecture justifies custom implementations
+4. **Test First**: Should have verified `include()` scope behavior before committing
+
+**Net Result:**
+- Lines removed: 0
+- Improvements made: Contextual loading messages, better error handling
+- Conclusion: **Skip Phase 1 entirely, proceed to Phase 2 (Module Extraction)**
 
 ---
 
