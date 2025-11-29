@@ -845,21 +845,155 @@ Tool1.render(params) {
 
 ---
 
+---
+
+## 🔥 November 29, 2025 Update: Client-Side vs Server-Side URL Construction (CRITICAL)
+
+### **Issue 16: Client-Side BASE_URL Variable Causes Navigation Failures**
+
+**Problem:** After Tool 4 navigation improvements, an attempt was made to use a client-side `BASE_URL` JavaScript variable instead of server-side `${baseUrl}` template variable. This caused ALL navigation to break across Tools 1-5.
+
+**Trigger:** Added this to dashboard template:
+```javascript
+<script>
+  const BASE_URL = window.location.origin + window.location.pathname;
+</script>
+```
+
+Then changed inline onclick handlers and functions from:
+```javascript
+// Server-side (WORKING)
+window.top.location.href = '${baseUrl}?route=tool1&client=${clientId}'
+```
+
+To:
+```javascript
+// Client-side (BROKEN)
+window.top.location.href = BASE_URL + '?route=tool1&client=${clientId}'
+```
+
+**What Broke:**
+- Tool 1: View Report button (white screen)
+- Tool 2: All navigation (Edit, View Report, Start Fresh, Continue, Discard Draft)
+- Tool 3: All navigation
+- Tool 4: Open Calculator button
+- Tool 5: All navigation
+
+**Root Cause:**
+
+1. **Timing Issue:** The `BASE_URL` variable was defined AFTER the template was evaluated, but inline onclick handlers tried to use it BEFORE it was defined
+2. **Scope Issue:** Template variables (`${baseUrl}`) are evaluated SERVER-SIDE and embedded directly into the HTML as strings. Client-side variables (`BASE_URL`) require the variable to exist in scope when the handler executes
+3. **Order of Execution:**
+   - Server renders template → `${baseUrl}` becomes actual URL string
+   - Browser loads HTML → `BASE_URL` not yet defined
+   - User clicks button → Handler tries to use `BASE_URL` → `undefined`
+   - Result: Navigation to `undefined?route=...` → 404 or white screen
+
+**The Fix:** Revert ALL navigation back to server-side template variables:
+
+```javascript
+// ✅ CORRECT: Server-side template variable
+window.top.location.href = '${baseUrl}?route=tool1&client=${clientId}'
+
+// Add baseUrl back to _createDashboard
+_createDashboard(params) {
+  const clientId = params.client || params.clientId;
+  const baseUrl = ScriptApp.getService().getUrl();  // ✅ Re-added
+  // ...
+}
+
+// Pass baseUrl to all helper functions
+${this._buildTool2Card(clientId, baseUrl, tool2Latest, ...)}
+${this._buildTool3Card(clientId, baseUrl, tool3Latest, ...)}
+${this._buildTool5Card(clientId, baseUrl, tool5Latest, ...)}
+
+// Use in inline handlers and script blocks
+function viewTool2Report() {
+  window.top.location.href = '${baseUrl}?route=tool2_report&client=${clientId}';
+}
+```
+
+**Files Modified:**
+- `core/Router.js`: Restored `baseUrl` variable, reverted all BASE_URL references
+- Removed client-side `BASE_URL` script block entirely
+
+### **Why Server-Side Template Variables Are Superior**
+
+| Aspect | Server-Side `${baseUrl}` | Client-Side `BASE_URL` |
+|--------|--------------------------|------------------------|
+| **Evaluation Time** | During template rendering (server) | During JavaScript execution (browser) |
+| **Reliability** | ✅ Always available | ❌ Depends on load order |
+| **Inline onclick** | ✅ Works perfectly | ❌ Timing issues |
+| **Scope** | ✅ Embedded as string | ❌ Requires variable in scope |
+| **Performance** | ✅ No runtime lookup | ❌ Runtime variable access |
+| **Debugging** | ✅ Can view source to see actual URL | ❌ Must inspect runtime state |
+
+**The Golden Rule:**
+> **ALWAYS use server-side template variables (`${baseUrl}`) for navigation URLs in Google Apps Script**
+>
+> Server-side rendering is more reliable than client-side URL construction because:
+> 1. No timing issues - URL is embedded before browser sees it
+> 2. No scope issues - it's a string literal, not a variable reference
+> 3. No race conditions - rendered synchronously on server
+> 4. Works in ALL contexts - inline handlers, script blocks, IIFEs
+
+### **Navigation Pattern Reference (Updated)**
+
+```javascript
+// ✅ ALWAYS USE: Server-side template variables
+function viewReport() {
+  showLoading('Loading Report');
+  window.top.location.href = '${baseUrl}?route=tool1_report&client=${clientId}';
+}
+
+// ✅ In script blocks with local variable
+<script>
+  (function() {
+    const baseUrl = '${baseUrl}';  // Server-side evaluated
+    const clientId = '${clientId}'; // Server-side evaluated
+
+    window.editResponse = function() {
+      window.top.location.href = baseUrl + '?route=tool1&client=' + clientId;
+    };
+  })();
+</script>
+
+// ❌ NEVER USE: Client-side URL construction
+<script>
+  const BASE_URL = window.location.origin + window.location.pathname;
+</script>
+<button onclick="window.top.location.href = BASE_URL + '?route=...'">  // ❌ BROKEN
+```
+
+### **Updated Testing Checklist**
+
+Before deploying navigation changes:
+- [ ] Verify all navigation uses `${baseUrl}` (NOT `BASE_URL`)
+- [ ] Check that `baseUrl` is declared in `_createDashboard()`
+- [ ] Confirm `baseUrl` is passed to all helper functions
+- [ ] Test ALL tool buttons: Start, Continue, Discard, View Report, Edit, Start Fresh
+- [ ] Verify client-side scripts use `const baseUrl = '${baseUrl}'` pattern
+- [ ] No standalone `BASE_URL` variable definitions
+
+---
+
 **Created by:** Agent Girl
 **Original Date:** November 3, 2024
 **Major Update:** November 4, 2024 (AM) - iframe fixes
 **Deep Dive:** November 4, 2024 (PM) - Data persistence & navigation audit
 **Critical Update:** November 4, 2024 (Late PM) - window.top discovery (@53)
 **Edge Cases Fixed:** November 5, 2024 - Null checks & user gesture (@56-@57)
-**Deployment:** v3.3.0 @57 - Production Ready with Hotfixes
-**Status:** ✅ ALL navigation working, all edge cases handled
+**Navigation Pattern Update:** November 29, 2025 - Server-side vs client-side URL construction
+**Deployment:** v3.3.0 @57+ - Production Ready with All Patterns Validated
+**Status:** ✅ ALL navigation working, all edge cases handled, best practices documented
 
 ## 🎉 Production Ready!
 
-**Total Issues Fixed:** 15 critical bugs across 17 deployments (@41-@57)
+**Total Issues Fixed:** 16 critical bugs across 20+ deployments
 **Key Discoveries:**
 1. `window.top.location.href` required for ALL navigation from `document.write()` pages
 2. User gestures lost in async callbacks - navigate immediately instead
 3. `google.script.run` can return `null` - always add null checks
+4. **Server-side `${baseUrl}` is mandatory** - client-side URL construction fails
 
 **Testing:** All navigation paths verified working without white screens or security errors

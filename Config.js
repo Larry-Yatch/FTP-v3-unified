@@ -12,6 +12,8 @@ const CONFIG = {
   VERSION: '3.0.0',
   DEPLOYMENT: '@v3-001',
 
+  // Production Deployment URL (use this instead of ScriptApp.getService().getUrl() for navigation)
+
   // Sheet Names (do not change - used by core framework)
   SHEETS: {
     SESSIONS: 'SESSIONS',

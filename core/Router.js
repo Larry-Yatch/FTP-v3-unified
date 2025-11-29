@@ -488,7 +488,7 @@ const Router = {
         <script>
           function viewTool4Calculator() {
             showLoading('Loading Calculator');
-            window.top.location.href = '${baseUrl}?route=tool4&client=${clientId}';
+            window.top.location.href = BASE_URL + '?route=tool4&client=${clientId}';
           }
         </script>
       `;

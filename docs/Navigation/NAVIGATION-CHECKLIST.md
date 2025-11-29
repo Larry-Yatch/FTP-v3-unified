@@ -18,6 +18,46 @@ This checklist ensures all navigation patterns are correctly implemented to avoi
 
 Before building a new tool, review these rules:
 
+### **Rule 0: CRITICAL - Server-Side Template Variables Only!**
+
+**⚠️ NEVER use client-side URL construction for navigation!**
+
+```javascript
+// ❌ BROKEN: Client-side variable (causes white screens)
+<script>
+  const BASE_URL = window.location.origin + window.location.pathname;
+</script>
+<button onclick="window.top.location.href = BASE_URL + '?route=tool1'">
+
+// ✅ CORRECT: Server-side template variable
+<button onclick="window.top.location.href = '${baseUrl}?route=tool1&client=${clientId}'">
+
+// ✅ CORRECT: Server-side variable in script block
+<script>
+  (function() {
+    const baseUrl = '${baseUrl}';  // Evaluated server-side
+    const clientId = '${clientId}'; // Evaluated server-side
+
+    window.myFunction = function() {
+      window.top.location.href = baseUrl + '?route=tool1&client=' + clientId;
+    };
+  })();
+</script>
+```
+
+**Why This Matters:**
+- Server-side `${baseUrl}` is evaluated during template rendering (reliable)
+- Client-side `BASE_URL` depends on script execution order (unreliable)
+- Inline onclick handlers execute before client-side scripts load
+- Result: `undefined?route=...` → 404 or white screen
+
+**Always:**
+- ✅ Use `${baseUrl}` template variables
+- ✅ Declare `const baseUrl = ScriptApp.getService().getUrl()` in `_createDashboard()`
+- ✅ Pass `baseUrl` to all helper functions
+- ❌ NEVER define client-side `BASE_URL` variable
+- ❌ NEVER use `window.location.origin + window.location.pathname`
+
 ### **Rule 1: Know Your Navigation Pattern**
 - [ ] Dashboard ↔ Report = `document.write()` (SPA-like)
 - [ ] Dashboard → Form = `window.location.href` (break chain)
@@ -580,6 +620,7 @@ function validateNavigationPatterns() {
 - ✅ Dashboard/Report → Form: **Navigate IMMEDIATELY** with `window.top.location.href` + URL params
 - ❌ **NEVER** use async callbacks before navigation (loses user gesture!)
 - ✅ **ALWAYS** check for null in `google.script.run` success handlers
+- ✅ **ALWAYS** use server-side `${baseUrl}` template variables (NOT client-side `BASE_URL`)
 
 ---
 

@@ -8,14 +8,16 @@
 
 ## Active Deployment
 
-**Deployment URL:**
+**Deployment URL (Auto-updating @HEAD):**
 ```
 https://script.google.com/macros/s/AKfycbxLCd4P9XY20NpAhwg7zucFE_BgwTnhjRqYRTgQ1QY/exec
 ```
 
 **Deployment ID:** `AKfycbxLCd4P9XY20NpAhwg7zucFE_BgwTnhjRqYRTgQ1QY`
 
-**Type:** @HEAD (Auto-updates with latest push)
+**Type:** @HEAD (Auto-updates with every `clasp push`)
+
+**Note:** There are 21 versioned deployments (like @267), but @HEAD is the one that stays current.
 
 ---
 

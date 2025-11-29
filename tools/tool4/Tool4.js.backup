@@ -38,14 +38,8 @@ const Tool4 = {
       // Calculate V1 allocation if pre-survey exists
       let allocation = null;
       if (preSurveyData) {
-        try {
-          const v1Input = this.buildV1Input(clientId, preSurveyData);
-          allocation = this.calculateAllocationV1(v1Input);
-        } catch (allocError) {
-          Logger.log(`Error calculating allocation: ${allocError}`);
-          Logger.log(`Pre-survey data: ${JSON.stringify(preSurveyData)}`);
-          // Continue without allocation - will show empty calculator
-        }
+        const v1Input = this.buildV1Input(clientId, preSurveyData);
+        allocation = this.calculateAllocationV1(v1Input);
       }
 
       // Always show unified page (pre-survey + calculator in one view)
@@ -57,7 +51,6 @@ const Tool4 = {
 
     } catch (error) {
       Logger.log(`Error rendering Tool 4: ${error}`);
-      Logger.log(`Error stack: ${error.stack}`);
       return this.renderError(error);
     }
   },
@@ -92,35 +85,17 @@ const Tool4 = {
   },
 
   /**
-   * Save pre-survey data and return updated page HTML (Phase 2)
+   * Save pre-survey data (Phase 2)
    */
   savePreSurvey(clientId, preSurveyData) {
     try {
       const preSurveyKey = `tool4_presurvey_${clientId}`;
       PropertiesService.getUserProperties().setProperty(preSurveyKey, JSON.stringify(preSurveyData));
       Logger.log(`Pre-survey saved for client: ${clientId}`);
-
-      // Return updated HTML with calculated allocations (like FormUtils pattern)
-      const baseUrl = ScriptApp.getService().getUrl();
-      const toolStatus = this.checkToolCompletion(clientId);
-      const savedPreSurvey = this.getPreSurvey(clientId);
-
-      // Calculate V1 allocation
-      let allocation = null;
-      if (savedPreSurvey) {
-        try {
-          const v1Input = this.buildV1Input(clientId, savedPreSurvey);
-          allocation = this.calculateAllocationV1(v1Input);
-        } catch (allocError) {
-          Logger.log(`Error calculating allocation: ${allocError}`);
-        }
-      }
-
-      const htmlContent = this.buildUnifiedPage(clientId, baseUrl, toolStatus, savedPreSurvey, allocation, false);
-      return { success: true, nextPageHtml: htmlContent };
+      return { success: true };
     } catch (error) {
       Logger.log(`Error saving pre-survey: ${error}`);
-      return { success: false, error: error.message };
+      throw new Error('Failed to save pre-survey: ' + error.message);
     }
   },
 
@@ -835,137 +810,25 @@ const Tool4 = {
    * @param {Object|null} preSurveyData - Existing pre-survey data (null if first visit)
    * @param {Object|null} allocation - V1 allocation result (null if no pre-survey)
    */
-// COMPLETE REWRITE OF buildUnifiedPage with redesigned pre-survey
-// This will replace Tool4.js lines 813-1433
+  buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
+    const styles = HtmlService.createHtmlOutputFromFile('shared/styles').getContent();
+    const hasPreSurvey = !!preSurveyData;
 
-buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
-  const styles = HtmlService.createHtmlOutputFromFile('shared/styles').getContent();
-  const hasPreSurvey = !!preSurveyData;
-  const hasTool2 = toolStatus.hasTool2;
+    // Pre-fill form values if pre-survey exists
+    const formValues = preSurveyData || {
+      satisfaction: 5,
+      discipline: 5,
+      impulse: 5,
+      longTerm: 5,
+      goalTimeline: '',
+      incomeRange: '',
+      essentialsRange: '',
+      selectedPriority: '',
+      lifestyle: 5,
+      autonomy: 5
+    };
 
-  // Pre-fill form values if pre-survey exists
-  // Handle both old format (incomeRange/essentialsRange) and new format (monthlyIncome/monthlyEssentials)
-  const formValues = preSurveyData ? {
-    selectedPriority: preSurveyData.selectedPriority || '',
-    goalTimeline: preSurveyData.goalTimeline || '',
-    monthlyIncome: preSurveyData.monthlyIncome || '',
-    monthlyEssentials: preSurveyData.monthlyEssentials || '',
-    satisfaction: preSurveyData.satisfaction || 5,
-    discipline: preSurveyData.discipline || 5,
-    impulse: preSurveyData.impulse || 5,
-    longTerm: preSurveyData.longTerm || 5,
-    lifestyle: preSurveyData.lifestyle || 5,
-    autonomy: preSurveyData.autonomy || 5
-  } : {
-    selectedPriority: '',
-    goalTimeline: '',
-    monthlyIncome: '',
-    monthlyEssentials: '',
-    satisfaction: 5,
-    discipline: 5,
-    impulse: 5,
-    longTerm: 5,
-    lifestyle: 5,
-    autonomy: 5
-  };
-
-  // Slider label definitions
-  const sliderLabels = {
-    satisfaction: [
-      "Extremely stressed - overwhelming financial anxiety daily",
-      "Very dissatisfied - constant worry about money",
-      "Quite dissatisfied - frequent financial stress",
-      "Moderately dissatisfied - regular money concerns",
-      "Somewhat dissatisfied - occasional worry",
-      "Neutral - neither satisfied nor dissatisfied",
-      "Somewhat satisfied - generally comfortable",
-      "Moderately satisfied - feel stable most days",
-      "Quite satisfied - confident in my finances",
-      "Very satisfied - rarely worry about money",
-      "Extremely satisfied - complete financial peace"
-    ],
-    discipline: [
-      "Struggle to stick to plans",
-      "Very difficult to maintain",
-      "Often lose focus",
-      "Sometimes stay on track",
-      "Moderately inconsistent",
-      "Sometimes follow through",
-      "Usually stick to it",
-      "Good self-control",
-      "Strong follow-through",
-      "Very disciplined",
-      "Extremely disciplined"
-    ],
-    impulse: [
-      "Buy on impulse constantly",
-      "Very hard to resist",
-      "Often make unplanned purchases",
-      "Sometimes lose control",
-      "Moderately impulsive",
-      "Neutral impulse control",
-      "Usually think it through",
-      "Good at resisting temptation",
-      "Strong impulse control",
-      "Very controlled",
-      "Never buy impulsively"
-    ],
-    longTerm: [
-      "Only focused on today - can't think past this week",
-      "Very present-focused - next month feels too far",
-      "Mostly short-term - think a few months ahead",
-      "Some future planning - occasionally think 6+ months out",
-      "Slightly future-oriented - starting to plan ahead",
-      "Balanced - equal focus on now and later",
-      "Somewhat future-focused - often plan 1+ year ahead",
-      "Good long-term planning - regularly think 2-5 years out",
-      "Strong future orientation - actively plan 5+ years ahead",
-      "Very long-term focused - always thinking decades ahead",
-      "Maximum future focus - retirement and legacy planning is priority"
-    ],
-    lifestyle: [
-      "Save everything possible - minimize current spending",
-      "Heavy saver - rarely spend on enjoyment",
-      "Strong saver - occasionally treat myself",
-      "Moderate saver - some room for fun",
-      "Balanced saver - regular small treats",
-      "Equal focus - save and enjoy equally",
-      "Balanced enjoyer - save but prioritize experiences",
-      "Moderate enjoyer - save less to live better now",
-      "Strong enjoyer - prioritize current quality of life",
-      "Heavy enjoyer - minimal saving, maximum living",
-      "Live fully now - save very little for later"
-    ],
-    autonomy: [
-      "Tell me exactly what to do - I want clear instructions",
-      "Strong preference for expert guidance",
-      "Mostly follow expert advice with small tweaks",
-      "Prefer expert recommendations with some input",
-      "Lean toward expert guidance but customize",
-      "Equal mix - expert insight plus my judgment",
-      "Lean toward my own choices with expert input",
-      "Mostly my decisions with expert validation",
-      "Strong preference for making my own choices",
-      "Heavy autonomy - just give me the framework",
-      "Complete autonomy - I'll decide everything myself"
-    ]
-  };
-
-  // Priority descriptions
-  const priorities = [
-    { value: "Build Long-Term Wealth", desc: "Focus on investments, retirement, and growing net worth" },
-    { value: "Get Out of Debt", desc: "Prioritize paying down credit cards, loans, and becoming debt-free" },
-    { value: "Feel Financially Secure", desc: "Build emergency fund and reduce financial anxiety" },
-    { value: "Enjoy Life Now", desc: "Balance present quality of life with future planning" },
-    { value: "Balance Everything", desc: "Equal focus across all financial areas" },
-    { value: "Prepare for Major Purchase", desc: "Save for house, car, or other large expense" },
-    { value: "Start Investing", desc: "Begin building investment portfolio and learning markets" },
-    { value: "Increase Financial Knowledge", desc: "Learn money management and financial literacy" },
-    { value: "Gain More Control", desc: "Take charge of finances and reduce chaos" },
-    { value: "Build Emergency Fund", desc: "Create safety net for unexpected expenses" }
-  ];
-
-  return `
+    return `
 <!DOCTYPE html>
 <html>
 <head>
@@ -980,55 +843,13 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       padding: 20px;
     }
 
-    /* Tool 2 Banner */
-    .tool2-banner {
-      background: linear-gradient(135deg, rgba(79, 70, 229, 0.15) 0%, rgba(124, 58, 237, 0.15) 100%);
-      border: 2px solid rgba(79, 70, 229, 0.3);
-      border-radius: 12px;
-      padding: 20px;
-      margin-bottom: 30px;
-      display: flex;
-      align-items: center;
-      gap: 15px;
-    }
-
-    .tool2-banner-icon {
-      font-size: 2rem;
-    }
-
-    .tool2-banner-content {
-      flex: 1;
-    }
-
-    .tool2-banner-title {
-      font-weight: 600;
-      color: var(--color-text-primary);
-      margin-bottom: 5px;
-    }
-
-    .tool2-banner-text {
-      color: var(--color-text-secondary);
-      font-size: 0.95rem;
-    }
-
-    .tool2-banner-btn {
-      background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 8px;
-      font-weight: 600;
-      cursor: pointer;
-      text-decoration: none;
-      display: inline-block;
-    }
-
     /* Pre-Survey Section */
     .presurvey-section {
       background: rgba(255, 255, 255, 0.05);
       border-radius: 12px;
       margin-bottom: 30px;
       overflow: hidden;
+      transition: all 0.3s ease;
     }
 
     .presurvey-header {
@@ -1061,9 +882,9 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
     }
 
     .presurvey-body {
-      max-height: 5000px;
+      max-height: 2000px;
       opacity: 1;
-      transition: max-height 0.4s ease, opacity 0.3s ease;
+      transition: max-height 0.4s ease, opacity 0.3s ease, padding 0.3s ease;
       padding: 30px;
     }
 
@@ -1078,137 +899,27 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       padding: 15px 30px;
       display: none;
       background: rgba(255, 255, 255, 0.02);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     }
 
     .presurvey-summary.show {
       display: block;
     }
 
-    .intro-section {
-      background: rgba(79, 70, 229, 0.1);
-      border-radius: 8px;
-      padding: 20px;
-      margin-bottom: 30px;
-    }
-
-    .intro-title {
-      font-size: 1.1rem;
-      font-weight: 600;
-      color: var(--color-text-primary);
-      margin-bottom: 10px;
-    }
-
-    .intro-text {
-      color: var(--color-text-secondary);
-      line-height: 1.6;
-      font-size: 0.95rem;
-    }
-
-    /* Form Styles */
-    .form-question {
-      margin-bottom: 30px;
-      padding-bottom: 30px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    .form-question:last-of-type {
-      border-bottom: none;
-    }
-
-    .question-label {
-      font-size: 1.05rem;
-      font-weight: 600;
-      color: var(--color-text-primary);
-      margin-bottom: 8px;
-      display: block;
-    }
-
-    .question-help {
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
       font-size: 0.9rem;
-      color: var(--color-text-secondary);
-      margin-bottom: 12px;
-      font-style: italic;
     }
 
-    .form-select, .form-input {
-      width: 100%;
-      padding: 12px;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 8px;
-      background: rgba(0, 0, 0, 0.3);
+    .summary-item {
+      color: var(--color-text-secondary);
+    }
+
+    .summary-item strong {
       color: var(--color-text-primary);
-      font-size: 1rem;
-    }
-
-    .form-input[type="number"] {
-      max-width: 300px;
-    }
-
-    .priority-option {
-      padding: 8px 0;
-    }
-
-    .priority-desc {
-      font-size: 0.85rem;
-      color: var(--color-text-secondary);
-      margin-left: 10px;
-      font-style: italic;
-    }
-
-    /* Slider Styles */
-    .slider-container {
-      margin-top: 15px;
-    }
-
-    .slider-value-display {
-      font-size: 1.05rem;
       font-weight: 600;
-      color: var(--color-primary);
-      min-height: 50px;
-      padding: 10px;
-      background: rgba(79, 70, 229, 0.1);
-      border-radius: 8px;
-      margin-bottom: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-    }
-
-    .slider-input {
-      width: 100%;
-      height: 8px;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 4px;
-      outline: none;
-      -webkit-appearance: none;
-    }
-
-    .slider-input::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      appearance: none;
-      width: 20px;
-      height: 20px;
-      background: var(--color-primary);
-      border-radius: 50%;
-      cursor: pointer;
-    }
-
-    .slider-input::-moz-range-thumb {
-      width: 20px;
-      height: 20px;
-      background: var(--color-primary);
-      border-radius: 50%;
-      cursor: pointer;
-      border: none;
-    }
-
-    .slider-scale {
-      display: flex;
-      justify-content: space-between;
-      margin-top: 5px;
-      font-size: 0.8rem;
-      color: var(--color-text-secondary);
     }
 
     /* Calculator Section */
@@ -1277,6 +988,10 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       color: var(--color-text-secondary);
     }
 
+    .calculation-status.ready {
+      display: none;
+    }
+
     .submit-btn {
       background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
       color: white;
@@ -1288,7 +1003,6 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       cursor: pointer;
       width: 100%;
       transition: transform 0.2s, box-shadow 0.2s;
-      margin-top: 20px;
     }
 
     .submit-btn:hover {
@@ -1300,6 +1014,91 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       opacity: 0.5;
       cursor: not-allowed;
       transform: none;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .form-field {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .form-label {
+      font-size: 0.95rem;
+      font-weight: 500;
+      margin-bottom: 8px;
+      color: var(--color-text-primary);
+    }
+
+    .form-help {
+      font-size: 0.85rem;
+      color: var(--color-text-secondary);
+      margin-top: 4px;
+      font-style: italic;
+    }
+
+    .form-input, .form-select {
+      padding: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.2);
+      color: var(--color-text-primary);
+      font-size: 1rem;
+    }
+
+    .form-input:focus, .form-select:focus {
+      outline: none;
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    }
+
+    .slider-value {
+      display: inline-block;
+      min-width: 30px;
+      text-align: center;
+      font-weight: 600;
+      color: var(--color-primary);
+      margin-left: 10px;
+    }
+
+    .optional-section {
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .optional-toggle {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--color-text-primary);
+      padding: 12px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      width: 100%;
+      text-align: left;
+      margin-bottom: 15px;
+      transition: all 0.2s;
+    }
+
+    .optional-toggle:hover {
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .optional-questions {
+      max-height: 0;
+      opacity: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease, opacity 0.3s ease;
+    }
+
+    .optional-questions.show {
+      max-height: 500px;
+      opacity: 1;
     }
 
     .error-message {
@@ -1315,246 +1114,167 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
     .error-message.show {
       display: block;
     }
-
-    /* Loading overlay */
-    .loading-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.8);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 9999;
-    }
-
-    .loading-overlay.show {
-      display: flex;
-    }
-
-    .loading-content {
-      text-align: center;
-    }
-
-    .spinner {
-      border: 4px solid rgba(255, 255, 255, 0.1);
-      border-top: 4px solid #4f46e5;
-      border-radius: 50%;
-      width: 50px;
-      height: 50px;
-      animation: spin 1s linear infinite;
-      margin: 0 auto 20px;
-    }
-
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-
-    .loading-text {
-      color: white;
-      font-size: 18px;
-      font-weight: 500;
-    }
-
-    .loading-subtext {
-      color: rgba(255, 255, 255, 0.7);
-      font-size: 14px;
-      margin-top: 8px;
-    }
   </style>
-  <script>
-    var clientId = '${clientId}';
-  </script>
 </head>
 <body>
-  <!-- Loading Overlay -->
-  <div class="loading-overlay" id="loadingOverlay">
-    <div class="loading-content">
-      <div class="spinner"></div>
-      <div class="loading-text">Calculating Your Personalized Allocation...</div>
-      <div class="loading-subtext">Analyzing your financial profile</div>
-    </div>
-  </div>
-
   <div class="unified-container">
 
-    ${!hasTool2 ? `
-    <!-- Tool 2 Banner -->
-    <div class="tool2-banner">
-      <div class="tool2-banner-icon">💡</div>
-      <div class="tool2-banner-content">
-        <div class="tool2-banner-title">Want Better Recommendations?</div>
-        <div class="tool2-banner-text">Complete Tool 2: Financial Clarity Grounding first for more personalized results.</div>
-      </div>
-      <a href="${baseUrl}?tool=tool2&clientId=${clientId}" class="tool2-banner-btn">Go to Tool 2</a>
-    </div>
-    ` : ''}
-
-    <!-- Pre-Survey Section -->
+    <!-- Pre-Survey Section (Collapsible) -->
     <div class="presurvey-section">
       <div class="presurvey-header" onclick="togglePreSurvey()">
         <div class="presurvey-title">
-          ${hasPreSurvey ? '📊 Your Budget Profile' : '📊 Quick Budget Profile Setup (10 questions, 3-5 minutes)'}
+          ${hasPreSurvey ? '📊 Your Profile Settings' : '📊 Quick Profile Setup (8 questions)'}
         </div>
         <div class="presurvey-toggle ${hasPreSurvey ? 'collapsed' : ''}" id="preSurveyToggle">▼</div>
       </div>
 
       <!-- Summary (shown when collapsed) -->
-      ${hasPreSurvey ? `
-      <div class="presurvey-summary show" id="preSurveySummary">
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; font-size: 0.9rem;">
-          <div style="color: var(--color-text-secondary);">
-            <strong style="color: var(--color-text-primary);">Priority:</strong> ${formValues.selectedPriority || 'Not set'}
+      <div class="presurvey-summary ${hasPreSurvey ? 'show' : ''}" id="preSurveySummary">
+        <div class="summary-grid">
+          <div class="summary-item">
+            <strong>Priority:</strong> ${formValues.selectedPriority || 'Not set'}
           </div>
-          <div style="color: var(--color-text-secondary);">
-            <strong style="color: var(--color-text-primary);">Income:</strong> $${formValues.monthlyIncome || 'Not set'}
+          <div class="summary-item">
+            <strong>Income:</strong> Range ${formValues.incomeRange || 'Not set'}
           </div>
-          <div style="color: var(--color-text-secondary);">
-            <strong style="color: var(--color-text-primary);">Essentials:</strong> $${formValues.monthlyEssentials || 'Not set'}
+          <div class="summary-item">
+            <strong>Essentials:</strong> ${formValues.essentialsRange || 'Not set'}%
           </div>
-          <div style="color: var(--color-text-secondary);">
-            <strong style="color: var(--color-text-primary);">Timeline:</strong> ${formValues.goalTimeline || 'Not set'}
+          <div class="summary-item">
+            <strong>Goal Timeline:</strong> ${formValues.goalTimeline || 'Not set'}
           </div>
         </div>
       </div>
-      ` : ''}
 
       <!-- Pre-Survey Form -->
       <div class="presurvey-body ${hasPreSurvey ? 'collapsed' : ''}" id="preSurveyBody">
-
-        <!-- Intro Section -->
-        <div class="intro-section">
-          <div class="intro-title">Welcome to Your Financial Freedom Framework</div>
-          <div class="intro-text">
-            This personalized budget tool uses your unique financial situation, goals, and behavioral patterns to create a customized allocation across four key areas: Multiply (wealth building), Essentials (living expenses), Freedom (debt & security), and Enjoyment (quality of life).
-            <br><br>
-            <strong>How it works:</strong> Answer 10 questions about your finances and preferences. We'll calculate a personalized budget that matches your goals and helps you move toward financial freedom at your own pace.
-            <br><br>
-            <strong>Time needed:</strong> 3-5 minutes
-          </div>
-        </div>
-
         <form id="preSurveyForm">
+          <div class="form-grid">
 
-          <!-- Q1: Top Financial Priority -->
-          <div class="form-question">
-            <label class="question-label">1. What is your top financial priority right now?</label>
-            <div class="question-help">Choose the goal that matters most to you today. This will shape your entire budget.</div>
-            <select id="selectedPriority" class="form-select" required>
-              <option value="">-- Select your priority --</option>
-              ${priorities.map(p => `
-                <option value="${p.value}" ${formValues.selectedPriority === p.value ? 'selected' : ''}>
-                  ${p.value} - ${p.desc}
-                </option>
-              `).join('')}
-            </select>
-          </div>
+            <!-- Satisfaction -->
+            <div class="form-field">
+              <label class="form-label">
+                1. Financial Satisfaction (0-10)
+                <span class="slider-value" id="satisfactionValue">${formValues.satisfaction}</span>
+              </label>
+              <input type="range" id="satisfaction" class="form-input" min="0" max="10" value="${formValues.satisfaction}" required>
+              <div class="form-help">How satisfied are you with your current financial situation?</div>
+            </div>
 
-          <!-- Q2: Goal Timeline -->
-          <div class="form-question">
-            <label class="question-label">2. When do you want to achieve this priority?</label>
-            <div class="question-help">Your timeline helps us balance short-term needs with long-term goals.</div>
-            <select id="goalTimeline" class="form-select" required>
-              <option value="">-- Select timeline --</option>
-              <option value="Within 6 months" ${formValues.goalTimeline === 'Within 6 months' ? 'selected' : ''}>Within 6 months</option>
-              <option value="6–12 months" ${formValues.goalTimeline === '6–12 months' ? 'selected' : ''}>6–12 months</option>
-              <option value="1–2 years" ${formValues.goalTimeline === '1–2 years' ? 'selected' : ''}>1–2 years</option>
-              <option value="2–5 years" ${formValues.goalTimeline === '2–5 years' ? 'selected' : ''}>2–5 years</option>
-              <option value="5+ years" ${formValues.goalTimeline === '5+ years' ? 'selected' : ''}>5+ years</option>
-            </select>
-          </div>
+            <!-- Discipline -->
+            <div class="form-field">
+              <label class="form-label">
+                2. Financial Discipline (0-10)
+                <span class="slider-value" id="disciplineValue">${formValues.discipline}</span>
+              </label>
+              <input type="range" id="discipline" class="form-input" min="0" max="10" value="${formValues.discipline}" required>
+              <div class="form-help">How would you rate your financial discipline?</div>
+            </div>
 
-          <!-- Q3: Monthly Income -->
-          <div class="form-question">
-            <label class="question-label">3. What is your average monthly take-home income?</label>
-            <div class="question-help">After taxes, how much money hits your bank account each month? If it varies, estimate your average.</div>
-            <input type="number" id="monthlyIncome" class="form-input" placeholder="e.g., 3500" min="0" step="1" value="${formValues.monthlyIncome || ''}" required>
-          </div>
+            <!-- Impulse Control -->
+            <div class="form-field">
+              <label class="form-label">
+                3. Impulse Control (0-10)
+                <span class="slider-value" id="impulseValue">${formValues.impulse}</span>
+              </label>
+              <input type="range" id="impulse" class="form-input" min="0" max="10" value="${formValues.impulse}" required>
+              <div class="form-help">How strong is your impulse control with spending?</div>
+            </div>
 
-          <!-- Q4: Monthly Essentials -->
-          <div class="form-question">
-            <label class="question-label">4. What is your monthly essentials spending?</label>
-            <div class="question-help">Rent/mortgage + utilities + groceries + insurance + minimum debt payments. Not including entertainment, dining out, or discretionary spending.</div>
-            <input type="number" id="monthlyEssentials" class="form-input" placeholder="e.g., 2000" min="0" step="1" value="${formValues.monthlyEssentials || ''}" required>
-          </div>
+            <!-- Long-term Focus -->
+            <div class="form-field">
+              <label class="form-label">
+                4. Long-term Focus (0-10)
+                <span class="slider-value" id="longTermValue">${formValues.longTerm}</span>
+              </label>
+              <input type="range" id="longTerm" class="form-input" min="0" max="10" value="${formValues.longTerm}" required>
+              <div class="form-help">How focused are you on long-term financial goals?</div>
+            </div>
 
-          <!-- Q5: Financial Satisfaction Slider -->
-          <div class="form-question">
-            <label class="question-label">5. How satisfied are you with your current financial situation?</label>
-            <div class="question-help">Your satisfaction level helps us understand how urgent change feels to you.</div>
-            <div class="slider-container">
-              <div class="slider-value-display" id="satisfactionDisplay">${sliderLabels.satisfaction[formValues.satisfaction]}</div>
-              <input type="range" id="satisfaction" class="slider-input" min="0" max="10" value="${formValues.satisfaction}" required>
-              <div class="slider-scale">
-                <span>0</span><span>5</span><span>10</span>
-              </div>
+            <!-- Goal Timeline -->
+            <div class="form-field">
+              <label class="form-label">5. Primary Goal Timeline</label>
+              <select id="goalTimeline" class="form-select" required>
+                <option value="">-- Select Timeline --</option>
+                <option value="Within 6 months" ${formValues.goalTimeline === 'Within 6 months' ? 'selected' : ''}>Within 6 months</option>
+                <option value="6–12 months" ${formValues.goalTimeline === '6–12 months' ? 'selected' : ''}>6–12 months</option>
+                <option value="1–2 years" ${formValues.goalTimeline === '1–2 years' ? 'selected' : ''}>1–2 years</option>
+                <option value="2–5 years" ${formValues.goalTimeline === '2–5 years' ? 'selected' : ''}>2–5 years</option>
+                <option value="5+ years" ${formValues.goalTimeline === '5+ years' ? 'selected' : ''}>5+ years</option>
+              </select>
+            </div>
+
+            <!-- Income Range -->
+            <div class="form-field">
+              <label class="form-label">6. Monthly Income Range</label>
+              <select id="incomeRange" class="form-select" required>
+                <option value="">-- Select Range --</option>
+                <option value="A" ${formValues.incomeRange === 'A' ? 'selected' : ''}>A: < $2,500/mo</option>
+                <option value="B" ${formValues.incomeRange === 'B' ? 'selected' : ''}>B: $2,500-$5,000/mo</option>
+                <option value="C" ${formValues.incomeRange === 'C' ? 'selected' : ''}>C: $5,000-$10,000/mo</option>
+                <option value="D" ${formValues.incomeRange === 'D' ? 'selected' : ''}>D: $10,000-$20,000/mo</option>
+                <option value="E" ${formValues.incomeRange === 'E' ? 'selected' : ''}>E: > $20,000/mo</option>
+              </select>
+            </div>
+
+            <!-- Essentials Percentage -->
+            <div class="form-field">
+              <label class="form-label">7. Current Essentials Spending</label>
+              <select id="essentialsRange" class="form-select" required>
+                <option value="">-- Select Percentage --</option>
+                <option value="A" ${formValues.essentialsRange === 'A' ? 'selected' : ''}>A: < 10%</option>
+                <option value="B" ${formValues.essentialsRange === 'B' ? 'selected' : ''}>B: 10-20%</option>
+                <option value="C" ${formValues.essentialsRange === 'C' ? 'selected' : ''}>C: 20-30%</option>
+                <option value="D" ${formValues.essentialsRange === 'D' ? 'selected' : ''}>D: 30-40%</option>
+                <option value="E" ${formValues.essentialsRange === 'E' ? 'selected' : ''}>E: 40-50%</option>
+                <option value="F" ${formValues.essentialsRange === 'F' ? 'selected' : ''}>F: > 50%</option>
+              </select>
+              <div class="form-help">What % of income goes to rent, food, utilities?</div>
+            </div>
+
+            <!-- Priority Selection -->
+            <div class="form-field">
+              <label class="form-label">8. Top Financial Priority</label>
+              <select id="selectedPriority" class="form-select" required>
+                <option value="">-- Select Priority --</option>
+                <option value="Build Long-Term Wealth" ${formValues.selectedPriority === 'Build Long-Term Wealth' ? 'selected' : ''}>Build Long-Term Wealth</option>
+                <option value="Get Out of Debt" ${formValues.selectedPriority === 'Get Out of Debt' ? 'selected' : ''}>Get Out of Debt</option>
+                <option value="Feel Financially Secure" ${formValues.selectedPriority === 'Feel Financially Secure' ? 'selected' : ''}>Feel Financially Secure</option>
+                <option value="Enjoy Life Now" ${formValues.selectedPriority === 'Enjoy Life Now' ? 'selected' : ''}>Enjoy Life Now</option>
+                <option value="Balance Everything" ${formValues.selectedPriority === 'Balance Everything' ? 'selected' : ''}>Balance Everything</option>
+                <option value="Prepare for Major Purchase" ${formValues.selectedPriority === 'Prepare for Major Purchase' ? 'selected' : ''}>Prepare for Major Purchase</option>
+                <option value="Start Investing" ${formValues.selectedPriority === 'Start Investing' ? 'selected' : ''}>Start Investing</option>
+                <option value="Increase Financial Knowledge" ${formValues.selectedPriority === 'Increase Financial Knowledge' ? 'selected' : ''}>Increase Financial Knowledge</option>
+                <option value="Gain More Control" ${formValues.selectedPriority === 'Gain More Control' ? 'selected' : ''}>Gain More Control</option>
+                <option value="Build Emergency Fund" ${formValues.selectedPriority === 'Build Emergency Fund' ? 'selected' : ''}>Build Emergency Fund</option>
+              </select>
             </div>
           </div>
 
-          <!-- Q6: Discipline Slider -->
-          <div class="form-question">
-            <label class="question-label">6. How would you rate your financial discipline?</label>
-            <div class="question-help">Your ability to stick to financial plans and resist temptation.</div>
-            <div class="slider-container">
-              <div class="slider-value-display" id="disciplineDisplay">${sliderLabels.discipline[formValues.discipline]}</div>
-              <input type="range" id="discipline" class="slider-input" min="0" max="10" value="${formValues.discipline}" required>
-              <div class="slider-scale">
-                <span>0</span><span>5</span><span>10</span>
-              </div>
-            </div>
-          </div>
+          <!-- Optional Questions -->
+          <div class="optional-section">
+            <button type="button" class="optional-toggle" onclick="toggleOptional()">
+              📊 Want better recommendations? Answer 2 optional questions ▼
+            </button>
+            <div class="optional-questions" id="optionalQuestions">
+              <div class="form-grid">
+                <div class="form-field">
+                  <label class="form-label">
+                    9. Lifestyle Priority (0-10)
+                    <span class="slider-value" id="lifestyleValue">${formValues.lifestyle}</span>
+                  </label>
+                  <input type="range" id="lifestyle" class="form-input" min="0" max="10" value="${formValues.lifestyle}">
+                  <div class="form-help">How important is enjoying life now vs. saving for later?</div>
+                </div>
 
-          <!-- Q7: Impulse Control Slider -->
-          <div class="form-question">
-            <label class="question-label">7. How strong is your impulse control with spending?</label>
-            <div class="question-help">How well you resist unplanned purchases and stay on budget.</div>
-            <div class="slider-container">
-              <div class="slider-value-display" id="impulseDisplay">${sliderLabels.impulse[formValues.impulse]}</div>
-              <input type="range" id="impulse" class="slider-input" min="0" max="10" value="${formValues.impulse}" required>
-              <div class="slider-scale">
-                <span>0</span><span>5</span><span>10</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Q8: Long-Term Focus Slider -->
-          <div class="form-question">
-            <label class="question-label">8. How focused are you on long-term financial goals?</label>
-            <div class="question-help">Your orientation toward future versus present financial needs.</div>
-            <div class="slider-container">
-              <div class="slider-value-display" id="longTermDisplay">${sliderLabels.longTerm[formValues.longTerm]}</div>
-              <input type="range" id="longTerm" class="slider-input" min="0" max="10" value="${formValues.longTerm}" required>
-              <div class="slider-scale">
-                <span>0</span><span>5</span><span>10</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Q9: Lifestyle Priority Slider -->
-          <div class="form-question">
-            <label class="question-label">9. How do you prioritize enjoying life now versus saving for later?</label>
-            <div class="question-help">Where do you fall on the spectrum from maximum saving to maximum present enjoyment?</div>
-            <div class="slider-container">
-              <div class="slider-value-display" id="lifestyleDisplay">${sliderLabels.lifestyle[formValues.lifestyle]}</div>
-              <input type="range" id="lifestyle" class="slider-input" min="0" max="10" value="${formValues.lifestyle}" required>
-              <div class="slider-scale">
-                <span>0</span><span>5</span><span>10</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Q10: Autonomy Preference Slider -->
-          <div class="form-question">
-            <label class="question-label">10. Do you prefer following expert guidance or making your own financial choices?</label>
-            <div class="question-help">How much autonomy do you want in shaping your budget?</div>
-            <div class="slider-container">
-              <div class="slider-value-display" id="autonomyDisplay">${sliderLabels.autonomy[formValues.autonomy]}</div>
-              <input type="range" id="autonomy" class="slider-input" min="0" max="10" value="${formValues.autonomy}" required>
-              <div class="slider-scale">
-                <span>0</span><span>5</span><span>10</span>
+                <div class="form-field">
+                  <label class="form-label">
+                    10. Autonomy Preference (0-10)
+                    <span class="slider-value" id="autonomyValue">${formValues.autonomy}</span>
+                  </label>
+                  <input type="range" id="autonomy" class="form-input" min="0" max="10" value="${formValues.autonomy}">
+                  <div class="form-help">Do you prefer following expert advice or making your own choices?</div>
+                </div>
               </div>
             </div>
           </div>
@@ -1564,7 +1284,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
 
           <!-- Submit Button -->
           <button type="submit" class="submit-btn" id="calculateBtn">
-            ${hasPreSurvey ? 'Recalculate My Allocation' : 'Calculate My Personalized Allocation →'}
+            ${hasPreSurvey ? 'Recalculate My Budget' : 'Calculate My Personalized Budget →'}
           </button>
         </form>
       </div>
@@ -1603,22 +1323,6 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
           </div>
         </div>
 
-        ${allocation.validationWarnings && allocation.validationWarnings.length > 0 ? `
-        <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); padding: 20px; border-radius: 8px; margin-top: 20px;">
-          <h3 style="margin-top: 0; color: #fca5a5;">⚠️ Allocation Check</h3>
-          <div style="color: var(--color-text-secondary); line-height: 1.6;">
-            ${allocation.validationWarnings.map(w => `
-              <p><strong>${w.message}</strong></p>
-              <p style="margin-top: 10px;">You have two options:</p>
-              <ul style="margin: 10px 0;">
-                <li><strong>Reduce Essentials:</strong> Find ways to cut your core expenses from ${w.actual}% to ${w.recommended}%</li>
-                <li><strong>Adjust Allocation:</strong> Recalculate with Essentials at ${w.actual}% (reduces other buckets)</li>
-              </ul>
-            `).join('')}
-          </div>
-        </div>
-        ` : ''}
-
         <div style="background: rgba(79, 70, 229, 0.1); padding: 20px; border-radius: 8px; margin-top: 20px;">
           <h3 style="margin-top: 0; color: var(--color-text-primary);">💡 Why These Numbers?</h3>
           <div style="color: var(--color-text-secondary); line-height: 1.6;">
@@ -1639,32 +1343,35 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
   </div>
 
   <script>
-    // Slider label definitions
-    var sliderLabels = ${JSON.stringify(sliderLabels)};
+    const clientId = '${clientId}';
 
-    // Update slider displays
-    function updateSliderDisplay(sliderId) {
-      var slider = document.getElementById(sliderId);
-      var display = document.getElementById(sliderId + 'Display');
-      var value = parseInt(slider.value);
-      display.textContent = sliderLabels[sliderId][value];
-    }
-
-    // Initialize all sliders
-    ['satisfaction', 'discipline', 'impulse', 'longTerm', 'lifestyle', 'autonomy'].forEach(function(id) {
-      var slider = document.getElementById(id);
-      slider.addEventListener('input', function() { updateSliderDisplay(id); });
+    // Update slider values in real-time
+    const sliders = ['satisfaction', 'discipline', 'impulse', 'longTerm', 'lifestyle', 'autonomy'];
+    sliders.forEach(id => {
+      const slider = document.getElementById(id);
+      const valueDisplay = document.getElementById(id + 'Value');
+      if (slider && valueDisplay) {
+        slider.addEventListener('input', () => {
+          valueDisplay.textContent = slider.value;
+        });
+      }
     });
 
     // Toggle pre-survey section
     function togglePreSurvey() {
-      var body = document.getElementById('preSurveyBody');
-      var toggle = document.getElementById('preSurveyToggle');
-      var summary = document.getElementById('preSurveySummary');
+      const body = document.getElementById('preSurveyBody');
+      const toggle = document.getElementById('preSurveyToggle');
+      const summary = document.getElementById('preSurveySummary');
 
       body.classList.toggle('collapsed');
       toggle.classList.toggle('collapsed');
-      if (summary) summary.classList.toggle('show');
+      summary.classList.toggle('show');
+    }
+
+    // Toggle optional questions
+    function toggleOptional() {
+      const section = document.getElementById('optionalQuestions');
+      section.classList.toggle('show');
     }
 
     // Form submission
@@ -1684,76 +1391,49 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       });
 
       if (!allValid) {
-        document.getElementById('errorMessage').textContent = 'Please answer all 10 questions.';
+        document.getElementById('errorMessage').textContent = 'Please answer all required questions.';
         document.getElementById('errorMessage').classList.add('show');
         return;
       }
 
       // Collect form data
-      var formData = {
-        selectedPriority: document.getElementById('selectedPriority').value,
-        goalTimeline: document.getElementById('goalTimeline').value,
-        monthlyIncome: parseFloat(document.getElementById('monthlyIncome').value),
-        monthlyEssentials: parseFloat(document.getElementById('monthlyEssentials').value),
+      const formData = {
         satisfaction: parseInt(document.getElementById('satisfaction').value),
         discipline: parseInt(document.getElementById('discipline').value),
         impulse: parseInt(document.getElementById('impulse').value),
         longTerm: parseInt(document.getElementById('longTerm').value),
-        lifestyle: parseInt(document.getElementById('lifestyle').value),
-        autonomy: parseInt(document.getElementById('autonomy').value)
+        goalTimeline: document.getElementById('goalTimeline').value,
+        incomeRange: document.getElementById('incomeRange').value,
+        essentialsRange: document.getElementById('essentialsRange').value,
+        selectedPriority: document.getElementById('selectedPriority').value,
+        lifestyle: parseInt(document.getElementById('lifestyle').value) || 5,
+        autonomy: parseInt(document.getElementById('autonomy').value) || 5
       };
 
-      // Show loading overlay
-      var loadingOverlay = document.getElementById('loadingOverlay');
-      if (loadingOverlay) {
-        loadingOverlay.classList.add('show');
-      }
+      // Disable button and show loading
+      const btn = document.getElementById('calculateBtn');
+      btn.disabled = true;
+      btn.textContent = 'Calculating...';
 
-      // Disable submit button
-      var submitBtn = document.getElementById('calculateBtn');
-      if (submitBtn) {
-        submitBtn.disabled = true;
-        submitBtn.style.opacity = '0.5';
-      }
-
-      // Use document.write() pattern like FormUtils (no navigation needed!)
+      // Save and recalculate
       google.script.run
-        .withSuccessHandler(function(result) {
-          if (result && result.success === false) {
-            // Hide loading and show error
-            if (loadingOverlay) loadingOverlay.classList.remove('show');
-            if (submitBtn) {
-              submitBtn.disabled = false;
-              submitBtn.style.opacity = '1';
-            }
-            alert('Error: ' + (result.error || 'Failed to save'));
-            return;
-          }
-
-          // Replace page content with updated HTML (includes calculated allocations)
-          if (result.nextPageHtml) {
-            document.open();
-            document.write(result.nextPageHtml);
-            document.close();
-            window.scrollTo(0, 0);
-          }
+        .withSuccessHandler(function() {
+          // Reload page to show updated allocation
+          window.location.reload();
         })
         .withFailureHandler(function(error) {
-          // Hide loading and show error
-          if (loadingOverlay) loadingOverlay.classList.remove('show');
-          if (submitBtn) {
-            submitBtn.disabled = false;
-            submitBtn.style.opacity = '1';
-          }
-          alert('Error saving pre-survey: ' + error.message);
+          btn.disabled = false;
+          btn.textContent = '${hasPreSurvey ? 'Recalculate My Budget' : 'Calculate My Personalized Budget →'}';
+          document.getElementById('errorMessage').textContent = 'Error: ' + error.message;
+          document.getElementById('errorMessage').classList.add('show');
         })
         .savePreSurvey(clientId, formData);
     });
   </script>
 </body>
 </html>
-  `;
-},
+    `;
+  },
 
   /**
    * Build main calculator page (LEGACY - kept for reference)
@@ -3346,46 +3026,23 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       Enjoyment:  Math.round(percentages.Enjoyment)
     };
 
-    // Calculate user's actual essentials percentage from their income/expenses
-    // (This is calculated in buildV1Input at line 3436: monthlyEssentials / monthlyIncome * 100)
-    const actualEssentialsPct = CONFIG.essentialPctMap[input.essentialsRange] || 40;
-
-    // Validation: Check if recommended Essentials is lower than actual spending
-    const validationWarnings = [];
-    if (percentages.Essentials < actualEssentialsPct - 5) { // 5% tolerance
-      validationWarnings.push({
-        type: 'essentials_too_low',
-        recommended: Math.round(percentages.Essentials),
-        actual: actualEssentialsPct,
-        message: 'Your recommended Essentials (' + Math.round(percentages.Essentials) + '%) is lower than your current spending (' + actualEssentialsPct + '%). You may need to reduce expenses or adjust your allocation.'
-      });
-      Logger.log('VALIDATION WARNING: Recommended Essentials (' + percentages.Essentials.toFixed(1) + '%) < Actual (' + actualEssentialsPct + '%)');
+    // Enforce Essentials floor
+    const reportedMinPct = CONFIG.essentialPctMap[input.essentialsRange] || 0;
+    const essentialMinPct = Math.max(reportedMinPct, CONFIG.minEssentialsAbsolutePct);
+    if (percentages.Essentials < essentialMinPct) {
+      percentages.Essentials = essentialMinPct;
+      const pool = percentages.Multiply + percentages.Freedom + percentages.Enjoyment;
+      const avail = 100 - essentialMinPct;
+      const factor = avail / pool;
+      percentages.Multiply *= factor;
+      percentages.Freedom *= factor;
+      percentages.Enjoyment *= factor;
     }
 
     // Round final percentages
     Object.keys(percentages).forEach(function(k) {
       percentages[k] = Math.round(percentages[k]);
     });
-
-    // Ensure no negative percentages (can happen with extreme modifiers)
-    Object.keys(percentages).forEach(function(k) {
-      if (percentages[k] < 0) {
-        Logger.log('WARNING: Negative percentage detected for ' + k + ': ' + percentages[k] + '%. Setting to 0.');
-        percentages[k] = 0;
-      }
-    });
-
-    // Ensure percentages sum to exactly 100% after rounding
-    const sum = percentages.Multiply + percentages.Essentials + percentages.Freedom + percentages.Enjoyment;
-    if (sum !== 100) {
-      // Adjust the largest bucket to make sum = 100
-      const diff = 100 - sum;
-      const largest = Object.keys(percentages).reduce(function(a, b) {
-        return percentages[a] > percentages[b] ? a : b;
-      });
-      percentages[largest] += diff;
-      Logger.log('Adjusted ' + largest + ' by ' + diff + '% to make sum = 100%');
-    }
 
     // Build light notes
     const lightNotes = {
@@ -3411,13 +3068,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
         'Final recommended split: Multiply ' + percentages.Multiply + '%, Essentials ' + percentages.Essentials + '%, Freedom ' + percentages.Freedom + '%, Enjoyment ' + percentages.Enjoyment + '%.'
     };
 
-    return {
-      percentages,
-      lightNotes,
-      details,
-      validationWarnings: validationWarnings,
-      actualEssentialsPct: actualEssentialsPct
-    };
+    return { percentages, lightNotes, details };
   },
 
   /**
@@ -3438,30 +3089,21 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       // Extract Tool 2 form data (with safe defaults)
       const tool2Form = tool2Data?.formData || {};
 
-      // Calculate income and essentials ranges from dollar amounts
-      const monthlyIncome = preSurveyAnswers.monthlyIncome || 3500;
-      const monthlyEssentials = preSurveyAnswers.monthlyEssentials || 2000;
-      const incomeRange = this.mapIncomeToTier(monthlyIncome);
-      const essentialsPct = (monthlyEssentials / monthlyIncome) * 100;
-      const essentialsRange = this.mapEssentialsPctToTier(essentialsPct);
-
       // Map to V1 input structure
       return {
-        // Calculated from dollar inputs
-        incomeRange: incomeRange,
-        essentialsRange: essentialsRange,
-
-        // From pre-survey (behavioral questions)
+        // From pre-survey (critical questions)
+        incomeRange: preSurveyAnswers.incomeRange || 'C',
+        essentialsRange: preSurveyAnswers.essentialsRange || 'C',
         satisfaction: preSurveyAnswers.satisfaction || 5,
         discipline: preSurveyAnswers.discipline || 5,
         impulse: preSurveyAnswers.impulse || 5,
         longTerm: preSurveyAnswers.longTerm || 5,
-        lifestyle: preSurveyAnswers.lifestyle || 5,
-        autonomy: preSurveyAnswers.autonomy || 5,
-
-        // From pre-survey (goal/priority)
         goalTimeline: preSurveyAnswers.goalTimeline || '1–2 years',
         priority: preSurveyAnswers.selectedPriority || 'Feel Financially Secure',
+
+        // From pre-survey (optional - use defaults if not provided)
+        lifestyle: preSurveyAnswers.lifestyle || 5,
+        autonomy: preSurveyAnswers.autonomy || 5,
 
         // Derived from Tool 2 data
         growth: this.deriveGrowthFromTool2(tool2Form),
@@ -3497,29 +3139,6 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
         priority: preSurveyAnswers?.selectedPriority || 'Feel Financially Secure'
       };
     }
-  },
-
-  /**
-   * Helper: Map monthly income (dollars) to A-E tier
-   */
-  mapIncomeToTier(monthlyIncome) {
-    if (monthlyIncome < 2500) return 'A';       // < $2,500/mo
-    if (monthlyIncome < 5000) return 'B';       // $2,500-$5,000/mo
-    if (monthlyIncome < 10000) return 'C';      // $5,000-$10,000/mo
-    if (monthlyIncome < 20000) return 'D';      // $10,000-$20,000/mo
-    return 'E';                                  // > $20,000/mo
-  },
-
-  /**
-   * Helper: Map essentials percentage to A-F tier
-   */
-  mapEssentialsPctToTier(pct) {
-    if (pct < 10) return 'A';      // < 10%
-    if (pct < 20) return 'B';      // 10-20%
-    if (pct < 30) return 'C';      // 20-30%
-    if (pct < 40) return 'D';      // 30-40%
-    if (pct < 50) return 'E';      // 40-50%
-    return 'F';                     // > 50%
   },
 
   /**

@@ -404,87 +404,90 @@ const GroundingReport = {
         ${FeedbackWidget.render(clientId, toolId, 'report')}
 
         <script>
-          const baseUrl = '${baseUrl}';
-          const clientId = '${clientId}';
-          const toolId = '${toolId}';
+          // Wrap in IIFE to prevent variable redeclaration with document.write()
+          (function() {
+            const baseUrl = '${baseUrl}';
+            const clientId = '${clientId}';
+            const toolId = '${toolId}';
 
-          // Loading overlay functions
-          function showLoading(message) {
-            const overlay = document.getElementById('loadingOverlay');
-            const text = overlay.querySelector('.loading-text');
-            if (message) {
-              text.textContent = message;
+            // Loading overlay functions
+            function showLoading(message) {
+              const overlay = document.getElementById('loadingOverlay');
+              const text = overlay.querySelector('.loading-text');
+              if (message) {
+                text.textContent = message;
+              }
+              overlay.classList.add('active');
             }
-            overlay.classList.add('active');
-          }
 
-          function hideLoading() {
-            const overlay = document.getElementById('loadingOverlay');
-            overlay.classList.remove('active');
-          }
+            function hideLoading() {
+              const overlay = document.getElementById('loadingOverlay');
+              overlay.classList.remove('active');
+            }
 
-          // Navigate to dashboard using server-side routing
-          function navigateToDashboard(clientId, message) {
-            showLoading(message || 'Loading Dashboard');
+            // Navigate to dashboard using server-side routing
+            function navigateToDashboard(clientId, message) {
+              showLoading(message || 'Loading Dashboard');
 
-            google.script.run
-              .withSuccessHandler(function(dashboardHtml) {
-                // Replace current document with dashboard HTML
-                document.open();
-                document.write(dashboardHtml);
-                document.close();
-              })
-              .withFailureHandler(function(error) {
-                hideLoading();
-                console.error('Dashboard navigation error:', error);
-                alert('Error loading dashboard: ' + error.message);
-              })
-              .getDashboardPage(clientId);
-          }
+              google.script.run
+                .withSuccessHandler(function(dashboardHtml) {
+                  // Replace current document with dashboard HTML
+                  document.open();
+                  document.write(dashboardHtml);
+                  document.close();
+                })
+                .withFailureHandler(function(error) {
+                  hideLoading();
+                  console.error('Dashboard navigation error:', error);
+                  alert('Error loading dashboard: ' + error.message);
+                })
+                .getDashboardPage(clientId);
+            }
 
-          // Download PDF report
-          function downloadPDF() {
-            showLoading('Generating PDF...');
+            // Download PDF report
+            function downloadPDF() {
+              showLoading('Generating PDF...');
 
-            // Determine which PDF function to call based on toolId
-            const pdfFunction = toolId === 'tool3' ? 'generateTool3PDF' : 'generateTool5PDF';
+              // Determine which PDF function to call based on toolId
+              const pdfFunction = toolId === 'tool3' ? 'generateTool3PDF' : 'generateTool5PDF';
 
-            google.script.run
-              .withSuccessHandler(function(result) {
-                hideLoading();
-                if (result.success) {
-                  // Create download link
-                  const link = document.createElement('a');
-                  link.href = 'data:application/pdf;base64,' + result.pdf;
-                  link.download = result.fileName;
-                  link.click();
-                  alert('PDF downloaded successfully!');
-                } else {
-                  alert('Error generating PDF: ' + result.error);
-                }
-              })
-              .withFailureHandler(function(error) {
-                hideLoading();
-                console.error('PDF generation error:', error);
-                alert('Error generating PDF: ' + error.message);
-              })
-              [pdfFunction](clientId);
-          }
+              google.script.run
+                .withSuccessHandler(function(result) {
+                  hideLoading();
+                  if (result.success) {
+                    // Create download link
+                    const link = document.createElement('a');
+                    link.href = 'data:application/pdf;base64,' + result.pdf;
+                    link.download = result.fileName;
+                    link.click();
+                    alert('PDF downloaded successfully!');
+                  } else {
+                    alert('Error generating PDF: ' + result.error);
+                  }
+                })
+                .withFailureHandler(function(error) {
+                  hideLoading();
+                  console.error('PDF generation error:', error);
+                  alert('Error generating PDF: ' + error.message);
+                })
+                [pdfFunction](clientId);
+            }
 
-          // Alias for onclick handlers
-          function backToDashboard() {
-            navigateToDashboard(clientId, 'Loading Dashboard');
-          }
+            // Alias for onclick handlers
+            function backToDashboard() {
+              navigateToDashboard(clientId, 'Loading Dashboard');
+            }
 
-          // Make functions global for onclick handlers
-          window.backToDashboard = backToDashboard;
-          window.navigateToDashboard = navigateToDashboard;
-          window.downloadPDF = downloadPDF;
+            // Make functions global for onclick handlers
+            window.backToDashboard = backToDashboard;
+            window.navigateToDashboard = navigateToDashboard;
+            window.downloadPDF = downloadPDF;
 
-          // Hide loading on page load
-          window.addEventListener('load', function() {
-            hideLoading();
-          });
+            // Hide loading on page load
+            window.addEventListener('load', function() {
+              hideLoading();
+            });
+          })();
         </script>
       </body>
       </html>

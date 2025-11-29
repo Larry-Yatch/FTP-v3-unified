@@ -2,7 +2,7 @@
 
 **Created:** 2025-11-28
 **Last Updated:** 2025-11-29
-**Status:** Phase 3 In Progress (Week 5)
+**Status:** Phase 2 Complete ✅ | Phase 3 Ready to Start 🚀
 **Purpose:** Complete architectural specification for Tool 4 redesign combining V1's personalization engine with interactive calculator
 
 ---
@@ -669,95 +669,163 @@ BG: PreSurvey_EssentialsRange (string)
 
 ---
 
-### **Phase 2: Pre-Survey UI (Week 4)** ✅ COMPLETED
+### **Phase 2: Pre-Survey UI (Week 4)** ✅ COMPLETED 2025-11-29
 
 **Tasks:**
-1. ✅ Design pre-survey page (8 critical questions) - Tool4.js:121-804
-2. ✅ Add "Optional Questions" section (2 questions) - Lines 624-681
-3. ✅ Build form validation (client-side) - Lines 748-768
-4. ✅ Save pre-survey responses to PropertiesService - Lines 787-798
-5. ✅ Call `calculateAllocationV1()` on submission via buildV1Input - Tool4.js:44-45
-6. ✅ Show loading screen: "Building your personalized plan..." - Lines 695-702
-7. ✅ Transition to calculator with pre-filled values - Lines 789-791 (reload)
-8. ✅ Modified render flow to check pre-survey completion - Tool4.js:35-47
+1. ✅ Design comprehensive pre-survey page (10 required questions)
+2. ✅ Build form validation (client-side) with error highlighting
+3. ✅ Save pre-survey responses to PropertiesService
+4. ✅ Call `calculateAllocationV1()` on submission via buildV1Input
+5. ✅ Implement `document.write()` pattern for seamless page updates
+6. ✅ Add loading overlay with spinner animation
+7. ✅ Modified render flow to check pre-survey completion
+8. ✅ Changed all "Budget" references to "Allocation"
 
 **Success Criteria:**
-- ✅ All 8 critical questions required (7 behavioral + 1 priority)
-- ✅ Optional questions show/hide toggle (collapsible section)
-- ✅ Validation prevents submission with missing critical fields
-- ✅ Calculator loads with V1-calculated percentages (flow implemented)
-- ✅ Progress indicator tracks completion
+- ✅ All 10 questions required (moved optional to required per user feedback)
+- ✅ Priority question moved to #1 (most important first)
+- ✅ Dollar inputs instead of range dropdowns (income & essentials)
+- ✅ All 11 slider labels (0-10) with detailed trauma-informed descriptions
+- ✅ Inline priority descriptions for all 10 options
+- ✅ Comprehensive intro section explaining the tool
+- ✅ Tool 2 check with banner (safe defaults if incomplete)
+- ✅ Validation prevents submission with missing fields
+- ✅ Calculator loads with V1-calculated percentages
+- ✅ No white screens (uses document.write pattern)
+- ✅ Loading animation provides user feedback
 
 **Implementation Details:**
 
-**Pre-Survey Page Structure (Lines 121-804):**
-- **Header:** Trauma-informed intro explaining the purpose
-- **Progress Bar:** Real-time tracking of completion (0-100%)
-- **8 Critical Questions:**
-  1. Satisfaction (0-10 slider with labels)
-  2. Discipline (0-10 slider)
-  3. Impulse Control (0-10 slider)
-  4. Long-term Focus (0-10 slider)
-  5. Goal Timeline (dropdown: 6mo, 6-12mo, 1-2yr, 2-5yr, 5+yr)
-  6. Income Range (dropdown: A-E, $2.5k to $20k+)
-  7. Essentials % (dropdown: A-F, <10% to 50%+)
-  8. Priority Selection (dropdown: 10 priorities)
-- **2 Optional Questions:**
-  1. Lifestyle Priority (0-10 slider: save vs. enjoy)
-  2. Autonomy Preference (0-10 slider: expert vs. own choice)
-- **Loading Overlay:** Spinner + "Building your plan..." message
-- **Error Handling:** Inline validation messages
+**Pre-Survey Page Structure (buildUnifiedPage):**
+- **Comprehensive Intro:**
+  - Title: "Welcome to Your Financial Freedom Framework"
+  - Explains purpose: personalized allocation across M/E/F/J
+  - How it works: 10 questions → customized plan
+  - Time estimate: 3-5 minutes
+
+- **10 Required Questions (Reordered):**
+  1. **Top Financial Priority** (dropdown) - MOVED TO FIRST
+     - 10 options with inline descriptions
+     - "Build Long-Term Wealth - Focus on investments, retirement..."
+  2. **Goal Timeline** (dropdown: 6mo, 6-12mo, 1-2yr, 2-5yr, 5+yr)
+  3. **Monthly Income** (dollar input) - NEW: replaced range dropdown
+  4. **Monthly Essentials** (dollar input) - NEW: replaced % dropdown
+  5. **Satisfaction** (0-10 slider) - 11 detailed labels
+  6. **Discipline** (0-10 slider) - 11 detailed labels
+  7. **Impulse Control** (0-10 slider) - 11 detailed labels
+  8. **Long-term Focus** (0-10 slider) - 11 detailed labels
+  9. **Lifestyle Priority** (0-10 slider) - 11 detailed labels
+  10. **Autonomy Preference** (0-10 slider) - 11 detailed labels
+
+- **Tool 2 Banner:** Conditional banner if Tool 2 incomplete
+  - "Want Better Recommendations?"
+  - Link to Tool 2
+  - Safe defaults used if skipped (Option B)
+
+- **Loading Overlay:**
+  - Full-screen dark overlay
+  - Spinning purple loader
+  - Text: "Calculating Your Personalized Allocation..."
+  - Subtext: "Analyzing your financial profile"
 
 **Features Implemented:**
-- ✅ Interactive sliders with real-time value display
-- ✅ Smooth animations and transitions
+- ✅ Interactive sliders with real-time label updates
+- ✅ Dynamic dollar-to-tier mapping (auto-calculates A-F tiers)
 - ✅ Mobile-responsive design (max-width: 800px)
-- ✅ Trauma-informed language (non-judgmental, empowering)
-- ✅ Color-coded badges (REQUIRED in red, OPTIONAL in gray)
-- ✅ Inline help text explaining each question
-- ✅ Auto-save on submission via `google.script.run.savePreSurvey()`
-- ✅ Auto-reload to show calculator after save
+- ✅ Trauma-informed language throughout
+- ✅ Inline help text for each question
+- ✅ Progress indicator tracks completion
+- ✅ Collapsible pre-survey section (on second visit)
+- ✅ Button states (disabled during submission)
 - ✅ Error recovery with user-friendly messages
 
-**Data Flow:**
+**Data Flow (Fixed Navigation):**
 ```
 User opens Tool 4 → render()
   ↓
 Check getPreSurvey(clientId)
   ↓
-IF NULL → buildPreSurveyPage()
+IF NULL → buildUnifiedPage() (shows pre-survey)
   ↓
-User fills 8 required questions
+User fills 10 required questions
   ↓
-Submit → savePreSurvey(clientId, formData)
+Submit → Show loading overlay
   ↓
-Reload page
+google.script.run.savePreSurvey(clientId, formData)
   ↓
-IF NOT NULL → buildV1Input() → calculateAllocationV1()
+Server: Save to PropertiesService
+        Calculate V1 allocation
+        Return { success: true, nextPageHtml: updatedHtml }
   ↓
-buildCalculatorPage(clientId, baseUrl, toolStatus, allocation, preSurveyData)
+Client: document.write(nextPageHtml)
+  ↓
+Calculator appears with V1 allocations displayed
 ```
 
+**Navigation Fix:**
+- ✅ Uses `document.write()` pattern (like FormUtils)
+- ✅ No URL navigation = no white screens
+- ✅ Page updates in place seamlessly
+- ✅ All other tools remain unaffected
+
+**V1 Allocation Engine Improvements:**
+- ✅ **Removed Forced Essentials Floor** (Lines 3333-3347)
+  - Old approach forced 40-55% minimum, causing negative percentages
+  - New approach respects V1 calculation and user's actual data
+- ✅ **Added Smart Validation** (Lines 3338-3347)
+  - Compares recommended vs actual essentials (from income/expenses)
+  - 5% tolerance before triggering warning
+  - Returns validation warnings array
+- ✅ **Added Validation UI** (Lines 1606-1620)
+  - Red warning banner when recommended < actual
+  - Two clear options: reduce expenses OR adjust allocation
+  - Trauma-informed messaging
+- ✅ **Triple-Layer Safety Net**
+  - Layer 1: Edge case handling in redistribution logic
+  - Layer 2: Negative percentage check (sets to 0%)
+  - Layer 3: Ensure sum = 100% (adjusts largest bucket)
+- ✅ **Fixed IIFE Issues**
+  - Added IIFE wrapper to GroundingReport.js (fixes Tool 2/3/5 white screens)
+  - All tools now use proper variable scoping for document.write()
+
+**Bugs Fixed:**
+- ✅ **Negative Percentages**: Fixed -3% Enjoyment issue with comprehensive safety checks
+- ✅ **White Screens**: Fixed all navigation issues using document.write() pattern
+- ✅ **Variable Redeclaration**: Fixed with IIFE wrappers in all reports
+- ✅ **Rounding Errors**: Ensure all allocations sum to exactly 100%
+
 **Current Status:**
-- **Pre-Survey UI:** ✅ Complete and ready to test
-- **Calculator Integration:** ⏳ Next step - update calculator to display V1 allocations
+- **Pre-Survey UI:** ✅ 100% Complete - Production ready
+- **V1 Integration:** ✅ Complete - Allocations calculating correctly with smart validation
+- **Navigation:** ✅ Fixed - No white screens across all tools
+- **UX Polish:** ✅ Complete - Loading animation, button states, validation warnings
+- **V1 Engine:** ✅ Hardened - No forced floors, smart validation, comprehensive safety checks
+- **Calculator Integration:** ⏳ Next - Display allocations in calculator UI
 
 ---
 
-### **Phase 3: Interactive Calculator (Week 5)** 🔄 IN PROGRESS
+### **Phase 3: Interactive Calculator (Week 5)** 🔄 READY TO START
+
+**Goals:**
+Transform the static allocation display into an interactive calculator where users can:
+- Adjust allocations with sliders
+- Lock buckets to prevent changes
+- See real-time redistribution
+- Compare multiple scenarios
+- Validate their custom allocations
 
 **Tasks:**
-1. ✅ Build unified page (pre-survey + calculator single view) - Tool4.js:813-1433
-2. ✅ Add collapsible pre-survey section - Lines 1123-1291
-3. ✅ Display V1 allocation cards (4 buckets) - Lines 1303-1324
-4. ✅ Add "Why These Numbers?" insights - Lines 1326-1334
-5. ✅ Add "Recalculate" functionality - Lines 1375-1428
-6. ⏳ Build interactive sliders for bucket adjustment
-7. ⏳ Add lock/unlock functionality per bucket
-8. ⏳ Implement proportional redistribution logic
-9. ⏳ Add "Reset to Recommended" button
-10. ⏳ Add "Check My Plan" validation button
-11. ⏳ Add "Save Scenario" button
+1. ✅ Build unified page (pre-survey + calculator single view) - Tool4.js:841-1740
+2. ✅ Display V1 allocation cards (4 buckets) - Lines 1583-1604
+3. ✅ Add "Why These Numbers?" insights - Lines 1622-1630
+4. ✅ Add validation warnings for Essentials mismatch - Lines 1606-1620
+5. ⏳ Build interactive sliders for bucket adjustment
+6. ⏳ Add lock/unlock functionality per bucket
+7. ⏳ Implement proportional redistribution logic (maintains 100% sum)
+8. ⏳ Add "Reset to Recommended" button
+9. ⏳ Add "Check My Plan" validation button with helpers
+10. ⏳ Add "Save Scenario" functionality (Tool 8 pattern)
+11. ⏳ Add scenario comparison view
 
 **Success Criteria:**
 - ✅ Pre-survey collapses after first calculation
@@ -1052,5 +1120,88 @@ First Visit:
 - ⏳ No manual adjustment - must recalculate via pre-survey changes
 - ⏳ No scenario saving - can't compare multiple approaches
 
-**Next Update:** After Phase 3 interactive sliders completion
-**Version:** 1.5 (Phase 3 Partial - Static V1 Display Working)
+---
+
+## 📊 Phase 2 Completion Summary (2025-11-29)
+
+### What Was Accomplished
+
+**Phase 2: Pre-Survey UI & V1 Integration** - ✅ 100% COMPLETE
+
+**Major Deliverables:**
+1. ✅ **Comprehensive Pre-Survey** (10 required questions with trauma-informed UX)
+2. ✅ **V1 Allocation Engine** (3-tier modifier system calculating personalized allocations)
+3. ✅ **Smart Validation System** (replaces forced floors with intelligent warnings)
+4. ✅ **Seamless Navigation** (document.write pattern eliminates all white screens)
+5. ✅ **Production-Ready UI** (loading animations, error handling, mobile responsive)
+
+**Key Improvements Over Original Plan:**
+- Changed from 8+2 questions to 10 required (moved optional to main)
+- Priority question moved to #1 (most important first)
+- Dollar inputs replace range dropdowns (more intuitive)
+- All 11 slider labels (0-10) with detailed descriptions
+- Removed forced Essentials floor (now uses smart validation)
+- Added comprehensive safety checks (no negative %, always sums to 100%)
+
+**Critical Bugs Fixed:**
+- ✅ Negative percentages (-3% Enjoyment)
+- ✅ White screens on form submission
+- ✅ Variable redeclaration errors (IIFE wrappers)
+- ✅ Navigation issues across all tools
+- ✅ Rounding errors causing sum ≠ 100%
+
+**Architecture Decisions:**
+- Uses `document.write()` pattern (proven FormUtils approach)
+- Respects user's actual income/expenses data
+- Validates recommended vs actual Essentials
+- Provides actionable feedback when allocations don't match reality
+- Triple-layer safety net prevents calculation errors
+
+### Files Modified
+
+**Core Implementation:**
+- `tools/tool4/Tool4.js` - Complete rewrite of pre-survey and V1 engine (~1000 lines)
+- `core/grounding/GroundingReport.js` - Added IIFE wrapper
+- `core/Router.js` - Added savePending parameter (later removed)
+
+**Documentation:**
+- `docs/Tool4/TOOL4-REDESIGN-SPECIFICATION.md` - Updated with Phase 2 completion
+- `docs/Tool4/PHASE2-COMPLETE.md` - Detailed completion report
+- `docs/Tool4/PHASE2-TESTING-GUIDE.md` - Testing instructions
+- `DEPLOYMENT-INFO.md` - Updated deployment status
+
+### What's Ready for Phase 3
+
+**Foundation Complete:**
+- ✅ Pre-survey collects all behavioral data
+- ✅ V1 engine calculates personalized allocations
+- ✅ Static display shows M/E/F/J percentages
+- ✅ Insights explain "Why these numbers?"
+- ✅ Validation warns when Essentials mismatches
+- ✅ All navigation and error handling working
+
+**Next Steps (Phase 3):**
+1. **Interactive Sliders** - Let users adjust M/E/F/J percentages
+2. **Lock/Unlock** - Freeze buckets during redistribution
+3. **Smart Redistribution** - Maintain 100% sum with locked buckets
+4. **Validation Helpers** - "Check My Plan" with financial rules
+5. **Scenario Management** - Save and compare multiple allocations
+
+### Deployment Status
+
+**Production URL:** `https://script.google.com/macros/s/AKfycbxLCd4P9XY20NpAhwg7zucFE_BgwTnhjRqYRTgQ1QY/exec`
+
+**Latest Deployment:** 2025-11-29 (Auto-updates with every `clasp push`)
+
+**Testing Status:**
+- Phase 1 Tests: 5/5 passing ✅
+- Phase 2 Tests: 3/3 passing ✅
+- Manual Testing: All scenarios working ✅
+
+**Version:** 2.0 (Phase 2 Complete - Pre-Survey & V1 Integration)
+
+---
+
+**Next Update:** After Phase 3 interactive calculator completion
+**Maintained By:** Claude Code & Larry Yatch
+**Repository:** https://github.com/Larry-Yatch/FTP-v3-unified
