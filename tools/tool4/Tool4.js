@@ -240,6 +240,23 @@ const Tool4 = {
       line-height: 1.6;
     }
 
+    .btn-nav {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: var(--color-text);
+      padding: 8px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.95rem;
+      transition: all 0.2s ease;
+    }
+
+    .btn-nav:hover {
+      background: rgba(255, 255, 255, 0.12);
+      border-color: var(--color-primary);
+      transform: translateX(-2px);
+    }
+
     .survey-section {
       background: rgba(255, 255, 255, 0.05);
       border-radius: 12px;
@@ -516,6 +533,9 @@ const Tool4 = {
   <div class="pre-survey-container">
     <!-- Header -->
     <div class="survey-header">
+      <button type="button" class="btn-nav" onclick="returnToDashboard()" style="margin-bottom: 15px;">
+        ← Return to Dashboard
+      </button>
       <h1>🎯 Financial Freedom Framework</h1>
       <p>Before we build your personalized budget, let's understand your unique financial situation and goals. This will help us create recommendations tailored specifically to you.</p>
     </div>
@@ -1886,6 +1906,30 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       body.classList.toggle('collapsed');
       toggle.classList.toggle('collapsed');
       if (summary) summary.classList.toggle('show');
+    }
+
+    // Return to Dashboard function
+    function returnToDashboard() {
+      var loadingOverlay = document.getElementById('loadingOverlay');
+      if (loadingOverlay) {
+        loadingOverlay.classList.add('show');
+      }
+
+      google.script.run
+        .withSuccessHandler(function(dashboardHtml) {
+          // Use document.write() pattern (GAS navigation rules)
+          if (dashboardHtml) {
+            document.open();
+            document.write(dashboardHtml);
+            document.close();
+            window.scrollTo(0, 0);
+          }
+        })
+        .withFailureHandler(function(error) {
+          if (loadingOverlay) loadingOverlay.classList.remove('show');
+          alert('Error returning to dashboard: ' + error.message);
+        })
+        .getDashboardPage('${clientId}');
     }
 
     // Priority picker functions
