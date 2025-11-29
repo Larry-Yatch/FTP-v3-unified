@@ -4337,6 +4337,96 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
   },
 
   /**
+   * Get personalized reason based on user's actual data
+   */
+  getPersonalizedReason(priorityName, indicator, data) {
+    const { discipline, longTerm, debtLoad, satisfaction, incomeStability, emergencyFund, lifestyle, autonomy } = data;
+
+    // Build personalized reasons based on actual data
+    const reasons = {
+      'Build Long-Term Wealth': {
+        recommended: discipline >= 7 ? `Your high discipline (${discipline}/10) and long-term focus support wealth building` :
+                     incomeStability === 'Very stable' ? `Your stable income and ${emergencyFund >= 'D' ? 'strong' : 'adequate'} emergency fund support this goal` :
+                     `Your financial discipline and planning ability make this achievable`,
+        challenging: debtLoad >= 'D' ? `Your debt level (${debtLoad} tier) suggests focusing on debt elimination first` :
+                     emergencyFund <= 'B' ? `Build your emergency fund (currently ${emergencyFund} tier) before aggressive investing` :
+                     `Consider building more financial stability before aggressive wealth building`,
+        available: `A solid long-term goal with discipline ${discipline}/10 and current debt ${debtLoad} tier`
+      },
+      'Get Out of Debt': {
+        recommended: debtLoad >= 'D' ? `Your ${debtLoad} tier debt level makes this your top priority` :
+                     satisfaction <= 3 ? `Your low satisfaction (${satisfaction}/10) and debt stress suggest this focus` :
+                     `Your debt situation calls for focused elimination`,
+        challenging: debtLoad <= 'B' ? `Your low debt (${debtLoad} tier) means this isn't your primary concern` :
+                     `Your minimal debt doesn't require this priority`,
+        available: `Consider if debt (${debtLoad} tier) is creating stress in your life`
+      },
+      'Feel Financially Secure': {
+        recommended: emergencyFund <= 'B' ? `Your emergency fund (${emergencyFund} tier) needs building for security` :
+                     incomeStability === 'Unstable / irregular' ? `Your unstable income requires a strong safety net` :
+                     `Building security will provide the foundation you need`,
+        challenging: emergencyFund >= 'D' && incomeStability === 'Very stable' ? `Your ${emergencyFund} tier emergency fund and stable income suggest you're ready for growth` :
+                     `You may be ready for more growth-focused priorities`,
+        available: `A good foundation goal with ${emergencyFund} tier emergency savings`
+      },
+      'Enjoy Life Now': {
+        recommended: debtLoad <= 'B' && emergencyFund >= 'D' ? `Your low debt (${debtLoad}) and strong emergency fund (${emergencyFund}) allow for enjoyment` :
+                     incomeStability === 'Very stable' && satisfaction <= 5 ? `Your stable income allows room to improve satisfaction (${satisfaction}/10)` :
+                     `Your stable situation supports present enjoyment`,
+        challenging: debtLoad >= 'D' ? `Your ${debtLoad} tier debt requires focus before increasing lifestyle spending` :
+                     emergencyFund <= 'B' ? `Build emergency savings (${emergencyFund} tier) before increasing enjoyment spending` :
+                     `Address financial stability before increasing enjoyment spending`,
+        available: `Balance present enjoyment with debt ${debtLoad} tier and emergency fund ${emergencyFund} tier`
+      },
+      'Save for a Big Goal': {
+        recommended: discipline >= 7 && emergencyFund >= 'C' ? `Your discipline (${discipline}/10) and ${emergencyFund} tier emergency fund support targeted saving` :
+                     `Your financial discipline supports focused goal saving`,
+        challenging: emergencyFund <= 'B' ? `Build emergency fund (${emergencyFund} tier) before big goal saving` :
+                     `Stabilize finances before big goal saving`,
+        available: `Viable with discipline ${discipline}/10 and emergency fund ${emergencyFund} tier`
+      },
+      'Stabilize to Survive': {
+        recommended: debtLoad === 'E' && emergencyFund === 'A' ? `Your critical debt (${debtLoad}) and minimal savings (${emergencyFund}) require crisis-mode focus` :
+                     incomeStability === 'Unstable / irregular' && emergencyFund <= 'B' ? `Your unstable income and ${emergencyFund} tier savings require immediate stabilization` :
+                     `Your situation requires immediate stabilization focus`,
+        challenging: debtLoad <= 'B' && emergencyFund >= 'D' ? `Your stable situation (debt ${debtLoad}, savings ${emergencyFund}) doesn't require crisis mode` :
+                     `This is for urgent crisis situations`,
+        available: `For immediate stabilization with debt ${debtLoad} tier and savings ${emergencyFund} tier`
+      },
+      'Build or Stabilize a Business': {
+        recommended: autonomy >= 7 && emergencyFund >= 'C' ? `Your autonomy drive (${autonomy}/10) and ${emergencyFund} tier reserves support entrepreneurship` :
+                     `Your entrepreneurial drive and reserves support business goals`,
+        challenging: emergencyFund <= 'B' || debtLoad >= 'D' ? `Build personal financial stability (savings ${emergencyFund}, debt ${debtLoad}) before business investment` :
+                     `Stabilize personal finances before business investments`,
+        available: `Consider with autonomy ${autonomy}/10 and emergency fund ${emergencyFund} tier`
+      },
+      'Create Generational Wealth': {
+        recommended: longTerm >= 8 && debtLoad <= 'B' && emergencyFund >= 'D' ? `Your long-term vision (${longTerm}/10), low debt (${debtLoad}), and strong reserves (${emergencyFund}) support legacy building` :
+                     `Your long-term focus and stability support generational wealth`,
+        challenging: debtLoad >= 'D' || emergencyFund <= 'B' ? `Build current stability (debt ${debtLoad}, savings ${emergencyFund}) before multi-generational planning` :
+                     `This requires significant financial stability first`,
+        available: `A long-term strategy with current debt ${debtLoad} tier and savings ${emergencyFund} tier`
+      },
+      'Create Life Balance': {
+        recommended: satisfaction >= 4 && satisfaction <= 6 && debtLoad === 'C' ? `Your moderate satisfaction (${satisfaction}/10) and debt (${debtLoad}) fit a balanced approach` :
+                     `Balanced priorities match your moderate financial profile`,
+        challenging: debtLoad === 'A' || debtLoad === 'E' || satisfaction <= 2 ? `Your extreme situation (debt ${debtLoad}, satisfaction ${satisfaction}/10) needs focused priorities` :
+                     `Consider more focused priorities for your situation`,
+        available: `A balanced approach with debt ${debtLoad} tier and satisfaction ${satisfaction}/10`
+      },
+      'Reclaim Financial Control': {
+        recommended: satisfaction <= 3 && (debtLoad >= 'D' || discipline <= 3) ? `Your low satisfaction (${satisfaction}/10) and financial challenges (debt ${debtLoad}, discipline ${discipline}/10) call for a reset` :
+                     `Your situation calls for rebuilding financial control`,
+        challenging: satisfaction >= 7 && discipline >= 7 ? `Your high satisfaction (${satisfaction}/10) and discipline (${discipline}/10) suggest you already have control` :
+                     `This is for those needing a major financial reset`,
+        available: `For rebuilding control with satisfaction ${satisfaction}/10 and discipline ${discipline}/10`
+      }
+    };
+
+    return reasons[priorityName]?.[indicator] || 'A valid financial priority';
+  },
+
+  /**
    * Calculate priority recommendations based on pre-survey + Tool 2 data
    * Returns array of priorities sorted by recommendation strength
    */
@@ -4356,6 +4446,13 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
 
     // Extract pre-survey values
     const { satisfaction, discipline, impulse, longTerm, lifestyle, autonomy } = preSurveyData;
+
+    // Bundle all data for personalized reason generation
+    const allData = {
+      satisfaction, discipline, impulse, longTerm, lifestyle, autonomy,
+      debtLoad, interestLevel, emergencyFund, incomeStability, dependents,
+      growth, stability, incomeRange, essentialsRange
+    };
 
     // Calculate scores for each priority
     const priorities = [
@@ -4411,11 +4508,11 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       }
     ];
 
-    // Add indicators and reasons
+    // Add indicators and personalized reasons
     return priorities.map(p => {
       const indicator = p.score >= 50 ? 'recommended' : p.score <= -50 ? 'challenging' : 'available';
       const icon = p.score >= 50 ? '⭐' : p.score <= -50 ? '⚠️' : '⚪';
-      const reason = this.getPriorityReason(p.name, indicator);
+      const reason = this.getPersonalizedReason(p.name, indicator, allData);
 
       return {
         ...p,
