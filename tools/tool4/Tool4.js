@@ -139,6 +139,47 @@ const Tool4 = {
   },
 
   /**
+   * Save priority selection and calculate allocation (Phase 3)
+   */
+  savePrioritySelection(clientId, selectedPriority, goalTimeline) {
+    try {
+      // Get existing pre-survey data
+      const savedPreSurvey = this.getPreSurvey(clientId);
+      if (!savedPreSurvey) {
+        throw new Error('Pre-survey data not found. Please complete the profile first.');
+      }
+
+      // Update pre-survey with selected priority and timeline
+      savedPreSurvey.selectedPriority = selectedPriority;
+      savedPreSurvey.goalTimeline = goalTimeline;
+
+      // Save updated pre-survey
+      const preSurveyKey = `tool4_presurvey_${clientId}`;
+      PropertiesService.getUserProperties().setProperty(preSurveyKey, JSON.stringify(savedPreSurvey));
+      Logger.log(`Priority selection saved for client: ${clientId} - Priority: ${selectedPriority}, Timeline: ${goalTimeline}`);
+
+      // Calculate V1 allocation with the selected priority
+      const baseUrl = ScriptApp.getService().getUrl();
+      const toolStatus = this.checkToolCompletion(clientId);
+      let allocation = null;
+
+      try {
+        const v1Input = this.buildV1Input(clientId, savedPreSurvey);
+        allocation = this.calculateAllocationV1(v1Input);
+      } catch (allocError) {
+        Logger.log(`Error calculating allocation: ${allocError}`);
+      }
+
+      // Return updated page HTML with priority picker collapsed and calculator showing allocation
+      const htmlContent = this.buildUnifiedPage(clientId, baseUrl, toolStatus, savedPreSurvey, allocation);
+      return { success: true, nextPageHtml: htmlContent };
+    } catch (error) {
+      Logger.log(`Error saving priority selection: ${error}`);
+      return { success: false, error: error.message };
+    }
+  },
+
+  /**
    * Phase 2: Build Pre-Survey Page
    * 7 critical questions + 5 optional questions
    */
@@ -869,6 +910,14 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
     autonomy: 5
   };
 
+  // Calculate priority recommendations if pre-survey data exists
+  let priorityRecommendations = [];
+  if (hasPreSurvey) {
+    // Get Tool 2 data if available
+    const tool2Data = hasTool2 ? toolStatus.tool2Data : null;
+    priorityRecommendations = this.calculatePriorityRecommendations(preSurveyData, tool2Data);
+  }
+
   // Slider label definitions
   const sliderLabels = {
     satisfaction: [
@@ -1552,7 +1601,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
     <div class="presurvey-section">
       <div class="presurvey-header" onclick="togglePreSurvey()">
         <div class="presurvey-title">
-          ${hasPreSurvey ? '📊 Your Budget Profile' : '📊 Quick Budget Profile Setup (10 questions, 3-5 minutes)'}
+          ${hasPreSurvey ? '📊 Your Budget Profile' : '📊 Quick Budget Profile Setup (8 questions, 2-3 minutes)'}
         </div>
         <div class="presurvey-toggle ${hasPreSurvey ? 'collapsed' : ''}" id="preSurveyToggle">▼</div>
       </div>
@@ -1562,16 +1611,16 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       <div class="presurvey-summary show" id="preSurveySummary">
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; font-size: 0.9rem;">
           <div style="color: var(--color-text-secondary);">
-            <strong style="color: var(--color-text-primary);">Priority:</strong> ${formValues.selectedPriority || 'Not set'}
-          </div>
-          <div style="color: var(--color-text-secondary);">
             <strong style="color: var(--color-text-primary);">Income:</strong> $${formValues.monthlyIncome || 'Not set'}
           </div>
           <div style="color: var(--color-text-secondary);">
             <strong style="color: var(--color-text-primary);">Essentials:</strong> $${formValues.monthlyEssentials || 'Not set'}
           </div>
           <div style="color: var(--color-text-secondary);">
-            <strong style="color: var(--color-text-primary);">Timeline:</strong> ${formValues.goalTimeline || 'Not set'}
+            <strong style="color: var(--color-text-primary);">Satisfaction:</strong> ${formValues.satisfaction || 5}/10
+          </div>
+          <div style="color: var(--color-text-primary);">
+            <strong style="color: var(--color-text-primary);">Discipline:</strong> ${formValues.discipline || 5}/10
           </div>
         </div>
       </div>
@@ -1584,61 +1633,33 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
         <div class="intro-section">
           <div class="intro-title">Welcome to Your Financial Freedom Framework</div>
           <div class="intro-text">
-            This personalized budget tool uses your unique financial situation, goals, and behavioral patterns to create a customized allocation across four key areas: Multiply (wealth building), Essentials (living expenses), Freedom (debt & security), and Enjoyment (quality of life).
+            This personalized budget tool uses your unique financial situation and behavioral patterns to recommend the best financial priorities for you, then creates a customized allocation across four key areas: Multiply (wealth building), Essentials (living expenses), Freedom (debt & security), and Enjoyment (quality of life).
             <br><br>
-            <strong>How it works:</strong> Answer 10 questions about your finances and preferences. We'll calculate a personalized budget that matches your goals and helps you move toward financial freedom at your own pace.
+            <strong>How it works:</strong> Answer 8 questions about your finances and preferences. We'll analyze your situation and show you which priorities are recommended for you. Then you'll choose your priority and timeline to get your personalized budget.
             <br><br>
-            <strong>Time needed:</strong> 3-5 minutes
+            <strong>Time needed:</strong> 2-3 minutes
           </div>
         </div>
 
         <form id="preSurveyForm">
 
-          <!-- Q1: Top Financial Priority -->
+          <!-- Q1: Monthly Income -->
           <div class="form-question">
-            <label class="question-label">1. What is your top financial priority right now?</label>
-            <div class="question-help">Choose the goal that matters most to you today. This will shape your entire budget.</div>
-            <select id="selectedPriority" class="form-select" required>
-              <option value="">-- Select your priority --</option>
-              ${priorities.map(p => `
-                <option value="${p.value}" ${formValues.selectedPriority === p.value ? 'selected' : ''}>
-                  ${p.value} - ${p.desc}
-                </option>
-              `).join('')}
-            </select>
-          </div>
-
-          <!-- Q2: Goal Timeline -->
-          <div class="form-question">
-            <label class="question-label">2. When do you want to achieve this priority?</label>
-            <div class="question-help">Your timeline helps us balance short-term needs with long-term goals.</div>
-            <select id="goalTimeline" class="form-select" required>
-              <option value="">-- Select timeline --</option>
-              <option value="Within 6 months" ${formValues.goalTimeline === 'Within 6 months' ? 'selected' : ''}>Within 6 months</option>
-              <option value="6–12 months" ${formValues.goalTimeline === '6–12 months' ? 'selected' : ''}>6–12 months</option>
-              <option value="1–2 years" ${formValues.goalTimeline === '1–2 years' ? 'selected' : ''}>1–2 years</option>
-              <option value="2–5 years" ${formValues.goalTimeline === '2–5 years' ? 'selected' : ''}>2–5 years</option>
-              <option value="5+ years" ${formValues.goalTimeline === '5+ years' ? 'selected' : ''}>5+ years</option>
-            </select>
-          </div>
-
-          <!-- Q3: Monthly Income -->
-          <div class="form-question">
-            <label class="question-label">3. What is your average monthly take-home income?</label>
+            <label class="question-label">1. What is your average monthly take-home income?</label>
             <div class="question-help">After taxes, how much money hits your bank account each month? If it varies, estimate your average.</div>
             <input type="number" id="monthlyIncome" class="form-input" placeholder="e.g., 3500" min="0" step="1" value="${formValues.monthlyIncome || ''}" required>
           </div>
 
-          <!-- Q4: Monthly Essentials -->
+          <!-- Q2: Monthly Essentials -->
           <div class="form-question">
-            <label class="question-label">4. What is your monthly essentials spending?</label>
+            <label class="question-label">2. What is your monthly essentials spending?</label>
             <div class="question-help">Rent/mortgage + utilities + groceries + insurance + minimum debt payments. Not including entertainment, dining out, or discretionary spending.</div>
             <input type="number" id="monthlyEssentials" class="form-input" placeholder="e.g., 2000" min="0" step="1" value="${formValues.monthlyEssentials || ''}" required>
           </div>
 
-          <!-- Q5: Financial Satisfaction Slider -->
+          <!-- Q3: Financial Satisfaction Slider -->
           <div class="form-question">
-            <label class="question-label">5. How satisfied are you with your current financial situation?</label>
+            <label class="question-label">3. How satisfied are you with your current financial situation?</label>
             <div class="question-help">Your satisfaction level helps us understand how urgent change feels to you.</div>
             <div class="slider-container">
               <div class="slider-value-display" id="satisfactionDisplay">${sliderLabels.satisfaction[formValues.satisfaction]}</div>
@@ -1649,9 +1670,9 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
             </div>
           </div>
 
-          <!-- Q6: Discipline Slider -->
+          <!-- Q4: Discipline Slider -->
           <div class="form-question">
-            <label class="question-label">6. How would you rate your financial discipline?</label>
+            <label class="question-label">4. How would you rate your financial discipline?</label>
             <div class="question-help">Your ability to stick to financial plans and resist temptation.</div>
             <div class="slider-container">
               <div class="slider-value-display" id="disciplineDisplay">${sliderLabels.discipline[formValues.discipline]}</div>
@@ -1662,9 +1683,9 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
             </div>
           </div>
 
-          <!-- Q7: Impulse Control Slider -->
+          <!-- Q5: Impulse Control Slider -->
           <div class="form-question">
-            <label class="question-label">7. How strong is your impulse control with spending?</label>
+            <label class="question-label">5. How strong is your impulse control with spending?</label>
             <div class="question-help">How well you resist unplanned purchases and stay on budget.</div>
             <div class="slider-container">
               <div class="slider-value-display" id="impulseDisplay">${sliderLabels.impulse[formValues.impulse]}</div>
@@ -1675,9 +1696,9 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
             </div>
           </div>
 
-          <!-- Q8: Long-Term Focus Slider -->
+          <!-- Q6: Long-Term Focus Slider -->
           <div class="form-question">
-            <label class="question-label">8. How focused are you on long-term financial goals?</label>
+            <label class="question-label">6. How focused are you on long-term financial goals?</label>
             <div class="question-help">Your orientation toward future versus present financial needs.</div>
             <div class="slider-container">
               <div class="slider-value-display" id="longTermDisplay">${sliderLabels.longTerm[formValues.longTerm]}</div>
@@ -1688,9 +1709,9 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
             </div>
           </div>
 
-          <!-- Q9: Lifestyle Priority Slider -->
+          <!-- Q7: Lifestyle Priority Slider -->
           <div class="form-question">
-            <label class="question-label">9. How do you prioritize enjoying life now versus saving for later?</label>
+            <label class="question-label">7. How do you prioritize enjoying life now versus saving for later?</label>
             <div class="question-help">Where do you fall on the spectrum from maximum saving to maximum present enjoyment?</div>
             <div class="slider-container">
               <div class="slider-value-display" id="lifestyleDisplay">${sliderLabels.lifestyle[formValues.lifestyle]}</div>
@@ -1701,9 +1722,9 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
             </div>
           </div>
 
-          <!-- Q10: Autonomy Preference Slider -->
+          <!-- Q8: Autonomy Preference Slider -->
           <div class="form-question">
-            <label class="question-label">10. Do you prefer following expert guidance or making your own financial choices?</label>
+            <label class="question-label">8. Do you prefer following expert guidance or making your own financial choices?</label>
             <div class="question-help">How much autonomy do you want in shaping your budget?</div>
             <div class="slider-container">
               <div class="slider-value-display" id="autonomyDisplay">${sliderLabels.autonomy[formValues.autonomy]}</div>
@@ -1719,11 +1740,19 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
 
           <!-- Submit Button -->
           <button type="submit" class="submit-btn" id="calculateBtn">
-            ${hasPreSurvey ? 'Recalculate My Allocation' : 'Calculate My Personalized Allocation →'}
+            ${hasPreSurvey ? 'Update My Profile' : 'Calculate My Available Priorities →'}
           </button>
         </form>
       </div>
     </div>
+
+    <!-- Priority Picker Section (shown after pre-survey completion) -->
+    ${hasPreSurvey && priorityRecommendations.length > 0 ? this.buildPriorityPickerHtml(
+      priorityRecommendations,
+      formValues.selectedPriority,
+      formValues.goalTimeline,
+      !allocation  // Expanded if no allocation yet, collapsed if allocation exists
+    ) : ''}
 
     <!-- Calculator Section -->
     <div class="calculator-section">
@@ -4435,4 +4464,12 @@ function savePreSurvey(clientId, preSurveyData) {
  */
 function getPreSurvey(clientId) {
   return Tool4.getPreSurvey(clientId);
+}
+
+/**
+ * Global wrapper for saving priority selection
+ * Called by: Priority picker (calculateAllocation button)
+ */
+function savePrioritySelection(clientId, selectedPriority, goalTimeline) {
+  return Tool4.savePrioritySelection(clientId, selectedPriority, goalTimeline);
 }
