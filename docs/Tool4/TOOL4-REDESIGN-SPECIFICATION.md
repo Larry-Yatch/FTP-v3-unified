@@ -1,8 +1,8 @@
 # Tool 4 Redesign Specification: Hybrid V1 + Calculator Architecture
 
 **Created:** 2025-11-28
-**Last Updated:** 2025-11-28
-**Status:** Phase 1 In Progress (Week 4)
+**Last Updated:** 2025-11-29
+**Status:** Phase 3 In Progress (Week 5)
 **Purpose:** Complete architectural specification for Tool 4 redesign combining V1's personalization engine with interactive calculator
 
 ---
@@ -744,23 +744,76 @@ buildCalculatorPage(clientId, baseUrl, toolStatus, allocation, preSurveyData)
 
 ---
 
-### **Phase 3: Interactive Calculator (Week 5)**
+### **Phase 3: Interactive Calculator (Week 5)** 🔄 IN PROGRESS
 
 **Tasks:**
-1. Build bucket slider component
-2. Add lock/unlock functionality
-3. Implement proportional redistribution logic
-4. Build insights sidebar (progressive disclosure)
-5. Add "Reset to Recommended" button
-6. Add "Check My Plan" button
-7. Add "Save Scenario" button
+1. ✅ Build unified page (pre-survey + calculator single view) - Tool4.js:813-1433
+2. ✅ Add collapsible pre-survey section - Lines 1123-1291
+3. ✅ Display V1 allocation cards (4 buckets) - Lines 1303-1324
+4. ✅ Add "Why These Numbers?" insights - Lines 1326-1334
+5. ✅ Add "Recalculate" functionality - Lines 1375-1428
+6. ⏳ Build interactive sliders for bucket adjustment
+7. ⏳ Add lock/unlock functionality per bucket
+8. ⏳ Implement proportional redistribution logic
+9. ⏳ Add "Reset to Recommended" button
+10. ⏳ Add "Check My Plan" validation button
+11. ⏳ Add "Save Scenario" button
 
 **Success Criteria:**
-- Sliders adjust smoothly
-- Lock feature works correctly
-- Redistribution maintains 100% total
-- Insights sidebar shows V1 reasoning
-- All buttons functional
+- ✅ Pre-survey collapses after first calculation
+- ✅ Pre-survey summary bar shows key values when collapsed
+- ✅ Click header to expand/collapse pre-survey
+- ✅ V1 allocations display correctly (Multiply, Essentials, Freedom, Enjoyment)
+- ✅ Insights explain reasoning for each bucket
+- ✅ Recalculate updates allocations after pre-survey changes
+- ⏳ Sliders adjust smoothly with real-time feedback
+- ⏳ Lock feature prevents bucket from changing
+- ⏳ Redistribution maintains 100% total
+- ⏳ All buttons functional
+
+**Implementation Details:**
+
+**Unified Page Structure (Lines 813-1433):**
+- **Single-page layout** with collapsible pre-survey + static allocation display
+- **Pre-Survey Section:**
+  - Header with toggle button (📊 icon + title)
+  - Summary bar (shows Priority, Income, Essentials, Timeline when collapsed)
+  - Collapsible form body (8 required + 2 optional questions)
+  - Submit button changes text: "Calculate" → "Recalculate"
+- **Calculator Section:**
+  - 4 allocation bucket cards (static percentages)
+  - "Why These Numbers?" insights box
+  - ⏳ Interactive sliders (not yet implemented)
+  - ⏳ Lock/unlock toggles (not yet implemented)
+  - ⏳ Scenario management (not yet implemented)
+
+**Current UX Flow:**
+```
+First Visit:
+  Pre-survey EXPANDED → Fill form → Click "Calculate My Personalized Budget"
+  ↓
+  Page reloads → Pre-survey COLLAPSED → Allocation cards shown with percentages
+  ↓
+  Click pre-survey header → EXPAND → Edit values → Click "Recalculate My Budget"
+  ↓
+  Page reloads → Updated allocations displayed
+```
+
+**Next Steps:**
+1. Add interactive sliders below allocation cards
+2. Pre-fill sliders with V1 percentages
+3. Add real-time adjustment with sum validation (must = 100%)
+4. Add lock icons to freeze individual buckets
+5. Implement proportional redistribution when adjusting with locks
+6. Add "Reset to Recommended" to restore V1 values
+7. Add "Check My Plan" validation button
+8. Add "Save Scenario" functionality
+
+**Current Status:**
+- **Static Display:** ✅ Complete - Shows V1 allocations with insights
+- **Interactive Adjustment:** ⏳ Not started - Need sliders, locks, redistribution
+- **Validation:** ⏳ Not started - Need "Check My Plan" integration
+- **Scenarios:** ⏳ Not started - Need save/compare functionality
 
 ---
 
@@ -954,5 +1007,50 @@ buildCalculatorPage(clientId, baseUrl, toolStatus, allocation, preSurveyData)
 ---
 
 **Document Maintained By:** Claude Code
-**Next Update:** After Phase 3 completion
-**Version:** 1.4 (Phase 2 Complete - Pre-Survey UI Ready)
+**Completed (2025-11-29 - Session 4 - Phase 3 Started):**
+1. ✅ **Unified Page Architecture** - Single-page pre-survey + calculator
+   - Created `buildUnifiedPage()` function: Tool4.js:813-1433 (620 lines)
+   - Replaced two-page flow with collapsible single-page experience
+   - Pre-survey starts expanded (first visit) or collapsed (return visit)
+2. ✅ **Collapsible Pre-Survey Section**:
+   - Header click toggles expand/collapse
+   - Summary bar shows key values when collapsed (Priority, Income, Essentials, Timeline)
+   - Smooth CSS transitions for expand/collapse animations
+   - "Edit Pre-Survey" pattern - click header to modify values
+3. ✅ **V1 Allocation Display**:
+   - 4 allocation bucket cards (Multiply, Essentials, Freedom, Enjoyment)
+   - Static percentage display with visual styling
+   - Descriptive labels for each bucket purpose
+   - Fixed case sensitivity bug (percentages.Multiply vs percentages.multiply)
+4. ✅ **"Why These Numbers?" Insights Box**:
+   - Displays V1 lightNotes for each bucket
+   - Explains reasoning behind allocations
+   - Fixed data structure bug (object vs array)
+5. ✅ **Recalculate Functionality**:
+   - Button text changes: "Calculate My Personalized Budget" → "Recalculate My Budget"
+   - Page reload updates allocations after pre-survey changes
+   - Seamless edit-recalculate workflow
+6. ✅ **Bug Fixes**:
+   - Fixed: `google.script.run.savePreSurvey is not a function` - Added global wrapper functions
+   - Fixed: Blank white page after submission - Changed reload strategy
+   - Fixed: `allocation.lightNotes.join is not a function` - Handled object structure
+   - Fixed: "undefined%" in allocation cards - Corrected property case (Multiply vs multiply)
+7. ✅ **Improved UX**:
+   - No more "go back to main menu" - all actions on one page
+   - Pre-survey collapses to summary after calculation
+   - Clear visual hierarchy and interaction patterns
+
+**Technical Improvements:**
+- Modified `render()` to always call `buildUnifiedPage()` instead of conditional routing
+- Pre-survey data pre-fills form on return visits
+- V1 allocations calculated server-side, displayed client-side
+- Window.reload() works within single-page context
+
+**Current Limitations:**
+- ⏳ No interactive sliders yet - allocations are static display only
+- ⏳ No lock/unlock feature - can't freeze individual buckets
+- ⏳ No manual adjustment - must recalculate via pre-survey changes
+- ⏳ No scenario saving - can't compare multiple approaches
+
+**Next Update:** After Phase 3 interactive sliders completion
+**Version:** 1.5 (Phase 3 Partial - Static V1 Display Working)
