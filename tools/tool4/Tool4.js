@@ -1211,6 +1211,161 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       color: var(--color-text-secondary);
     }
 
+    /* Priority Picker Section */
+    .priority-picker-section {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      padding: 0;
+      margin-bottom: 30px;
+      transition: all 0.3s ease;
+    }
+
+    .priority-picker-header {
+      padding: 20px 30px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      user-select: none;
+    }
+
+    .priority-picker-header:hover {
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .priority-picker-summary {
+      padding: 15px 30px;
+      display: flex;
+      gap: 30px;
+      align-items: center;
+      font-size: 0.95em;
+      color: var(--color-text-secondary);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .priority-picker-body {
+      padding: 30px;
+    }
+
+    .picker-intro {
+      color: var(--color-text-secondary);
+      margin-bottom: 30px;
+      text-align: center;
+    }
+
+    .priority-group {
+      margin-bottom: 30px;
+    }
+
+    .group-title {
+      font-size: 1.1em;
+      margin-bottom: 15px;
+      font-weight: 600;
+    }
+
+    .priority-group.recommended .group-title {
+      color: #10b981;
+    }
+
+    .priority-group.available .group-title {
+      color: var(--color-text);
+    }
+
+    .priority-group.challenging .group-title {
+      color: #f59e0b;
+    }
+
+    .priority-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 2px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 15px 20px;
+      margin-bottom: 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .priority-card:hover {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: var(--color-primary);
+      transform: translateX(4px);
+    }
+
+    .priority-card.selected {
+      background: rgba(139, 92, 246, 0.1);
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2);
+    }
+
+    .priority-card.recommended {
+      border-left: 4px solid #10b981;
+    }
+
+    .priority-card.challenging {
+      border-left: 4px solid #f59e0b;
+    }
+
+    .priority-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .priority-icon {
+      font-size: 1.3em;
+    }
+
+    .priority-name {
+      font-weight: 600;
+      flex: 1;
+    }
+
+    .selected-badge {
+      background: var(--color-primary);
+      color: white;
+      padding: 2px 10px;
+      border-radius: 12px;
+      font-size: 0.85em;
+      font-weight: 600;
+    }
+
+    .priority-reason {
+      color: var(--color-text-secondary);
+      font-size: 0.95em;
+      margin-bottom: 8px;
+      padding-left: 35px;
+    }
+
+    .priority-allocation {
+      color: var(--color-text-muted);
+      font-size: 0.85em;
+      font-family: 'Courier New', monospace;
+      padding-left: 35px;
+    }
+
+    .timeline-selector {
+      margin-top: 30px;
+      margin-bottom: 25px;
+    }
+
+    .timeline-selector label {
+      display: block;
+      margin-bottom: 10px;
+      color: var(--color-text);
+    }
+
+    .timeline-selector select {
+      width: 100%;
+      padding: 12px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: var(--color-text);
+      font-size: 1em;
+    }
+
     /* Calculator Section */
     .calculator-section {
       background: rgba(255, 255, 255, 0.05);
@@ -1665,6 +1820,67 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       body.classList.toggle('collapsed');
       toggle.classList.toggle('collapsed');
       if (summary) summary.classList.toggle('show');
+    }
+
+    // Priority picker functions
+    var selectedPriorityName = '${formValues.selectedPriority || ''}';
+
+    function togglePriorityPicker() {
+      const section = document.querySelector('.priority-picker-section');
+      const body = document.querySelector('.priority-picker-body');
+      const isCollapsed = section.classList.toggle('collapsed');
+      body.style.display = isCollapsed ? 'none' : 'block';
+    }
+
+    function selectPriority(priorityName) {
+      selectedPriorityName = priorityName;
+      // Update UI - remove selected from all cards, add to clicked one
+      document.querySelectorAll('.priority-card').forEach(card => {
+        card.classList.remove('selected');
+        card.querySelector('.selected-badge')?.remove();
+      });
+      const clickedCard = Array.from(document.querySelectorAll('.priority-card'))
+        .find(card => card.querySelector('.priority-name').textContent === priorityName);
+      if (clickedCard) {
+        clickedCard.classList.add('selected');
+        const header = clickedCard.querySelector('.priority-header');
+        if (!header.querySelector('.selected-badge')) {
+          const badge = document.createElement('span');
+          badge.className = 'selected-badge';
+          badge.textContent = '✓ Selected';
+          header.appendChild(badge);
+        }
+      }
+    }
+
+    function calculateAllocation() {
+      if (!selectedPriorityName) {
+        alert('Please select a priority first');
+        return;
+      }
+      const timeline = document.getElementById('goalTimeline').value;
+      if (!timeline) {
+        alert('Please select a timeline');
+        return;
+      }
+
+      // Show loading
+      const btn = document.getElementById('calculateAllocationBtn');
+      btn.disabled = true;
+      btn.textContent = 'Calculating...';
+
+      // Call server to calculate allocation with selected priority
+      google.script.run
+        .withSuccessHandler(function(result) {
+          // Reload page to show calculator with allocations
+          window.location.reload();
+        })
+        .withFailureHandler(function(error) {
+          alert('Error: ' + error.message);
+          btn.disabled = false;
+          btn.textContent = 'Calculate My Allocation';
+        })
+        .savePrioritySelection('${clientId}', selectedPriorityName, timeline);
     }
 
     // Form submission
@@ -4064,6 +4280,111 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       icon: p.score >= 50 ? '⭐' : p.score <= -50 ? '⚠️' : '⚪',
       reason: this.getPriorityReason(p.name, p.indicator)
     })).sort((a, b) => b.score - a.score); // Sort by recommendation strength
+  },
+
+  /**
+   * Build priority picker HTML section
+   * @param {Array} priorities - Sorted array of priorities with scores and indicators
+   * @param {string} selectedPriority - Currently selected priority (if any)
+   * @param {string} selectedTimeline - Currently selected timeline (if any)
+   * @param {boolean} isExpanded - Whether picker should be expanded
+   * @returns {string} HTML for priority picker section
+   */
+  buildPriorityPickerHtml(priorities, selectedPriority, selectedTimeline, isExpanded) {
+    const isCollapsed = !isExpanded;
+
+    // Group priorities by indicator
+    const recommended = priorities.filter(p => p.indicator === 'recommended');
+    const available = priorities.filter(p => p.indicator === 'available');
+    const challenging = priorities.filter(p => p.indicator === 'challenging');
+
+    return `
+      <!-- Priority Picker Section -->
+      <div class="priority-picker-section ${isCollapsed ? 'collapsed' : ''}">
+        <div class="priority-picker-header" onclick="togglePriorityPicker()">
+          <span class="section-icon">🎯</span>
+          <span class="section-title">Choose Your Financial Priority</span>
+          <span class="toggle-icon">${isCollapsed ? '▼' : '▲'}</span>
+        </div>
+
+        ${isCollapsed ? `
+        <div class="priority-picker-summary">
+          <span><strong>Selected:</strong> ${selectedPriority || 'Not yet selected'}</span>
+          ${selectedTimeline ? `<span><strong>Timeline:</strong> ${selectedTimeline}</span>` : ''}
+        </div>
+        ` : ''}
+
+        <div class="priority-picker-body" style="display: ${isCollapsed ? 'none' : 'block'}">
+          <p class="picker-intro">
+            Based on your responses, we've analyzed which priorities best fit your current situation.
+            You can choose any priority below - the recommendations are guidance, not restrictions.
+          </p>
+
+          ${recommended.length > 0 ? `
+          <div class="priority-group recommended">
+            <h3 class="group-title">⭐ Recommended for You</h3>
+            ${recommended.map(p => this.buildPriorityCard(p, selectedPriority)).join('')}
+          </div>
+          ` : ''}
+
+          ${available.length > 0 ? `
+          <div class="priority-group available">
+            <h3 class="group-title">⚪ Other Options</h3>
+            ${available.map(p => this.buildPriorityCard(p, selectedPriority)).join('')}
+          </div>
+          ` : ''}
+
+          ${challenging.length > 0 ? `
+          <div class="priority-group challenging">
+            <h3 class="group-title">⚠️ May Be Challenging</h3>
+            ${challenging.map(p => this.buildPriorityCard(p, selectedPriority)).join('')}
+          </div>
+          ` : ''}
+
+          <div class="timeline-selector">
+            <label for="goalTimeline">
+              <strong>When do you want to reach this goal?</strong>
+            </label>
+            <select id="goalTimeline" name="goalTimeline" required>
+              <option value="">-- Select timeline --</option>
+              <option value="Within 6 months" ${selectedTimeline === 'Within 6 months' ? 'selected' : ''}>Within 6 months</option>
+              <option value="6–12 months" ${selectedTimeline === '6–12 months' ? 'selected' : ''}>6–12 months</option>
+              <option value="1–2 years" ${selectedTimeline === '1–2 years' ? 'selected' : ''}>1–2 years</option>
+              <option value="2–5 years" ${selectedTimeline === '2–5 years' ? 'selected' : ''}>2–5 years</option>
+              <option value="5+ years" ${selectedTimeline === '5+ years' ? 'selected' : ''}>5+ years</option>
+            </select>
+          </div>
+
+          <button type="button" class="btn-primary" id="calculateAllocationBtn" onclick="calculateAllocation()">
+            Calculate My Allocation
+          </button>
+        </div>
+      </div>
+    `;
+  },
+
+  /**
+   * Build individual priority card HTML
+   * @param {Object} priority - Priority object with name, score, indicator, icon, reason
+   * @param {string} selectedPriority - Currently selected priority
+   * @returns {string} HTML for priority card
+   */
+  buildPriorityCard(priority, selectedPriority) {
+    const isSelected = priority.name === selectedPriority;
+    return `
+      <div class="priority-card ${priority.indicator} ${isSelected ? 'selected' : ''}"
+           onclick="selectPriority('${priority.name}')">
+        <div class="priority-header">
+          <span class="priority-icon">${priority.icon}</span>
+          <span class="priority-name">${priority.name}</span>
+          ${isSelected ? '<span class="selected-badge">✓ Selected</span>' : ''}
+        </div>
+        <div class="priority-reason">${priority.reason}</div>
+        <div class="priority-allocation">
+          Starting: M${priority.baseAllocation.M}% · E${priority.baseAllocation.E}% · F${priority.baseAllocation.F}% · J${priority.baseAllocation.J}%
+        </div>
+      </div>
+    `;
   },
 
   // ============================================================================
