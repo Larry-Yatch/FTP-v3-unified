@@ -200,6 +200,71 @@ const Tool4 = {
   },
 
   /**
+   * Save a custom allocation scenario (Phase 3B)
+   * Stores user's custom allocation for comparison and future reference
+   */
+  saveScenario(clientId, scenario) {
+    try {
+      // Validate scenario data
+      if (!scenario || !scenario.name || !scenario.allocations) {
+        throw new Error('Invalid scenario data');
+      }
+
+      // Validate allocations sum to 100%
+      const total = scenario.allocations.Multiply + scenario.allocations.Essentials +
+                    scenario.allocations.Freedom + scenario.allocations.Enjoyment;
+      if (Math.abs(total - 100) > 1) {
+        throw new Error('Allocations must sum to 100%');
+      }
+
+      // Get existing scenarios
+      const scenariosKey = `tool4_scenarios_${clientId}`;
+      const existingScenariosStr = PropertiesService.getUserProperties().getProperty(scenariosKey);
+      const existingScenarios = existingScenariosStr ? JSON.parse(existingScenariosStr) : [];
+
+      // Add new scenario with timestamp
+      const newScenario = {
+        id: `scenario_${Date.now()}`,
+        name: scenario.name,
+        allocations: scenario.allocations,
+        timestamp: scenario.timestamp || new Date().toISOString(),
+        createdDate: new Date().toLocaleDateString()
+      };
+
+      existingScenarios.push(newScenario);
+
+      // Save back to properties (limit to 10 most recent scenarios)
+      const limitedScenarios = existingScenarios.slice(-10);
+      PropertiesService.getUserProperties().setProperty(scenariosKey, JSON.stringify(limitedScenarios));
+
+      Logger.log(`Scenario saved for client ${clientId}: ${scenario.name}`);
+      return {
+        success: true,
+        message: 'Scenario saved successfully',
+        scenarioId: newScenario.id,
+        totalScenarios: limitedScenarios.length
+      };
+    } catch (error) {
+      Logger.log(`Error saving scenario: ${error}`);
+      return { success: false, error: error.message };
+    }
+  },
+
+  /**
+   * Get all saved scenarios for a client
+   */
+  getScenarios(clientId) {
+    try {
+      const scenariosKey = `tool4_scenarios_${clientId}`;
+      const scenariosStr = PropertiesService.getUserProperties().getProperty(scenariosKey);
+      return scenariosStr ? JSON.parse(scenariosStr) : [];
+    } catch (error) {
+      Logger.log(`Error getting scenarios: ${error}`);
+      return [];
+    }
+  },
+
+  /**
    * Phase 2: Build Pre-Survey Page
    * 7 critical questions + 5 optional questions
    */
@@ -1530,6 +1595,185 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       color: var(--color-text-secondary);
     }
 
+    /* Interactive Calculator Styles */
+    .interactive-calculator {
+      margin-top: 30px;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 12px;
+      padding: 25px;
+    }
+
+    .calculator-controls {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 25px;
+      flex-wrap: wrap;
+    }
+
+    .btn-secondary {
+      background: rgba(79, 70, 229, 0.2);
+      color: var(--color-text-primary);
+      border: 1px solid rgba(79, 70, 229, 0.4);
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(79, 70, 229, 0.3);
+      border-color: rgba(79, 70, 229, 0.6);
+    }
+
+    .btn-secondary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .bucket-slider-container {
+      margin-bottom: 25px;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 10px;
+      padding: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .bucket-slider-container.locked {
+      background: rgba(255, 255, 255, 0.01);
+      border-color: rgba(255, 193, 7, 0.3);
+    }
+
+    .bucket-slider-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+
+    .bucket-slider-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .bucket-slider-name {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--color-text-primary);
+    }
+
+    .bucket-slider-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--color-primary);
+    }
+
+    .bucket-slider-locked-value {
+      color: #ffc107;
+    }
+
+    .lock-button {
+      background: transparent;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      color: rgba(255, 255, 255, 0.6);
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      min-width: 80px;
+    }
+
+    .lock-button:hover {
+      border-color: rgba(255, 255, 255, 0.4);
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    .lock-button.locked {
+      background: rgba(255, 193, 7, 0.2);
+      border-color: #ffc107;
+      color: #ffc107;
+    }
+
+    .bucket-slider-track {
+      position: relative;
+      height: 10px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 5px;
+      margin-bottom: 10px;
+    }
+
+    .bucket-slider-fill {
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 100%;
+      background: linear-gradient(90deg, #4f46e5, #7c3aed);
+      border-radius: 5px;
+      transition: width 0.15s ease-out;
+    }
+
+    .bucket-slider-fill.locked {
+      background: linear-gradient(90deg, #f59e0b, #ffc107);
+    }
+
+    .bucket-range-input {
+      width: 100%;
+      -webkit-appearance: none;
+      appearance: none;
+      height: 10px;
+      background: transparent;
+      outline: none;
+      position: relative;
+      z-index: 2;
+      cursor: pointer;
+    }
+
+    .bucket-range-input:disabled {
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+
+    .bucket-range-input::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 24px;
+      height: 24px;
+      background: var(--color-primary);
+      border: 3px solid rgba(0, 0, 0, 0.3);
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    }
+
+    .bucket-range-input::-moz-range-thumb {
+      width: 24px;
+      height: 24px;
+      background: var(--color-primary);
+      border: 3px solid rgba(0, 0, 0, 0.3);
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    }
+
+    .bucket-range-input.locked::-webkit-slider-thumb {
+      background: #ffc107;
+    }
+
+    .bucket-range-input.locked::-moz-range-thumb {
+      background: #ffc107;
+    }
+
+    .bucket-description {
+      font-size: 0.85rem;
+      color: var(--color-text-secondary);
+      margin-top: 5px;
+      font-style: italic;
+    }
+
     .submit-btn {
       background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
       color: white;
@@ -1876,6 +2120,135 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
             <p><strong>Enjoyment:</strong> ${allocation.lightNotes.Enjoyment}</p>
           </div>
         </div>
+
+        <!-- Interactive Calculator -->
+        <div class="interactive-calculator">
+          <h3 style="margin-top: 0; color: var(--color-text-primary); text-align: center; margin-bottom: 20px;">
+            🎛️ Adjust Your Allocation
+          </h3>
+
+          <div class="calculator-controls">
+            <button type="button" class="btn-secondary" onclick="resetToRecommended()">
+              ↻ Reset to Recommended
+            </button>
+            <button type="button" class="btn-secondary" onclick="checkMyPlan()">
+              ✓ Check My Plan
+            </button>
+            <button type="button" class="btn-secondary" onclick="saveScenario()">
+              💾 Save Scenario
+            </button>
+          </div>
+
+          <!-- Multiply Slider -->
+          <div class="bucket-slider-container" id="multiplyContainer">
+            <div class="bucket-slider-header">
+              <div class="bucket-slider-title">
+                <span class="bucket-slider-name">💰 Multiply</span>
+                <span class="bucket-slider-value" id="multiplyValue">${allocation.percentages.Multiply}%</span>
+              </div>
+              <button type="button" class="lock-button" id="multiplyLock" onclick="toggleLock('Multiply')">
+                🔓 Unlocked
+              </button>
+            </div>
+            <div class="bucket-slider-track">
+              <div class="bucket-slider-fill" id="multiplyFill" style="width: ${allocation.percentages.Multiply}%"></div>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value="${allocation.percentages.Multiply}"
+              class="bucket-range-input"
+              id="multiplySlider"
+              oninput="adjustBucket('Multiply', this.value)"
+            />
+            <div class="bucket-description">Long-term wealth building through investments</div>
+          </div>
+
+          <!-- Essentials Slider -->
+          <div class="bucket-slider-container" id="essentialsContainer">
+            <div class="bucket-slider-header">
+              <div class="bucket-slider-title">
+                <span class="bucket-slider-name">🏠 Essentials</span>
+                <span class="bucket-slider-value" id="essentialsValue">${allocation.percentages.Essentials}%</span>
+              </div>
+              <button type="button" class="lock-button" id="essentialsLock" onclick="toggleLock('Essentials')">
+                🔓 Unlocked
+              </button>
+            </div>
+            <div class="bucket-slider-track">
+              <div class="bucket-slider-fill" id="essentialsFill" style="width: ${allocation.percentages.Essentials}%"></div>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value="${allocation.percentages.Essentials}"
+              class="bucket-range-input"
+              id="essentialsSlider"
+              oninput="adjustBucket('Essentials', this.value)"
+            />
+            <div class="bucket-description">Core living expenses (housing, food, utilities)</div>
+          </div>
+
+          <!-- Freedom Slider -->
+          <div class="bucket-slider-container" id="freedomContainer">
+            <div class="bucket-slider-header">
+              <div class="bucket-slider-title">
+                <span class="bucket-slider-name">🚀 Freedom</span>
+                <span class="bucket-slider-value" id="freedomValue">${allocation.percentages.Freedom}%</span>
+              </div>
+              <button type="button" class="lock-button" id="freedomLock" onclick="toggleLock('Freedom')">
+                🔓 Unlocked
+              </button>
+            </div>
+            <div class="bucket-slider-track">
+              <div class="bucket-slider-fill" id="freedomFill" style="width: ${allocation.percentages.Freedom}%"></div>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value="${allocation.percentages.Freedom}"
+              class="bucket-range-input"
+              id="freedomSlider"
+              oninput="adjustBucket('Freedom', this.value)"
+            />
+            <div class="bucket-description">Debt payoff and emergency fund building</div>
+          </div>
+
+          <!-- Enjoyment Slider -->
+          <div class="bucket-slider-container" id="enjoymentContainer">
+            <div class="bucket-slider-header">
+              <div class="bucket-slider-title">
+                <span class="bucket-slider-name">🎉 Enjoyment</span>
+                <span class="bucket-slider-value" id="enjoymentValue">${allocation.percentages.Enjoyment}%</span>
+              </div>
+              <button type="button" class="lock-button" id="enjoymentLock" onclick="toggleLock('Enjoyment')">
+                🔓 Unlocked
+              </button>
+            </div>
+            <div class="bucket-slider-track">
+              <div class="bucket-slider-fill" id="enjoymentFill" style="width: ${allocation.percentages.Enjoyment}%"></div>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value="${allocation.percentages.Enjoyment}"
+              class="bucket-range-input"
+              id="enjoymentSlider"
+              oninput="adjustBucket('Enjoyment', this.value)"
+            />
+            <div class="bucket-description">Present quality of life and discretionary spending</div>
+          </div>
+
+          <div style="text-align: center; margin-top: 20px; padding: 15px; background: rgba(0, 0, 0, 0.2); border-radius: 8px;">
+            <div style="font-size: 0.9rem; color: var(--color-text-secondary);">
+              Total Allocation: <span id="totalAllocation" style="font-size: 1.2rem; font-weight: 700; color: var(--color-primary);">100%</span>
+            </div>
+          </div>
+        </div>
       ` : `
         <div class="calculation-status">
           <p style="font-size: 1.2rem; margin-bottom: 10px;">👆 Start by filling out your profile above</p>
@@ -1977,6 +2350,270 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
         }
       }
     }
+
+    // ============ INTERACTIVE CALCULATOR LOGIC ============
+
+    // State management for calculator
+    var calculatorState = {
+      buckets: {
+        Multiply: ${allocation ? allocation.percentages.Multiply : 25},
+        Essentials: ${allocation ? allocation.percentages.Essentials : 35},
+        Freedom: ${allocation ? allocation.percentages.Freedom : 25},
+        Enjoyment: ${allocation ? allocation.percentages.Enjoyment : 15}
+      },
+      locked: {
+        Multiply: false,
+        Essentials: false,
+        Freedom: false,
+        Enjoyment: false
+      },
+      recommended: {
+        Multiply: ${allocation ? allocation.percentages.Multiply : 25},
+        Essentials: ${allocation ? allocation.percentages.Essentials : 35},
+        Freedom: ${allocation ? allocation.percentages.Freedom : 25},
+        Enjoyment: ${allocation ? allocation.percentages.Enjoyment : 15}
+      }
+    };
+
+    // Toggle lock on a bucket
+    function toggleLock(bucketName) {
+      calculatorState.locked[bucketName] = !calculatorState.locked[bucketName];
+      var lockBtn = document.getElementById(bucketName.toLowerCase() + 'Lock');
+      var container = document.getElementById(bucketName.toLowerCase() + 'Container');
+      var slider = document.getElementById(bucketName.toLowerCase() + 'Slider');
+      var fill = document.getElementById(bucketName.toLowerCase() + 'Fill');
+      var value = document.getElementById(bucketName.toLowerCase() + 'Value');
+
+      if (calculatorState.locked[bucketName]) {
+        lockBtn.textContent = '🔒 Locked';
+        lockBtn.classList.add('locked');
+        container.classList.add('locked');
+        slider.disabled = true;
+        slider.classList.add('locked');
+        fill.classList.add('locked');
+        value.classList.add('bucket-slider-locked-value');
+      } else {
+        lockBtn.textContent = '🔓 Unlocked';
+        lockBtn.classList.remove('locked');
+        container.classList.remove('locked');
+        slider.disabled = false;
+        slider.classList.remove('locked');
+        fill.classList.remove('locked');
+        value.classList.remove('bucket-slider-locked-value');
+      }
+    }
+
+    // Adjust bucket value with proportional redistribution
+    function adjustBucket(bucketName, newValue) {
+      newValue = parseFloat(newValue);
+      var oldValue = calculatorState.buckets[bucketName];
+      var delta = newValue - oldValue;
+
+      // Update the adjusted bucket
+      calculatorState.buckets[bucketName] = newValue;
+
+      // Find unlocked buckets (excluding the one being adjusted)
+      var unlockedBuckets = [];
+      var unlockedTotal = 0;
+
+      for (var key in calculatorState.buckets) {
+        if (key !== bucketName && !calculatorState.locked[key]) {
+          unlockedBuckets.push(key);
+          unlockedTotal += calculatorState.buckets[key];
+        }
+      }
+
+      // If there are unlocked buckets, redistribute proportionally
+      if (unlockedBuckets.length > 0 && unlockedTotal > 0) {
+        unlockedBuckets.forEach(function(key) {
+          var proportion = calculatorState.buckets[key] / unlockedTotal;
+          var adjustment = delta * proportion;
+          calculatorState.buckets[key] = Math.max(0, calculatorState.buckets[key] - adjustment);
+        });
+      } else if (unlockedBuckets.length > 0) {
+        // If all unlocked buckets are at 0, distribute evenly
+        var evenShare = Math.max(0, (100 - newValue - getLockedTotal()) / unlockedBuckets.length);
+        unlockedBuckets.forEach(function(key) {
+          calculatorState.buckets[key] = evenShare;
+        });
+      }
+
+      // Normalize to ensure total is exactly 100%
+      normalizeAllocations();
+
+      // Update UI
+      updateAllBucketDisplays();
+    }
+
+    // Get total of locked buckets
+    function getLockedTotal() {
+      var total = 0;
+      for (var key in calculatorState.locked) {
+        if (calculatorState.locked[key]) {
+          total += calculatorState.buckets[key];
+        }
+      }
+      return total;
+    }
+
+    // Normalize allocations to sum to exactly 100%
+    function normalizeAllocations() {
+      // First, round all values to whole numbers
+      for (var key in calculatorState.buckets) {
+        calculatorState.buckets[key] = Math.round(calculatorState.buckets[key]);
+      }
+
+      // Then check if total is exactly 100%
+      var total = 0;
+      for (var key in calculatorState.buckets) {
+        total += calculatorState.buckets[key];
+      }
+
+      // If not exactly 100%, adjust the largest unlocked bucket
+      if (total !== 100) {
+        var diff = 100 - total;
+        var largestUnlocked = null;
+        var largestValue = -1;
+
+        for (var key in calculatorState.buckets) {
+          if (!calculatorState.locked[key] && calculatorState.buckets[key] > largestValue) {
+            largestValue = calculatorState.buckets[key];
+            largestUnlocked = key;
+          }
+        }
+
+        if (largestUnlocked) {
+          calculatorState.buckets[largestUnlocked] = Math.max(0, calculatorState.buckets[largestUnlocked] + diff);
+        }
+      }
+    }
+
+    // Update all bucket displays
+    function updateAllBucketDisplays() {
+      ['Multiply', 'Essentials', 'Freedom', 'Enjoyment'].forEach(function(bucketName) {
+        var value = calculatorState.buckets[bucketName];
+        var lowerName = bucketName.toLowerCase();
+
+        document.getElementById(lowerName + 'Value').textContent = value + '%';
+        document.getElementById(lowerName + 'Slider').value = value;
+        document.getElementById(lowerName + 'Fill').style.width = value + '%';
+      });
+
+      // Update total display
+      var total = 0;
+      for (var key in calculatorState.buckets) {
+        total += calculatorState.buckets[key];
+      }
+      document.getElementById('totalAllocation').textContent = Math.round(total) + '%';
+
+      // Color code total (green if 100%, red if not)
+      var totalElem = document.getElementById('totalAllocation');
+      if (Math.abs(total - 100) < 0.5) {
+        totalElem.style.color = '#10b981'; // green
+      } else {
+        totalElem.style.color = '#ef4444'; // red
+      }
+    }
+
+    // Reset to recommended values
+    function resetToRecommended() {
+      // Reset all buckets to recommended values
+      for (var key in calculatorState.recommended) {
+        calculatorState.buckets[key] = calculatorState.recommended[key];
+      }
+
+      // Unlock all buckets
+      for (var key in calculatorState.locked) {
+        if (calculatorState.locked[key]) {
+          toggleLock(key);
+        }
+      }
+
+      // Update UI
+      updateAllBucketDisplays();
+    }
+
+    // Check My Plan validation
+    function checkMyPlan() {
+      var warnings = [];
+      var suggestions = [];
+
+      // Financial Rules Validation
+      if (calculatorState.buckets.Essentials > 50) {
+        warnings.push('⚠️ Your Essentials allocation (' + calculatorState.buckets.Essentials + '%) is quite high. Consider finding ways to reduce fixed expenses.');
+      }
+
+      if (calculatorState.buckets.Multiply < 10) {
+        suggestions.push('💡 Consider increasing Multiply to at least 10% for long-term wealth building.');
+      }
+
+      if (calculatorState.buckets.Enjoyment > 40) {
+        warnings.push('⚠️ Your Enjoyment allocation (' + calculatorState.buckets.Enjoyment + '%) is very high. Make sure this aligns with your financial goals.');
+      }
+
+      if (calculatorState.buckets.Freedom < 10) {
+        suggestions.push('💡 Consider allocating at least 10% to Freedom for emergency fund and debt management.');
+      }
+
+      // Display results
+      var message = '';
+
+      if (warnings.length === 0 && suggestions.length === 0) {
+        message = '✅ Your allocation looks balanced!\\n\\nAll buckets are within recommended ranges.';
+      } else {
+        if (warnings.length > 0) {
+          message += 'WARNINGS:\\n' + warnings.join('\\n\\n') + '\\n\\n';
+        }
+        if (suggestions.length > 0) {
+          message += 'SUGGESTIONS:\\n' + suggestions.join('\\n\\n');
+        }
+      }
+
+      alert(message);
+    }
+
+    // Save scenario functionality
+    function saveScenario() {
+      var scenarioName = prompt('Enter a name for this scenario:', 'My Custom Allocation');
+
+      if (scenarioName) {
+        var scenario = {
+          name: scenarioName,
+          allocations: JSON.parse(JSON.stringify(calculatorState.buckets)),
+          timestamp: new Date().toISOString()
+        };
+
+        // Show loading
+        var loadingOverlay = document.getElementById('loadingOverlay');
+        var loadingText = document.getElementById('loadingText');
+        var loadingSubtext = document.getElementById('loadingSubtext');
+
+        if (loadingOverlay) {
+          if (loadingText) loadingText.textContent = 'Saving Scenario...';
+          if (loadingSubtext) loadingSubtext.textContent = 'Storing your custom allocation';
+          loadingOverlay.classList.add('show');
+        }
+
+        // Call server-side save function (to be implemented)
+        google.script.run
+          .withSuccessHandler(function(result) {
+            if (loadingOverlay) loadingOverlay.classList.remove('show');
+            if (result.success) {
+              alert('✅ Scenario saved successfully!\\n\\n"' + scenarioName + '" has been saved.');
+            } else {
+              alert('❌ Error saving scenario: ' + (result.error || 'Unknown error'));
+            }
+          })
+          .withFailureHandler(function(error) {
+            if (loadingOverlay) loadingOverlay.classList.remove('show');
+            console.error('Save scenario error:', error);
+            alert('❌ Error saving scenario: ' + error.message);
+          })
+          .saveScenario('${clientId}', scenario);
+      }
+    }
+
+    // ============ END INTERACTIVE CALCULATOR LOGIC ============
 
     function calculateAllocation() {
       console.log('calculateAllocation() called');
@@ -4816,4 +5453,12 @@ function getPreSurvey(clientId) {
  */
 function savePrioritySelection(clientId, selectedPriority, goalTimeline) {
   return Tool4.savePrioritySelection(clientId, selectedPriority, goalTimeline);
+}
+
+/**
+ * Global wrapper for saving a custom allocation scenario
+ * Called by: Interactive calculator (Save Scenario button)
+ */
+function saveScenario(clientId, scenario) {
+  return Tool4.saveScenario(clientId, scenario);
 }
