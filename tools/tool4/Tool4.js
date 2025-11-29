@@ -1990,10 +1990,11 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
             return;
           }
 
-          // Reload page to show priority picker (GAS iframe navigation pattern)
-          // Using window.location.reload() instead of document.write() to avoid white screen
-          if (result.success) {
-            window.location.reload();
+          // Use document.write() pattern (GAS iframe navigation)
+          if (result && result.nextPageHtml) {
+            document.open();
+            document.write(result.nextPageHtml);
+            document.close();
           }
         })
         .withFailureHandler(function(error) {
