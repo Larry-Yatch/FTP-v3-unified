@@ -116,7 +116,7 @@ const Tool4 = {
         }
       }
 
-      const htmlContent = this.buildUnifiedPage(clientId, baseUrl, toolStatus, savedPreSurvey, allocation, false);
+      const htmlContent = this.buildUnifiedPage(clientId, baseUrl, toolStatus, savedPreSurvey, allocation);
       return { success: true, nextPageHtml: htmlContent };
     } catch (error) {
       Logger.log(`Error saving pre-survey: ${error}`);
