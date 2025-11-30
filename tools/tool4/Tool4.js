@@ -218,7 +218,23 @@ const Tool4 = {
       }
 
       // Get TOOL4_SCENARIOS sheet using SpreadsheetCache
-      const scenariosSheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.TOOL4_SCENARIOS);
+      let scenariosSheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.TOOL4_SCENARIOS);
+
+      // Create sheet if it doesn't exist
+      if (!scenariosSheet) {
+        const ss = SpreadsheetCache.getSpreadsheet();
+        scenariosSheet = ss.insertSheet(CONFIG.SHEETS.TOOL4_SCENARIOS);
+        // Add headers to match the existing TOOL4_SCENARIOS tab structure
+        scenariosSheet.appendRow([
+          'Timestamp', 'Client_ID', 'Scenario_Name', 'Priority_Selected', 'Monthly_Income',
+          'Current_Essentials', 'Debt_Balance', 'Interest_Rate', 'Emergency_Fund', 'Income_Stability',
+          'Rent_Mortgage', 'Groceries', 'Dining_Takeout', 'Transportation', 'Utilities', 'Insurance',
+          'Subscriptions', 'Other_Essentials', 'Rec_M_Percent', 'Rec_E_Percent', 'Rec_F_Percent',
+          'Rec_J_Percent', 'Rec_M_Dollars', 'Rec_E_Dollars', 'Rec_F_Dollars', 'Rec_J_Dollars',
+          'Custom_M_Percent', 'Custom_E_Percent', 'Custom_F_Percent', 'Custom_J_Percent', 'Is_Custom',
+          'Report_Generated', 'Tool1_Source', 'Tool2_Source', 'Tool3_Source', 'Backup_Data'
+        ]);
+      }
 
       // Calculate dollar amounts
       const monthlyIncome = scenario.monthlyIncome || 0;
@@ -227,21 +243,37 @@ const Tool4 = {
       const freedomDollar = Math.round(monthlyIncome * scenario.allocations.Freedom / 100);
       const enjoymentDollar = Math.round(monthlyIncome * scenario.allocations.Enjoyment / 100);
 
-      // Save scenario to TOOL4_SCENARIOS sheet
+      // Get pre-survey data for full scenario context
+      const preSurveyData = this.getPreSurvey(clientId) || {};
+
+      // Save scenario to TOOL4_SCENARIOS sheet (matching all headers)
       const row = [
-        new Date(),
-        clientId,
-        scenario.name,
-        scenario.allocations.Multiply,
-        scenario.allocations.Essentials,
-        scenario.allocations.Freedom,
-        scenario.allocations.Enjoyment,
-        multiplyDollar,
-        essentialsDollar,
-        freedomDollar,
-        enjoymentDollar,
-        monthlyIncome,
-        scenario.priority || ''
+        new Date(),                                    // Timestamp
+        clientId,                                       // Client_ID
+        scenario.name,                                  // Scenario_Name
+        scenario.priority || '',                        // Priority_Selected
+        monthlyIncome,                                  // Monthly_Income
+        preSurveyData.monthlyEssentials || '',          // Current_Essentials
+        preSurveyData.debtBalance || '',                // Debt_Balance
+        preSurveyData.interestRate || '',               // Interest_Rate
+        preSurveyData.emergencyFund || '',              // Emergency_Fund
+        preSurveyData.incomeStability || '',            // Income_Stability
+        '', '', '', '', '', '', '', '',                 // Category breakdowns (not captured yet)
+        scenario.allocations.Multiply,                  // Rec_M_Percent (using custom as recommended for saved scenario)
+        scenario.allocations.Essentials,                // Rec_E_Percent
+        scenario.allocations.Freedom,                   // Rec_F_Percent
+        scenario.allocations.Enjoyment,                 // Rec_J_Percent
+        multiplyDollar,                                 // Rec_M_Dollars
+        essentialsDollar,                               // Rec_E_Dollars
+        freedomDollar,                                  // Rec_F_Dollars
+        enjoymentDollar,                                // Rec_J_Dollars
+        scenario.allocations.Multiply,                  // Custom_M_Percent
+        scenario.allocations.Essentials,                // Custom_E_Percent
+        scenario.allocations.Freedom,                   // Custom_F_Percent
+        scenario.allocations.Enjoyment,                 // Custom_J_Percent
+        true,                                           // Is_Custom
+        false,                                          // Report_Generated
+        '', '', '', ''                                  // Tool1/2/3_Source, Backup_Data
       ];
 
       scenariosSheet.appendRow(row);
@@ -2642,26 +2674,38 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
 
       // Financial Rules Validation
 
+      // Helper function to format dollar amount
+      function formatDollars(percent) {
+        if (calculatorState.monthlyIncome > 0) {
+          var amount = Math.round(calculatorState.monthlyIncome * percent / 100);
+          return percent + '% ($' + amount.toLocaleString() + ')';
+        }
+        return percent + '%';
+      }
+
       // Check if Essentials allocation is less than actual spending
       if (calculatorState.actualEssentialsPercent > 0 && calculatorState.buckets.Essentials < calculatorState.actualEssentialsPercent) {
         var shortfall = calculatorState.actualEssentialsPercent - calculatorState.buckets.Essentials;
-        warnings.push('⚠️ Your Essentials allocation (' + calculatorState.buckets.Essentials + '%) is less than your actual essential spending (' + calculatorState.actualEssentialsPercent + '%). You may need to reduce expenses by ' + shortfall + '% or adjust your allocation.');
+        var shortfallDollars = calculatorState.monthlyIncome > 0 ? ' ($' + Math.round(calculatorState.monthlyIncome * shortfall / 100).toLocaleString() + ')' : '';
+        warnings.push('⚠️ Your Essentials allocation (' + formatDollars(calculatorState.buckets.Essentials) + ') is less than your actual essential spending (' + formatDollars(calculatorState.actualEssentialsPercent) + '). You may need to reduce expenses by ' + shortfall + '%' + shortfallDollars + ' or adjust your allocation.');
       }
 
       if (calculatorState.buckets.Essentials > 50) {
-        warnings.push('⚠️ Your Essentials allocation (' + calculatorState.buckets.Essentials + '%) is quite high. Consider finding ways to reduce fixed expenses.');
+        warnings.push('⚠️ Your Essentials allocation (' + formatDollars(calculatorState.buckets.Essentials) + ') is quite high. Consider finding ways to reduce fixed expenses.');
       }
 
       if (calculatorState.buckets.Multiply < 10) {
-        suggestions.push('💡 Consider increasing Multiply to at least 10% for long-term wealth building.');
+        var tenPercent = calculatorState.monthlyIncome > 0 ? ' ($' + Math.round(calculatorState.monthlyIncome * 10 / 100).toLocaleString() + ')' : '';
+        suggestions.push('💡 Consider increasing Multiply to at least 10%' + tenPercent + ' for long-term wealth building.');
       }
 
       if (calculatorState.buckets.Enjoyment > 40) {
-        warnings.push('⚠️ Your Enjoyment allocation (' + calculatorState.buckets.Enjoyment + '%) is very high. Make sure this aligns with your financial goals.');
+        warnings.push('⚠️ Your Enjoyment allocation (' + formatDollars(calculatorState.buckets.Enjoyment) + ') is very high. Make sure this aligns with your financial goals.');
       }
 
       if (calculatorState.buckets.Freedom < 10) {
-        suggestions.push('💡 Consider allocating at least 10% to Freedom for emergency fund and debt management.');
+        var tenPercent = calculatorState.monthlyIncome > 0 ? ' ($' + Math.round(calculatorState.monthlyIncome * 10 / 100).toLocaleString() + ')' : '';
+        suggestions.push('💡 Consider allocating at least 10%' + tenPercent + ' to Freedom for emergency fund and debt management.');
       }
 
       // Display results inline
