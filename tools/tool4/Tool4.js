@@ -217,32 +217,80 @@ const Tool4 = {
         throw new Error('Allocations must sum to 100%');
       }
 
-      // Get existing scenarios
-      const scenariosKey = `tool4_scenarios_${clientId}`;
-      const existingScenariosStr = PropertiesService.getUserProperties().getProperty(scenariosKey);
-      const existingScenarios = existingScenariosStr ? JSON.parse(existingScenariosStr) : [];
+      // Get spreadsheet
+      const ss = SpreadsheetApp.getActiveSpreadsheet();
 
-      // Add new scenario with timestamp
-      const newScenario = {
-        id: `scenario_${Date.now()}`,
-        name: scenario.name,
-        allocations: scenario.allocations,
-        timestamp: scenario.timestamp || new Date().toISOString(),
-        createdDate: new Date().toLocaleDateString()
-      };
+      // Ensure TOOL4_SCENARIOS sheet exists
+      let scenariosSheet = ss.getSheetByName('TOOL4_SCENARIOS');
+      if (!scenariosSheet) {
+        scenariosSheet = ss.insertSheet('TOOL4_SCENARIOS');
+        // Add headers
+        scenariosSheet.appendRow([
+          'Timestamp', 'Client_ID', 'Scenario_Name',
+          'Multiply_%', 'Essentials_%', 'Freedom_%', 'Enjoyment_%',
+          'Multiply_$', 'Essentials_$', 'Freedom_$', 'Enjoyment_$',
+          'Monthly_Income', 'Priority_Selected'
+        ]);
+      }
 
-      existingScenarios.push(newScenario);
+      // Calculate dollar amounts
+      const monthlyIncome = scenario.monthlyIncome || 0;
+      const multiplyDollar = Math.round(monthlyIncome * scenario.allocations.Multiply / 100);
+      const essentialsDollar = Math.round(monthlyIncome * scenario.allocations.Essentials / 100);
+      const freedomDollar = Math.round(monthlyIncome * scenario.allocations.Freedom / 100);
+      const enjoymentDollar = Math.round(monthlyIncome * scenario.allocations.Enjoyment / 100);
 
-      // Save back to properties (limit to 10 most recent scenarios)
-      const limitedScenarios = existingScenarios.slice(-10);
-      PropertiesService.getUserProperties().setProperty(scenariosKey, JSON.stringify(limitedScenarios));
+      // Save scenario to TOOL4_SCENARIOS sheet
+      const row = [
+        new Date(),
+        clientId,
+        scenario.name,
+        scenario.allocations.Multiply,
+        scenario.allocations.Essentials,
+        scenario.allocations.Freedom,
+        scenario.allocations.Enjoyment,
+        multiplyDollar,
+        essentialsDollar,
+        freedomDollar,
+        enjoymentDollar,
+        monthlyIncome,
+        scenario.priority || ''
+      ];
+
+      scenariosSheet.appendRow(row);
+
+      // Count scenarios for this client
+      const dataRange = scenariosSheet.getDataRange().getValues();
+      const clientScenarios = dataRange.filter((row, index) => index > 0 && row[1] === clientId);
+      const isFirstScenario = clientScenarios.length === 1;
+
+      // If this is the first scenario, mark Tool4 as completed in Responses tab
+      if (isFirstScenario) {
+        try {
+          const dataPackage = {
+            scenarioName: scenario.name,
+            priority: scenario.priority || 'Not specified',
+            multiply: scenario.allocations.Multiply,
+            essentials: scenario.allocations.Essentials,
+            freedom: scenario.allocations.Freedom,
+            enjoyment: scenario.allocations.Enjoyment,
+            monthlyIncome: monthlyIncome
+          };
+
+          DataService.saveToolResponse(clientId, 'tool4', dataPackage, 'COMPLETED');
+          Logger.log(`Tool4 marked as completed for client ${clientId}`);
+        } catch (responseError) {
+          Logger.log(`Warning: Could not update Responses tab: ${responseError}`);
+          // Don't fail the save if Responses update fails
+        }
+      }
 
       Logger.log(`Scenario saved for client ${clientId}: ${scenario.name}`);
       return {
         success: true,
         message: 'Scenario saved successfully',
-        scenarioId: newScenario.id,
-        totalScenarios: limitedScenarios.length
+        totalScenarios: clientScenarios.length,
+        isFirstScenario: isFirstScenario
       };
     } catch (error) {
       Logger.log(`Error saving scenario: ${error}`);
@@ -1555,9 +1603,15 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
 
     .allocation-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      grid-template-columns: repeat(2, 1fr);
       gap: 20px;
       margin-bottom: 30px;
+    }
+
+    @media (max-width: 768px) {
+      .allocation-grid {
+        grid-template-columns: 1fr;
+      }
     }
 
     .allocation-bucket {
@@ -1579,8 +1633,16 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
     .bucket-percentage {
       font-size: 2.5rem;
       font-weight: 700;
-      color: var(--color-primary);
+      color: #ffc107;
       margin-bottom: 5px;
+    }
+
+    .bucket-dollar-amount {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: #ffc107;
+      opacity: 0.8;
+      margin-bottom: 8px;
     }
 
     .bucket-amount {
@@ -1902,6 +1964,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       <div class="presurvey-header" onclick="togglePreSurvey()">
         <div class="presurvey-title">
           ${hasPreSurvey ? '📊 Your Budget Profile' : '📊 Quick Budget Profile Setup (8 questions, 2-3 minutes)'}
+          <span style="font-size: 12px; color: var(--color-text-muted); margin-left: 10px;">(Click to ${hasPreSurvey ? 'expand/collapse' : 'collapse'})</span>
         </div>
         <div class="presurvey-toggle ${hasPreSurvey ? 'collapsed' : ''}" id="preSurveyToggle">▼</div>
       </div>
@@ -2065,7 +2128,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
     <!-- Calculator Section -->
     <div class="calculator-section">
       <div class="calculator-header">
-        <div class="calculator-title">Your Personalized Budget</div>
+        <div class="calculator-title">Your Personalized Allocation</div>
         <div class="calculator-subtitle">
           ${allocation ? 'Based on your profile and financial goals' : 'Complete the profile above to see your personalized allocation'}
         </div>
@@ -2076,21 +2139,33 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
           <div class="allocation-bucket">
             <div class="bucket-name">Multiply</div>
             <div class="bucket-percentage">${allocation.percentages.Multiply}%</div>
+            ${preSurveyData && preSurveyData.monthlyIncome ? `
+              <div class="bucket-dollar-amount">$${Math.round(preSurveyData.monthlyIncome * allocation.percentages.Multiply / 100).toLocaleString()}/mo</div>
+            ` : ''}
             <div class="bucket-amount">Long-term wealth building</div>
           </div>
           <div class="allocation-bucket">
             <div class="bucket-name">Essentials</div>
             <div class="bucket-percentage">${allocation.percentages.Essentials}%</div>
+            ${preSurveyData && preSurveyData.monthlyIncome ? `
+              <div class="bucket-dollar-amount">$${Math.round(preSurveyData.monthlyIncome * allocation.percentages.Essentials / 100).toLocaleString()}/mo</div>
+            ` : ''}
             <div class="bucket-amount">Core living expenses</div>
           </div>
           <div class="allocation-bucket">
             <div class="bucket-name">Freedom</div>
             <div class="bucket-percentage">${allocation.percentages.Freedom}%</div>
-            <div class="bucket-amount">Debt & emergency fund</div>
+            ${preSurveyData && preSurveyData.monthlyIncome ? `
+              <div class="bucket-dollar-amount">$${Math.round(preSurveyData.monthlyIncome * allocation.percentages.Freedom / 100).toLocaleString()}/mo</div>
+            ` : ''}
+            <div class="bucket-amount">Debt, Emergency Fund, Savings</div>
           </div>
           <div class="allocation-bucket">
             <div class="bucket-name">Enjoyment</div>
             <div class="bucket-percentage">${allocation.percentages.Enjoyment}%</div>
+            ${preSurveyData && preSurveyData.monthlyIncome ? `
+              <div class="bucket-dollar-amount">$${Math.round(preSurveyData.monthlyIncome * allocation.percentages.Enjoyment / 100).toLocaleString()}/mo</div>
+            ` : ''}
             <div class="bucket-amount">Present quality of life</div>
           </div>
         </div>
@@ -2113,6 +2188,9 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
 
         <div style="background: rgba(79, 70, 229, 0.1); padding: 20px; border-radius: 8px; margin-top: 20px;">
           <h3 style="margin-top: 0; color: var(--color-text-primary);">💡 Why These Numbers?</h3>
+          <p style="color: var(--color-text-muted); font-size: 0.9rem; margin-top: -10px; margin-bottom: 15px;">
+            Personalized reasoning based on your financial profile and goals
+          </p>
           <div style="color: var(--color-text-secondary); line-height: 1.6;">
             <p><strong>Multiply:</strong> ${allocation.lightNotes.Multiply}</p>
             <p><strong>Essentials:</strong> ${allocation.lightNotes.Essentials}</p>
@@ -2139,12 +2217,20 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
             </button>
           </div>
 
+          <!-- Validation Results (inline display) -->
+          <div id="validationResults" style="display: none; margin: 20px 0; padding: 20px; border-radius: 8px; background: rgba(79, 70, 229, 0.1); border: 1px solid rgba(79, 70, 229, 0.3);"></div>
+
           <!-- Multiply Slider -->
           <div class="bucket-slider-container" id="multiplyContainer">
             <div class="bucket-slider-header">
               <div class="bucket-slider-title">
                 <span class="bucket-slider-name">💰 Multiply</span>
-                <span class="bucket-slider-value" id="multiplyValue">${allocation.percentages.Multiply}%</span>
+                <span class="bucket-slider-value">
+                  <span id="multiplyValue">${allocation.percentages.Multiply}%</span>
+                  <span id="multiplyDollar" style="color: #ffc107; margin-left: 8px; font-size: 0.9em;">
+                    ${preSurveyData && preSurveyData.monthlyIncome ? `($${Math.round(preSurveyData.monthlyIncome * allocation.percentages.Multiply / 100).toLocaleString()})` : ''}
+                  </span>
+                </span>
               </div>
               <button type="button" class="lock-button" id="multiplyLock" onclick="toggleLock('Multiply')">
                 🔓 Unlocked
@@ -2170,7 +2256,12 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
             <div class="bucket-slider-header">
               <div class="bucket-slider-title">
                 <span class="bucket-slider-name">🏠 Essentials</span>
-                <span class="bucket-slider-value" id="essentialsValue">${allocation.percentages.Essentials}%</span>
+                <span class="bucket-slider-value">
+                  <span id="essentialsValue">${allocation.percentages.Essentials}%</span>
+                  <span id="essentialsDollar" style="color: #ffc107; margin-left: 8px; font-size: 0.9em;">
+                    ${preSurveyData && preSurveyData.monthlyIncome ? `($${Math.round(preSurveyData.monthlyIncome * allocation.percentages.Essentials / 100).toLocaleString()})` : ''}
+                  </span>
+                </span>
               </div>
               <button type="button" class="lock-button" id="essentialsLock" onclick="toggleLock('Essentials')">
                 🔓 Unlocked
@@ -2196,7 +2287,12 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
             <div class="bucket-slider-header">
               <div class="bucket-slider-title">
                 <span class="bucket-slider-name">🚀 Freedom</span>
-                <span class="bucket-slider-value" id="freedomValue">${allocation.percentages.Freedom}%</span>
+                <span class="bucket-slider-value">
+                  <span id="freedomValue">${allocation.percentages.Freedom}%</span>
+                  <span id="freedomDollar" style="color: #ffc107; margin-left: 8px; font-size: 0.9em;">
+                    ${preSurveyData && preSurveyData.monthlyIncome ? `($${Math.round(preSurveyData.monthlyIncome * allocation.percentages.Freedom / 100).toLocaleString()})` : ''}
+                  </span>
+                </span>
               </div>
               <button type="button" class="lock-button" id="freedomLock" onclick="toggleLock('Freedom')">
                 🔓 Unlocked
@@ -2222,7 +2318,12 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
             <div class="bucket-slider-header">
               <div class="bucket-slider-title">
                 <span class="bucket-slider-name">🎉 Enjoyment</span>
-                <span class="bucket-slider-value" id="enjoymentValue">${allocation.percentages.Enjoyment}%</span>
+                <span class="bucket-slider-value">
+                  <span id="enjoymentValue">${allocation.percentages.Enjoyment}%</span>
+                  <span id="enjoymentDollar" style="color: #ffc107; margin-left: 8px; font-size: 0.9em;">
+                    ${preSurveyData && preSurveyData.monthlyIncome ? `($${Math.round(preSurveyData.monthlyIncome * allocation.percentages.Enjoyment / 100).toLocaleString()})` : ''}
+                  </span>
+                </span>
               </div>
               <button type="button" class="lock-button" id="enjoymentLock" onclick="toggleLock('Enjoyment')">
                 🔓 Unlocked
@@ -2372,7 +2473,9 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
         Essentials: ${allocation ? allocation.percentages.Essentials : 35},
         Freedom: ${allocation ? allocation.percentages.Freedom : 25},
         Enjoyment: ${allocation ? allocation.percentages.Enjoyment : 15}
-      }
+      },
+      monthlyIncome: ${preSurveyData && preSurveyData.monthlyIncome ? preSurveyData.monthlyIncome : 0},
+      priority: '${preSurveyData && preSurveyData.selectedPriority ? preSurveyData.selectedPriority : ''}'
     };
 
     // Toggle lock on a bucket
@@ -2497,6 +2600,15 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
         document.getElementById(lowerName + 'Value').textContent = value + '%';
         document.getElementById(lowerName + 'Slider').value = value;
         document.getElementById(lowerName + 'Fill').style.width = value + '%';
+
+        // Update dollar amount if we have monthly income
+        if (calculatorState.monthlyIncome > 0) {
+          var dollarAmount = Math.round(calculatorState.monthlyIncome * value / 100);
+          var dollarElem = document.getElementById(lowerName + 'Dollar');
+          if (dollarElem) {
+            dollarElem.textContent = '($' + dollarAmount.toLocaleString() + ')';
+          }
+        }
       });
 
       // Update total display
@@ -2555,21 +2667,38 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
         suggestions.push('💡 Consider allocating at least 10% to Freedom for emergency fund and debt management.');
       }
 
-      // Display results
-      var message = '';
+      // Display results inline
+      var resultsDiv = document.getElementById('validationResults');
+      var html = '';
 
       if (warnings.length === 0 && suggestions.length === 0) {
-        message = '✅ Your allocation looks balanced!\\n\\nAll buckets are within recommended ranges.';
+        html = '<div style="color: var(--color-text-primary); text-align: center;"><strong>✅ Your allocation looks balanced!</strong><br><br>All buckets are within recommended ranges.</div>';
+        resultsDiv.style.background = 'rgba(34, 197, 94, 0.1)';
+        resultsDiv.style.borderColor = 'rgba(34, 197, 94, 0.3)';
       } else {
+        html = '<div style="color: var(--color-text-primary);">';
         if (warnings.length > 0) {
-          message += 'WARNINGS:\\n' + warnings.join('\\n\\n') + '\\n\\n';
+          html += '<div style="margin-bottom: 15px;"><strong style="color: #fbbf24;">⚠️ WARNINGS:</strong></div>';
+          warnings.forEach(function(warning) {
+            html += '<p style="margin: 10px 0; padding-left: 15px; color: var(--color-text-secondary);">' + warning + '</p>';
+          });
         }
         if (suggestions.length > 0) {
-          message += 'SUGGESTIONS:\\n' + suggestions.join('\\n\\n');
+          html += '<div style="margin-top: 20px; margin-bottom: 15px;"><strong style="color: #60a5fa;">💡 SUGGESTIONS:</strong></div>';
+          suggestions.forEach(function(suggestion) {
+            html += '<p style="margin: 10px 0; padding-left: 15px; color: var(--color-text-secondary);">' + suggestion + '</p>';
+          });
         }
+        html += '</div>';
+        resultsDiv.style.background = 'rgba(79, 70, 229, 0.1)';
+        resultsDiv.style.borderColor = 'rgba(79, 70, 229, 0.3)';
       }
 
-      alert(message);
+      resultsDiv.innerHTML = html;
+      resultsDiv.style.display = 'block';
+
+      // Scroll to validation results
+      resultsDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
     // Save scenario functionality
@@ -2580,7 +2709,9 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
         var scenario = {
           name: scenarioName,
           allocations: JSON.parse(JSON.stringify(calculatorState.buckets)),
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          monthlyIncome: calculatorState.monthlyIncome || 0,
+          priority: calculatorState.priority || ''
         };
 
         // Show loading
@@ -5313,7 +5444,9 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       <div class="priority-picker-section ${isCollapsed ? 'collapsed' : ''}">
         <div class="priority-picker-header" onclick="togglePriorityPicker()">
           <span class="section-icon">🎯</span>
-          <span class="section-title">Choose Your Financial Priority</span>
+          <span class="section-title">Choose Your Financial Priority
+            <span style="font-size: 12px; color: var(--color-text-muted); margin-left: 10px; font-weight: normal;">(Click to expand/collapse)</span>
+          </span>
           <span class="toggle-icon">${isCollapsed ? '▼' : '▲'}</span>
         </div>
 
@@ -5327,7 +5460,8 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
         <div class="priority-picker-body" style="display: ${isCollapsed ? 'none' : 'block'}">
           <p class="picker-intro">
             Based on your responses, we've analyzed which priorities best fit your current situation.
-            You can choose any priority below - the recommendations are guidance, not restrictions.
+            <strong>Select one priority below and choose your timeline</strong>, then click "Calculate My Allocation"
+            to see your personalized budget breakdown. The recommendations are guidance - you can choose any priority.
           </p>
 
           ${recommended.length > 0 ? `
