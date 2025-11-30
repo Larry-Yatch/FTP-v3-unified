@@ -222,8 +222,10 @@ const Tool4 = {
 
       // Create sheet if it doesn't exist
       if (!scenariosSheet) {
+        Logger.log('TOOL4_SCENARIOS sheet does not exist, creating...');
         const ss = SpreadsheetCache.getSpreadsheet();
         scenariosSheet = ss.insertSheet(CONFIG.SHEETS.TOOL4_SCENARIOS);
+
         // Add headers to match the existing TOOL4_SCENARIOS tab structure
         scenariosSheet.appendRow([
           'Timestamp', 'Client_ID', 'Scenario_Name', 'Priority_Selected', 'Monthly_Income',
@@ -234,6 +236,10 @@ const Tool4 = {
           'Custom_M_Percent', 'Custom_E_Percent', 'Custom_F_Percent', 'Custom_J_Percent', 'Is_Custom',
           'Report_Generated', 'Tool1_Source', 'Tool2_Source', 'Tool3_Source', 'Backup_Data'
         ]);
+
+        // Flush to ensure headers are written
+        SpreadsheetApp.flush();
+        Logger.log('TOOL4_SCENARIOS sheet created with headers');
       }
 
       // Calculate dollar amounts
@@ -278,10 +284,17 @@ const Tool4 = {
 
       scenariosSheet.appendRow(row);
 
+      // Flush to ensure data is written immediately
+      SpreadsheetApp.flush();
+      Logger.log(`Scenario row appended and flushed for client ${clientId}`);
+
       // Count scenarios for this client
       const dataRange = scenariosSheet.getDataRange().getValues();
       const clientScenarios = dataRange.filter((row, index) => index > 0 && row[1] === clientId);
       const isFirstScenario = clientScenarios.length === 1;
+      Logger.log(`Client ${clientId} now has ${clientScenarios.length} scenario(s)`);
+
+
 
       // If this is the first scenario, mark Tool4 as completed in Responses tab
       if (isFirstScenario) {
