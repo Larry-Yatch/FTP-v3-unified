@@ -1964,9 +1964,11 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       <div class="presurvey-header" onclick="togglePreSurvey()">
         <div class="presurvey-title">
           ${hasPreSurvey ? '📊 Your Budget Profile' : '📊 Quick Budget Profile Setup (8 questions, 2-3 minutes)'}
-          <span style="font-size: 12px; color: var(--color-text-muted); margin-left: 10px;">(Click to ${hasPreSurvey ? 'expand/collapse' : 'collapse'})</span>
         </div>
-        <div class="presurvey-toggle ${hasPreSurvey ? 'collapsed' : ''}" id="preSurveyToggle">▼</div>
+        <div style="display: flex; align-items: center; gap: 15px;">
+          <span style="font-size: 12px; color: var(--color-text-muted);">(Click to ${hasPreSurvey ? 'expand/collapse' : 'collapse'})</span>
+          <div class="presurvey-toggle ${hasPreSurvey ? 'collapsed' : ''}" id="preSurveyToggle">▼</div>
+        </div>
       </div>
 
       <!-- Summary (shown when collapsed) -->
@@ -5443,11 +5445,14 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       <!-- Priority Picker Section -->
       <div class="priority-picker-section ${isCollapsed ? 'collapsed' : ''}">
         <div class="priority-picker-header" onclick="togglePriorityPicker()">
-          <span class="section-icon">🎯</span>
-          <span class="section-title">Choose Your Financial Priority
-            <span style="font-size: 12px; color: var(--color-text-muted); margin-left: 10px; font-weight: normal;">(Click to expand/collapse)</span>
-          </span>
-          <span class="toggle-icon">${isCollapsed ? '▼' : '▲'}</span>
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <span class="section-icon">🎯</span>
+            <span class="section-title">Choose Your Financial Priority</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 15px;">
+            <span style="font-size: 12px; color: var(--color-text-muted); font-weight: normal;">(Click to expand/collapse)</span>
+            <span class="toggle-icon">${isCollapsed ? '▼' : '▲'}</span>
+          </div>
         </div>
 
         ${isCollapsed ? `
