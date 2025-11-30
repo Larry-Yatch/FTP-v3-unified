@@ -205,16 +205,33 @@ const Tool4 = {
    */
   saveScenario(clientId, scenario) {
     try {
+      Logger.log(`saveScenario called for client ${clientId}`);
+      Logger.log(`Scenario data: ${JSON.stringify(scenario)}`);
+
       // Validate scenario data
       if (!scenario || !scenario.name || !scenario.allocations) {
         throw new Error('Invalid scenario data');
       }
 
-      // Validate allocations sum to 100%
+      // Validate allocations exist and sum to 100%
+      if (!scenario.allocations.Multiply && scenario.allocations.Multiply !== 0) {
+        throw new Error('Missing Multiply allocation');
+      }
+      if (!scenario.allocations.Essentials && scenario.allocations.Essentials !== 0) {
+        throw new Error('Missing Essentials allocation');
+      }
+      if (!scenario.allocations.Freedom && scenario.allocations.Freedom !== 0) {
+        throw new Error('Missing Freedom allocation');
+      }
+      if (!scenario.allocations.Enjoyment && scenario.allocations.Enjoyment !== 0) {
+        throw new Error('Missing Enjoyment allocation');
+      }
+
       const total = scenario.allocations.Multiply + scenario.allocations.Essentials +
                     scenario.allocations.Freedom + scenario.allocations.Enjoyment;
+      Logger.log(`Allocations total: ${total}%`);
       if (Math.abs(total - 100) > 1) {
-        throw new Error('Allocations must sum to 100%');
+        throw new Error(`Allocations must sum to 100% (currently ${total}%)`);
       }
 
       // Get TOOL4_SCENARIOS sheet using SpreadsheetCache
@@ -281,6 +298,16 @@ const Tool4 = {
         false,                                          // Report_Generated
         '', '', '', ''                                  // Tool1/2/3_Source, Backup_Data
       ];
+
+      Logger.log(`Row data to append (${row.length} columns):`);
+      Logger.log(`  [0] Timestamp: ${row[0]}`);
+      Logger.log(`  [1] Client_ID: ${row[1]}`);
+      Logger.log(`  [2] Scenario_Name: ${row[2]}`);
+      Logger.log(`  [3] Priority: ${row[3]}`);
+      Logger.log(`  [4] Monthly_Income: ${row[4]}`);
+      Logger.log(`  [18-21] Rec M/E/F/J: ${row[18]}, ${row[19]}, ${row[20]}, ${row[21]}`);
+      Logger.log(`  [26-29] Custom M/E/F/J: ${row[26]}, ${row[27]}, ${row[28]}, ${row[29]}`);
+      Logger.log(`  [30] Is_Custom: ${row[30]}`);
 
       scenariosSheet.appendRow(row);
 
