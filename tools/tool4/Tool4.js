@@ -309,11 +309,26 @@ const Tool4 = {
       Logger.log(`  [26-29] Custom M/E/F/J: ${row[26]}, ${row[27]}, ${row[28]}, ${row[29]}`);
       Logger.log(`  [30] Is_Custom: ${row[30]}`);
 
+      // Verify sheet before append
+      Logger.log(`Sheet name: ${scenariosSheet.getName()}, Sheet ID: ${scenariosSheet.getSheetId()}`);
+      Logger.log(`Current row count before append: ${scenariosSheet.getLastRow()}`);
+
+      // Append the row
       scenariosSheet.appendRow(row);
 
       // Flush to ensure data is written immediately
       SpreadsheetApp.flush();
       Logger.log(`Scenario row appended and flushed for client ${clientId}`);
+
+      // Verify the append worked
+      const newRowCount = scenariosSheet.getLastRow();
+      Logger.log(`Row count after append: ${newRowCount}`);
+
+      // Read back the last row to verify
+      if (newRowCount > 1) {
+        const lastRow = scenariosSheet.getRange(newRowCount, 1, 1, 5).getValues()[0];
+        Logger.log(`Verification - Last row data: ${JSON.stringify(lastRow)}`);
+      }
 
       // Count scenarios for this client
       const dataRange = scenariosSheet.getDataRange().getValues();

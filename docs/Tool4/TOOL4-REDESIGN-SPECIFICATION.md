@@ -7,7 +7,7 @@
 
 ---
 
-## 🔔 Session Notes (2025-11-29 - Phase 3B Implementation)
+## 🔔 Session Notes (2025-11-29 - Phase 3B Implementation & Debugging)
 
 **Phase 3B: Interactive Calculator - COMPLETE ✅**
 
@@ -20,44 +20,65 @@
 - ✅ Save Scenario functionality with server-side persistence (saveScenario method)
 - ✅ Color-coded total display (green=100%, red=error)
 - ✅ Visual lock indicators (yellow borders/fills)
+- ✅ UX improvements: helper text, dollar amounts, 2x2 grid, inline validation
+- ✅ Spreadsheet persistence to TOOL4_SCENARIOS tab with all 36 columns
 
-**Bug Fixes:**
+**Bug Fixes & Improvements:**
 - ✅ Fixed normalization rounding bug (was causing 101% totals)
   - Root cause: Rounding after checking totals
   - Solution: Round first, then adjust largest unlocked bucket
   - All 7 edge case tests now passing
+- ✅ Fixed BASE_URL navigation error in Router.js (used undefined variable)
+  - Solution: Changed to server-side ${baseUrl} template variable
+- ✅ Fixed saveScenario spreadsheet writing
+  - Added SpreadsheetApp.flush() calls after sheet creation and row appends
+  - Added comprehensive debug logging for troubleshooting
+  - Verified data persistence with read-back verification
+- ✅ Changed "budget" terminology to "allocation" throughout
+- ✅ Added Essentials validation warning with dollar amounts
+- ✅ Moved collapse/expand helper text to far right of headers
+- ✅ Added gold-colored percentages and dollar amounts to allocation cards
 
 **Testing Results:**
 - ✅ Local edge case tests: 7/7 passing (test-calculator-logic.js)
 - ✅ Static code analysis: No forbidden navigation patterns
 - ✅ Navigation compliance: All patterns follow GAS-NAVIGATION-RULES.md
 - ✅ **Production testing: ALL FEATURES WORKING IN GAS** 🎉
+- ✅ **Scenario persistence: Data confirmed writing to TOOL4_SCENARIOS sheet**
 
 **Current Stable State:**
-- Commit: `9d164c6` - "feat(tool4): Implement Phase 3B interactive calculator"
-- Deployed to Apps Script: ✅ (@HEAD deployment)
+- Commit: `37e5331` - "debug(tool4): Add comprehensive logging to saveScenario"
+- Deployed to Apps Script: ✅ (latest deployment)
 - Pushed to GitHub: ✅ (origin/feature/grounding-tools)
 - Production URL: `https://script.google.com/macros/s/AKfycbxLCd4P9XY20NpAhwg7zucFE_BgwTnhjRqYRTgQ1QY/exec`
 
 **All Features Working:**
-1. ✅ Pre-survey (8 behavioral questions)
+1. ✅ Pre-survey (8 behavioral questions) with collapsible helper text
 2. ✅ Priority Picker (10 priorities with ⭐/⚪/⚠️ indicators)
-3. ✅ V1 Allocation Display (M/E/F/J percentages)
-4. ✅ Interactive Calculator (sliders, locks, redistribution)
+3. ✅ V1 Allocation Display (M/E/F/J percentages in 2x2 grid with gold styling)
+4. ✅ Interactive Calculator (sliders, locks, redistribution, dollar amounts)
 5. ✅ Reset to Recommended
-6. ✅ Check My Plan validation
-7. ✅ Save Scenario
+6. ✅ Check My Plan validation (inline display with color coding)
+7. ✅ Save Scenario (persisting to TOOL4_SCENARIOS sheet)
+8. ✅ Return to Dashboard (GAS-safe navigation)
 
 **Code Statistics:**
 - CSS: ~180 lines (interactive calculator styles)
 - HTML: ~130 lines (sliders, buttons, controls)
 - JavaScript: ~260 lines (state management, redistribution, validation)
-- Server-side: ~65 lines (saveScenario + getScenarios methods)
-- **Total: ~635 lines of production code**
+- Server-side: ~100 lines (saveScenario + debug logging + getScenarios methods)
+- **Total: ~670 lines of production code**
+
+**Known Issues Resolved:**
+- ✅ TOOL4_SCENARIOS sheet checkbox auto-fill causing row skipping
+  - Solution: Manual cleanup of empty checkbox rows (user responsibility)
+  - appendRow() now correctly appends to next available row after last data
+
+**Phase 3B Status:** ✅ **COMPLETE, TESTED, AND PRODUCTION READY**
 
 **Ready for Next Phase:**
 - Phase 4: Safety Rails & Helpers (validation engine, gap analysis, priority re-check)
-- All Phase 3B components deployed and working in production
+- All Phase 3B components deployed, tested, and working in production
 
 ---
 
