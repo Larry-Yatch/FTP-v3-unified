@@ -1068,21 +1068,338 @@ All Phase 3B features implemented and tested in production:
 
 ---
 
-### **Phase 4: Safety Rails & Helpers (Week 5)**
+### **Phase 4: Safety Rails & Helpers (Week 5)** 🚀 **READY TO START**
 
-**Tasks:**
-1. Build validation engine (financial rules + behavioral flags + values alignment)
-2. Create "Budget Reality Check" helper
-3. Create "Gap Analysis" helper (use existing Week 3 code)
-4. Create "Priority Re-Check" helper
-5. Build contextual popup system
-6. Wire "Check My Plan" to validation engine
+**Overview:**
+Phase 4 enhances the basic validation system with behavioral analysis, values alignment checking, and interactive helpers that guide users when issues are detected.
+
+**Pre-Implementation Changes:**
+- ✅ Add 2 new pre-survey questions (total: 12 questions)
+  - Question 9: "Total Debt (excluding mortgage)" - Dollar input
+  - Question 10: "Emergency Fund Amount" - Dollar input
+  - These provide critical data for validation and future tools
+
+---
+
+#### **Phase 4A: Enhanced Validation Engine** ⏳ **NEXT**
+
+**Goal:** Expand validation beyond basic financial rules to include behavioral patterns and values alignment
+
+**Current State:**
+- ✅ Basic financial validation (5 rules in `checkMyPlan()`)
+- ✅ Essentials vs actual spending comparison
+- ✅ Inline results display with warnings/suggestions
+
+**What to Add:**
+
+**1. Behavioral Validation System**
+```javascript
+// Cross-reference allocations with pre-survey behavioral data
+function validateBehavioralAlignment(allocations, preSurveyData) {
+  var warnings = [];
+
+  // Low discipline + high Multiply = risky
+  if (preSurveyData.discipline <= 3 && allocations.Multiply >= 30) {
+    warnings.push({
+      severity: 'warning',
+      message: 'Your Multiply allocation (${Multiply}%) is ambitious given your discipline level. Consider starting lower and increasing as habits strengthen.',
+      bucket: 'Multiply'
+    });
+  }
+
+  // Low impulse control + high Enjoyment = danger
+  if (preSurveyData.impulse <= 3 && allocations.Enjoyment >= 30) {
+    warnings.push({
+      severity: 'warning',
+      message: 'With lower impulse control, a ${Enjoyment}% Enjoyment allocation may lead to overspending. Consider starting with a smaller amount.',
+      bucket: 'Enjoyment'
+    });
+  }
+
+  // High satisfaction but low Enjoyment = burnout risk
+  if (preSurveyData.satisfaction >= 8 && allocations.Enjoyment <= 10) {
+    warnings.push({
+      severity: 'suggestion',
+      message: 'You report high financial stress. Consider allocating more to Enjoyment (currently ${Enjoyment}%) to avoid burnout.',
+      bucket: 'Enjoyment'
+    });
+  }
+
+  // Low long-term focus + high Multiply = mismatch
+  if (preSurveyData.longTerm <= 3 && allocations.Multiply >= 25) {
+    warnings.push({
+      severity: 'warning',
+      message: 'Your long-term focus score suggests wealth-building may feel challenging. Start small or work on building this skill first.',
+      bucket: 'Multiply'
+    });
+  }
+
+  return warnings;
+}
+```
+
+**2. Values Alignment Validation**
+```javascript
+// Detect mismatches between selected priority and actual allocation
+function validateValuesAlignment(allocations, priority, preSurveyData) {
+  var warnings = [];
+  var expectedRanges = {
+    'wealth': { Multiply: [25, 100], Freedom: [0, 30] },
+    'debt': { Freedom: [30, 100], Multiply: [0, 20] },
+    'secure': { Essentials: [30, 50], Freedom: [20, 40] },
+    'enjoy': { Enjoyment: [30, 100] },
+    'biggoal': { Freedom: [25, 100] },
+    'survival': { Essentials: [40, 100], Freedom: [15, 40] },
+    'business': { Multiply: [20, 50], Freedom: [15, 30] },
+    'generational': { Multiply: [35, 100], Essentials: [20, 35] },
+    'balance': { /* all buckets 15-35% */ },
+    'control': { Freedom: [25, 100] }
+  };
+
+  var expected = expectedRanges[priority];
+  if (!expected) return warnings;
+
+  // Check each bucket against expected range
+  Object.keys(expected).forEach(function(bucket) {
+    var [min, max] = expected[bucket];
+    var actual = allocations[bucket];
+
+    if (actual < min) {
+      warnings.push({
+        severity: 'suggestion',
+        message: 'Your "${priority}" priority typically allocates ${min}%+ to ${bucket}, but you\'re at ${actual}%. Consider adjusting or re-evaluating your priority.',
+        bucket: bucket,
+        action: 'priority-recheck'
+      });
+    }
+  });
+
+  return warnings;
+}
+```
+
+**3. Financial Reality Checks (Enhanced)**
+```javascript
+// Add debt and emergency fund validation using new pre-survey questions
+function validateFinancialReality(allocations, preSurveyData) {
+  var warnings = [];
+
+  // Calculate key metrics
+  var monthlyIncome = preSurveyData.monthlyIncome || 0;
+  var totalDebt = preSurveyData.totalDebt || 0;
+  var emergencyFund = preSurveyData.emergencyFund || 0;
+  var monthlyEssentials = preSurveyData.monthlyEssentials || 0;
+
+  // Emergency fund coverage
+  var monthsOfCoverage = monthlyEssentials > 0 ? emergencyFund / monthlyEssentials : 0;
+
+  // Critical: No emergency fund + low Freedom allocation
+  if (monthsOfCoverage < 1 && allocations.Freedom < 20) {
+    warnings.push({
+      severity: 'critical',
+      message: 'You have less than 1 month emergency coverage ($${emergencyFund}). Your Freedom allocation (${Freedom}%) may be too low to build a safety net quickly.',
+      bucket: 'Freedom',
+      action: 'emergency-fund-helper'
+    });
+  }
+
+  // Warning: High debt + low Freedom allocation
+  if (totalDebt > monthlyIncome * 3 && allocations.Freedom < 25) {
+    warnings.push({
+      severity: 'warning',
+      message: 'With $${totalDebt} in debt, consider allocating more to Freedom (currently ${Freedom}%) for debt paydown.',
+      bucket: 'Freedom',
+      action: 'debt-helper'
+    });
+  }
+
+  // Suggestion: Good emergency fund but still high Freedom
+  if (monthsOfCoverage >= 6 && totalDebt < monthlyIncome && allocations.Freedom > 40) {
+    warnings.push({
+      severity: 'suggestion',
+      message: 'Your emergency fund is solid (${monthsOfCoverage.toFixed(1)} months). You might redirect some Freedom allocation to Multiply for growth.',
+      bucket: 'Freedom'
+    });
+  }
+
+  return warnings;
+}
+```
+
+**4. Consolidated Validation Function**
+```javascript
+function checkMyPlanEnhanced() {
+  var allWarnings = {
+    critical: [],
+    warning: [],
+    suggestion: []
+  };
+
+  // Run all validation types
+  var financialWarnings = validateFinancialReality(calculatorState.buckets, preSurveyData);
+  var behavioralWarnings = validateBehavioralAlignment(calculatorState.buckets, preSurveyData);
+  var valuesWarnings = validateValuesAlignment(calculatorState.buckets, calculatorState.priority, preSurveyData);
+
+  // Categorize by severity
+  [].concat(financialWarnings, behavioralWarnings, valuesWarnings).forEach(function(warning) {
+    allWarnings[warning.severity].push(warning);
+  });
+
+  // Display with severity levels
+  displayValidationResults(allWarnings);
+}
+```
 
 **Success Criteria:**
-- All 3 validation types detect issues correctly
-- Helpers trigger at appropriate times
-- User can dismiss or engage with helpers
-- Validation results clear and actionable
+- ✅ All 3 validation types working (Financial, Behavioral, Values)
+- ✅ Warnings categorized by severity (Critical, Warning, Suggestion)
+- ✅ Each warning includes bucket reference and optional action
+- ✅ Trauma-informed language (no shaming)
+- ✅ New pre-survey questions integrated
+
+---
+
+#### **Phase 4B: Interactive Helpers** ⏳ **AFTER 4A**
+
+**Goal:** Build lightweight inline helpers that appear when validation triggers specific issues
+
+**Helpers to Build:**
+
+**1. Enjoyment Reality Check Helper**
+```
+Triggers: When Enjoyment > 35%
+Shows: Simple breakdown prompt
+  "Your $X/month Enjoyment allocation breaks down to about:"
+  - $X/week for dining/entertainment
+  - $X/week for hobbies/shopping
+  - Does this feel realistic for your lifestyle?
+Action: "Adjust Enjoyment" or "Keep It"
+```
+
+**2. Gap Analysis Helper**
+```
+Triggers: When current allocation differs from recommended by >20% in any bucket
+Shows: Side-by-side comparison
+  Recommended → Current → Difference
+  M: 25% → 15% → -10%
+  E: 35% → 40% → +5%
+  F: 25% → 35% → +10%
+  J: 15% → 10% → -5%
+Action: "Reset to Recommended" or "Keep My Changes"
+```
+
+**3. Priority Re-Check Helper**
+```
+Triggers: When values alignment detects major mismatch
+Shows: Inferred vs selected priority
+  "Your allocation (M:15% F:45%) suggests 'Get Out of Debt'"
+  "But you selected 'Build Wealth'"
+  "Would you like to:"
+  - Change priority to "Get Out of Debt"
+  - Adjust allocation to match "Build Wealth"
+  - Keep current setup (I have my reasons)
+```
+
+**4. Emergency Fund Timeline Helper**
+```
+Triggers: When emergency fund < 3 months AND Freedom < 20%
+Shows: Timeline calculator
+  "Current: $${emergencyFund} (${monthsOfCoverage} months)"
+  "Recommended: $${monthlyEssentials * 4} (4 months)"
+  "Gap: $${gap}"
+
+  "At ${Freedom}% Freedom allocation:"
+  "Timeline: ${timelineMonths} months to reach 4-month fund"
+
+  "If you increased to 25% Freedom:"
+  "Timeline: ${fasterTimeline} months (${savings} months faster!)"
+Action: "Adjust Freedom" or "Keep Current Plan"
+```
+
+**Implementation Approach:**
+- Helpers appear as expandable sections within validation results
+- Each helper has "Learn More" button (not auto-expanded)
+- Helpers provide calculations and context, not just warnings
+- Users can dismiss helpers or take suggested actions
+
+**Success Criteria:**
+- ✅ 4 core helpers implemented
+- ✅ Helpers trigger at appropriate thresholds
+- ✅ Each helper provides actionable insights
+- ✅ "Learn More" pattern (not forced)
+- ✅ One-click actions where applicable
+
+---
+
+#### **Phase 4C: Validation UX Refinement** ⏳ **POLISH PHASE**
+
+**Goal:** Make validation results more scannable and actionable
+
+**Enhancements:**
+
+**1. Severity-Based Visual Design**
+```
+🔴 CRITICAL (Red accent)
+  - Mathematical impossibility or crisis situation
+  - Example: Essentials allocation < actual spending
+  - Example: No emergency fund + very low Freedom
+
+🟡 WARNING (Yellow/Orange accent)
+  - Likely to cause problems
+  - Example: Low discipline + aggressive Multiply
+  - Example: High debt + low Freedom
+
+🔵 SUGGESTION (Blue accent)
+  - Optimization opportunities
+  - Example: Good emergency fund, could shift to growth
+
+✅ LOOKS GOOD (Green accent)
+  - All validations passed
+```
+
+**2. Bucket-Level Indicators**
+```
+Add small status icon to each allocation card:
+  Multiply: ✅ (no issues)
+  Essentials: 🔴 (critical issue)
+  Freedom: 🟡 (warning)
+  Enjoyment: 🔵 (suggestion available)
+```
+
+**3. Progressive Disclosure**
+```
+Collapsed: "🔴 1 Critical | 🟡 2 Warnings | 🔵 1 Suggestion - Click to Review"
+Expanded: Full list with helper buttons
+Deep Dive: Click warning → opens relevant helper
+```
+
+**Success Criteria:**
+- ✅ Color-coded severity system
+- ✅ Bucket-level status indicators
+- ✅ Scannable summary view
+- ✅ Progressive disclosure working
+
+---
+
+**Phase 4 Overall Success Criteria:**
+
+**Validation Quality:**
+- ✅ 12 pre-survey questions (2 new: debt, emergency fund)
+- ✅ 15+ validation rules across 3 categories (Financial, Behavioral, Values)
+- ✅ No false positives (smart tolerance thresholds)
+- ✅ Trauma-informed language throughout
+
+**UX Quality:**
+- ✅ Severity-based visual hierarchy
+- ✅ Actionable helpers (not just warnings)
+- ✅ Optional engagement (Learn More pattern)
+- ✅ One-click fixes where possible
+
+**Technical Quality:**
+- ✅ All validation functions properly categorize severity
+- ✅ Helpers trigger based on data conditions
+- ✅ New pre-survey questions saved and accessible
+- ✅ No white screens, GAS-safe navigation
 
 ---
 

@@ -2174,6 +2174,20 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
             </div>
           </div>
 
+          <!-- Q9: Total Debt (excluding mortgage) -->
+          <div class="form-question">
+            <label class="question-label">9. What is your total debt (excluding mortgage)?</label>
+            <div class="question-help">Include credit cards, student loans, car loans, medical debt, personal loans. Don't include your mortgage or rent.</div>
+            <input type="number" id="totalDebt" class="form-input" placeholder="e.g., 15000" min="0" step="1" value="${formValues.totalDebt || ''}" required>
+          </div>
+
+          <!-- Q10: Emergency Fund Amount -->
+          <div class="form-question">
+            <label class="question-label">10. How much money do you currently have in an emergency fund?</label>
+            <div class="question-help">Money set aside specifically for emergencies - easily accessible savings that you wouldn't touch for normal expenses.</div>
+            <input type="number" id="emergencyFund" class="form-input" placeholder="e.g., 2000" min="0" step="1" value="${formValues.emergencyFund || ''}" required>
+          </div>
+
           <!-- Error Message -->
           <div class="error-message" id="errorMessage"></div>
 
@@ -2551,8 +2565,19 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
         Enjoyment: ${allocation ? allocation.percentages.Enjoyment : 15}
       },
       monthlyIncome: ${preSurveyData && preSurveyData.monthlyIncome ? preSurveyData.monthlyIncome : 0},
+      monthlyEssentials: ${preSurveyData && preSurveyData.monthlyEssentials ? preSurveyData.monthlyEssentials : 0},
       priority: '${preSurveyData && preSurveyData.selectedPriority ? preSurveyData.selectedPriority : ''}',
-      actualEssentialsPercent: ${preSurveyData && preSurveyData.monthlyEssentials && preSurveyData.monthlyIncome ? Math.round((preSurveyData.monthlyEssentials / preSurveyData.monthlyIncome) * 100) : 0}
+      actualEssentialsPercent: ${preSurveyData && preSurveyData.monthlyEssentials && preSurveyData.monthlyIncome ? Math.round((preSurveyData.monthlyEssentials / preSurveyData.monthlyIncome) * 100) : 0},
+      // Pre-survey behavioral data for validation
+      preSurvey: {
+        satisfaction: ${preSurveyData && preSurveyData.satisfaction ? preSurveyData.satisfaction : 5},
+        discipline: ${preSurveyData && preSurveyData.discipline ? preSurveyData.discipline : 5},
+        impulse: ${preSurveyData && preSurveyData.impulse ? preSurveyData.impulse : 5},
+        longTerm: ${preSurveyData && preSurveyData.longTerm ? preSurveyData.longTerm : 5},
+        lifestyle: ${preSurveyData && preSurveyData.lifestyle ? preSurveyData.lifestyle : 5},
+        totalDebt: ${preSurveyData && preSurveyData.totalDebt ? preSurveyData.totalDebt : 0},
+        emergencyFund: ${preSurveyData && preSurveyData.emergencyFund ? preSurveyData.emergencyFund : 0}
+      }
     };
 
     // Toggle lock on a bucket
@@ -2722,69 +2747,244 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       updateAllBucketDisplays();
     }
 
-    // Check My Plan validation
-    function checkMyPlan() {
+    // ============ ENHANCED VALIDATION SYSTEM (Phase 4A) ============
+
+    // Helper function to format dollar amount
+    function formatDollars(percent) {
+      if (calculatorState.monthlyIncome > 0) {
+        var amount = Math.round(calculatorState.monthlyIncome * percent / 100);
+        return percent + '% ($' + amount.toLocaleString() + ')';
+      }
+      return percent + '%';
+    }
+
+    // Behavioral Validation: Cross-reference allocations with behavioral traits
+    function validateBehavioralAlignment() {
       var warnings = [];
-      var suggestions = [];
+      var buckets = calculatorState.buckets;
+      var preSurvey = calculatorState.preSurvey;
 
-      // Financial Rules Validation
+      // Low discipline + high Multiply = risky
+      if (preSurvey.discipline <= 3 && buckets.Multiply >= 30) {
+        warnings.push({
+          severity: 'warning',
+          bucket: 'Multiply',
+          message: 'Your Multiply allocation (' + formatDollars(buckets.Multiply) + ') is ambitious given your discipline level (' + preSurvey.discipline + '/10). Consider starting lower and increasing as habits strengthen.'
+        });
+      }
 
-      // Helper function to format dollar amount
-      function formatDollars(percent) {
-        if (calculatorState.monthlyIncome > 0) {
-          var amount = Math.round(calculatorState.monthlyIncome * percent / 100);
-          return percent + '% ($' + amount.toLocaleString() + ')';
+      // Low impulse control + high Enjoyment = danger
+      if (preSurvey.impulse <= 3 && buckets.Enjoyment >= 30) {
+        warnings.push({
+          severity: 'warning',
+          bucket: 'Enjoyment',
+          message: 'With lower impulse control (' + preSurvey.impulse + '/10), a ' + formatDollars(buckets.Enjoyment) + ' Enjoyment allocation may lead to overspending. Consider starting with a smaller amount.'
+        });
+      }
+
+      // High satisfaction (stressed) but low Enjoyment = burnout risk
+      if (preSurvey.satisfaction >= 8 && buckets.Enjoyment <= 10) {
+        warnings.push({
+          severity: 'suggestion',
+          bucket: 'Enjoyment',
+          message: 'You report high financial stress (' + preSurvey.satisfaction + '/10). Consider allocating more to Enjoyment (currently ' + formatDollars(buckets.Enjoyment) + ') to avoid burnout.'
+        });
+      }
+
+      // Low long-term focus + high Multiply = mismatch
+      if (preSurvey.longTerm <= 3 && buckets.Multiply >= 25) {
+        warnings.push({
+          severity: 'warning',
+          bucket: 'Multiply',
+          message: 'Your long-term focus score (' + preSurvey.longTerm + '/10) suggests wealth-building may feel challenging. Start small or work on building this skill first.'
+        });
+      }
+
+      return warnings;
+    }
+
+    // Values Alignment: Detect mismatches between priority and allocation
+    function validateValuesAlignment() {
+      var warnings = [];
+      var buckets = calculatorState.buckets;
+      var priority = calculatorState.priority;
+
+      // Expected ranges for each priority
+      var expectedRanges = {
+        'Build Long-Term Wealth': { Multiply: [25, 100], Freedom: [0, 30] },
+        'Get Out of Debt': { Freedom: [30, 100], Multiply: [0, 20] },
+        'Feel Financially Secure': { Essentials: [30, 50], Freedom: [20, 40] },
+        'Enjoy Life Now': { Enjoyment: [30, 100] },
+        'Save for a Big Goal': { Freedom: [25, 100] },
+        'Stabilize to Survive': { Essentials: [40, 100], Freedom: [15, 40] },
+        'Build or Stabilize a Business': { Multiply: [20, 50], Freedom: [15, 30] },
+        'Create Generational Wealth': { Multiply: [35, 100], Essentials: [20, 35] },
+        'Create Life Balance': {}, // All buckets should be 15-35%
+        'Reclaim Financial Control': { Freedom: [25, 100] }
+      };
+
+      var expected = expectedRanges[priority];
+      if (!expected) return warnings;
+
+      // Check each bucket against expected range
+      Object.keys(expected).forEach(function(bucket) {
+        var range = expected[bucket];
+        var min = range[0];
+        var max = range[1];
+        var actual = buckets[bucket];
+
+        if (actual < min) {
+          warnings.push({
+            severity: 'suggestion',
+            bucket: bucket,
+            message: 'Your "' + priority + '" priority typically allocates ' + min + '%+ to ' + bucket + ', but you\'re at ' + formatDollars(actual) + '. Consider adjusting or re-evaluating your priority.'
+          });
         }
-        return percent + '%';
+      });
+
+      return warnings;
+    }
+
+    // Financial Reality Checks: Debt and emergency fund validation
+    function validateFinancialReality() {
+      var warnings = [];
+      var buckets = calculatorState.buckets;
+      var preSurvey = calculatorState.preSurvey;
+      var monthlyIncome = calculatorState.monthlyIncome;
+      var monthlyEssentials = calculatorState.monthlyEssentials;
+
+      // Calculate key metrics
+      var totalDebt = preSurvey.totalDebt || 0;
+      var emergencyFund = preSurvey.emergencyFund || 0;
+      var monthsOfCoverage = monthlyEssentials > 0 ? emergencyFund / monthlyEssentials : 0;
+
+      // Critical: No emergency fund + low Freedom allocation
+      if (monthsOfCoverage < 1 && buckets.Freedom < 20) {
+        warnings.push({
+          severity: 'critical',
+          bucket: 'Freedom',
+          message: 'You have less than 1 month emergency coverage ($' + emergencyFund.toLocaleString() + '). Your Freedom allocation (' + formatDollars(buckets.Freedom) + ') may be too low to build a safety net quickly.'
+        });
       }
 
-      // Check if Essentials allocation is less than actual spending
-      if (calculatorState.actualEssentialsPercent > 0 && calculatorState.buckets.Essentials < calculatorState.actualEssentialsPercent) {
-        var shortfall = calculatorState.actualEssentialsPercent - calculatorState.buckets.Essentials;
-        var shortfallDollars = calculatorState.monthlyIncome > 0 ? ' ($' + Math.round(calculatorState.monthlyIncome * shortfall / 100).toLocaleString() + ')' : '';
-        warnings.push('⚠️ Your Essentials allocation (' + formatDollars(calculatorState.buckets.Essentials) + ') is less than your actual essential spending (' + formatDollars(calculatorState.actualEssentialsPercent) + '). You may need to reduce expenses by ' + shortfall + '%' + shortfallDollars + ' or adjust your allocation.');
+      // Warning: High debt + low Freedom allocation
+      if (totalDebt > monthlyIncome * 3 && buckets.Freedom < 25) {
+        warnings.push({
+          severity: 'warning',
+          bucket: 'Freedom',
+          message: 'With $' + totalDebt.toLocaleString() + ' in debt, consider allocating more to Freedom (currently ' + formatDollars(buckets.Freedom) + ') for debt paydown.'
+        });
       }
 
-      if (calculatorState.buckets.Essentials > 50) {
-        warnings.push('⚠️ Your Essentials allocation (' + formatDollars(calculatorState.buckets.Essentials) + ') is quite high. Consider finding ways to reduce fixed expenses.');
+      // Suggestion: Good emergency fund but still high Freedom
+      if (monthsOfCoverage >= 6 && totalDebt < monthlyIncome && buckets.Freedom > 40) {
+        warnings.push({
+          severity: 'suggestion',
+          bucket: 'Freedom',
+          message: 'Your emergency fund is solid (' + monthsOfCoverage.toFixed(1) + ' months). You might redirect some Freedom allocation to Multiply for growth.'
+        });
       }
 
-      if (calculatorState.buckets.Multiply < 10) {
-        var tenPercent = calculatorState.monthlyIncome > 0 ? ' ($' + Math.round(calculatorState.monthlyIncome * 10 / 100).toLocaleString() + ')' : '';
-        suggestions.push('💡 Consider increasing Multiply to at least 10%' + tenPercent + ' for long-term wealth building.');
+      // Existing financial rules
+      if (calculatorState.actualEssentialsPercent > 0 && buckets.Essentials < calculatorState.actualEssentialsPercent) {
+        var shortfall = calculatorState.actualEssentialsPercent - buckets.Essentials;
+        var shortfallDollars = monthlyIncome > 0 ? ' ($' + Math.round(monthlyIncome * shortfall / 100).toLocaleString() + ')' : '';
+        warnings.push({
+          severity: 'critical',
+          bucket: 'Essentials',
+          message: 'Your Essentials allocation (' + formatDollars(buckets.Essentials) + ') is less than your actual essential spending (' + formatDollars(calculatorState.actualEssentialsPercent) + '). You may need to reduce expenses by ' + shortfall + '%' + shortfallDollars + ' or adjust your allocation.'
+        });
       }
 
-      if (calculatorState.buckets.Enjoyment > 40) {
-        warnings.push('⚠️ Your Enjoyment allocation (' + formatDollars(calculatorState.buckets.Enjoyment) + ') is very high. Make sure this aligns with your financial goals.');
+      if (buckets.Essentials > 50) {
+        warnings.push({
+          severity: 'warning',
+          bucket: 'Essentials',
+          message: 'Your Essentials allocation (' + formatDollars(buckets.Essentials) + ') is quite high. Consider finding ways to reduce fixed expenses.'
+        });
       }
 
-      if (calculatorState.buckets.Freedom < 10) {
-        var tenPercent = calculatorState.monthlyIncome > 0 ? ' ($' + Math.round(calculatorState.monthlyIncome * 10 / 100).toLocaleString() + ')' : '';
-        suggestions.push('💡 Consider allocating at least 10%' + tenPercent + ' to Freedom for emergency fund and debt management.');
+      if (buckets.Multiply < 10) {
+        var tenPercent = monthlyIncome > 0 ? ' ($' + Math.round(monthlyIncome * 10 / 100).toLocaleString() + ')' : '';
+        warnings.push({
+          severity: 'suggestion',
+          bucket: 'Multiply',
+          message: 'Consider increasing Multiply to at least 10%' + tenPercent + ' for long-term wealth building.'
+        });
       }
 
-      // Display results inline
+      if (buckets.Enjoyment > 40) {
+        warnings.push({
+          severity: 'warning',
+          bucket: 'Enjoyment',
+          message: 'Your Enjoyment allocation (' + formatDollars(buckets.Enjoyment) + ') is very high. Make sure this aligns with your financial goals.'
+        });
+      }
+
+      if (buckets.Freedom < 10) {
+        var tenPercent = monthlyIncome > 0 ? ' ($' + Math.round(monthlyIncome * 10 / 100).toLocaleString() + ')' : '';
+        warnings.push({
+          severity: 'suggestion',
+          bucket: 'Freedom',
+          message: 'Consider allocating at least 10%' + tenPercent + ' to Freedom for emergency fund and debt management.'
+        });
+      }
+
+      return warnings;
+    }
+
+    // Main validation function
+    function checkMyPlan() {
+      // Run all validation types
+      var financialWarnings = validateFinancialReality();
+      var behavioralWarnings = validateBehavioralAlignment();
+      var valuesWarnings = validateValuesAlignment();
+
+      // Categorize by severity
+      var allWarnings = {
+        critical: [],
+        warning: [],
+        suggestion: []
+      };
+
+      [].concat(financialWarnings, behavioralWarnings, valuesWarnings).forEach(function(warning) {
+        allWarnings[warning.severity].push(warning);
+      });
+
+      // Display results
       var resultsDiv = document.getElementById('validationResults');
       var html = '';
 
-      if (warnings.length === 0 && suggestions.length === 0) {
-        html = '<div style="color: var(--color-text-primary); text-align: center;"><strong>✅ Your allocation looks balanced!</strong><br><br>All buckets are within recommended ranges.</div>';
+      var totalCount = allWarnings.critical.length + allWarnings.warning.length + allWarnings.suggestion.length;
+
+      if (totalCount === 0) {
+        html = '<div style="color: var(--color-text-primary); text-align: center;"><strong>✅ Your allocation looks balanced!</strong><br><br>All buckets are within recommended ranges and align with your behavioral profile.</div>';
         resultsDiv.style.background = 'rgba(34, 197, 94, 0.1)';
         resultsDiv.style.borderColor = 'rgba(34, 197, 94, 0.3)';
       } else {
         html = '<div style="color: var(--color-text-primary);">';
-        if (warnings.length > 0) {
-          html += '<div style="margin-bottom: 15px;"><strong style="color: #fbbf24;">⚠️ WARNINGS:</strong></div>';
-          warnings.forEach(function(warning) {
-            html += '<p style="margin: 10px 0; padding-left: 15px; color: var(--color-text-secondary);">' + warning + '</p>';
+
+        if (allWarnings.critical.length > 0) {
+          html += '<div style="margin-bottom: 15px;"><strong style="color: #ef4444;">🔴 CRITICAL:</strong></div>';
+          allWarnings.critical.forEach(function(warning) {
+            html += '<p style="margin: 10px 0; padding-left: 15px; color: var(--color-text-secondary);"><strong>' + warning.bucket + ':</strong> ' + warning.message + '</p>';
           });
         }
-        if (suggestions.length > 0) {
-          html += '<div style="margin-top: 20px; margin-bottom: 15px;"><strong style="color: #60a5fa;">💡 SUGGESTIONS:</strong></div>';
-          suggestions.forEach(function(suggestion) {
-            html += '<p style="margin: 10px 0; padding-left: 15px; color: var(--color-text-secondary);">' + suggestion + '</p>';
+
+        if (allWarnings.warning.length > 0) {
+          html += '<div style="margin-top: 20px; margin-bottom: 15px;"><strong style="color: #fbbf24;">🟡 WARNINGS:</strong></div>';
+          allWarnings.warning.forEach(function(warning) {
+            html += '<p style="margin: 10px 0; padding-left: 15px; color: var(--color-text-secondary);"><strong>' + warning.bucket + ':</strong> ' + warning.message + '</p>';
           });
         }
+
+        if (allWarnings.suggestion.length > 0) {
+          html += '<div style="margin-top: 20px; margin-bottom: 15px;"><strong style="color: #60a5fa;">🔵 SUGGESTIONS:</strong></div>';
+          allWarnings.suggestion.forEach(function(warning) {
+            html += '<p style="margin: 10px 0; padding-left: 15px; color: var(--color-text-secondary);"><strong>' + warning.bucket + ':</strong> ' + warning.message + '</p>';
+          });
+        }
+
         html += '</div>';
         resultsDiv.style.background = 'rgba(79, 70, 229, 0.1)';
         resultsDiv.style.borderColor = 'rgba(79, 70, 229, 0.3)';
@@ -2923,7 +3123,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       });
 
       if (!allValid) {
-        document.getElementById('errorMessage').textContent = 'Please answer all 8 questions.';
+        document.getElementById('errorMessage').textContent = 'Please answer all 10 questions.';
         document.getElementById('errorMessage').classList.add('show');
         return;
       }
@@ -2937,7 +3137,9 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
         impulse: parseInt(document.getElementById('impulse').value),
         longTerm: parseInt(document.getElementById('longTerm').value),
         lifestyle: parseInt(document.getElementById('lifestyle').value),
-        autonomy: parseInt(document.getElementById('autonomy').value)
+        autonomy: parseInt(document.getElementById('autonomy').value),
+        totalDebt: parseFloat(document.getElementById('totalDebt').value),
+        emergencyFund: parseFloat(document.getElementById('emergencyFund').value)
       };
 
       // Show loading overlay with specific message
@@ -4688,6 +4890,12 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       const essentialsPct = (monthlyEssentials / monthlyIncome) * 100;
       const essentialsRange = this.mapEssentialsPctToTier(essentialsPct);
 
+      // Calculate debt and emergency fund tiers from pre-survey dollar inputs
+      const totalDebt = preSurveyAnswers.totalDebt || 0;
+      const emergencyFund = preSurveyAnswers.emergencyFund || 0;
+      const debtLoad = this.mapDebtToTier(totalDebt, monthlyIncome);
+      const emergencyFundTier = this.mapEmergencyFundToTier(emergencyFund, monthlyEssentials);
+
       // Map to V1 input structure
       return {
         // Calculated from dollar inputs
@@ -4706,14 +4914,16 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
         goalTimeline: preSurveyAnswers.goalTimeline || '1–2 years',
         priority: preSurveyAnswers.selectedPriority || 'Feel Financially Secure',
 
-        // Derived from Tool 2 data
+        // From pre-survey (financial reality)
+        debtLoad: debtLoad,
+        emergencyFund: emergencyFundTier,
+        interestLevel: this.deriveInterestLevelFromDebt(debtLoad),
+
+        // Derived from Tool 2 data (with fallbacks)
         growth: this.deriveGrowthFromTool2(tool2Form),
         stability: this.deriveStabilityFromTool2(tool2Form),
         stageOfLife: this.deriveStageOfLife(tool2Form),
-        emergencyFund: this.mapEmergencyFundMonths(tool2Form.emergencyFundMonths),
         incomeStability: this.mapIncomeStability(tool2Form.incomeConsistency),
-        debtLoad: this.deriveDebtLoad(tool2Form.currentDebts, tool2Form.debtStress),
-        interestLevel: this.deriveInterestLevel(tool2Form.debtStress),
         dependents: (tool2Form.dependents && tool2Form.dependents > 0) ? 'Yes' : 'No'
       };
     } catch (error) {
@@ -4763,6 +4973,55 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
     if (pct < 40) return 'D';      // 30-40%
     if (pct < 50) return 'E';      // 40-50%
     return 'F';                     // > 50%
+  },
+
+  /**
+   * Helper: Map total debt to A-E tier based on debt-to-income ratio
+   * A = No/minimal debt (<10% of annual income)
+   * B = Low debt (10-30% of annual income)
+   * C = Moderate debt (30-100% of annual income)
+   * D = High debt (100-200% of annual income)
+   * E = Severe debt (>200% of annual income)
+   */
+  mapDebtToTier(totalDebt, monthlyIncome) {
+    const annualIncome = monthlyIncome * 12;
+    const debtToIncomeRatio = totalDebt / annualIncome;
+
+    if (debtToIncomeRatio < 0.10) return 'A';   // Less than 10% of annual income
+    if (debtToIncomeRatio < 0.30) return 'B';   // 10-30% of annual income
+    if (debtToIncomeRatio < 1.00) return 'C';   // 30-100% of annual income
+    if (debtToIncomeRatio < 2.00) return 'D';   // 100-200% of annual income
+    return 'E';                                  // More than 200% of annual income
+  },
+
+  /**
+   * Helper: Map emergency fund dollars to A-E tier based on months of coverage
+   * A = 0-0.5 months
+   * B = 0.5-1 month
+   * C = 1-3 months
+   * D = 3-6 months
+   * E = 6+ months
+   */
+  mapEmergencyFundToTier(emergencyFund, monthlyEssentials) {
+    if (monthlyEssentials === 0) return 'A';  // Can't calculate, assume minimal
+
+    const monthsOfCoverage = emergencyFund / monthlyEssentials;
+
+    if (monthsOfCoverage < 0.5) return 'A';   // Less than 2 weeks
+    if (monthsOfCoverage < 1.0) return 'B';   // 2 weeks to 1 month
+    if (monthsOfCoverage < 3.0) return 'C';   // 1-3 months
+    if (monthsOfCoverage < 6.0) return 'D';   // 3-6 months
+    return 'E';                                // 6+ months (excellent)
+  },
+
+  /**
+   * Helper: Derive interest level from debt tier
+   * Maps debt load to High/Medium/Low interest urgency
+   */
+  deriveInterestLevelFromDebt(debtTier) {
+    if (debtTier === 'E' || debtTier === 'D') return 'High';
+    if (debtTier === 'C') return 'Medium';
+    return 'Low';
   },
 
   /**
