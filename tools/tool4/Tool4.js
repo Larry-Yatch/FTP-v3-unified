@@ -217,21 +217,8 @@ const Tool4 = {
         throw new Error('Allocations must sum to 100%');
       }
 
-      // Get spreadsheet
-      const ss = SpreadsheetApp.getActiveSpreadsheet();
-
-      // Ensure TOOL4_SCENARIOS sheet exists
-      let scenariosSheet = ss.getSheetByName('TOOL4_SCENARIOS');
-      if (!scenariosSheet) {
-        scenariosSheet = ss.insertSheet('TOOL4_SCENARIOS');
-        // Add headers
-        scenariosSheet.appendRow([
-          'Timestamp', 'Client_ID', 'Scenario_Name',
-          'Multiply_%', 'Essentials_%', 'Freedom_%', 'Enjoyment_%',
-          'Multiply_$', 'Essentials_$', 'Freedom_$', 'Enjoyment_$',
-          'Monthly_Income', 'Priority_Selected'
-        ]);
-      }
+      // Get TOOL4_SCENARIOS sheet using SpreadsheetCache
+      const scenariosSheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.TOOL4_SCENARIOS);
 
       // Calculate dollar amounts
       const monthlyIncome = scenario.monthlyIncome || 0;
@@ -2477,7 +2464,8 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
         Enjoyment: ${allocation ? allocation.percentages.Enjoyment : 15}
       },
       monthlyIncome: ${preSurveyData && preSurveyData.monthlyIncome ? preSurveyData.monthlyIncome : 0},
-      priority: '${preSurveyData && preSurveyData.selectedPriority ? preSurveyData.selectedPriority : ''}'
+      priority: '${preSurveyData && preSurveyData.selectedPriority ? preSurveyData.selectedPriority : ''}',
+      actualEssentialsPercent: ${preSurveyData && preSurveyData.monthlyEssentials && preSurveyData.monthlyIncome ? Math.round((preSurveyData.monthlyEssentials / preSurveyData.monthlyIncome) * 100) : 0}
     };
 
     // Toggle lock on a bucket
@@ -2653,6 +2641,13 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       var suggestions = [];
 
       // Financial Rules Validation
+
+      // Check if Essentials allocation is less than actual spending
+      if (calculatorState.actualEssentialsPercent > 0 && calculatorState.buckets.Essentials < calculatorState.actualEssentialsPercent) {
+        var shortfall = calculatorState.actualEssentialsPercent - calculatorState.buckets.Essentials;
+        warnings.push('⚠️ Your Essentials allocation (' + calculatorState.buckets.Essentials + '%) is less than your actual essential spending (' + calculatorState.actualEssentialsPercent + '%). You may need to reduce expenses by ' + shortfall + '% or adjust your allocation.');
+      }
+
       if (calculatorState.buckets.Essentials > 50) {
         warnings.push('⚠️ Your Essentials allocation (' + calculatorState.buckets.Essentials + '%) is quite high. Consider finding ways to reduce fixed expenses.');
       }
@@ -5466,7 +5461,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
           <p class="picker-intro">
             Based on your responses, we've analyzed which priorities best fit your current situation.
             <strong>Select one priority below and choose your timeline</strong>, then click "Calculate My Allocation"
-            to see your personalized budget breakdown. The recommendations are guidance - you can choose any priority.
+            to see your personalized allocation breakdown. The recommendations are guidance - you can choose any priority.
           </p>
 
           ${recommended.length > 0 ? `

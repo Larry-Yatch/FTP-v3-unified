@@ -26,7 +26,8 @@ const CONFIG = {
     ADMINS: 'ADMINS',
     CONFIG: 'CONFIG',
     STUDENTS: 'Students',
-    ATTENDANCE: 'ATTENDANCE'
+    ATTENDANCE: 'ATTENDANCE',
+    TOOL4_SCENARIOS: 'TOOL4_SCENARIOS'
   },
 
   // Course Call Structure (4 cycles x 3 calls each)
