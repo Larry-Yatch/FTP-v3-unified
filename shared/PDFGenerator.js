@@ -864,8 +864,8 @@ const PDFGenerator = {
         '<p>Your "' + this.getPriorityDisplayName(preSurveyData.selectedPriority) + '" priority established starting weights adjusted for your personal factors.</p></div>';
 
       if (allocation.details && allocation.details.satBoostPct > 0) {
-        insightsSection += '<div class="insight-section"><div class="insight-title">Satisfaction Amplification: +' + Math.round(allocation.details.satBoostPct) + '%</div>' +
-          '<p>Your dissatisfaction level (' + preSurveyData.satisfaction + '/10) amplified positive modifiers toward wealth-building.</p></div>';
+        insightsSection += '<div class="insight-section"><div class="insight-title">Dissatisfaction Amplification: +' + Math.round(allocation.details.satBoostPct) + '%</div>' +
+          '<p>Because your satisfaction level is only ' + preSurveyData.satisfaction + '/10, we amplified positive modifiers to help you change faster.</p></div>';
       }
 
       var influencesSection = '<div class="page-break"></div><h2>How Your Profile Influenced This Allocation</h2>';

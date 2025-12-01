@@ -782,11 +782,11 @@ const Tool4 = {
         <!-- Q1: Satisfaction -->
         <div class="question-group">
           <label class="question-label">
-            1. How dissatisfied are you with your current financial situation?
+            1. How satisfied are you with your current financial situation?
             <span class="question-required">*</span>
           </label>
           <div class="scale-input-group">
-            <span class="scale-labels" style="min-width: 80px">Not at all</span>
+            <span class="scale-labels" style="min-width: 80px">Very stressed</span>
             <input
               type="range"
               class="scale-input"
@@ -797,10 +797,10 @@ const Tool4 = {
               value="5"
               required
             >
-            <span class="scale-labels" style="min-width: 80px; text-align: right">Extremely</span>
+            <span class="scale-labels" style="min-width: 80px; text-align: right">Very satisfied</span>
             <span class="scale-value" id="satisfactionValue">5</span>
           </div>
-          <div class="question-help">Higher dissatisfaction amplifies our recommendations to help you change faster</div>
+          <div class="question-help">Lower satisfaction amplifies our recommendations to help you change faster</div>
         </div>
 
         <!-- Q2: Discipline -->
@@ -6075,8 +6075,11 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       notes.Multiply.Financial += 'Very stable income supports investing. ';
     }
 
-    // --- Behavioral Modifiers (with Satisfaction Amplification) ---
-    const rawSatFactor = 1 + Math.max(0, input.satisfaction - CONFIG.satisfaction.neutralScore) * CONFIG.satisfaction.step;
+    // --- Behavioral Modifiers (with Dissatisfaction Amplification) ---
+    // Note: satisfaction scale is 0=extremely stressed to 10=extremely satisfied
+    // Amplification happens when DISSATISFIED (low satisfaction scores)
+    // So we invert: (neutralScore - satisfaction) gives positive value when dissatisfied
+    const rawSatFactor = 1 + Math.max(0, CONFIG.satisfaction.neutralScore - input.satisfaction) * CONFIG.satisfaction.step;
     const satFactor = Math.min(rawSatFactor, 1 + CONFIG.satisfaction.maxBoost);
 
     // Apply satisfaction amplification to all positive modifiers
@@ -6234,7 +6237,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       detailedSummary:
         'Base allocations (priority "' + input.priority + '"): Multiply ' + base.M + '%, Essentials ' + base.E + '%, Freedom ' + base.F + '%, Enjoyment ' + base.J + '%.\n' +
         'After modifiers, raw split: Multiply ' + rawPercentages.Multiply + '%, Essentials ' + rawPercentages.Essentials + '%, Freedom ' + rawPercentages.Freedom + '%, Enjoyment ' + rawPercentages.Enjoyment + '%.\n' +
-        (satBoostPct > 0 ? 'Because you are ' + input.satisfaction + '/10 dissatisfied, we amplified all positive nudges by ' + satBoostPct + '%.\n' : '') +
+        (satBoostPct > 0 ? 'Because your satisfaction is only ' + input.satisfaction + '/10, we amplified all positive nudges by ' + satBoostPct + '% to help you change faster.\n' : '') +
         'Final recommended split: Multiply ' + percentages.Multiply + '%, Essentials ' + percentages.Essentials + '%, Freedom ' + percentages.Freedom + '%, Enjoyment ' + percentages.Enjoyment + '%.'
     };
 
