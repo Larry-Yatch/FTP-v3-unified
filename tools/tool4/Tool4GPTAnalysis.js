@@ -52,7 +52,7 @@ const Tool4GPTAnalysis = {
         userPrompt,
         model: 'gpt-4o',
         temperature: 0.3,
-        maxTokens: 900
+        maxTokens: 600
       });
 
       const parsed = this.parseMainReportResponse(result);
@@ -86,7 +86,7 @@ const Tool4GPTAnalysis = {
           userPrompt,
           model: 'gpt-4o',
           temperature: 0.3,
-          maxTokens: 900
+          maxTokens: 600
         });
 
         const parsed = this.parseMainReportResponse(result);
@@ -160,7 +160,7 @@ const Tool4GPTAnalysis = {
         userPrompt,
         model: 'gpt-4o',
         temperature: 0.3,
-        maxTokens: 700
+        maxTokens: 450
       });
 
       const parsed = this.parseComparisonResponse(result);
@@ -194,7 +194,7 @@ const Tool4GPTAnalysis = {
           userPrompt,
           model: 'gpt-4o',
           temperature: 0.3,
-          maxTokens: 700
+          maxTokens: 450
         });
 
         const parsed = this.parseComparisonResponse(result);
@@ -303,19 +303,20 @@ WRITING GUIDELINES:
 - Acknowledge tensions between their profile and allocation where they exist
 - Be encouraging but honest about challenges they may face
 - Do NOT use markdown formatting (no **, no *, no bullets with -)
+- BE CONCISE - this must fit on one PDF page
 
 Return PLAIN TEXT ONLY in this exact format:
 
 Overview:
-(2-3 paragraphs connecting their behavioral profile to their allocation. Explain why this allocation makes sense for them. Acknowledge any tensions between their scores and their allocation.)
+(ONE paragraph, 3-4 sentences max. Connect their profile to their allocation. Highlight the most important tension or strength.)
 
 Strategic Insights:
-1. [First specific observation grounded in their data]
-2. [Second specific observation]
-3. [Third observation if warranted]
+1. [First specific observation - 1-2 sentences]
+2. [Second specific observation - 1-2 sentences]
+3. [Third observation - 1-2 sentences]
 
 Recommendation:
-(One paragraph: The single most important focus area for this specific person based on their profile and allocation.)`;
+(2-3 sentences: The single most important focus area for this person.)`;
   },
 
   /**
@@ -394,14 +395,15 @@ WRITING GUIDELINES:
 - Connect to their behavioral profile (satisfaction, discipline)
 - Be balanced - acknowledge trade-offs of each approach
 - Do NOT use markdown formatting
+- BE CONCISE - keep it brief and focused
 
 Return PLAIN TEXT ONLY in this exact format:
 
 Synthesis:
-(2 paragraphs explaining what the differences between these scenarios mean for this student. Connect to their priorities and behavioral profile.)
+(ONE paragraph, 4-5 sentences max. What do these differences mean for this student? Focus on the most significant trade-off.)
 
 Decision Guidance:
-(3-4 sentences providing personalized guidance on which scenario might work better for them, acknowledging the trade-offs involved.)`;
+(2-3 sentences. Which scenario might work better and why, acknowledging the key trade-off.)`;
   },
 
   /**

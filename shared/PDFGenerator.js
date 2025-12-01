@@ -754,21 +754,21 @@ const PDFGenerator = {
       .decision-section h3 { color: ${purple}; margin-top: 0; }
       .decision-section ul { margin: 10px 0 20px 20px; }
       .remember-box { background: #fffbeb; border: 1px solid #fcd34d; padding: 15px; border-radius: 5px; margin-top: 20px; }
-      .gpt-section { margin: 25px 0; }
-      .gpt-overview { background: ${purpleLight}; padding: 25px; border-radius: 10px; border-left: 4px solid ${purple}; margin-bottom: 20px; }
-      .gpt-overview p { margin: 0 0 15px 0; line-height: 1.7; color: #333; }
+      .gpt-section { margin: 15px 0; page-break-inside: avoid; }
+      .gpt-overview { background: ${purpleLight}; padding: 15px 18px; border-radius: 8px; border-left: 4px solid ${purple}; margin-bottom: 12px; }
+      .gpt-overview p { margin: 0 0 10px 0; line-height: 1.5; color: #333; font-size: 14px; }
       .gpt-overview p:last-child { margin-bottom: 0; }
-      .strategic-insights { background: #f9fafb; padding: 20px 20px 20px 35px; border-radius: 8px; margin: 20px 0; }
-      .strategic-insights li { margin: 12px 0; line-height: 1.6; color: #444; }
-      .recommendation-box { background: linear-gradient(135deg, ${purpleLight} 0%, rgba(91, 75, 138, 0.12) 100%); padding: 25px; border-radius: 10px; border: 1px solid ${purpleBorder}; margin-top: 20px; }
-      .recommendation-box h3 { margin: 0 0 15px 0; }
-      .recommendation-box p { margin: 0; line-height: 1.7; color: #333; }
-      .gpt-comparison-synthesis { background: ${purpleLight}; padding: 25px; border-radius: 10px; border-left: 4px solid ${purple}; margin-bottom: 20px; }
-      .gpt-comparison-synthesis p { margin: 0 0 15px 0; line-height: 1.7; }
+      .strategic-insights { background: #f9fafb; padding: 12px 15px 12px 30px; border-radius: 6px; margin: 12px 0; }
+      .strategic-insights li { margin: 8px 0; line-height: 1.5; color: #444; font-size: 14px; }
+      .recommendation-box { background: linear-gradient(135deg, ${purpleLight} 0%, rgba(91, 75, 138, 0.12) 100%); padding: 15px 18px; border-radius: 8px; border: 1px solid ${purpleBorder}; margin-top: 12px; }
+      .recommendation-box h3 { margin: 0 0 8px 0; font-size: 15px; }
+      .recommendation-box p { margin: 0; line-height: 1.5; color: #333; font-size: 14px; }
+      .gpt-comparison-synthesis { background: ${purpleLight}; padding: 15px 18px; border-radius: 8px; border-left: 4px solid ${purple}; margin-bottom: 12px; }
+      .gpt-comparison-synthesis p { margin: 0 0 10px 0; line-height: 1.5; font-size: 14px; }
       .gpt-comparison-synthesis p:last-child { margin-bottom: 0; }
-      .gpt-decision-guidance { background: linear-gradient(135deg, #eff6ff 0%, #e0e7ff 100%); padding: 20px; border-radius: 8px; border: 1px solid #c7d2fe; }
-      .gpt-decision-guidance p { margin: 0; line-height: 1.7; color: #333; }
-      .gpt-source-note { font-size: 11px; color: #888; text-align: right; margin-top: 10px; font-style: italic; }
+      .gpt-decision-guidance { background: linear-gradient(135deg, #eff6ff 0%, #e0e7ff 100%); padding: 15px 18px; border-radius: 6px; border: 1px solid #c7d2fe; }
+      .gpt-decision-guidance p { margin: 0; line-height: 1.5; color: #333; font-size: 14px; }
+      .gpt-source-note { font-size: 10px; color: #999; text-align: right; margin-top: 6px; font-style: italic; }
     `;
   },
 
@@ -882,11 +882,10 @@ const PDFGenerator = {
         '</ol>';
     }
 
-    return '<div class="page-break"></div>' +
-      '<h2>Your Personalized Analysis</h2>' +
+    return '<h2 style="margin-top: 20px;">Your Personalized Analysis</h2>' +
       '<div class="gpt-section">' +
       '<div class="gpt-overview">' + overviewParagraphs + '</div>' +
-      '<h3 style="color: ' + purpleColor + '; margin-top: 25px;">Key Observations</h3>' +
+      '<h3 style="color: ' + purpleColor + '; margin-top: 15px; margin-bottom: 8px; font-size: 15px;">Key Observations</h3>' +
       insightsList +
       '<div class="recommendation-box">' +
       '<h3 style="color: ' + purpleColor + ';">Your Priority Focus</h3>' +
@@ -915,11 +914,10 @@ const PDFGenerator = {
       .map(function(p) { return '<p>' + p.trim() + '</p>'; })
       .join('');
 
-    return '<div class="page-break"></div>' +
-      '<h2>Personalized Comparison Analysis</h2>' +
+    return '<h2 style="margin-top: 20px;">Personalized Comparison Analysis</h2>' +
       '<div class="gpt-section">' +
       '<div class="gpt-comparison-synthesis">' + synthesisParagraphs + '</div>' +
-      '<h3 style="color: ' + purpleColor + '; margin-top: 20px;">Decision Guidance</h3>' +
+      '<h3 style="color: ' + purpleColor + '; margin-top: 12px; margin-bottom: 8px; font-size: 15px;">Decision Guidance</h3>' +
       '<div class="gpt-decision-guidance">' +
       '<p>' + (gptInsights.decisionGuidance || '') + '</p>' +
       '</div>' +
@@ -1100,7 +1098,7 @@ const PDFGenerator = {
 
       var footer = this.buildFooter('This allocation framework is a starting point. Adjust as needed and consult with a financial advisor for personalized advice.');
 
-      var bodyContent = header + executiveSummary + gptSection + allocationSection + insightsSection + influencesSection + validationSection + nextStepsSection + footer;
+      var bodyContent = header + executiveSummary + allocationSection + gptSection + insightsSection + influencesSection + validationSection + nextStepsSection + footer;
       var htmlContent = this.buildHTMLDocument(this.getTool4Styles(), bodyContent);
       var fileName = this.generateFileName('FinancialFreedomFramework', studentName);
       return this.htmlToPDF(htmlContent, fileName);

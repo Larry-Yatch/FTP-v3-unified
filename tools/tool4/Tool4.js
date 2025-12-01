@@ -4156,6 +4156,61 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       // Build HTML
       var html = '';
 
+      // Check for profile differences between scenarios
+      var profile1 = scenario1.profileSnapshot || {};
+      var profile2 = scenario2.profileSnapshot || {};
+      var profileDiffers = (
+        scenario1.monthlyIncome !== scenario2.monthlyIncome ||
+        profile1.currentEssentials !== profile2.currentEssentials ||
+        profile1.debtBalance !== profile2.debtBalance ||
+        profile1.emergencyFund !== profile2.emergencyFund ||
+        scenario1.priority !== scenario2.priority
+      );
+
+      // Profile Context Section (always show, highlight differences)
+      html += '<div style="background: rgba(255,255,255,0.03); border-radius: 8px; padding: 15px; margin-bottom: 20px; border: 1px solid ' + (profileDiffers ? 'rgba(251, 191, 36, 0.4)' : 'rgba(255,255,255,0.1)') + ';">';
+      html += '<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">';
+      html += '<span style="font-size: 1rem;">📋</span>';
+      html += '<h4 style="color: var(--color-text-primary); margin: 0; font-size: 0.95rem;">Profile Context When Saved</h4>';
+      if (profileDiffers) {
+        html += '<span style="background: rgba(251, 191, 36, 0.2); color: #fbbf24; font-size: 0.75rem; padding: 2px 8px; border-radius: 4px; margin-left: auto;">Profiles Differ</span>';
+      }
+      html += '</div>';
+
+      html += '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; font-size: 0.85rem;">';
+
+      // Scenario 1 profile
+      html += '<div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 6px;">';
+      html += '<div style="font-weight: 600; color: var(--color-text-primary); margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,0.1);">' + scenario1.name + '</div>';
+      html += '<div style="color: var(--color-text-secondary); line-height: 1.6;">';
+      html += '<div>Income: <span style="color: var(--color-text-primary);">$' + (scenario1.monthlyIncome || 0).toLocaleString() + '/mo</span></div>';
+      html += '<div>Priority: <span style="color: var(--color-text-primary);">' + (scenario1.priority || 'Not set') + '</span></div>';
+      if (profile1.currentEssentials) html += '<div>Essentials: <span style="color: var(--color-text-primary);">$' + profile1.currentEssentials.toLocaleString() + '/mo</span></div>';
+      if (profile1.debtBalance) html += '<div>Debt: <span style="color: var(--color-text-primary);">$' + profile1.debtBalance.toLocaleString() + '</span></div>';
+      if (profile1.emergencyFund) html += '<div>Emergency Fund: <span style="color: var(--color-text-primary);">$' + profile1.emergencyFund.toLocaleString() + '</span></div>';
+      html += '</div></div>';
+
+      // Scenario 2 profile
+      html += '<div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 6px;">';
+      html += '<div style="font-weight: 600; color: var(--color-text-primary); margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,0.1);">' + scenario2.name + '</div>';
+      html += '<div style="color: var(--color-text-secondary); line-height: 1.6;">';
+      html += '<div>Income: <span style="color: var(--color-text-primary);">$' + (scenario2.monthlyIncome || 0).toLocaleString() + '/mo</span></div>';
+      html += '<div>Priority: <span style="color: var(--color-text-primary);">' + (scenario2.priority || 'Not set') + '</span></div>';
+      if (profile2.currentEssentials) html += '<div>Essentials: <span style="color: var(--color-text-primary);">$' + profile2.currentEssentials.toLocaleString() + '/mo</span></div>';
+      if (profile2.debtBalance) html += '<div>Debt: <span style="color: var(--color-text-primary);">$' + profile2.debtBalance.toLocaleString() + '</span></div>';
+      if (profile2.emergencyFund) html += '<div>Emergency Fund: <span style="color: var(--color-text-primary);">$' + profile2.emergencyFund.toLocaleString() + '</span></div>';
+      html += '</div></div>';
+
+      html += '</div>'; // grid
+
+      if (profileDiffers) {
+        html += '<div style="margin-top: 12px; padding: 10px; background: rgba(251, 191, 36, 0.1); border-radius: 6px; font-size: 0.8rem; color: #fbbf24;">';
+        html += '⚠️ These scenarios were saved with different profile settings. The comparison shows allocation differences, but dollar amounts may reflect different underlying circumstances.';
+        html += '</div>';
+      }
+
+      html += '</div>'; // profile context section
+
       // Allocation comparison table
       html += '<div style="background: rgba(255,255,255,0.05); border-radius: 8px; overflow: hidden; margin-bottom: 20px;">';
       html += '<table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">';
@@ -7901,6 +7956,12 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       const freedomCol = headers.indexOf('Custom_F_Percent');
       const enjoymentCol = headers.indexOf('Custom_J_Percent');
 
+      // Pre-survey snapshot columns for comparison context
+      const currentEssentialsCol = headers.indexOf('Current_Essentials');
+      const debtBalanceCol = headers.indexOf('Debt_Balance');
+      const emergencyFundCol = headers.indexOf('Emergency_Fund');
+      const incomeStabilityCol = headers.indexOf('Income_Stability');
+
       // Helper to parse percentage strings like "16%" to numbers
       function parsePercent(val) {
         if (typeof val === 'number') return val;
@@ -7940,6 +8001,13 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
               Essentials: parsePercent(data[i][essentialsCol]),
               Freedom: parsePercent(data[i][freedomCol]),
               Enjoyment: parsePercent(data[i][enjoymentCol])
+            },
+            // Pre-survey snapshot for comparison context
+            profileSnapshot: {
+              currentEssentials: parseCurrency(data[i][currentEssentialsCol]),
+              debtBalance: parseCurrency(data[i][debtBalanceCol]),
+              emergencyFund: parseCurrency(data[i][emergencyFundCol]),
+              incomeStability: String(data[i][incomeStabilityCol] || '')
             }
           });
         }
