@@ -3900,6 +3900,10 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       var select1 = document.getElementById('scenario1Select');
       var select2 = document.getElementById('scenario2Select');
 
+      // Guard against null elements (comparison view may be hidden)
+      if (!select1 || !select2) return;
+      if (!scenarios || !scenarios.length) return;
+
       var options = '<option value="">Select scenario...</option>';
       scenarios.forEach(function(scenario, index) {
         options += '<option value="' + index + '">' + scenario.name + ' (M:' + scenario.allocations.Multiply + '% E:' + scenario.allocations.Essentials + '% F:' + scenario.allocations.Freedom + '% J:' + scenario.allocations.Enjoyment + '%)</option>';
