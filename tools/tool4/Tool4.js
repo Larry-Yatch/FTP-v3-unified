@@ -4007,10 +4007,12 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       // Bottom line summary
       html += renderBottomLine(scenario1, scenario2, diffs, hasDebt);
 
-      // Action buttons
+      // Action buttons - use data attributes to avoid escaping issues
+      var idx1 = document.getElementById('scenario1Select').value;
+      var idx2 = document.getElementById('scenario2Select').value;
       html += '<div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px; flex-wrap: wrap;">';
-      html += '<button type="button" onclick="loadScenarioByName(\\'' + scenario1.name.replace(/'/g, "\\\\'") + '\\')" class="btn-secondary">Load "' + scenario1.name + '"</button>';
-      html += '<button type="button" onclick="loadScenarioByName(\\'' + scenario2.name.replace(/'/g, "\\\\'") + '\\')" class="btn-secondary">Load "' + scenario2.name + '"</button>';
+      html += '<button type="button" onclick="loadScenario(' + idx1 + ')" class="btn-secondary">Load "' + scenario1.name + '"</button>';
+      html += '<button type="button" onclick="loadScenario(' + idx2 + ')" class="btn-secondary">Load "' + scenario2.name + '"</button>';
       html += '</div>';
 
       resultsContainer.innerHTML = html;
