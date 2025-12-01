@@ -2845,6 +2845,12 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
             bucket: bucket,
             message: 'Your "' + priority + '" priority typically allocates ' + min + '%+ to ' + bucket + ', but you are at ' + formatDollars(actual) + '. Consider adjusting or re-evaluating your priority.'
           });
+        } else if (actual > max) {
+          warnings.push({
+            severity: 'suggestion',
+            bucket: bucket,
+            message: 'Your "' + priority + '" priority typically keeps ' + bucket + ' at or below ' + max + '%, but you are at ' + formatDollars(actual) + '. Consider adjusting or re-evaluating your priority.'
+          });
         }
       });
 
