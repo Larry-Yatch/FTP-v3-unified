@@ -2113,7 +2113,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
           <!-- Q5: Financial Satisfaction Slider -->
           <div class="form-question">
             <label class="question-label">5. How satisfied are you with your current financial situation?</label>
-            <div class="question-help">Rate your current satisfaction level. 0 = Very dissatisfied/stressed, 5 = Neutral, 10 = Very satisfied/comfortable.</div>
+            <div class="question-help">Rate your current level of satisfaction or stress with money. Move the slider to see descriptive labels.</div>
             <div class="slider-container">
               <div class="slider-value-display" id="satisfactionDisplay">${sliderLabels.satisfaction[formValues.satisfaction]}</div>
               <input type="range" id="satisfaction" class="slider-input" min="0" max="10" value="${formValues.satisfaction}" required>
@@ -2126,7 +2126,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
           <!-- Q6: Discipline Slider -->
           <div class="form-question">
             <label class="question-label">6. How would you rate your financial discipline?</label>
-            <div class="question-help">Your ability to stick to financial plans and resist temptation. 0 = Very low discipline, struggle to follow through, 5 = Sometimes consistent, 10 = Highly disciplined, always follow the plan.</div>
+            <div class="question-help">Your ability to stick to financial plans and resist temptation. Be honest - this helps us give you realistic recommendations.</div>
             <div class="slider-container">
               <div class="slider-value-display" id="disciplineDisplay">${sliderLabels.discipline[formValues.discipline]}</div>
               <input type="range" id="discipline" class="slider-input" min="0" max="10" value="${formValues.discipline}" required>
@@ -2139,7 +2139,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
           <!-- Q7: Impulse Control Slider -->
           <div class="form-question">
             <label class="question-label">7. How strong is your impulse control with spending?</label>
-            <div class="question-help">How well you resist unplanned purchases. 0 = Frequently make impulse purchases, 5 = Sometimes struggle, 10 = Rarely make unplanned purchases, stay on budget easily.</div>
+            <div class="question-help">How well you resist unplanned purchases and stay on budget. No judgment - honest answers help us help you.</div>
             <div class="slider-container">
               <div class="slider-value-display" id="impulseDisplay">${sliderLabels.impulse[formValues.impulse]}</div>
               <input type="range" id="impulse" class="slider-input" min="0" max="10" value="${formValues.impulse}" required>
@@ -2152,7 +2152,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
           <!-- Q8: Long-Term Focus Slider -->
           <div class="form-question">
             <label class="question-label">8. How focused are you on long-term financial goals?</label>
-            <div class="question-help">Your orientation toward future versus present needs. 0 = Focused on today, do not think much about the future, 5 = Balance present and future, 10 = Highly focused on long-term goals and future security.</div>
+            <div class="question-help">Your orientation toward future versus present financial needs. Are you a planner or do you focus on today?</div>
             <div class="slider-container">
               <div class="slider-value-display" id="longTermDisplay">${sliderLabels.longTerm[formValues.longTerm]}</div>
               <input type="range" id="longTerm" class="slider-input" min="0" max="10" value="${formValues.longTerm}" required>
@@ -2165,7 +2165,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
           <!-- Q9: Lifestyle Priority Slider -->
           <div class="form-question">
             <label class="question-label">9. How do you prioritize enjoying life now versus saving for later?</label>
-            <div class="question-help">Your life philosophy about money. 0 = Save aggressively, delay gratification, 5 = Balanced approach, 10 = Enjoy life now, worry about future later.</div>
+            <div class="question-help">Your philosophy about money and happiness. Do you save aggressively or enjoy life now?</div>
             <div class="slider-container">
               <div class="slider-value-display" id="lifestyleDisplay">${sliderLabels.lifestyle[formValues.lifestyle]}</div>
               <input type="range" id="lifestyle" class="slider-input" min="0" max="10" value="${formValues.lifestyle}" required>
@@ -2178,7 +2178,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
           <!-- Q10: Autonomy Preference Slider -->
           <div class="form-question">
             <label class="question-label">10. Do you prefer following expert guidance or making your own financial choices?</label>
-            <div class="question-help">Your preference for financial decision-making. 0 = Prefer clear expert guidance and rules to follow, 5 = Want some guidance but also flexibility, 10 = Prefer complete autonomy and making my own choices.</div>
+            <div class="question-help">Do you want clear rules to follow or prefer to make your own decisions? This helps us calibrate how much flexibility you get.</div>
             <div class="slider-container">
               <div class="slider-value-display" id="autonomyDisplay">${sliderLabels.autonomy[formValues.autonomy]}</div>
               <input type="range" id="autonomy" class="slider-input" min="0" max="10" value="${formValues.autonomy}" required>
