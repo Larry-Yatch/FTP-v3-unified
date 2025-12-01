@@ -2085,35 +2085,35 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
           <!-- Q1: Monthly Income -->
           <div class="form-question">
             <label class="question-label">1. What is your average monthly take-home income?</label>
-            <div class="question-help">After taxes, how much money hits your bank account each month? If it varies, estimate your average.</div>
+            <div class="question-help">After taxes, how much money hits your bank account each month? If it varies, estimate your average. Include all sources: salary, side income, benefits, etc.</div>
             <input type="number" id="monthlyIncome" class="form-input" placeholder="e.g., 3500" min="0" step="1" value="${formValues.monthlyIncome || ''}" required>
           </div>
 
           <!-- Q2: Monthly Essentials -->
           <div class="form-question">
             <label class="question-label">2. What is your monthly essentials spending?</label>
-            <div class="question-help">Rent/mortgage + utilities + groceries + insurance + minimum debt payments. Not including entertainment, dining out, or discretionary spending.</div>
+            <div class="question-help">Your core fixed expenses: rent/mortgage, utilities, groceries, insurance, transportation, minimum debt payments. Do not include dining out, entertainment, or other discretionary spending.</div>
             <input type="number" id="monthlyEssentials" class="form-input" placeholder="e.g., 2000" min="0" step="1" value="${formValues.monthlyEssentials || ''}" required>
           </div>
 
           <!-- Q3: Total Debt (excluding mortgage) -->
           <div class="form-question">
             <label class="question-label">3. What is your total debt (excluding mortgage)?</label>
-            <div class="question-help">Include credit cards, student loans, car loans, medical debt, personal loans. Don't include your mortgage or rent.</div>
-            <input type="number" id="totalDebt" class="form-input" placeholder="e.g., 15000" min="0" step="1" value="${formValues.totalDebt || ''}" required>
+            <div class="question-help">Add up all non-mortgage debt: credit cards, student loans, car loans, medical debt, personal loans. Enter 0 if you have no debt. Do not include your mortgage or rent.</div>
+            <input type="number" id="totalDebt" class="form-input" placeholder="Enter 0 if none" min="0" step="1" value="${formValues.totalDebt || ''}" required>
           </div>
 
           <!-- Q4: Emergency Fund Amount -->
           <div class="form-question">
             <label class="question-label">4. How much money do you currently have in an emergency fund?</label>
-            <div class="question-help">Money set aside specifically for emergencies - easily accessible savings that you wouldn't touch for normal expenses.</div>
-            <input type="number" id="emergencyFund" class="form-input" placeholder="e.g., 2000" min="0" step="1" value="${formValues.emergencyFund || ''}" required>
+            <div class="question-help">Money set aside specifically for emergencies - liquid savings you could access quickly but would not touch for normal expenses. Enter 0 if you do not have an emergency fund yet.</div>
+            <input type="number" id="emergencyFund" class="form-input" placeholder="Enter 0 if none" min="0" step="1" value="${formValues.emergencyFund || ''}" required>
           </div>
 
           <!-- Q5: Financial Satisfaction Slider -->
           <div class="form-question">
             <label class="question-label">5. How satisfied are you with your current financial situation?</label>
-            <div class="question-help">Your satisfaction level helps us understand how urgent change feels to you.</div>
+            <div class="question-help">Rate your current satisfaction level. 0 = Very dissatisfied/stressed, 5 = Neutral, 10 = Very satisfied/comfortable.</div>
             <div class="slider-container">
               <div class="slider-value-display" id="satisfactionDisplay">${sliderLabels.satisfaction[formValues.satisfaction]}</div>
               <input type="range" id="satisfaction" class="slider-input" min="0" max="10" value="${formValues.satisfaction}" required>
@@ -2126,7 +2126,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
           <!-- Q6: Discipline Slider -->
           <div class="form-question">
             <label class="question-label">6. How would you rate your financial discipline?</label>
-            <div class="question-help">Your ability to stick to financial plans and resist temptation.</div>
+            <div class="question-help">Your ability to stick to financial plans and resist temptation. 0 = Very low discipline, struggle to follow through, 5 = Sometimes consistent, 10 = Highly disciplined, always follow the plan.</div>
             <div class="slider-container">
               <div class="slider-value-display" id="disciplineDisplay">${sliderLabels.discipline[formValues.discipline]}</div>
               <input type="range" id="discipline" class="slider-input" min="0" max="10" value="${formValues.discipline}" required>
@@ -2139,7 +2139,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
           <!-- Q7: Impulse Control Slider -->
           <div class="form-question">
             <label class="question-label">7. How strong is your impulse control with spending?</label>
-            <div class="question-help">How well you resist unplanned purchases and stay on budget.</div>
+            <div class="question-help">How well you resist unplanned purchases. 0 = Frequently make impulse purchases, 5 = Sometimes struggle, 10 = Rarely make unplanned purchases, stay on budget easily.</div>
             <div class="slider-container">
               <div class="slider-value-display" id="impulseDisplay">${sliderLabels.impulse[formValues.impulse]}</div>
               <input type="range" id="impulse" class="slider-input" min="0" max="10" value="${formValues.impulse}" required>
@@ -2152,7 +2152,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
           <!-- Q8: Long-Term Focus Slider -->
           <div class="form-question">
             <label class="question-label">8. How focused are you on long-term financial goals?</label>
-            <div class="question-help">Your orientation toward future versus present financial needs.</div>
+            <div class="question-help">Your orientation toward future versus present needs. 0 = Focused on today, do not think much about the future, 5 = Balance present and future, 10 = Highly focused on long-term goals and future security.</div>
             <div class="slider-container">
               <div class="slider-value-display" id="longTermDisplay">${sliderLabels.longTerm[formValues.longTerm]}</div>
               <input type="range" id="longTerm" class="slider-input" min="0" max="10" value="${formValues.longTerm}" required>
@@ -2165,7 +2165,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
           <!-- Q9: Lifestyle Priority Slider -->
           <div class="form-question">
             <label class="question-label">9. How do you prioritize enjoying life now versus saving for later?</label>
-            <div class="question-help">Where do you fall on the spectrum from maximum saving to maximum present enjoyment?</div>
+            <div class="question-help">Your life philosophy about money. 0 = Save aggressively, delay gratification, 5 = Balanced approach, 10 = Enjoy life now, worry about future later.</div>
             <div class="slider-container">
               <div class="slider-value-display" id="lifestyleDisplay">${sliderLabels.lifestyle[formValues.lifestyle]}</div>
               <input type="range" id="lifestyle" class="slider-input" min="0" max="10" value="${formValues.lifestyle}" required>
@@ -2178,7 +2178,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
           <!-- Q10: Autonomy Preference Slider -->
           <div class="form-question">
             <label class="question-label">10. Do you prefer following expert guidance or making your own financial choices?</label>
-            <div class="question-help">How much autonomy do you want in shaping your budget?</div>
+            <div class="question-help">Your preference for financial decision-making. 0 = Prefer clear expert guidance and rules to follow, 5 = Want some guidance but also flexibility, 10 = Prefer complete autonomy and making my own choices.</div>
             <div class="slider-container">
               <div class="slider-value-display" id="autonomyDisplay">${sliderLabels.autonomy[formValues.autonomy]}</div>
               <input type="range" id="autonomy" class="slider-input" min="0" max="10" value="${formValues.autonomy}" required>
