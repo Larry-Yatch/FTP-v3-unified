@@ -883,16 +883,70 @@ const PDFGenerator = {
         influencesSection += '<div class="insight-section"><p>Complete Tools 1-3 for deeper personalization based on your unique patterns.</p></div>';
       }
 
+      // Get helper insights (Emergency Fund Timeline, Debt Payoff, etc.)
+      var helperInsights = Tool4.generateHelperInsights ? Tool4.generateHelperInsights(allocation.percentages, preSurveyData) : [];
+
       var validationSection = '<h2>Validation Results</h2>';
-      if (!validationResults || validationResults.length === 0) {
+      if ((!validationResults || validationResults.length === 0) && (!helperInsights || helperInsights.length === 0)) {
         validationSection += '<div class="helper-card helper-suggestion" style="background: #f0fdf4; border-left-color: #22c55e;">' +
           '<div class="helper-title">Your Allocation Looks Good!</div><div class="helper-content">No significant issues detected.</div></div>';
       } else {
-        validationResults.forEach(function(item) {
-          var cardClass = item.severity === 'Critical' ? 'helper-critical' : (item.severity === 'Suggestion' ? 'helper-suggestion' : '');
-          validationSection += '<div class="helper-card ' + cardClass + '"><div class="helper-title">' + (item.title || item.severity) + '</div>' +
-            '<div class="helper-content">' + item.message + '</div></div>';
-        });
+        // Show validation warnings first
+        if (validationResults && validationResults.length > 0) {
+          validationResults.forEach(function(item) {
+            var cardClass = item.severity === 'Critical' ? 'helper-critical' : (item.severity === 'Suggestion' ? 'helper-suggestion' : '');
+            validationSection += '<div class="helper-card ' + cardClass + '"><div class="helper-title">' + (item.title || item.severity) + '</div>' +
+              '<div class="helper-content">' + item.message + '</div>';
+            if (item.action) {
+              validationSection += '<div class="helper-action"><strong>Recommendation:</strong> ' + item.action + '</div>';
+            }
+            validationSection += '</div>';
+          });
+        }
+
+        // Show helper insights with detailed calculations
+        if (helperInsights && helperInsights.length > 0) {
+          validationSection += '<h3 style="margin-top: 25px; color: ' + CONFIG.UI.PRIMARY_COLOR + ';">Detailed Analysis</h3>';
+          helperInsights.forEach(function(helper) {
+            var cardClass = helper.severity === 'Critical' ? 'helper-critical' : (helper.severity === 'Suggestion' ? 'helper-suggestion' : '');
+            validationSection += '<div class="helper-card ' + cardClass + '">';
+            validationSection += '<div class="helper-title">' + helper.title + '</div>';
+            validationSection += '<div class="helper-content">' + helper.message + '</div>';
+
+            // Add detailed breakdown for specific helpers
+            if (helper.type === 'emergency-fund' && helper.current && helper.suggested) {
+              validationSection += '<div style="margin-top: 10px; padding: 10px; background: rgba(0,0,0,0.03); border-radius: 5px;">';
+              validationSection += '<strong>Current:</strong> $' + helper.current.emergencyFund.toLocaleString() + ' (' + helper.current.monthsOfCoverage + ' months coverage)<br>';
+              validationSection += '<strong>Target:</strong> $' + helper.current.targetAmount.toLocaleString() + ' (4 months)<br>';
+              validationSection += '<strong>Gap:</strong> $' + helper.current.gap.toLocaleString();
+              validationSection += '</div>';
+            }
+
+            if (helper.type === 'debt-payoff' && helper.current && helper.suggested) {
+              validationSection += '<div style="margin-top: 10px; padding: 10px; background: rgba(0,0,0,0.03); border-radius: 5px;">';
+              validationSection += '<strong>Total Debt:</strong> $' + helper.current.totalDebt.toLocaleString() + '<br>';
+              if (helper.current.payoffMonths < 999) {
+                validationSection += '<strong>Current Timeline:</strong> ' + helper.current.payoffMonths + ' months at ' + helper.current.freedomPercent + '% Freedom<br>';
+                validationSection += '<strong>Suggested Timeline:</strong> ' + helper.suggested.payoffMonths + ' months at ' + helper.suggested.freedomPercent + '% Freedom<br>';
+                if (helper.suggested.interestSaved > 0) {
+                  validationSection += '<strong>Potential Savings:</strong> $' + helper.suggested.interestSaved.toLocaleString() + ' in interest';
+                }
+              }
+              validationSection += '</div>';
+            }
+
+            if (helper.type === 'lifestyle-inflation' && helper.current && helper.suggested) {
+              validationSection += '<div style="margin-top: 10px; padding: 10px; background: rgba(0,0,0,0.03); border-radius: 5px;">';
+              validationSection += '<strong>10-Year Wealth Projection:</strong><br>';
+              validationSection += 'Current path (' + helper.current.multiplyPercent + '% Multiply): $' + helper.current.tenYearWealth.toLocaleString() + '<br>';
+              validationSection += 'Optimized path (' + helper.suggested.multiplyPercent + '% Multiply): $' + helper.suggested.tenYearWealth.toLocaleString() + '<br>';
+              validationSection += '<strong>Potential Wealth Gap:</strong> $' + helper.suggested.wealthGap.toLocaleString();
+              validationSection += '</div>';
+            }
+
+            validationSection += '</div>';
+          });
+        }
       }
 
       var nextStepsSection = '<div class="page-break"></div><h2>Your Next Steps</h2><div style="background: #f9f9f9; padding: 20px; border-radius: 8px;">' +

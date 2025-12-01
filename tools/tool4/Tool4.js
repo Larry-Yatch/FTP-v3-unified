@@ -7661,6 +7661,182 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
   },
 
   /**
+   * Generate helper insights for PDF (server-side version)
+   * Calculates data for Emergency Fund Timeline, Debt Payoff Timeline, etc.
+   * @param {Object} allocations - Current allocation percentages
+   * @param {Object} preSurveyData - Pre-survey data
+   * @returns {Array} Array of helper insights with title, content, and calculations
+   */
+  generateHelperInsights(allocations, preSurveyData) {
+    const helpers = [];
+    const buckets = allocations || {};
+    const monthlyIncome = Number(preSurveyData.monthlyIncome) || 0;
+    const monthlyEssentials = Number(preSurveyData.monthlyEssentials) || 0;
+    const totalDebt = Number(preSurveyData.totalDebt) || 0;
+    const emergencyFund = Number(preSurveyData.emergencyFund) || 0;
+
+    // === EMERGENCY FUND TIMELINE HELPER ===
+    if (monthlyEssentials > 0 && monthlyIncome > 0) {
+      const monthsOfCoverage = emergencyFund / monthlyEssentials;
+      const targetAmount = monthlyEssentials * 4; // 4-month target
+      const gap = Math.max(0, targetAmount - emergencyFund);
+
+      if (gap > 0 && buckets.Freedom < 25) {
+        const currentFreedomDollars = Math.round(monthlyIncome * buckets.Freedom / 100);
+        const suggestedFreedom = 25;
+        const suggestedFreedomDollars = Math.round(monthlyIncome * suggestedFreedom / 100);
+
+        const currentTimeline = currentFreedomDollars > 0 ? Math.ceil(gap / currentFreedomDollars) : 999;
+        const suggestedTimeline = suggestedFreedomDollars > 0 ? Math.ceil(gap / suggestedFreedomDollars) : 999;
+        const monthsSaved = currentTimeline - suggestedTimeline;
+
+        helpers.push({
+          type: 'emergency-fund',
+          title: 'Emergency Fund Timeline',
+          severity: monthsOfCoverage < 1 ? 'Critical' : 'Warning',
+          current: {
+            emergencyFund: emergencyFund,
+            monthsOfCoverage: monthsOfCoverage.toFixed(1),
+            targetAmount: targetAmount,
+            gap: gap,
+            freedomPercent: buckets.Freedom,
+            freedomDollars: currentFreedomDollars,
+            timeline: currentTimeline
+          },
+          suggested: {
+            freedomPercent: suggestedFreedom,
+            freedomDollars: suggestedFreedomDollars,
+            timeline: suggestedTimeline,
+            monthsSaved: monthsSaved
+          },
+          message: 'At ' + buckets.Freedom + '% Freedom ($' + currentFreedomDollars.toLocaleString() + '/month), it will take ' + currentTimeline + ' months to reach a 4-month emergency fund. Increasing to ' + suggestedFreedom + '% could save ' + monthsSaved + ' months.'
+        });
+      }
+    }
+
+    // === DEBT PAYOFF TIMELINE HELPER ===
+    if (totalDebt > 0 && buckets.Freedom < 30) {
+      const currentFreedomDollars = Math.round(monthlyIncome * buckets.Freedom / 100);
+      const suggestedFreedom = 35;
+      const suggestedFreedomDollars = Math.round(monthlyIncome * suggestedFreedom / 100);
+
+      // Simple payoff calculation (assuming ~15% APR average)
+      const monthlyInterestRate = 0.15 / 12;
+
+      const calculatePayoffMonths = (principal, monthlyPayment, monthlyRate) => {
+        if (monthlyPayment <= principal * monthlyRate) return 999; // Cannot pay off
+        const months = Math.ceil(
+          Math.log(monthlyPayment / (monthlyPayment - principal * monthlyRate)) / Math.log(1 + monthlyRate)
+        );
+        return Math.min(months, 999);
+      };
+
+      const calculateTotalInterest = (principal, monthlyPayment, months, monthlyRate) => {
+        if (months >= 999) return 0;
+        return (monthlyPayment * months) - principal;
+      };
+
+      const currentMonths = calculatePayoffMonths(totalDebt, currentFreedomDollars, monthlyInterestRate);
+      const suggestedMonths = calculatePayoffMonths(totalDebt, suggestedFreedomDollars, monthlyInterestRate);
+      const monthsSaved = currentMonths - suggestedMonths;
+
+      const currentInterest = calculateTotalInterest(totalDebt, currentFreedomDollars, currentMonths, monthlyInterestRate);
+      const suggestedInterest = calculateTotalInterest(totalDebt, suggestedFreedomDollars, suggestedMonths, monthlyInterestRate);
+      const interestSaved = currentInterest - suggestedInterest;
+
+      helpers.push({
+        type: 'debt-payoff',
+        title: 'Debt Payoff Timeline',
+        severity: 'Warning',
+        current: {
+          totalDebt: totalDebt,
+          freedomPercent: buckets.Freedom,
+          freedomDollars: currentFreedomDollars,
+          payoffMonths: currentMonths,
+          totalInterest: Math.round(currentInterest)
+        },
+        suggested: {
+          freedomPercent: suggestedFreedom,
+          freedomDollars: suggestedFreedomDollars,
+          payoffMonths: suggestedMonths,
+          totalInterest: Math.round(suggestedInterest),
+          monthsSaved: monthsSaved,
+          interestSaved: Math.round(interestSaved)
+        },
+        message: currentMonths < 999
+          ? 'At ' + buckets.Freedom + '% Freedom, debt payoff takes ' + currentMonths + ' months. At ' + suggestedFreedom + '%, it takes ' + suggestedMonths + ' months (' + monthsSaved + ' months faster, saving $' + Math.round(interestSaved).toLocaleString() + ' in interest).'
+          : 'Your current Freedom allocation may not cover interest. Consider increasing to ' + suggestedFreedom + '% for effective debt payoff.'
+      });
+    }
+
+    // === LIFESTYLE INFLATION CHECK HELPER ===
+    if (monthlyIncome >= 8000 && buckets.Enjoyment >= 25 && buckets.Multiply < 20) {
+      const enjoymentDollars = Math.round(monthlyIncome * buckets.Enjoyment / 100);
+      const multiplyDollars = Math.round(monthlyIncome * buckets.Multiply / 100);
+
+      const suggestedEnjoyment = 20;
+      const suggestedMultiply = Math.min(buckets.Multiply + (buckets.Enjoyment - suggestedEnjoyment), 50);
+      const suggestedMultiplyDollars = Math.round(monthlyIncome * suggestedMultiply / 100);
+
+      // 10-year projection at 7% average return
+      const futureValue = (monthlyContribution, years, rate) => {
+        const months = years * 12;
+        const monthlyRate = rate / 12;
+        return monthlyContribution * (Math.pow(1 + monthlyRate, months) - 1) / monthlyRate;
+      };
+
+      const currentWealth = futureValue(multiplyDollars, 10, 0.07);
+      const suggestedWealth = futureValue(suggestedMultiplyDollars, 10, 0.07);
+      const wealthGap = suggestedWealth - currentWealth;
+
+      helpers.push({
+        type: 'lifestyle-inflation',
+        title: 'Lifestyle Inflation Check',
+        severity: 'Warning',
+        current: {
+          enjoymentPercent: buckets.Enjoyment,
+          enjoymentDollars: enjoymentDollars,
+          multiplyPercent: buckets.Multiply,
+          multiplyDollars: multiplyDollars,
+          tenYearWealth: Math.round(currentWealth)
+        },
+        suggested: {
+          enjoymentPercent: suggestedEnjoyment,
+          multiplyPercent: suggestedMultiply,
+          multiplyDollars: suggestedMultiplyDollars,
+          tenYearWealth: Math.round(suggestedWealth),
+          wealthGap: Math.round(wealthGap)
+        },
+        message: 'Your income ($' + monthlyIncome.toLocaleString() + '/month) supports significant wealth-building. Current allocation: ' + buckets.Enjoyment + '% Enjoyment vs ' + buckets.Multiply + '% Multiply. Shifting to ' + suggestedEnjoyment + '%/' + suggestedMultiply + '% could add $' + Math.round(wealthGap).toLocaleString() + ' to your 10-year wealth.'
+      });
+    }
+
+    // === ENJOYMENT REALITY CHECK HELPER ===
+    if (buckets.Enjoyment > 35) {
+      const enjoymentDollars = Math.round(monthlyIncome * buckets.Enjoyment / 100);
+
+      // Break down what this could buy
+      const weeklyBudget = Math.round(enjoymentDollars / 4);
+      const dailyBudget = Math.round(enjoymentDollars / 30);
+
+      helpers.push({
+        type: 'enjoyment-reality',
+        title: 'Enjoyment Reality Check',
+        severity: 'Suggestion',
+        current: {
+          enjoymentPercent: buckets.Enjoyment,
+          enjoymentDollars: enjoymentDollars,
+          weeklyBudget: weeklyBudget,
+          dailyBudget: dailyBudget
+        },
+        message: 'Your Enjoyment budget of $' + enjoymentDollars.toLocaleString() + '/month breaks down to $' + weeklyBudget + '/week or $' + dailyBudget + '/day. Make sure this spending aligns with what truly brings you joy.'
+      });
+    }
+
+    return helpers;
+  },
+
+  /**
    * Delete a saved scenario
    */
   deleteScenario(clientId, scenarioName) {
