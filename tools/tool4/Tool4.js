@@ -3159,13 +3159,218 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       return html;
     }
 
+    // Helper: Debt Payoff Timeline
+    function renderDebtPayoffTimelineHelper() {
+      var monthlyIncome = calculatorState.monthlyIncome || 0;
+      var totalDebt = calculatorState.preSurvey.totalDebt || 0;
+      var currentFreedom = calculatorState.buckets.Freedom;
+
+      if (monthlyIncome === 0 || totalDebt === 0) {
+        return '<p>Unable to calculate timeline without income and debt data.</p>';
+      }
+
+      // Calculate current and suggested payoff scenarios
+      var currentFreedomDollars = Math.round(monthlyIncome * currentFreedom / 100);
+      var suggestedFreedom = 30; // Recommended for aggressive debt payoff
+      var suggestedFreedomDollars = Math.round(monthlyIncome * suggestedFreedom / 100);
+
+      // Assume 15% average interest rate for rough calculations
+      var avgInterestRate = 0.15;
+      var monthlyInterest = avgInterestRate / 12;
+
+      // Calculate payoff timeline (simplified - assumes consistent payments)
+      function calculatePayoffMonths(debt, monthlyPayment, rate) {
+        if (monthlyPayment <= debt * rate) {
+          return 999; // Payment does not cover interest
+        }
+        // Using loan payoff formula: n = -log(1 - r*P/M) / log(1 + r)
+        // where P = principal, M = monthly payment, r = monthly rate
+        return Math.ceil(-Math.log(1 - rate * debt / monthlyPayment) / Math.log(1 + rate));
+      }
+
+      var currentMonths = calculatePayoffMonths(totalDebt, currentFreedomDollars, monthlyInterest);
+      var suggestedMonths = calculatePayoffMonths(totalDebt, suggestedFreedomDollars, monthlyInterest);
+      var monthsSaved = currentMonths - suggestedMonths;
+
+      // Calculate total interest paid in each scenario
+      function calculateTotalInterest(debt, monthlyPayment, months, rate) {
+        if (months >= 999) return debt; // Cannot pay off
+        return (monthlyPayment * months) - debt;
+      }
+
+      var currentInterest = calculateTotalInterest(totalDebt, currentFreedomDollars, currentMonths, monthlyInterest);
+      var suggestedInterest = calculateTotalInterest(totalDebt, suggestedFreedomDollars, suggestedMonths, monthlyInterest);
+      var interestSaved = currentInterest - suggestedInterest;
+
+      var html = '<div style="background: rgba(79, 70, 229, 0.05); padding: 15px; border-radius: 8px; margin-top: 10px;">';
+      html += '<h4 style="margin: 0 0 10px 0; color: var(--color-text-primary);">Debt Payoff Timeline</h4>';
+
+      html += '<div style="color: var(--color-text-secondary); margin-bottom: 10px;">';
+      html += '<strong>Current Total Debt:</strong> $' + totalDebt.toLocaleString();
+      html += '<br><small>Estimated at ~15% average interest rate</small>';
+      html += '</div>';
+
+      // Current scenario
+      html += '<div style="background: white; padding: 10px; border-radius: 6px; margin: 10px 0; border-left: 3px solid #60a5fa; color: #374151;">';
+      html += '<strong>At ' + currentFreedom + '% Freedom allocation:</strong><br>';
+      html += '$' + currentFreedomDollars.toLocaleString() + '/month to debt paydown<br>';
+      if (currentMonths >= 999) {
+        html += 'Timeline: <strong style="color: #ef4444;">Cannot pay off</strong> (payment does not cover interest)<br>';
+        html += 'Total interest: <strong style="color: #ef4444;">Debt grows indefinitely</strong>';
+      } else {
+        html += 'Timeline: <strong>' + currentMonths + ' months</strong> (' + Math.floor(currentMonths / 12) + ' years, ' + (currentMonths % 12) + ' months)<br>';
+        html += 'Total interest paid: <strong>$' + Math.round(currentInterest).toLocaleString() + '</strong>';
+      }
+      html += '</div>';
+
+      // Suggested scenario (only show if current < suggested)
+      if (currentFreedom < suggestedFreedom) {
+        html += '<div style="background: white; padding: 10px; border-radius: 6px; margin: 10px 0; border-left: 3px solid #10b981; color: #374151;">';
+        html += '<strong>If you increased to ' + suggestedFreedom + '% Freedom:</strong><br>';
+        html += '$' + suggestedFreedomDollars.toLocaleString() + '/month to debt paydown<br>';
+        if (suggestedMonths >= 999) {
+          html += 'Timeline: <strong style="color: #ef4444;">Cannot pay off</strong> (payment does not cover interest)';
+        } else {
+          html += 'Timeline: <strong>' + suggestedMonths + ' months</strong> (' + Math.floor(suggestedMonths / 12) + ' years, ' + (suggestedMonths % 12) + ' months)<br>';
+          html += 'Total interest paid: <strong>$' + Math.round(suggestedInterest).toLocaleString() + '</strong><br>';
+          if (monthsSaved > 0) {
+            html += '<span style="color: #10b981;">✓ <strong>' + monthsSaved + ' months faster</strong> and save <strong>$' + Math.round(interestSaved).toLocaleString() + '</strong> in interest!</span>';
+          }
+        }
+        html += '</div>';
+
+        html += '<div style="margin-top: 15px;">';
+        html += '<button onclick="adjustFreedomTo(' + suggestedFreedom + ')" style="background: #10b981; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; margin-right: 10px;">Adjust Freedom to ' + suggestedFreedom + '%</button>';
+        html += '<button onclick="toggleHelper(null)" style="background: #6b7280; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer;">Keep Current Plan</button>';
+        html += '</div>';
+      } else {
+        html += '<div style="margin-top: 15px;">';
+        html += '<button onclick="toggleHelper(null)" style="background: #10b981; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer;">Close</button>';
+        html += '</div>';
+      }
+
+      html += '</div>';
+      return html;
+    }
+
+    // Helper: Lifestyle Inflation Check
+    function renderLifestyleInflationCheckHelper() {
+      var monthlyIncome = calculatorState.monthlyIncome || 0;
+      var enjoymentPercent = calculatorState.buckets.Enjoyment;
+      var multiplyPercent = calculatorState.buckets.Multiply;
+
+      if (monthlyIncome === 0) {
+        return '<p>Unable to calculate without income data.</p>';
+      }
+
+      var enjoymentDollars = Math.round(monthlyIncome * enjoymentPercent / 100);
+      var multiplyDollars = Math.round(monthlyIncome * multiplyPercent / 100);
+
+      // Determine income level (rough percentiles)
+      var incomeLevel = '';
+      var incomePercentile = '';
+      if (monthlyIncome >= 15000) {
+        incomeLevel = 'Very High';
+        incomePercentile = 'Top 5%';
+      } else if (monthlyIncome >= 10000) {
+        incomeLevel = 'High';
+        incomePercentile = 'Top 15%';
+      } else if (monthlyIncome >= 7000) {
+        incomeLevel = 'Above Average';
+        incomePercentile = 'Top 35%';
+      } else if (monthlyIncome >= 4000) {
+        incomeLevel = 'Average';
+        incomePercentile = 'Middle 50%';
+      } else {
+        incomeLevel = 'Below Average';
+        incomePercentile = 'Lower 50%';
+      }
+
+      // Calculate what wealth could look like with shift
+      var suggestedEnjoyment = 20;
+      var suggestedMultiply = Math.min(multiplyPercent + (enjoymentPercent - suggestedEnjoyment), 50);
+      var shiftAmount = enjoymentPercent - suggestedEnjoyment;
+
+      var currentMultiplyAnnual = multiplyDollars * 12;
+      var suggestedMultiplyDollars = Math.round(monthlyIncome * suggestedMultiply / 100);
+      var suggestedMultiplyAnnual = suggestedMultiplyDollars * 12;
+
+      // 10-year projection at 7% average return
+      var years = 10;
+      var annualReturn = 0.07;
+      function futureValue(monthlyContribution, years, rate) {
+        var months = years * 12;
+        var monthlyRate = rate / 12;
+        return monthlyContribution * (Math.pow(1 + monthlyRate, months) - 1) / monthlyRate;
+      }
+
+      var currentWealth = futureValue(multiplyDollars, years, annualReturn);
+      var suggestedWealth = futureValue(suggestedMultiplyDollars, years, annualReturn);
+      var wealthGap = suggestedWealth - currentWealth;
+
+      var html = '<div style="background: rgba(79, 70, 229, 0.05); padding: 15px; border-radius: 8px; margin-top: 10px;">';
+      html += '<h4 style="margin: 0 0 10px 0; color: var(--color-text-primary);">Lifestyle Inflation Check</h4>';
+
+      html += '<div style="color: var(--color-text-secondary); margin-bottom: 10px;">';
+      html += '<strong>Your Income Level:</strong> $' + monthlyIncome.toLocaleString() + '/month (' + incomeLevel + ', ~' + incomePercentile + ')';
+      html += '</div>';
+
+      html += '<div style="background: white; padding: 12px; border-radius: 6px; margin: 10px 0; color: #374151; border-left: 3px solid #fbbf24;">';
+      html += '<strong>Current Allocation Comparison:</strong><br>';
+      html += 'Enjoyment: <strong>' + enjoymentPercent + '%</strong> ($' + enjoymentDollars.toLocaleString() + '/month)<br>';
+      html += 'Multiply: <strong>' + multiplyPercent + '%</strong> ($' + multiplyDollars.toLocaleString() + '/month)';
+      html += '</div>';
+
+      if (enjoymentPercent > suggestedEnjoyment) {
+        html += '<div style="background: white; padding: 12px; border-radius: 6px; margin: 10px 0; color: #374151; border-left: 3px solid #10b981;">';
+        html += '<strong>10-Year Wealth Projection (7% avg return):</strong><br><br>';
+        html += '<div style="display: flex; justify-content: space-between; margin-bottom: 8px;">';
+        html += '<div>Current path (' + multiplyPercent + '% Multiply):</div>';
+        html += '<div><strong>$' + Math.round(currentWealth).toLocaleString() + '</strong></div>';
+        html += '</div>';
+        html += '<div style="display: flex; justify-content: space-between; margin-bottom: 8px;">';
+        html += '<div>If shifted to ' + suggestedMultiply + '% Multiply:</div>';
+        html += '<div><strong style="color: #10b981;">$' + Math.round(suggestedWealth).toLocaleString() + '</strong></div>';
+        html += '</div>';
+        html += '<div style="border-top: 1px solid #e5e7eb; margin-top: 8px; padding-top: 8px; display: flex; justify-content: space-between;">';
+        html += '<div>Potential Wealth Gap:</div>';
+        html += '<div><strong style="color: #ef4444; font-size: 16px;">$' + Math.round(wealthGap).toLocaleString() + '</strong></div>';
+        html += '</div>';
+        html += '</div>';
+
+        html += '<div style="color: var(--color-text-secondary); margin: 15px 0; padding: 10px; background: rgba(251, 191, 36, 0.1); border-radius: 6px;">';
+        html += '<strong>The Lifestyle Creep Reality:</strong><br>';
+        html += 'As income grows, spending often grows with it. Your ' + enjoymentPercent + '% Enjoyment allocation suggests you might be prioritizing present comfort over future wealth.';
+        html += '<br><br>';
+        html += 'Question to consider: <em>Are you living like you earn $' + monthlyIncome.toLocaleString() + '/month, or building wealth like someone who earns that much?</em>';
+        html += '</div>';
+
+        html += '<div style="margin-top: 15px;">';
+        html += '<button onclick="shiftEnjoymentToMultiply(' + suggestedEnjoyment + ', ' + suggestedMultiply + ')" style="background: #10b981; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; margin-right: 10px;">Shift to ' + suggestedMultiply + '% Multiply</button>';
+        html += '<button onclick="toggleHelper(null)" style="background: #6b7280; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer;">Keep Current Plan</button>';
+        html += '</div>';
+      } else {
+        html += '<div style="color: var(--color-text-secondary); margin: 15px 0;">';
+        html += '✓ Your current allocation prioritizes wealth-building appropriately for your income level.';
+        html += '</div>';
+        html += '<div style="margin-top: 15px;">';
+        html += '<button onclick="toggleHelper(null)" style="background: #10b981; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer;">Close</button>';
+        html += '</div>';
+      }
+
+      html += '</div>';
+      return html;
+    }
+
     // Get helper title for button text
     function getHelperTitle(helperType) {
       var titles = {
         'emergency-fund-helper': 'Emergency Fund Timeline',
         'gap-analysis': 'Gap Analysis',
         'priority-recheck': 'Priority Re-Check',
-        'enjoyment-reality-check': 'Enjoyment Reality Check'
+        'enjoyment-reality-check': 'Enjoyment Reality Check',
+        'debt-payoff-timeline': 'Debt Payoff Timeline',
+        'lifestyle-inflation-check': 'Lifestyle Inflation Check'
       };
       return titles[helperType] || 'Details';
     }
@@ -3181,6 +3386,10 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
           return renderPriorityReCheckHelper();
         case 'enjoyment-reality-check':
           return renderEnjoymentRealityCheckHelper();
+        case 'debt-payoff-timeline':
+          return renderDebtPayoffTimelineHelper();
+        case 'lifestyle-inflation-check':
+          return renderLifestyleInflationCheckHelper();
         default:
           return '<p>Helper not found.</p>';
       }
@@ -3267,6 +3476,47 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       }
     }
 
+    // Helper action: Shift Enjoyment to Multiply for lifestyle inflation check
+    function shiftEnjoymentToMultiply(targetEnjoyment, targetMultiply) {
+      calculatorState.buckets.Enjoyment = targetEnjoyment;
+      calculatorState.buckets.Multiply = targetMultiply;
+
+      // Redistribute remaining to other buckets proportionally
+      var remaining = 100 - targetEnjoyment - targetMultiply;
+      var otherBuckets = ['Essentials', 'Freedom'];
+      var otherTotal = 0;
+      otherBuckets.forEach(function(bucket) {
+        if (!calculatorState.locked[bucket]) {
+          otherTotal += calculatorState.buckets[bucket];
+        }
+      });
+
+      if (otherTotal > 0) {
+        otherBuckets.forEach(function(bucket) {
+          if (!calculatorState.locked[bucket]) {
+            calculatorState.buckets[bucket] = Math.round((calculatorState.buckets[bucket] / otherTotal) * remaining);
+          }
+        });
+      }
+
+      // Normalize to 100%
+      var total = 0;
+      for (var key in calculatorState.buckets) {
+        total += calculatorState.buckets[key];
+      }
+      var diff = 100 - total;
+      if (diff !== 0) {
+        calculatorState.buckets.Essentials += diff;
+      }
+
+      // Update UI
+      updateAllBucketDisplays();
+
+      // Close helper and re-run validation
+      toggleHelper(null);
+      checkMyPlan();
+    }
+
     // Detect gap between recommended and current (15pp threshold)
     function detectGap() {
       var hasGap = false;
@@ -3292,6 +3542,23 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
         }
       });
       return mismatchCount >= 2;
+    }
+
+    // Detect if debt payoff timeline helper should trigger
+    function detectDebtPayoffTimeline() {
+      var totalDebt = calculatorState.preSurvey.totalDebt || 0;
+      var freedom = calculatorState.buckets.Freedom;
+      return totalDebt > 0 && freedom < 30;
+    }
+
+    // Detect if lifestyle inflation check should trigger
+    function detectLifestyleInflation() {
+      var monthlyIncome = calculatorState.monthlyIncome || 0;
+      var enjoyment = calculatorState.buckets.Enjoyment;
+      var multiply = calculatorState.buckets.Multiply;
+
+      // Trigger if income > $5000/month AND Enjoyment > 30% AND Multiply < 15%
+      return monthlyIncome > 5000 && enjoyment > 30 && multiply < 15;
     }
 
     // ============ END PHASE 4B HELPERS ============
@@ -3320,6 +3587,26 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
           bucket: 'Priority',
           message: 'Your allocation pattern suggests a different priority than you selected. Double-check that your selected priority matches your actual goals.',
           action: 'priority-recheck'
+        });
+      }
+
+      // Add Debt Payoff Timeline helper if needed
+      if (detectDebtPayoffTimeline()) {
+        financialWarnings.push({
+          severity: 'warning',
+          bucket: 'Freedom',
+          message: 'You have debt but are allocating less than 30% to Freedom. See how increasing your Freedom allocation could accelerate your debt payoff.',
+          action: 'debt-payoff-timeline'
+        });
+      }
+
+      // Add Lifestyle Inflation Check helper if needed
+      if (detectLifestyleInflation()) {
+        behavioralWarnings.push({
+          severity: 'warning',
+          bucket: 'Enjoyment / Multiply',
+          message: 'Your income supports wealth-building, but your allocation prioritizes present enjoyment over future wealth. Consider the long-term impact.',
+          action: 'lifestyle-inflation-check'
         });
       }
 
