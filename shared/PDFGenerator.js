@@ -702,32 +702,58 @@ const PDFGenerator = {
    * Tool 4 specific styles
    */
   getTool4Styles() {
-    return this.getCommonStyles() + `
+    // Tool 4 uses purple color scheme to match web app
+    var purple = '#4f46e5';
+    var purpleLight = 'rgba(79, 70, 229, 0.08)';
+    var purpleBorder = 'rgba(79, 70, 229, 0.3)';
+    var darkPurple = '#3730a3';
+
+    return `
+      body { font-family: Arial, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; line-height: 1.6; color: #333; }
+      h1 { color: #1e192b; border-bottom: 3px solid ${purple}; padding-bottom: 10px; }
+      h2 { color: ${purple}; margin-top: 25px; }
+      h3 { color: ${darkPurple}; margin-top: 20px; }
+      p { line-height: 1.6; color: #333; margin: 10px 0; }
+      ul, ol { margin: 15px 0 15px 25px; }
+      li { margin: 8px 0; }
+      .header { text-align: center; margin-bottom: 30px; }
+      .intro { background: ${purpleLight}; padding: 20px; border-left: 4px solid ${purple}; margin: 20px 0; border-radius: 6px; }
+      .footer { margin-top: 40px; padding-top: 20px; border-top: 2px solid ${purple}; font-size: 14px; color: #666; }
+      @media print {
+        body { padding: 20px; }
+        .page-break { page-break-before: always; }
+      }
       .allocation-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0; }
-      .allocation-card { background: #f9f9f9; padding: 20px; border-radius: 10px; border-left: 4px solid ${CONFIG.UI.PRIMARY_COLOR}; page-break-inside: avoid; }
+      .allocation-card { background: ${purpleLight}; padding: 20px; border-radius: 10px; border-left: 4px solid ${purple}; page-break-inside: avoid; }
       .allocation-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
       .allocation-name { font-size: 18px; font-weight: 600; color: #333; }
-      .allocation-percentage { font-size: 28px; font-weight: 700; color: ${CONFIG.UI.PRIMARY_COLOR}; }
+      .allocation-percentage { font-size: 28px; font-weight: 700; color: ${purple}; }
       .allocation-dollars { font-size: 16px; color: #666; margin-top: 5px; }
       .allocation-note { font-size: 14px; color: #555; margin-top: 10px; line-height: 1.5; }
-      .priority-box { background: linear-gradient(135deg, ${CONFIG.UI.DARK_BG} 0%, #4b4166 100%); color: white; padding: 25px; text-align: center; margin: 25px 0; border-radius: 10px; }
-      .priority-label { font-size: 14px; text-transform: uppercase; opacity: 0.9; margin-bottom: 8px; }
-      .priority-value { font-size: 22px; font-weight: 700; }
-      .helper-card { background: #fff8e1; border-left: 4px solid #f59e0b; padding: 20px; margin: 15px 0; border-radius: 8px; page-break-inside: avoid; }
+      .priority-box { background: ${purpleLight}; border: 2px solid ${purpleBorder}; padding: 25px; text-align: center; margin: 25px 0; border-radius: 10px; }
+      .priority-label { font-size: 14px; text-transform: uppercase; color: ${purple}; margin-bottom: 8px; letter-spacing: 0.5px; }
+      .priority-value { font-size: 22px; font-weight: 700; color: ${darkPurple}; }
+      .helper-card { background: #f9fafb; border-left: 4px solid ${purple}; padding: 20px; margin: 15px 0; border-radius: 8px; page-break-inside: avoid; }
       .helper-critical { background: #fef2f2; border-left-color: #ef4444; }
       .helper-suggestion { background: #eff6ff; border-left-color: #3b82f6; }
       .helper-title { font-weight: 600; font-size: 16px; margin-bottom: 10px; color: #333; }
       .helper-content { font-size: 14px; line-height: 1.6; color: #555; }
-      .helper-action { background: rgba(0,0,0,0.05); padding: 10px; margin-top: 10px; border-radius: 5px; font-weight: 500; }
-      .insight-section { background: #f9f9f9; padding: 20px; margin: 20px 0; border-radius: 8px; }
-      .insight-title { font-size: 16px; font-weight: 600; color: ${CONFIG.UI.PRIMARY_COLOR}; margin-bottom: 15px; }
+      .helper-action { background: rgba(79, 70, 229, 0.08); padding: 10px; margin-top: 10px; border-radius: 5px; font-weight: 500; color: ${darkPurple}; }
+      .insight-section { background: ${purpleLight}; padding: 20px; margin: 20px 0; border-radius: 8px; border-left: 4px solid ${purple}; }
+      .insight-title { font-size: 16px; font-weight: 600; color: ${purple}; margin-bottom: 15px; }
       .modifier-item { padding: 8px 0; border-bottom: 1px solid #eee; }
       .modifier-item:last-child { border-bottom: none; }
-      .trauma-influence { background: rgba(173, 145, 104, 0.1); padding: 15px; margin: 15px 0; border-left: 3px solid ${CONFIG.UI.PRIMARY_COLOR}; border-radius: 5px; }
+      .trauma-influence { background: ${purpleLight}; padding: 15px; margin: 15px 0; border-left: 3px solid ${purple}; border-radius: 5px; }
       .summary-table { width: 100%; border-collapse: collapse; margin: 15px 0; }
-      .summary-table th { background: ${CONFIG.UI.DARK_BG}; color: white; padding: 12px; text-align: left; }
+      .summary-table th { background: ${purple}; color: white; padding: 12px; text-align: left; }
       .summary-table td { padding: 12px; border-bottom: 1px solid #ddd; }
-      .summary-table tr:nth-child(even) { background: #f9f9f9; }
+      .summary-table tr:nth-child(even) { background: ${purpleLight}; }
+      .bottom-line-box { background: ${purpleLight}; border: 2px solid ${purpleBorder}; padding: 25px; margin: 25px 0; border-radius: 10px; }
+      .bottom-line-box p { color: #333; font-size: 16px; line-height: 1.8; margin: 0; }
+      .decision-section { background: #f9fafb; padding: 20px; border-radius: 8px; border: 1px solid #e5e7eb; }
+      .decision-section h3 { color: ${purple}; margin-top: 0; }
+      .decision-section ul { margin: 10px 0 20px 20px; }
+      .remember-box { background: #fffbeb; border: 1px solid #fcd34d; padding: 15px; border-radius: 5px; margin-top: 20px; }
     `;
   },
 
@@ -869,14 +895,15 @@ const PDFGenerator = {
       }
 
       var influencesSection = '<div class="page-break"></div><h2>How Your Profile Influenced This Allocation</h2>';
+      var purpleColor = '#4f46e5';
       if (tool1Data) {
         var traumaNames = { 'FSV': 'False Self-View', 'ExVal': 'External Validation', 'Showing': 'Issues Showing Love', 'Receiving': 'Issues Receiving Love', 'Control': 'Control Leading to Isolation', 'Fear': 'Fear Leading to Isolation' };
-        influencesSection += '<div class="trauma-influence"><h3 style="margin-top: 0; color: ' + CONFIG.UI.PRIMARY_COLOR + ';">Core Trauma Strategy (Tool 1)</h3>' +
+        influencesSection += '<div class="trauma-influence"><h3 style="margin-top: 0; color: ' + purpleColor + ';">Core Trauma Strategy (Tool 1)</h3>' +
           '<p><strong>Primary Pattern:</strong> ' + (traumaNames[tool1Data.winner] || tool1Data.winner) + '</p>' +
           '<p>This pattern influenced your allocation through behavioral modifiers based on your psychological profile.</p></div>';
       }
       if (tool2Data) {
-        influencesSection += '<div class="trauma-influence"><h3 style="margin-top: 0; color: ' + CONFIG.UI.PRIMARY_COLOR + ';">Financial Clarity Profile (Tool 2)</h3>' +
+        influencesSection += '<div class="trauma-influence"><h3 style="margin-top: 0; color: ' + purpleColor + ';">Financial Clarity Profile (Tool 2)</h3>' +
           '<p><strong>Your Archetype:</strong> ' + (tool2Data.archetype || 'Financial Clarity Seeker') + '</p></div>';
       }
       if (!tool1Data && !tool2Data) {
@@ -906,7 +933,7 @@ const PDFGenerator = {
 
         // Show helper insights with detailed calculations
         if (helperInsights && helperInsights.length > 0) {
-          validationSection += '<h3 style="margin-top: 25px; color: ' + CONFIG.UI.PRIMARY_COLOR + ';">Detailed Analysis</h3>';
+          validationSection += '<h3 style="margin-top: 25px; color: ' + purpleColor + ';">Detailed Analysis</h3>';
           helperInsights.forEach(function(helper) {
             var cardClass = helper.severity === 'Critical' ? 'helper-critical' : (helper.severity === 'Suggestion' ? 'helper-suggestion' : '');
             validationSection += '<div class="helper-card ' + cardClass + '">';
@@ -949,12 +976,12 @@ const PDFGenerator = {
         }
       }
 
-      var nextStepsSection = '<div class="page-break"></div><h2>Your Next Steps</h2><div style="background: #f9f9f9; padding: 20px; border-radius: 8px;">' +
-        '<h3 style="color: ' + CONFIG.UI.PRIMARY_COLOR + '; margin-top: 0;">Immediate Actions</h3><ol>' +
+      var nextStepsSection = '<div class="page-break"></div><h2>Your Next Steps</h2><div class="decision-section">' +
+        '<h3 style="color: ' + purpleColor + '; margin-top: 0;">Immediate Actions</h3><ol>' +
         '<li><strong>Set Up Your Buckets:</strong> Open separate accounts or use envelope budgeting.</li>' +
         '<li><strong>Automate Transfers:</strong> Set up automatic transfers on payday.</li>' +
         '<li><strong>Track for 30 Days:</strong> Monitor spending before making adjustments.</li></ol>' +
-        '<h3 style="color: ' + CONFIG.UI.PRIMARY_COLOR + ';">Ongoing Optimization</h3><ul>' +
+        '<h3 style="color: ' + purpleColor + ';">Ongoing Optimization</h3><ul>' +
         '<li>Review quarterly or when major life changes occur</li>' +
         '<li>Adjust as income grows - consider increasing Multiply</li>' +
         '<li>Revisit if priorities shift significantly</li></ul></div>';
@@ -1051,7 +1078,7 @@ const PDFGenerator = {
             if (narrative.benefit) {
               content += '<p style="margin-top: 10px; color: #059669;"><strong>Benefit:</strong> ' + narrative.benefit + '</p>';
             }
-            impactSection += '<div class="helper-card" style="background: #f9f9f9; border-left-color: ' + CONFIG.UI.PRIMARY_COLOR + ';">' +
+            impactSection += '<div class="helper-card">' +
               '<div class="helper-title">' + (narrative.title || 'Impact') + '</div>' +
               '<div class="helper-content">' + content + '</div></div>';
           }
@@ -1061,35 +1088,107 @@ const PDFGenerator = {
       }
 
       var strategySection = '<h2>Strategy Analysis</h2><div class="allocation-grid">' +
-        '<div class="allocation-card"><h3 style="margin-top: 0; color: ' + CONFIG.UI.PRIMARY_COLOR + ';">' + (scenario1.name || 'Scenario A') + '</h3>' +
+        '<div class="allocation-card"><h3 style="margin-top: 0; color: #4f46e5;">' + (scenario1.name || 'Scenario A') + '</h3>' +
         '<p><strong>Strategy:</strong> ' + strategy1Name + '</p>' +
         '<p style="font-size: 14px; color: #666;">' + strategy1Desc + '</p>' +
         (strategy1Reflection ? '<p style="font-size: 13px; color: #888; font-style: italic; margin-top: 10px;">' + strategy1Reflection + '</p>' : '') + '</div>' +
-        '<div class="allocation-card"><h3 style="margin-top: 0; color: ' + CONFIG.UI.PRIMARY_COLOR + ';">' + (scenario2.name || 'Scenario B') + '</h3>' +
+        '<div class="allocation-card"><h3 style="margin-top: 0; color: #4f46e5;">' + (scenario2.name || 'Scenario B') + '</h3>' +
         '<p><strong>Strategy:</strong> ' + strategy2Name + '</p>' +
         '<p style="font-size: 14px; color: #666;">' + strategy2Desc + '</p>' +
         (strategy2Reflection ? '<p style="font-size: 13px; color: #888; font-style: italic; margin-top: 10px;">' + strategy2Reflection + '</p>' : '') + '</div></div>';
 
-      // Generate bottom line based on strategies
-      var bottomLine = 'Both scenarios offer different approaches. ';
-      if (strategy1Name !== strategy2Name) {
-        bottomLine += '"' + (scenario1.name || 'Scenario A') + '" takes a ' + strategy1Name + ' approach, while "' + (scenario2.name || 'Scenario B') + '" uses a ' + strategy2Name + ' approach. ';
+      // Generate bottom line and recommendations based on strategies and allocations
+      var sameStrategy = (strategy1Name === strategy2Name);
+      var bottomLine = '';
+      var recommendationSection = '';
+
+      // Calculate key differences for better recommendations
+      var alloc1 = scenario1.allocations || {};
+      var alloc2 = scenario2.allocations || {};
+      var freedomDiff = (alloc2.Freedom || 0) - (alloc1.Freedom || 0);
+      var multiplyDiff = (alloc2.Multiply || 0) - (alloc1.Multiply || 0);
+      var enjoymentDiff = (alloc2.Enjoyment || 0) - (alloc1.Enjoyment || 0);
+      var essentialsDiff = (alloc2.Essentials || 0) - (alloc1.Essentials || 0);
+
+      if (sameStrategy) {
+        // Same strategy - focus on the specific allocation differences
+        bottomLine = 'Both scenarios follow a <strong>' + strategy1Name + '</strong> approach, but with different emphasis. ';
+
+        // Identify the biggest differences
+        var diffs = [
+          { name: 'Freedom', diff: freedomDiff, dollars: Math.abs(freedomDiff) * monthlyIncome / 100 },
+          { name: 'Multiply', diff: multiplyDiff, dollars: Math.abs(multiplyDiff) * monthlyIncome / 100 },
+          { name: 'Enjoyment', diff: enjoymentDiff, dollars: Math.abs(enjoymentDiff) * monthlyIncome / 100 },
+          { name: 'Essentials', diff: essentialsDiff, dollars: Math.abs(essentialsDiff) * monthlyIncome / 100 }
+        ].filter(function(d) { return Math.abs(d.diff) >= 5; })
+         .sort(function(a, b) { return Math.abs(b.diff) - Math.abs(a.diff); });
+
+        if (diffs.length > 0) {
+          var biggestDiff = diffs[0];
+          var scenario1Higher = biggestDiff.diff < 0;
+          bottomLine += '"' + (scenario1Higher ? (scenario1.name || 'Scenario A') : (scenario2.name || 'Scenario B')) + '" allocates ' +
+            Math.abs(biggestDiff.diff) + '% more to ' + biggestDiff.name + ' ($' + Math.round(biggestDiff.dollars).toLocaleString() + '/month difference). ';
+        }
+        bottomLine += 'The right choice depends on your current priorities and which trade-offs feel most sustainable.';
+
+        // Build differentiated recommendations based on actual allocations
+        recommendationSection = '<h2>Making Your Decision</h2><div class="decision-section">';
+
+        // Scenario 1 recommendations
+        recommendationSection += '<h3>Consider ' + (scenario1.name || 'Scenario A') + ' If:</h3><ul>';
+        if ((alloc1.Freedom || 0) > (alloc2.Freedom || 0)) {
+          recommendationSection += '<li>You want to pay down debt faster or build emergency savings quicker</li>';
+        }
+        if ((alloc1.Multiply || 0) > (alloc2.Multiply || 0)) {
+          recommendationSection += '<li>Long-term wealth building is your top priority right now</li>';
+        }
+        if ((alloc1.Enjoyment || 0) > (alloc2.Enjoyment || 0)) {
+          recommendationSection += '<li>Maintaining quality of life keeps you motivated and consistent</li>';
+        }
+        if ((alloc1.Essentials || 0) > (alloc2.Essentials || 0)) {
+          recommendationSection += '<li>You need more cushion for fixed expenses and bills</li>';
+        }
+        recommendationSection += '<li>The $' + self.formatMoney(scenario1Dollars.Freedom + scenario1Dollars.Multiply).replace('$', '') + '/month toward Freedom + Multiply feels right</li>';
+        recommendationSection += '</ul>';
+
+        // Scenario 2 recommendations
+        recommendationSection += '<h3>Consider ' + (scenario2.name || 'Scenario B') + ' If:</h3><ul>';
+        if ((alloc2.Freedom || 0) > (alloc1.Freedom || 0)) {
+          recommendationSection += '<li>You want to pay down debt faster or build emergency savings quicker</li>';
+        }
+        if ((alloc2.Multiply || 0) > (alloc1.Multiply || 0)) {
+          recommendationSection += '<li>Long-term wealth building is your top priority right now</li>';
+        }
+        if ((alloc2.Enjoyment || 0) > (alloc1.Enjoyment || 0)) {
+          recommendationSection += '<li>Maintaining quality of life keeps you motivated and consistent</li>';
+        }
+        if ((alloc2.Essentials || 0) > (alloc1.Essentials || 0)) {
+          recommendationSection += '<li>You need more cushion for fixed expenses and bills</li>';
+        }
+        recommendationSection += '<li>The $' + self.formatMoney(scenario2Dollars.Freedom + scenario2Dollars.Multiply).replace('$', '') + '/month toward Freedom + Multiply feels right</li>';
+        recommendationSection += '</ul>';
+
+        recommendationSection += '<div class="remember-box"><strong>Remember:</strong> The best choice is one you can consistently follow. Small differences in allocation matter less than sticking with a plan.</div></div>';
+      } else {
+        // Different strategies - original logic with better formatting
+        bottomLine = '"' + (scenario1.name || 'Scenario A') + '" takes a <strong>' + strategy1Name + '</strong> approach, while "' +
+          (scenario2.name || 'Scenario B') + '" uses a <strong>' + strategy2Name + '</strong> approach. ' +
+          'Consider which trade-offs align with your current life situation and short-term needs.';
+
+        recommendationSection = '<h2>Making Your Decision</h2><div class="decision-section">' +
+          '<h3>Consider ' + (scenario1.name || 'Scenario A') + ' If:</h3><ul>' +
+          '<li>The ' + strategy1Name + ' approach matches your current priorities</li>' +
+          '<li>' + (strategy1Desc || 'These dollar amounts feel sustainable for your lifestyle') + '</li>' +
+          '<li>You can commit to $' + self.formatMoney(scenario1Dollars.Freedom).replace('$', '') + '/month toward Freedom</li></ul>' +
+          '<h3>Consider ' + (scenario2.name || 'Scenario B') + ' If:</h3><ul>' +
+          '<li>The ' + strategy2Name + ' approach better addresses your pressing concerns</li>' +
+          '<li>' + (strategy2Desc || 'This allocation feels more aligned with where you are now') + '</li>' +
+          '<li>You can commit to $' + self.formatMoney(scenario2Dollars.Freedom).replace('$', '') + '/month toward Freedom</li></ul>' +
+          '<div class="remember-box"><strong>Remember:</strong> The best choice is one you can consistently follow.</div></div>';
       }
-      bottomLine += 'Consider which trade-offs align with your current life situation and short-term needs.';
 
-      var bottomLineSection = '<div class="page-break"></div><h2>The Bottom Line</h2>' +
-        '<div class="priority-box" style="text-align: left;"><p style="font-size: 16px; line-height: 1.8; margin: 0;">' +
-        bottomLine + '</p></div>';
-
-      var recommendationSection = '<h2>Making Your Decision</h2><div style="background: #f9f9f9; padding: 20px; border-radius: 8px;">' +
-        '<h3 style="color: ' + CONFIG.UI.PRIMARY_COLOR + '; margin-top: 0;">Consider ' + (scenario1.name || 'Scenario A') + ' If:</h3><ul>' +
-        '<li>Your situation aligns with the ' + strategy1Name + ' approach</li>' +
-        '<li>' + (strategy1Desc || 'The dollar amounts feel sustainable') + '</li></ul>' +
-        '<h3 style="color: ' + CONFIG.UI.PRIMARY_COLOR + ';">Consider ' + (scenario2.name || 'Scenario B') + ' If:</h3><ul>' +
-        '<li>Your situation aligns with the ' + strategy2Name + ' approach</li>' +
-        '<li>' + (strategy2Desc || 'This allocation better addresses pressing concerns') + '</li></ul>' +
-        '<p style="margin-top: 20px; padding: 15px; background: #fff8e1; border-radius: 5px;">' +
-        '<strong>Remember:</strong> The best choice is one you can consistently follow.</p></div>';
+      var bottomLineSection = '<h2>The Bottom Line</h2>' +
+        '<div class="bottom-line-box"><p>' + bottomLine + '</p></div>';
 
       var footer = this.buildFooter('This comparison helps you explore different approaches. Choose the one that resonates with your current needs.');
 
