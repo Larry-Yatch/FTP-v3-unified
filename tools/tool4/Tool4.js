@@ -2863,7 +2863,18 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
         warnings.push({
           severity: 'critical',
           bucket: 'Freedom',
-          message: 'You have less than 1 month emergency coverage ($' + emergencyFund.toLocaleString() + '). Your Freedom allocation (' + formatDollars(buckets.Freedom) + ') may be too low to build a safety net quickly.'
+          message: 'You have less than 1 month emergency coverage ($' + emergencyFund.toLocaleString() + '). Your Freedom allocation (' + formatDollars(buckets.Freedom) + ') may be too low to build a safety net quickly.',
+          action: 'emergency-fund-helper'
+        });
+      }
+
+      // Also trigger helper if emergency fund < 3 months AND Freedom < 20%
+      if (monthsOfCoverage >= 1 && monthsOfCoverage < 3 && buckets.Freedom < 20) {
+        warnings.push({
+          severity: 'warning',
+          bucket: 'Freedom',
+          message: 'Your emergency fund has ' + monthsOfCoverage.toFixed(1) + ' months coverage. Consider increasing Freedom allocation to build to 4+ months faster.',
+          action: 'emergency-fund-helper'
         });
       }
 
@@ -2913,11 +2924,12 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
         });
       }
 
-      if (buckets.Enjoyment > 40) {
+      if (buckets.Enjoyment > 35) {
         warnings.push({
           severity: 'warning',
           bucket: 'Enjoyment',
-          message: 'Your Enjoyment allocation (' + formatDollars(buckets.Enjoyment) + ') is very high. Make sure this aligns with your financial goals.'
+          message: 'Your Enjoyment allocation (' + formatDollars(buckets.Enjoyment) + ') is very high. Make sure this aligns with your financial goals.',
+          action: 'enjoyment-reality-check'
         });
       }
 
@@ -2933,12 +2945,328 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       return warnings;
     }
 
+    // ============ PHASE 4B: INTERACTIVE HELPERS ============
+
+    // Track currently open helper
+    var currentOpenHelper = null;
+
+    // Helper: Emergency Fund Timeline
+    function renderEmergencyFundHelper() {
+      var monthlyIncome = calculatorState.monthlyIncome || 0;
+      var monthlyEssentials = calculatorState.monthlyEssentials || 0;
+      var emergencyFund = calculatorState.preSurvey.emergencyFund || 0;
+      var currentFreedom = calculatorState.buckets.Freedom;
+
+      if (monthlyEssentials === 0 || monthlyIncome === 0) {
+        return '<p>Unable to calculate timeline without income and essentials data.</p>';
+      }
+
+      var monthsOfCoverage = emergencyFund / monthlyEssentials;
+      var targetAmount = monthlyEssentials * 4; // 4-month target
+      var gap = Math.max(0, targetAmount - emergencyFund);
+
+      var currentFreedomDollars = Math.round(monthlyIncome * currentFreedom / 100);
+      var suggestedFreedom = 25;
+      var suggestedFreedomDollars = Math.round(monthlyIncome * suggestedFreedom / 100);
+
+      var currentTimeline = currentFreedomDollars > 0 ? gap / currentFreedomDollars : 999;
+      var suggestedTimeline = suggestedFreedomDollars > 0 ? gap / suggestedFreedomDollars : 999;
+      var savings = currentTimeline - suggestedTimeline;
+
+      var html = '<div style="background: rgba(79, 70, 229, 0.05); padding: 15px; border-radius: 8px; margin-top: 10px;">';
+      html += '<h4 style="margin: 0 0 10px 0; color: var(--color-text-primary);">Emergency Fund Timeline</h4>';
+
+      html += '<div style="color: var(--color-text-secondary); margin-bottom: 10px;">';
+      html += '<strong>Current:</strong> $' + emergencyFund.toLocaleString() + ' (' + monthsOfCoverage.toFixed(1) + ' months)<br>';
+      html += '<strong>Recommended:</strong> $' + targetAmount.toLocaleString() + ' (4 months)<br>';
+      html += '<strong>Gap:</strong> $' + gap.toLocaleString();
+      html += '</div>';
+
+      html += '<div style="background: white; padding: 10px; border-radius: 6px; margin: 10px 0; border-left: 3px solid #60a5fa;">';
+      html += '<strong>At ' + currentFreedom + '% Freedom allocation:</strong><br>';
+      html += '$' + currentFreedomDollars.toLocaleString() + '/month to Freedom bucket<br>';
+      html += 'Timeline: <strong>' + currentTimeline.toFixed(1) + ' months</strong> to reach 4-month fund';
+      html += '</div>';
+
+      if (currentFreedom < suggestedFreedom) {
+        html += '<div style="background: white; padding: 10px; border-radius: 6px; margin: 10px 0; border-left: 3px solid #10b981;">';
+        html += '<strong>If you increased to ' + suggestedFreedom + '% Freedom:</strong><br>';
+        html += '$' + suggestedFreedomDollars.toLocaleString() + '/month to Freedom bucket<br>';
+        html += 'Timeline: <strong>' + suggestedTimeline.toFixed(1) + ' months</strong> (' + savings.toFixed(1) + ' months faster!)';
+        html += '</div>';
+
+        html += '<div style="margin-top: 15px;">';
+        html += '<button onclick="adjustFreedomTo(' + suggestedFreedom + ')" style="background: #10b981; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; margin-right: 10px;">Adjust Freedom to ' + suggestedFreedom + '%</button>';
+        html += '<button onclick="toggleHelper(null)" style="background: #6b7280; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer;">Keep Current Plan</button>';
+        html += '</div>';
+      }
+
+      html += '</div>';
+      return html;
+    }
+
+    // Helper: Gap Analysis
+    function renderGapAnalysisHelper() {
+      var html = '<div style="background: rgba(79, 70, 229, 0.05); padding: 15px; border-radius: 8px; margin-top: 10px;">';
+      html += '<h4 style="margin: 0 0 10px 0; color: var(--color-text-primary);">Your Plan vs Recommended</h4>';
+
+      html += '<table style="width: 100%; border-collapse: collapse; color: var(--color-text-secondary);">';
+      html += '<thead><tr style="border-bottom: 2px solid #e5e7eb;">';
+      html += '<th style="text-align: left; padding: 8px;"></th>';
+      html += '<th style="text-align: right; padding: 8px;">Recommended</th>';
+      html += '<th style="text-align: right; padding: 8px;">Current</th>';
+      html += '<th style="text-align: right; padding: 8px;">Difference</th>';
+      html += '</tr></thead><tbody>';
+
+      ['Multiply', 'Essentials', 'Freedom', 'Enjoyment'].forEach(function(bucket) {
+        var recommended = calculatorState.recommended[bucket] || 0;
+        var current = calculatorState.buckets[bucket] || 0;
+        var diff = current - recommended;
+        var diffStr = (diff > 0 ? '+' : '') + diff.toFixed(0) + 'pp';
+        var diffColor = Math.abs(diff) >= 15 ? '#ef4444' : '#6b7280';
+
+        html += '<tr style="border-bottom: 1px solid #f3f4f6;">';
+        html += '<td style="padding: 8px;"><strong>' + bucket + ':</strong></td>';
+        html += '<td style="text-align: right; padding: 8px;">' + recommended.toFixed(0) + '%</td>';
+        html += '<td style="text-align: right; padding: 8px;">' + current.toFixed(0) + '%</td>';
+        html += '<td style="text-align: right; padding: 8px; color: ' + diffColor + ';"><strong>' + diffStr + '</strong></td>';
+        html += '</tr>';
+      });
+
+      html += '</tbody></table>';
+
+      html += '<div style="margin-top: 15px;">';
+      html += '<button onclick="resetToRecommended()" style="background: #10b981; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; margin-right: 10px;">Reset to Recommended</button>';
+      html += '<button onclick="toggleHelper(null)" style="background: #6b7280; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer;">Keep My Changes</button>';
+      html += '</div>';
+
+      html += '</div>';
+      return html;
+    }
+
+    // Helper: Priority Re-Check
+    function renderPriorityReCheckHelper(warning) {
+      var html = '<div style="background: rgba(79, 70, 229, 0.05); padding: 15px; border-radius: 8px; margin-top: 10px;">';
+      html += '<h4 style="margin: 0 0 10px 0; color: var(--color-text-primary);">Priority Alignment Check</h4>';
+
+      html += '<div style="color: var(--color-text-secondary); margin-bottom: 15px;">';
+      html += 'Your current allocation suggests a different priority than what you selected. This might mean:';
+      html += '<ul style="margin: 10px 0; padding-left: 20px;">';
+      html += '<li>You accidentally selected the wrong priority</li>';
+      html += '<li>Your true priority differs from what you thought</li>';
+      html += '<li>You have intentional reasons for this allocation</li>';
+      html += '</ul>';
+      html += '</div>';
+
+      html += '<div style="margin-top: 15px;">';
+      html += '<p style="color: var(--color-text-secondary); margin-bottom: 10px;">What would you like to do?</p>';
+      html += '<button onclick="toggleHelper(null)" style="background: #6b7280; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; width: 100%; margin-bottom: 8px;">Keep Current Setup (I have my reasons)</button>';
+      html += '<button onclick="resetToRecommended()" style="background: #10b981; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; width: 100%;">Adjust Allocation to Match Priority</button>';
+      html += '</div>';
+
+      html += '</div>';
+      return html;
+    }
+
+    // Helper: Enjoyment Reality Check
+    function renderEnjoymentRealityCheckHelper() {
+      var monthlyIncome = calculatorState.monthlyIncome || 0;
+      var enjoymentPercent = calculatorState.buckets.Enjoyment;
+
+      if (monthlyIncome === 0) {
+        return '<p>Unable to calculate without income data.</p>';
+      }
+
+      var monthlyAmount = Math.round(monthlyIncome * enjoymentPercent / 100);
+      var weeklyAmount = Math.round(monthlyAmount / 4.33);
+      var diningWeekly = Math.round(weeklyAmount / 2);
+      var hobbiesWeekly = weeklyAmount - diningWeekly;
+
+      var html = '<div style="background: rgba(79, 70, 229, 0.05); padding: 15px; border-radius: 8px; margin-top: 10px;">';
+      html += '<h4 style="margin: 0 0 10px 0; color: var(--color-text-primary);">Enjoyment Reality Check</h4>';
+
+      html += '<div style="color: var(--color-text-secondary); margin-bottom: 10px;">';
+      html += 'Your <strong>$' + monthlyAmount.toLocaleString() + '/month</strong> Enjoyment allocation breaks down to about:';
+      html += '</div>';
+
+      html += '<div style="background: white; padding: 10px; border-radius: 6px; margin: 10px 0;">';
+      html += '• <strong>$' + diningWeekly.toLocaleString() + '/week</strong> for dining and entertainment<br>';
+      html += '• <strong>$' + hobbiesWeekly.toLocaleString() + '/week</strong> for hobbies and shopping';
+      html += '</div>';
+
+      html += '<p style="color: var(--color-text-secondary); margin: 15px 0;">Does this feel realistic for your lifestyle?</p>';
+
+      html += '<div style="margin-top: 15px;">';
+      html += '<button onclick="toggleHelper(null)" style="background: #10b981; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; margin-right: 10px;">Keep It</button>';
+      html += '<button onclick="focusOnBucket(' + String.fromCharCode(39) + 'Enjoyment' + String.fromCharCode(39) + ')" style="background: #6b7280; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer;">Adjust Enjoyment</button>';
+      html += '</div>';
+
+      html += '</div>';
+      return html;
+    }
+
+    // Get helper title for button text
+    function getHelperTitle(helperType) {
+      var titles = {
+        'emergency-fund-helper': 'Emergency Fund Timeline',
+        'gap-analysis': 'Gap Analysis',
+        'priority-recheck': 'Priority Re-Check',
+        'enjoyment-reality-check': 'Enjoyment Reality Check'
+      };
+      return titles[helperType] || 'Details';
+    }
+
+    // Render helper by type
+    function renderHelperByType(helperType) {
+      switch(helperType) {
+        case 'emergency-fund-helper':
+          return renderEmergencyFundHelper();
+        case 'gap-analysis':
+          return renderGapAnalysisHelper();
+        case 'priority-recheck':
+          return renderPriorityReCheckHelper();
+        case 'enjoyment-reality-check':
+          return renderEnjoymentRealityCheckHelper();
+        default:
+          return '<p>Helper not found.</p>';
+      }
+    }
+
+    // Toggle helper display
+    function toggleHelper(helperType) {
+      // Close currently open helper
+      if (currentOpenHelper) {
+        var currentContent = document.getElementById('helper-content-' + currentOpenHelper);
+        if (currentContent) {
+          currentContent.style.display = 'none';
+        }
+      }
+
+      // If same helper, just close it
+      if (currentOpenHelper === helperType) {
+        currentOpenHelper = null;
+        return;
+      }
+
+      // Open new helper
+      if (helperType) {
+        var newContent = document.getElementById('helper-content-' + helperType);
+        if (newContent) {
+          newContent.style.display = 'block';
+          currentOpenHelper = helperType;
+
+          // Scroll to helper
+          newContent.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      } else {
+        currentOpenHelper = null;
+      }
+    }
+
+    // Helper action: Adjust Freedom to specific percentage
+    function adjustFreedomTo(targetPercent) {
+      calculatorState.buckets.Freedom = targetPercent;
+
+      // Redistribute from other buckets proportionally
+      var remaining = 100 - targetPercent;
+      var otherBuckets = ['Multiply', 'Essentials', 'Enjoyment'];
+      var otherTotal = 0;
+      otherBuckets.forEach(function(bucket) {
+        if (!calculatorState.locked[bucket]) {
+          otherTotal += calculatorState.buckets[bucket];
+        }
+      });
+
+      if (otherTotal > 0) {
+        otherBuckets.forEach(function(bucket) {
+          if (!calculatorState.locked[bucket]) {
+            calculatorState.buckets[bucket] = Math.round((calculatorState.buckets[bucket] / otherTotal) * remaining);
+          }
+        });
+      }
+
+      // Normalize to 100%
+      var total = 0;
+      for (var key in calculatorState.buckets) {
+        total += calculatorState.buckets[key];
+      }
+      var diff = 100 - total;
+      if (diff !== 0) {
+        calculatorState.buckets.Multiply += diff;
+      }
+
+      // Update UI
+      updateAllBucketDisplays();
+
+      // Close helper and re-run validation
+      toggleHelper(null);
+      checkMyPlan();
+    }
+
+    // Helper action: Focus on specific bucket slider
+    function focusOnBucket(bucketName) {
+      toggleHelper(null);
+      var slider = document.getElementById(bucketName.toLowerCase() + 'Slider');
+      if (slider) {
+        slider.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        slider.focus();
+      }
+    }
+
+    // Detect gap between recommended and current (15pp threshold)
+    function detectGap() {
+      var hasGap = false;
+      ['Multiply', 'Essentials', 'Freedom', 'Enjoyment'].forEach(function(bucket) {
+        var recommended = calculatorState.recommended[bucket] || 0;
+        var current = calculatorState.buckets[bucket] || 0;
+        var diff = Math.abs(current - recommended);
+        if (diff >= 15) {
+          hasGap = true;
+        }
+      });
+      return hasGap;
+    }
+
+    // Detect priority mismatch (2+ buckets out of expected range)
+    function detectPriorityMismatch() {
+      var valuesWarnings = validateValuesAlignment();
+      var mismatchCount = 0;
+      valuesWarnings.forEach(function(warning) {
+        if (warning.severity === 'suggestion' && warning.action === 'priority-recheck') {
+          mismatchCount++;
+        }
+      });
+      return mismatchCount >= 2;
+    }
+
+    // ============ END PHASE 4B HELPERS ============
+
     // Main validation function
     function checkMyPlan() {
       // Run all validation types
       var financialWarnings = validateFinancialReality();
       var behavioralWarnings = validateBehavioralAlignment();
       var valuesWarnings = validateValuesAlignment();
+
+      // Add Gap Analysis helper if needed (15pp threshold)
+      if (detectGap()) {
+        behavioralWarnings.push({
+          severity: 'suggestion',
+          bucket: 'All Buckets',
+          message: 'Your current allocation has drifted 15+ percentage points from recommended in at least one bucket. Review the differences to see if this aligns with your goals.',
+          action: 'gap-analysis'
+        });
+      }
+
+      // Add Priority Re-Check helper if needed (2+ values mismatches)
+      if (detectPriorityMismatch()) {
+        valuesWarnings.push({
+          severity: 'suggestion',
+          bucket: 'Priority',
+          message: 'Your allocation pattern suggests a different priority than you selected. Double-check that your selected priority matches your actual goals.',
+          action: 'priority-recheck'
+        });
+      }
 
       // Categorize by severity
       var allWarnings = {
@@ -2967,21 +3295,54 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
         if (allWarnings.critical.length > 0) {
           html += '<div style="margin-bottom: 15px;"><strong style="color: #ef4444;">🔴 CRITICAL:</strong></div>';
           allWarnings.critical.forEach(function(warning) {
-            html += '<p style="margin: 10px 0; padding-left: 15px; color: var(--color-text-secondary);"><strong>' + warning.bucket + ':</strong> ' + warning.message + '</p>';
+            html += '<div style="margin: 10px 0; padding-left: 15px;">';
+            html += '<p style="margin: 0 0 5px 0; color: var(--color-text-secondary);"><strong>' + warning.bucket + ':</strong> ' + warning.message + '</p>';
+
+            // Add "Learn More" button if helper exists
+            if (warning.action) {
+              html += '<button onclick="toggleHelper(' + String.fromCharCode(39) + warning.action + String.fromCharCode(39) + ')" style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; margin-top: 5px;">Learn More: ' + getHelperTitle(warning.action) + '</button>';
+              html += '<div id="helper-content-' + warning.action + '" style="display: none;">';
+              html += renderHelperByType(warning.action);
+              html += '</div>';
+            }
+
+            html += '</div>';
           });
         }
 
         if (allWarnings.warning.length > 0) {
           html += '<div style="margin-top: 20px; margin-bottom: 15px;"><strong style="color: #fbbf24;">🟡 WARNINGS:</strong></div>';
           allWarnings.warning.forEach(function(warning) {
-            html += '<p style="margin: 10px 0; padding-left: 15px; color: var(--color-text-secondary);"><strong>' + warning.bucket + ':</strong> ' + warning.message + '</p>';
+            html += '<div style="margin: 10px 0; padding-left: 15px;">';
+            html += '<p style="margin: 0 0 5px 0; color: var(--color-text-secondary);"><strong>' + warning.bucket + ':</strong> ' + warning.message + '</p>';
+
+            // Add "Learn More" button if helper exists
+            if (warning.action) {
+              html += '<button onclick="toggleHelper(' + String.fromCharCode(39) + warning.action + String.fromCharCode(39) + ')" style="background: #fbbf24; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; margin-top: 5px;">Learn More: ' + getHelperTitle(warning.action) + '</button>';
+              html += '<div id="helper-content-' + warning.action + '" style="display: none;">';
+              html += renderHelperByType(warning.action);
+              html += '</div>';
+            }
+
+            html += '</div>';
           });
         }
 
         if (allWarnings.suggestion.length > 0) {
           html += '<div style="margin-top: 20px; margin-bottom: 15px;"><strong style="color: #60a5fa;">🔵 SUGGESTIONS:</strong></div>';
           allWarnings.suggestion.forEach(function(warning) {
-            html += '<p style="margin: 10px 0; padding-left: 15px; color: var(--color-text-secondary);"><strong>' + warning.bucket + ':</strong> ' + warning.message + '</p>';
+            html += '<div style="margin: 10px 0; padding-left: 15px;">';
+            html += '<p style="margin: 0 0 5px 0; color: var(--color-text-secondary);"><strong>' + warning.bucket + ':</strong> ' + warning.message + '</p>';
+
+            // Add "Learn More" button if helper exists
+            if (warning.action) {
+              html += '<button onclick="toggleHelper(' + String.fromCharCode(39) + warning.action + String.fromCharCode(39) + ')" style="background: #60a5fa; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; margin-top: 5px;">Learn More: ' + getHelperTitle(warning.action) + '</button>';
+              html += '<div id="helper-content-' + warning.action + '" style="display: none;">';
+              html += renderHelperByType(warning.action);
+              html += '</div>';
+            }
+
+            html += '</div>';
           });
         }
 
