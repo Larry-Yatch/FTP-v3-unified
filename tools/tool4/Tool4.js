@@ -7481,6 +7481,186 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
   },
 
   /**
+   * Run full validation (server-side version for PDF generation)
+   * Mirrors the client-side checkMyPlan() validation logic
+   * @param {string} clientId - Client ID
+   * @param {Object} allocations - Current allocation percentages {Multiply, Essentials, Freedom, Enjoyment}
+   * @param {Object} preSurveyData - Pre-survey data
+   * @returns {Array} Array of validation warnings with severity, title, message, action
+   */
+  runFullValidation(clientId, allocations, preSurveyData) {
+    const warnings = [];
+    const buckets = allocations || {};
+    const monthlyIncome = Number(preSurveyData.monthlyIncome) || 0;
+    const monthlyEssentials = Number(preSurveyData.monthlyEssentials) || 0;
+    const totalDebt = Number(preSurveyData.totalDebt) || 0;
+    const emergencyFund = Number(preSurveyData.emergencyFund) || 0;
+    const actualEssentialsPct = monthlyIncome > 0 ? (monthlyEssentials / monthlyIncome) * 100 : 0;
+
+    // Helper function to format dollars
+    const formatDollars = (pct) => {
+      const dollars = Math.round(monthlyIncome * pct / 100);
+      return pct + '% ($' + dollars.toLocaleString() + ')';
+    };
+
+    // Calculate emergency fund coverage
+    const monthsOfCoverage = monthlyEssentials > 0 ? emergencyFund / monthlyEssentials : 0;
+
+    // === FINANCIAL REALITY CHECKS ===
+
+    // Critical: No emergency fund + low Freedom allocation
+    if (monthsOfCoverage < 1 && buckets.Freedom < 20) {
+      warnings.push({
+        severity: 'Critical',
+        title: 'Low Emergency Fund Coverage',
+        message: 'You have less than 1 month emergency coverage ($' + emergencyFund.toLocaleString() + '). Your Freedom allocation (' + formatDollars(buckets.Freedom) + ') may be too low to build a safety net quickly.',
+        action: 'Increase Freedom allocation to build emergency fund faster'
+      });
+    }
+
+    // Warning: Low emergency fund (1-3 months) + low Freedom
+    if (monthsOfCoverage >= 1 && monthsOfCoverage < 3 && buckets.Freedom < 20) {
+      warnings.push({
+        severity: 'Warning',
+        title: 'Emergency Fund Needs Growth',
+        message: 'Your emergency fund has ' + monthsOfCoverage.toFixed(1) + ' months coverage. Consider increasing Freedom allocation to build to 4+ months faster.',
+        action: 'Target 4+ months of essential expenses'
+      });
+    }
+
+    // Warning: High debt + low Freedom allocation
+    if (totalDebt > monthlyIncome * 3 && buckets.Freedom < 25) {
+      warnings.push({
+        severity: 'Warning',
+        title: 'High Debt with Low Freedom',
+        message: 'With $' + totalDebt.toLocaleString() + ' in debt, consider allocating more to Freedom (currently ' + formatDollars(buckets.Freedom) + ') for debt paydown.',
+        action: 'Increase Freedom to accelerate debt payoff'
+      });
+    }
+
+    // Suggestion: Good emergency fund but still high Freedom
+    if (monthsOfCoverage >= 6 && totalDebt < monthlyIncome && buckets.Freedom > 40) {
+      warnings.push({
+        severity: 'Suggestion',
+        title: 'Consider Rebalancing Freedom',
+        message: 'Your emergency fund is solid (' + monthsOfCoverage.toFixed(1) + ' months). You might redirect some Freedom allocation to Multiply for growth.',
+        action: 'Consider shifting some Freedom to Multiply'
+      });
+    }
+
+    // Critical: Essentials below actual spending
+    if (actualEssentialsPct > 0 && buckets.Essentials < actualEssentialsPct) {
+      const shortfall = Math.round(actualEssentialsPct - buckets.Essentials);
+      const shortfallDollars = Math.round(monthlyIncome * shortfall / 100);
+      warnings.push({
+        severity: 'Critical',
+        title: 'Essentials Underfunded',
+        message: 'Your Essentials allocation (' + formatDollars(buckets.Essentials) + ') is less than your actual essential spending (' + formatDollars(Math.round(actualEssentialsPct)) + '). You may need to reduce expenses by ' + shortfall + '% ($' + shortfallDollars.toLocaleString() + ') or adjust your allocation.',
+        action: 'Increase Essentials or reduce fixed expenses'
+      });
+    }
+
+    // Warning: Very high Essentials
+    if (buckets.Essentials > 50) {
+      warnings.push({
+        severity: 'Warning',
+        title: 'High Essentials Allocation',
+        message: 'Your Essentials allocation (' + formatDollars(buckets.Essentials) + ') is quite high. Consider finding ways to reduce fixed expenses.',
+        action: 'Review essential expenses for reduction opportunities'
+      });
+    }
+
+    // Suggestion: Low Multiply
+    if (buckets.Multiply < 10) {
+      warnings.push({
+        severity: 'Suggestion',
+        title: 'Low Wealth Building',
+        message: 'Consider increasing Multiply to at least 10% ($' + Math.round(monthlyIncome * 10 / 100).toLocaleString() + ') for long-term wealth building.',
+        action: 'Increase Multiply for compound growth'
+      });
+    }
+
+    // Warning: High Enjoyment
+    if (buckets.Enjoyment > 35) {
+      warnings.push({
+        severity: 'Warning',
+        title: 'High Enjoyment Allocation',
+        message: 'Your Enjoyment allocation (' + formatDollars(buckets.Enjoyment) + ') is very high. Make sure this aligns with your financial goals.',
+        action: 'Review if lifestyle spending matches priorities'
+      });
+    }
+
+    // Suggestion: Low Freedom
+    if (buckets.Freedom < 10) {
+      warnings.push({
+        severity: 'Suggestion',
+        title: 'Low Freedom Allocation',
+        message: 'Consider allocating at least 10% ($' + Math.round(monthlyIncome * 10 / 100).toLocaleString() + ') to Freedom for emergency fund and debt management.',
+        action: 'Increase Freedom for financial security'
+      });
+    }
+
+    // === BEHAVIORAL ALIGNMENT CHECKS ===
+    const discipline = Number(preSurveyData.discipline) || 5;
+    const impulse = Number(preSurveyData.impulse) || 5;
+    const longTerm = Number(preSurveyData.longTerm) || 5;
+
+    // Low discipline + high Multiply
+    if (discipline <= 3 && buckets.Multiply >= 30) {
+      warnings.push({
+        severity: 'Warning',
+        title: 'Discipline-Multiply Mismatch',
+        message: 'Your low discipline score (' + discipline + '/10) may make it hard to maintain ' + formatDollars(buckets.Multiply) + ' in Multiply consistently.',
+        action: 'Consider a more achievable Multiply target'
+      });
+    }
+
+    // Low impulse control + high Enjoyment
+    if (impulse <= 3 && buckets.Enjoyment >= 30) {
+      warnings.push({
+        severity: 'Warning',
+        title: 'Impulse-Enjoyment Risk',
+        message: 'With low impulse control (' + impulse + '/10), ' + formatDollars(buckets.Enjoyment) + ' in Enjoyment may lead to overspending.',
+        action: 'Consider reducing Enjoyment or using spending guardrails'
+      });
+    }
+
+    // Short-term focus + high Multiply
+    if (longTerm <= 3 && buckets.Multiply >= 35) {
+      warnings.push({
+        severity: 'Suggestion',
+        title: 'Focus-Multiply Tension',
+        message: 'Your present-focus orientation (' + longTerm + '/10) may conflict with ' + formatDollars(buckets.Multiply) + ' in Multiply. Ensure you can sustain this.',
+        action: 'Balance immediate needs with long-term goals'
+      });
+    }
+
+    // === DEBT/LIFESTYLE CHECKS ===
+
+    // Has debt but low Freedom allocation
+    if (totalDebt > 0 && buckets.Freedom < 30) {
+      warnings.push({
+        severity: 'Warning',
+        title: 'Debt Payoff Opportunity',
+        message: 'You have debt but are allocating less than 30% to Freedom. See how increasing your Freedom allocation could accelerate your debt payoff.',
+        action: 'Consider increasing Freedom for faster debt payoff'
+      });
+    }
+
+    // High income + high Enjoyment + low Multiply (lifestyle inflation risk)
+    if (monthlyIncome >= 8000 && buckets.Enjoyment >= 25 && buckets.Multiply < 20) {
+      warnings.push({
+        severity: 'Warning',
+        title: 'Lifestyle Inflation Risk',
+        message: 'Your income supports wealth-building, but your allocation prioritizes present enjoyment over future wealth. Consider the long-term impact.',
+        action: 'Consider shifting some Enjoyment to Multiply'
+      });
+    }
+
+    return warnings;
+  },
+
+  /**
    * Delete a saved scenario
    */
   deleteScenario(clientId, scenarioName) {
