@@ -3058,11 +3058,26 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
 
     // Helper: Priority Re-Check
     function renderPriorityReCheckHelper(warning) {
+      var priority = calculatorState.priority;
+
       var html = '<div style="background: rgba(79, 70, 229, 0.05); padding: 15px; border-radius: 8px; margin-top: 10px;">';
       html += '<h4 style="margin: 0 0 10px 0; color: var(--color-text-primary);">Priority Alignment Check</h4>';
 
       html += '<div style="color: var(--color-text-secondary); margin-bottom: 15px;">';
-      html += 'Your current allocation suggests a different priority than what you selected. This might mean:';
+      html += 'Your current allocation does not align with your selected priority: <strong>' + priority + '</strong>';
+      html += '</div>';
+
+      // Priority-specific explanation
+      var explanation = getPriorityExplanation(priority);
+      if (explanation) {
+        html += '<div style="background: white; padding: 12px; border-radius: 6px; margin: 10px 0; color: #374151; border-left: 3px solid #4f46e5;">';
+        html += '<strong style="display: block; margin-bottom: 8px;">Why this priority works this way:</strong>';
+        html += explanation;
+        html += '</div>';
+      }
+
+      html += '<div style="color: var(--color-text-secondary); margin-top: 15px;">';
+      html += 'Your allocation mismatch might mean:';
       html += '<ul style="margin: 10px 0; padding-left: 20px;">';
       html += '<li>You accidentally selected the wrong priority</li>';
       html += '<li>Your true priority differs from what you thought</li>';
@@ -3078,6 +3093,33 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
 
       html += '</div>';
       return html;
+    }
+
+    // Get priority-specific explanation
+    function getPriorityExplanation(priority) {
+      var explanations = {
+        'Build Long-Term Wealth': '<strong>Multiply (25%+):</strong> You need aggressive wealth-building through investments and income growth.<br><strong>Freedom (≤30%):</strong> Debt paydown takes a backseat to growth - you are betting on higher returns than interest rates.',
+
+        'Get Out of Debt': '<strong>Freedom (30%+):</strong> Aggressive debt paydown is the fastest path to financial peace.<br><strong>Multiply (≤20%):</strong> Growth investments wait until debt is cleared - freedom from payments is your wealth strategy.',
+
+        'Feel Financially Secure': '<strong>Essentials (30-50%):</strong> Stability means comfortable coverage of needs without stress.<br><strong>Freedom (20-40%):</strong> Building emergency cushion and paying down debt creates security.',
+
+        'Enjoy Life Now': '<strong>Enjoyment (30%+):</strong> Your priority is present-day quality of life - experiences, hobbies, dining, travel.<br>Other buckets stay moderate to fund what brings you joy today.',
+
+        'Save for a Big Goal': '<strong>Freedom (25%+):</strong> Whether it is a house, wedding, or sabbatical - you are building a targeted fund.<br>This is not debt paydown or investing, it is dedicated saving for a specific goal.',
+
+        'Stabilize to Survive': '<strong>Essentials (40%+):</strong> You are in crisis mode - covering basics is the only priority right now.<br><strong>Freedom (15-40%):</strong> Building a small buffer to prevent total collapse.',
+
+        'Build or Stabilize a Business': '<strong>Multiply (20-50%):</strong> Reinvesting in your business for growth or survival.<br><strong>Freedom (15-30%):</strong> Covering business debt or building working capital reserves.',
+
+        'Create Generational Wealth': '<strong>Multiply (35%+):</strong> Maximum investment for legacy - you are building wealth to pass down.<br><strong>Essentials (20-35%):</strong> Living lean to maximize what you leave behind.',
+
+        'Create Life Balance': 'All buckets stay moderate (15-35%) - no single area dominates. You are seeking sustainable equilibrium across needs, joy, freedom, and growth.',
+
+        'Reclaim Financial Control': '<strong>Freedom (25%+):</strong> You are clawing back power from debt, chaos, or dependence.<br>This is about gaining breathing room and options - freedom is your foundation.'
+      };
+
+      return explanations[priority] || '';
     }
 
     // Helper: Enjoyment Reality Check
