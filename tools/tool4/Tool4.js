@@ -2988,14 +2988,14 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       html += '<strong>Gap:</strong> $' + gap.toLocaleString();
       html += '</div>';
 
-      html += '<div style="background: white; padding: 10px; border-radius: 6px; margin: 10px 0; border-left: 3px solid #60a5fa;">';
+      html += '<div style="background: white; padding: 10px; border-radius: 6px; margin: 10px 0; border-left: 3px solid #60a5fa; color: #374151;">';
       html += '<strong>At ' + currentFreedom + '% Freedom allocation:</strong><br>';
       html += '$' + currentFreedomDollars.toLocaleString() + '/month to Freedom bucket<br>';
       html += 'Timeline: <strong>' + currentTimeline.toFixed(1) + ' months</strong> to reach 4-month fund';
       html += '</div>';
 
       if (currentFreedom < suggestedFreedom) {
-        html += '<div style="background: white; padding: 10px; border-radius: 6px; margin: 10px 0; border-left: 3px solid #10b981;">';
+        html += '<div style="background: white; padding: 10px; border-radius: 6px; margin: 10px 0; border-left: 3px solid #10b981; color: #374151;">';
         html += '<strong>If you increased to ' + suggestedFreedom + '% Freedom:</strong><br>';
         html += '$' + suggestedFreedomDollars.toLocaleString() + '/month to Freedom bucket<br>';
         html += 'Timeline: <strong>' + suggestedTimeline.toFixed(1) + ' months</strong> (' + savings.toFixed(1) + ' months faster!)';
@@ -3095,7 +3095,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       html += 'Your <strong>$' + monthlyAmount.toLocaleString() + '/month</strong> Enjoyment allocation breaks down to about:';
       html += '</div>';
 
-      html += '<div style="background: white; padding: 10px; border-radius: 6px; margin: 10px 0;">';
+      html += '<div style="background: white; padding: 10px; border-radius: 6px; margin: 10px 0; color: #374151;">';
       html += '• <strong>$' + diningWeekly.toLocaleString() + '/week</strong> for dining and entertainment<br>';
       html += '• <strong>$' + hobbiesWeekly.toLocaleString() + '/week</strong> for hobbies and shopping';
       html += '</div>';
