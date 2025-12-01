@@ -2440,6 +2440,35 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
             </div>
           </div>
         </div>
+
+        <!-- Saved Scenarios Section -->
+        <div class="saved-scenarios-section" style="margin-top: 30px; padding: 25px; background: rgba(255, 255, 255, 0.03); border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.1);">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h3 style="margin: 0; color: var(--color-text-primary);">💾 Saved Scenarios</h3>
+            <button type="button" class="btn-secondary" onclick="refreshScenarioList()" style="font-size: 0.85rem; padding: 6px 12px;">
+              ↻ Refresh
+            </button>
+          </div>
+
+          <div id="scenarioListContainer">
+            <p style="color: var(--color-text-muted); font-style: italic;">Loading saved scenarios...</p>
+          </div>
+
+          <!-- Comparison View (hidden by default) -->
+          <div id="comparisonView" style="display: none; margin-top: 25px; padding-top: 25px; border-top: 1px solid rgba(255, 255, 255, 0.1);">
+            <h4 style="color: var(--color-text-primary); margin-bottom: 15px;">📊 Compare Scenarios</h4>
+            <div style="display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap;">
+              <select id="scenario1Select" onchange="updateComparison()" style="flex: 1; min-width: 200px; padding: 10px; border-radius: 8px; background: rgba(0,0,0,0.3); color: var(--color-text-primary); border: 1px solid rgba(255,255,255,0.2);">
+                <option value="">Select first scenario...</option>
+              </select>
+              <span style="color: var(--color-text-muted); padding: 10px;">vs</span>
+              <select id="scenario2Select" onchange="updateComparison()" style="flex: 1; min-width: 200px; padding: 10px; border-radius: 8px; background: rgba(0,0,0,0.3); color: var(--color-text-primary); border: 1px solid rgba(255,255,255,0.2);">
+                <option value="">Select second scenario...</option>
+              </select>
+            </div>
+            <div id="comparisonResults"></div>
+          </div>
+        </div>
       ` : `
         <div class="calculation-status">
           <p style="font-size: 1.2rem; margin-bottom: 10px;">👆 Start by filling out your profile above</p>
@@ -3730,6 +3759,10 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
             if (loadingOverlay) loadingOverlay.classList.remove('show');
             if (result.success) {
               alert('✅ Scenario saved successfully!\\n\\n"' + scenarioName + '" has been saved.');
+              // Refresh the scenario list to show the new scenario
+              if (typeof refreshScenarioList === 'function') {
+                refreshScenarioList();
+              }
             } else {
               alert('❌ Error saving scenario: ' + (result.error || 'Unknown error'));
             }
@@ -3741,6 +3774,443 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
           })
           .saveScenario('${clientId}', scenario);
       }
+    }
+
+    // ============ SCENARIO MANAGEMENT FUNCTIONS ============
+
+    // Store scenarios for client-side access
+    var savedScenarios = [];
+    var preSurveyDataForComparison = ${JSON.stringify(preSurveyData || {})};
+
+    // Load and display scenarios on page load
+    function refreshScenarioList() {
+      var container = document.getElementById('scenarioListContainer');
+      container.innerHTML = '<p style="color: var(--color-text-muted); font-style: italic;">Loading...</p>';
+
+      google.script.run
+        .withSuccessHandler(function(scenarios) {
+          savedScenarios = scenarios || [];
+          renderScenarioList(scenarios);
+          updateComparisonDropdowns(scenarios);
+        })
+        .withFailureHandler(function(error) {
+          container.innerHTML = '<p style="color: #ef4444;">Error loading scenarios: ' + error.message + '</p>';
+        })
+        .getScenariosFromSheet('${clientId}');
+    }
+
+    // Render the scenario list
+    function renderScenarioList(scenarios) {
+      var container = document.getElementById('scenarioListContainer');
+
+      if (!scenarios || scenarios.length === 0) {
+        container.innerHTML = '<p style="color: var(--color-text-muted);">No saved scenarios yet. Use the "Save Scenario" button above to save your allocation.</p>';
+        document.getElementById('comparisonView').style.display = 'none';
+        return;
+      }
+
+      var html = '<div style="display: flex; flex-direction: column; gap: 12px;">';
+
+      scenarios.forEach(function(scenario, index) {
+        var timestamp = new Date(scenario.timestamp);
+        var dateStr = timestamp.toLocaleDateString() + ' ' + timestamp.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+
+        html += '<div class="scenario-card" style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);">';
+        html += '<div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px;">';
+        html += '<div>';
+        html += '<div style="font-weight: 600; color: var(--color-text-primary); margin-bottom: 5px;">' + scenario.name + '</div>';
+        html += '<div style="font-size: 0.85rem; color: var(--color-text-muted);">';
+        html += 'M:' + scenario.allocations.Multiply + '% ';
+        html += 'E:' + scenario.allocations.Essentials + '% ';
+        html += 'F:' + scenario.allocations.Freedom + '% ';
+        html += 'J:' + scenario.allocations.Enjoyment + '%';
+        html += '</div>';
+        html += '<div style="font-size: 0.8rem; color: var(--color-text-muted); margin-top: 3px;">Saved: ' + dateStr + '</div>';
+        html += '</div>';
+        html += '<div style="display: flex; gap: 8px;">';
+        html += '<button type="button" onclick="loadScenario(' + index + ')" style="padding: 6px 12px; font-size: 0.85rem; background: rgba(79, 70, 229, 0.2); border: 1px solid rgba(79, 70, 229, 0.4); color: var(--color-primary); border-radius: 6px; cursor: pointer;">Load</button>';
+        html += '<button type="button" onclick="deleteScenarioConfirm(' + index + ')" style="padding: 6px 12px; font-size: 0.85rem; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); color: #ef4444; border-radius: 6px; cursor: pointer;">Delete</button>';
+        html += '</div>';
+        html += '</div>';
+        html += '</div>';
+      });
+
+      html += '</div>';
+
+      // Show compare button if 2+ scenarios
+      if (scenarios.length >= 2) {
+        html += '<div style="margin-top: 15px; text-align: center;">';
+        html += '<button type="button" onclick="showComparisonView()" class="btn-secondary" style="padding: 10px 20px;">📊 Compare Scenarios</button>';
+        html += '</div>';
+      }
+
+      container.innerHTML = html;
+    }
+
+    // Load a scenario into the calculator
+    function loadScenario(index) {
+      var scenario = savedScenarios[index];
+      if (!scenario) return;
+
+      // Update calculator state
+      calculatorState.buckets.Multiply = scenario.allocations.Multiply;
+      calculatorState.buckets.Essentials = scenario.allocations.Essentials;
+      calculatorState.buckets.Freedom = scenario.allocations.Freedom;
+      calculatorState.buckets.Enjoyment = scenario.allocations.Enjoyment;
+
+      // Update UI
+      updateAllSliders();
+
+      // Scroll to calculator
+      document.querySelector('.interactive-calculator').scrollIntoView({ behavior: 'smooth' });
+
+      alert('Loaded scenario: "' + scenario.name + '"');
+    }
+
+    // Delete confirmation
+    function deleteScenarioConfirm(index) {
+      var scenario = savedScenarios[index];
+      if (!scenario) return;
+
+      if (confirm('Delete scenario "' + scenario.name + '"?\\n\\nThis cannot be undone.')) {
+        google.script.run
+          .withSuccessHandler(function(result) {
+            if (result.success) {
+              alert('Scenario deleted.');
+              refreshScenarioList();
+            } else {
+              alert('Error deleting scenario: ' + (result.error || 'Unknown error'));
+            }
+          })
+          .withFailureHandler(function(error) {
+            alert('Error deleting scenario: ' + error.message);
+          })
+          .deleteScenario('${clientId}', scenario.name);
+      }
+    }
+
+    // Show comparison view
+    function showComparisonView() {
+      document.getElementById('comparisonView').style.display = 'block';
+      document.getElementById('comparisonView').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // Update comparison dropdowns
+    function updateComparisonDropdowns(scenarios) {
+      var select1 = document.getElementById('scenario1Select');
+      var select2 = document.getElementById('scenario2Select');
+
+      var options = '<option value="">Select scenario...</option>';
+      scenarios.forEach(function(scenario, index) {
+        options += '<option value="' + index + '">' + scenario.name + ' (M:' + scenario.allocations.Multiply + '% E:' + scenario.allocations.Essentials + '% F:' + scenario.allocations.Freedom + '% J:' + scenario.allocations.Enjoyment + '%)</option>';
+      });
+
+      select1.innerHTML = options;
+      select2.innerHTML = options;
+    }
+
+    // Update comparison when selections change
+    function updateComparison() {
+      var select1 = document.getElementById('scenario1Select');
+      var select2 = document.getElementById('scenario2Select');
+      var resultsContainer = document.getElementById('comparisonResults');
+
+      var index1 = select1.value;
+      var index2 = select2.value;
+
+      if (index1 === '' || index2 === '' || index1 === index2) {
+        resultsContainer.innerHTML = '<p style="color: var(--color-text-muted); font-style: italic;">Select two different scenarios to compare.</p>';
+        return;
+      }
+
+      var scenario1 = savedScenarios[parseInt(index1)];
+      var scenario2 = savedScenarios[parseInt(index2)];
+
+      if (!scenario1 || !scenario2) return;
+
+      // Generate comparison
+      var monthlyIncome = preSurveyDataForComparison.monthlyIncome || scenario1.monthlyIncome || scenario2.monthlyIncome || 0;
+      renderComparisonResults(scenario1, scenario2, monthlyIncome);
+    }
+
+    // Render comparison results with impact narratives
+    function renderComparisonResults(scenario1, scenario2, monthlyIncome) {
+      var resultsContainer = document.getElementById('comparisonResults');
+      var hasDebt = preSurveyDataForComparison.totalDebt && preSurveyDataForComparison.totalDebt > 0;
+
+      // Calculate differences
+      var diffs = {};
+      ['Multiply', 'Essentials', 'Freedom', 'Enjoyment'].forEach(function(bucket) {
+        var pct1 = scenario1.allocations[bucket] || 0;
+        var pct2 = scenario2.allocations[bucket] || 0;
+        var dollar1 = Math.round(monthlyIncome * pct1 / 100);
+        var dollar2 = Math.round(monthlyIncome * pct2 / 100);
+        diffs[bucket] = {
+          pct1: pct1,
+          pct2: pct2,
+          pctDiff: pct2 - pct1,
+          dollar1: dollar1,
+          dollar2: dollar2,
+          dollarDiff: dollar2 - dollar1,
+          isSignificant: Math.abs(dollar2 - dollar1) >= 200 || Math.abs(pct2 - pct1) >= 5
+        };
+      });
+
+      // Build HTML
+      var html = '';
+
+      // Allocation comparison table
+      html += '<div style="background: rgba(255,255,255,0.05); border-radius: 8px; overflow: hidden; margin-bottom: 20px;">';
+      html += '<table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">';
+      html += '<thead><tr style="background: rgba(79, 70, 229, 0.2);">';
+      html += '<th style="padding: 12px; text-align: left; color: var(--color-text-primary);">Bucket</th>';
+      html += '<th style="padding: 12px; text-align: center; color: var(--color-text-primary);">' + scenario1.name + '</th>';
+      html += '<th style="padding: 12px; text-align: center; color: var(--color-text-primary);">' + scenario2.name + '</th>';
+      html += '<th style="padding: 12px; text-align: center; color: var(--color-text-primary);">Difference</th>';
+      html += '</tr></thead><tbody>';
+
+      ['Multiply', 'Essentials', 'Freedom', 'Enjoyment'].forEach(function(bucket) {
+        var d = diffs[bucket];
+        var diffColor = d.dollarDiff > 0 ? '#10b981' : (d.dollarDiff < 0 ? '#ef4444' : 'var(--color-text-muted)');
+        var diffSign = d.dollarDiff > 0 ? '+' : '';
+        var icon = bucket === 'Multiply' ? '💰' : (bucket === 'Essentials' ? '🏠' : (bucket === 'Freedom' ? '🚀' : '🎉'));
+
+        html += '<tr style="border-top: 1px solid rgba(255,255,255,0.1);">';
+        html += '<td style="padding: 12px; color: var(--color-text-primary);">' + icon + ' ' + bucket + '</td>';
+        html += '<td style="padding: 12px; text-align: center; color: var(--color-text-secondary);">' + d.pct1 + '% <span style="color: #ffc107;">($' + d.dollar1.toLocaleString() + ')</span></td>';
+        html += '<td style="padding: 12px; text-align: center; color: var(--color-text-secondary);">' + d.pct2 + '% <span style="color: #ffc107;">($' + d.dollar2.toLocaleString() + ')</span></td>';
+        html += '<td style="padding: 12px; text-align: center; color: ' + diffColor + '; font-weight: 600;">' + diffSign + d.pctDiff + '% (' + diffSign + '$' + Math.abs(d.dollarDiff).toLocaleString() + ')</td>';
+        html += '</tr>';
+      });
+
+      html += '</tbody></table></div>';
+
+      // Impact narratives for significant changes
+      html += '<div style="margin-bottom: 20px;">';
+      html += '<h4 style="color: var(--color-text-primary); margin-bottom: 15px;">💡 What This Difference Means</h4>';
+
+      var hasSignificantChanges = false;
+      ['Multiply', 'Freedom', 'Enjoyment', 'Essentials'].forEach(function(bucket) {
+        var d = diffs[bucket];
+        if (d.isSignificant) {
+          hasSignificantChanges = true;
+          html += renderBucketImpactHtml(bucket, d, hasDebt, monthlyIncome);
+        }
+      });
+
+      if (!hasSignificantChanges) {
+        html += '<p style="color: var(--color-text-muted);">These scenarios are quite similar - differences are minor.</p>';
+      }
+
+      html += '</div>';
+
+      // Bottom line summary
+      html += renderBottomLine(scenario1, scenario2, diffs, hasDebt);
+
+      // Action buttons
+      html += '<div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px; flex-wrap: wrap;">';
+      html += '<button type="button" onclick="loadScenarioByName(\\'' + scenario1.name.replace(/'/g, "\\\\'") + '\\')" class="btn-secondary">Load "' + scenario1.name + '"</button>';
+      html += '<button type="button" onclick="loadScenarioByName(\\'' + scenario2.name.replace(/'/g, "\\\\'") + '\\')" class="btn-secondary">Load "' + scenario2.name + '"</button>';
+      html += '</div>';
+
+      resultsContainer.innerHTML = html;
+    }
+
+    // Render individual bucket impact HTML
+    function renderBucketImpactHtml(bucket, diff, hasDebt, monthlyIncome) {
+      var direction = diff.dollarDiff > 0 ? 'positive' : 'negative';
+      var absDollar = Math.abs(diff.dollarDiff);
+      var absPct = Math.abs(diff.pctDiff);
+      var yearlyDiff = absDollar * 12;
+
+      var title, impacts, tradeoff;
+      var icon = bucket === 'Multiply' ? '💰' : (bucket === 'Essentials' ? '🏠' : (bucket === 'Freedom' ? '🚀' : '🎉'));
+      var borderColor = direction === 'positive' ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)';
+      var bgColor = direction === 'positive' ? 'rgba(16, 185, 129, 0.05)' : 'rgba(239, 68, 68, 0.05)';
+
+      if (bucket === 'Multiply') {
+        if (direction === 'positive') {
+          title = icon + ' Multiply: +$' + absDollar + '/month (+' + absPct + '%)';
+          impacts = [
+            'Over one year, that is $' + yearlyDiff.toLocaleString() + ' MORE working for you',
+            'The difference between building wealth slowly vs building momentum',
+            'Starting compound growth earlier vs waiting'
+          ];
+          tradeoff = 'Trade-off: Less available now for ' + (hasDebt ? 'debt payoff and ' : '') + 'day-to-day needs';
+        } else {
+          title = icon + ' Multiply: -$' + absDollar + '/month (-' + absPct + '%)';
+          impacts = [
+            'Over one year, that is $' + yearlyDiff.toLocaleString() + ' LESS invested',
+            'Wealth building takes a back seat in this approach',
+            'Could delay financial independence by years'
+          ];
+          tradeoff = 'Benefit: More available for other priorities right now';
+        }
+      } else if (bucket === 'Freedom') {
+        if (direction === 'positive') {
+          title = icon + ' Freedom: +$' + absDollar + '/month (+' + absPct + '%)';
+          if (hasDebt) {
+            impacts = [
+              'Extra $' + absDollar + ' toward debt = paying off faster',
+              'Could save thousands in interest over time',
+              'Debt freedom months or years sooner'
+            ];
+          } else {
+            impacts = [
+              'Extra $' + absDollar + ' for emergency fund or big goals',
+              'Building financial cushion faster',
+              'More flexibility for opportunities'
+            ];
+          }
+          tradeoff = 'Trade-off: Less available for investing and lifestyle now';
+        } else {
+          title = icon + ' Freedom: -$' + absDollar + '/month (-' + absPct + '%)';
+          if (hasDebt) {
+            impacts = [
+              'Less going toward debt payoff each month',
+              'Debt takes longer to clear, more interest paid',
+              'Financial freedom delayed'
+            ];
+          } else {
+            impacts = [
+              'Smaller safety cushion being built',
+              'Less flexibility for emergencies',
+              'Slower progress on big goals'
+            ];
+          }
+          tradeoff = 'Benefit: More available for other priorities now';
+        }
+      } else if (bucket === 'Enjoyment') {
+        var lifestyleExample = translateToLifestyleClient(diff.dollar2);
+        if (direction === 'positive') {
+          title = icon + ' Enjoyment: +$' + absDollar + '/month (+' + absPct + '%)';
+          impacts = [
+            'That could be: ' + lifestyleExample,
+            'Breathing room to avoid burnout',
+            'Small joys now can prevent big binges later'
+          ];
+          tradeoff = hasDebt ? 'Trade-off: Debt payoff takes longer' : 'Trade-off: Less going toward future you';
+        } else {
+          title = icon + ' Enjoyment: -$' + absDollar + '/month (-' + absPct + '%)';
+          impacts = [
+            'Tighter lifestyle in exchange for faster progress',
+            'Requires discipline and sustainable habits',
+            'Risk: Could lead to feeling deprived'
+          ];
+          tradeoff = 'Benefit: More going toward wealth building or financial freedom';
+        }
+      } else { // Essentials
+        if (direction === 'positive') {
+          title = icon + ' Essentials: +$' + absDollar + '/month (+' + absPct + '%)';
+          impacts = [
+            'More cushion for fixed expenses',
+            'Accounts for variable costs',
+            'Less stress about staying on budget'
+          ];
+          tradeoff = 'Trade-off: Less available for other financial goals';
+        } else {
+          title = icon + ' Essentials: -$' + absDollar + '/month (-' + absPct + '%)';
+          impacts = [
+            'Tighter budget for necessities',
+            'May require cutting expenses',
+            'Risk: Could be unrealistic'
+          ];
+          tradeoff = 'Benefit: More available for wealth building, freedom, or enjoyment';
+        }
+      }
+
+      var html = '<div style="background: ' + bgColor + '; border: 1px solid ' + borderColor + '; border-radius: 8px; padding: 15px; margin-bottom: 12px;">';
+      html += '<div style="font-weight: 600; color: var(--color-text-primary); margin-bottom: 8px;">' + title + '</div>';
+      html += '<ul style="margin: 0 0 10px 20px; padding: 0; color: var(--color-text-secondary);">';
+      impacts.forEach(function(impact) {
+        html += '<li style="margin-bottom: 4px;">' + impact + '</li>';
+      });
+      html += '</ul>';
+      html += '<div style="font-size: 0.85rem; color: var(--color-text-muted); font-style: italic;">' + tradeoff + '</div>';
+      html += '</div>';
+
+      return html;
+    }
+
+    // Client-side lifestyle translation
+    function translateToLifestyleClient(monthlyAmount) {
+      if (monthlyAmount >= 500) return '2-3 nice dinners out per month, or a weekend trip every quarter';
+      if (monthlyAmount >= 250) return 'One nice dinner per week, or a monthly hobby budget';
+      if (monthlyAmount >= 100) return 'Coffee dates with friends, occasional treats';
+      return 'Small pleasures - a book, a coffee, breathing room';
+    }
+
+    // Render bottom line summary
+    function renderBottomLine(scenario1, scenario2, diffs, hasDebt) {
+      var strategy1 = detectStrategyClient(scenario1, hasDebt);
+      var strategy2 = detectStrategyClient(scenario2, hasDebt);
+
+      var html = '<div style="background: rgba(79, 70, 229, 0.1); border: 1px solid rgba(79, 70, 229, 0.3); border-radius: 8px; padding: 20px; margin-top: 15px;">';
+      html += '<h4 style="color: var(--color-text-primary); margin: 0 0 15px 0;">🎯 Bottom Line</h4>';
+      html += '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">';
+      html += '<div><strong style="color: var(--color-primary);">' + scenario1.name + '</strong><br><span style="color: var(--color-text-secondary);">' + strategy1.description + '</span></div>';
+      html += '<div><strong style="color: var(--color-primary);">' + scenario2.name + '</strong><br><span style="color: var(--color-text-secondary);">' + strategy2.description + '</span></div>';
+      html += '</div>';
+      html += '<div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(79, 70, 229, 0.2); text-align: center; color: var(--color-text-muted); font-style: italic;">' + strategy2.reflection + '</div>';
+      html += '</div>';
+
+      return html;
+    }
+
+    // Client-side strategy detection
+    function detectStrategyClient(scenario, hasDebt) {
+      var allocs = scenario.allocations;
+
+      if (allocs.Freedom > 35) {
+        return {
+          name: hasDebt ? 'Debt Payoff Focus' : 'Safety Cushion Focus',
+          description: hasDebt ? 'Prioritizes debt payoff and getting financially free' : 'Prioritizes building safety cushion and emergency fund',
+          reflection: hasDebt ? 'Do you have the discipline to stay tight for faster debt freedom?' : 'Do you have stable income to justify aggressive saving?'
+        };
+      }
+      if (allocs.Multiply > 30) {
+        return {
+          name: 'Wealth Building Focus',
+          description: 'Aggressive wealth building, requires stability',
+          reflection: 'Do you have the safety net to invest aggressively?'
+        };
+      }
+      var values = [allocs.Multiply, allocs.Freedom, allocs.Enjoyment, allocs.Essentials];
+      var range = Math.max.apply(null, values) - Math.min.apply(null, values);
+      if (range < 15) {
+        return {
+          name: 'Balanced Approach',
+          description: 'Balanced approach, makes progress on all fronts',
+          reflection: 'Sometimes good enough on everything beats perfect on one thing'
+        };
+      }
+      if (allocs.Enjoyment > 25) {
+        return {
+          name: 'Lifestyle Priority',
+          description: 'Values quality of life now, slower financial progress',
+          reflection: 'Is this sustainable joy or are you avoiding the hard stuff?'
+        };
+      }
+      return {
+        name: 'Custom Approach',
+        description: 'Your unique allocation based on personal priorities',
+        reflection: 'What matters most to you right now?'
+      };
+    }
+
+    // Load scenario by name (for comparison action buttons)
+    function loadScenarioByName(name) {
+      for (var i = 0; i < savedScenarios.length; i++) {
+        if (savedScenarios[i].name === name) {
+          loadScenario(i);
+          return;
+        }
+      }
+    }
+
+    // Initialize: Load scenarios on page load
+    if (document.getElementById('scenarioListContainer')) {
+      refreshScenarioList();
     }
 
     // ============ END INTERACTIVE CALCULATOR LOGIC ============
@@ -6593,6 +7063,293 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
   },
 
   // ============================================================================
+  // PHASE 5: SCENARIO COMPARISON SYSTEM
+  // ============================================================================
+
+  /**
+   * Calculate differences between two scenarios
+   */
+  calculateScenarioDifferences(scenario1, scenario2, monthlyIncome) {
+    const diffs = {};
+    ['Multiply', 'Essentials', 'Freedom', 'Enjoyment'].forEach(bucket => {
+      const pct1 = scenario1.allocations[bucket] || 0;
+      const pct2 = scenario2.allocations[bucket] || 0;
+      const pctDiff = pct2 - pct1;
+      const dollar1 = Math.round(monthlyIncome * pct1 / 100);
+      const dollar2 = Math.round(monthlyIncome * pct2 / 100);
+      const dollarDiff = dollar2 - dollar1;
+      diffs[bucket] = {
+        pct1, pct2, pctDiff, dollar1, dollar2, dollarDiff,
+        isSignificant: Math.abs(dollarDiff) >= 200 || Math.abs(pctDiff) >= 5
+      };
+    });
+    return diffs;
+  },
+
+  /**
+   * Translate dollar amount to lifestyle examples
+   */
+  translateToLifestyle(monthlyAmount) {
+    if (monthlyAmount >= 500) return '2-3 nice dinners out per month, or a weekend trip every quarter';
+    if (monthlyAmount >= 250) return 'One nice dinner per week, or a monthly hobby budget';
+    if (monthlyAmount >= 100) return 'Coffee dates with friends, occasional treats';
+    return 'Small pleasures - a book, a coffee, breathing room';
+  },
+
+  /**
+   * Detect overall strategy of a scenario
+   */
+  detectStrategy(scenario, preSurveyData) {
+    const { Multiply, Freedom, Enjoyment, Essentials } = scenario.allocations;
+    const hasDebt = preSurveyData && preSurveyData.totalDebt > 0;
+
+    if (Freedom > 35) {
+      return {
+        name: hasDebt ? 'Debt Payoff Focus' : 'Safety Cushion Focus',
+        description: hasDebt ? 'Prioritizes debt payoff and getting financially free' : 'Prioritizes building safety cushion and emergency fund',
+        reflection: hasDebt ? 'Do you have the discipline to stay tight for faster debt freedom?' : 'Do you have stable income to justify aggressive saving?'
+      };
+    }
+    if (Multiply > 30) {
+      return {
+        name: 'Wealth Building Focus',
+        description: 'Aggressive wealth building, requires stability',
+        reflection: 'Do you have the safety net to invest aggressively?'
+      };
+    }
+    const values = [Multiply, Freedom, Enjoyment, Essentials];
+    const range = Math.max(...values) - Math.min(...values);
+    if (range < 15) {
+      return {
+        name: 'Balanced Approach',
+        description: 'Balanced approach, makes progress on all fronts',
+        reflection: 'Sometimes good enough on everything beats perfect on one thing'
+      };
+    }
+    if (Enjoyment > 25) {
+      return {
+        name: 'Lifestyle Priority',
+        description: 'Values quality of life now, slower financial progress',
+        reflection: 'Is this sustainable joy or are you avoiding the hard stuff?'
+      };
+    }
+    return {
+      name: 'Custom Approach',
+      description: 'Your unique allocation based on personal priorities',
+      reflection: 'What matters most to you right now?'
+    };
+  },
+
+  /**
+   * Generate impact narrative for a bucket change
+   */
+  generateBucketImpact(bucket, diff, preSurveyData) {
+    const hasDebt = preSurveyData && preSurveyData.totalDebt > 0;
+    const direction = diff.dollarDiff > 0 ? 'positive' : 'negative';
+    const absDollar = Math.abs(diff.dollarDiff);
+    const absPct = Math.abs(diff.pctDiff);
+    const yearlyDiff = absDollar * 12;
+
+    const narratives = {
+      Multiply: {
+        positive: {
+          title: 'Multiply: +$' + absDollar + '/month (+' + absPct + '%)',
+          impact: [
+            'Over one year, that is $' + yearlyDiff + ' MORE working for you',
+            'The difference between building wealth slowly vs building momentum',
+            'Starting compound growth earlier vs waiting'
+          ],
+          tradeoff: 'Less available now for ' + (hasDebt ? 'debt payoff and ' : '') + 'day-to-day needs'
+        },
+        negative: {
+          title: 'Multiply: -$' + absDollar + '/month (-' + absPct + '%)',
+          impact: [
+            'Over one year, that is $' + yearlyDiff + ' LESS invested',
+            'Wealth building takes a back seat in this approach',
+            'Could delay financial independence by years'
+          ],
+          benefit: 'More available for other priorities right now'
+        }
+      },
+      Freedom: {
+        positive: hasDebt ? {
+          title: 'Freedom: +$' + absDollar + '/month (+' + absPct + '%)',
+          impact: [
+            'Extra $' + absDollar + ' toward debt = paying off faster',
+            'Could save thousands in interest over time',
+            'Debt freedom months or years sooner'
+          ],
+          tradeoff: 'Less available for investing and lifestyle now'
+        } : {
+          title: 'Freedom: +$' + absDollar + '/month (+' + absPct + '%)',
+          impact: [
+            'Extra $' + absDollar + ' for emergency fund or big goals',
+            'Building financial cushion faster',
+            'More flexibility for opportunities'
+          ],
+          tradeoff: 'Less available for investing and enjoyment now'
+        },
+        negative: hasDebt ? {
+          title: 'Freedom: -$' + absDollar + '/month (-' + absPct + '%)',
+          impact: [
+            'Less going toward debt payoff each month',
+            'Debt takes longer to clear, more interest paid',
+            'Financial freedom delayed'
+          ],
+          benefit: 'More available for other priorities now'
+        } : {
+          title: 'Freedom: -$' + absDollar + '/month (-' + absPct + '%)',
+          impact: [
+            'Smaller safety cushion being built',
+            'Less flexibility for emergencies',
+            'Slower progress on big goals'
+          ],
+          benefit: 'More available for investing or lifestyle'
+        }
+      },
+      Enjoyment: {
+        positive: {
+          title: 'Enjoyment: +$' + absDollar + '/month (+' + absPct + '%)',
+          impact: [
+            'That could be: ' + this.translateToLifestyle(diff.dollar2),
+            'Breathing room to avoid burnout',
+            'Small joys now can prevent big binges later'
+          ],
+          tradeoff: hasDebt ? 'Debt payoff takes longer, more interest paid' : 'Less going toward future you'
+        },
+        negative: {
+          title: 'Enjoyment: -$' + absDollar + '/month (-' + absPct + '%)',
+          impact: [
+            'Tighter lifestyle in exchange for faster progress',
+            'Requires discipline and sustainable habits',
+            'Risk: Could lead to feeling deprived'
+          ],
+          benefit: 'More going toward wealth building or financial freedom'
+        }
+      },
+      Essentials: {
+        positive: {
+          title: 'Essentials: +$' + absDollar + '/month (+' + absPct + '%)',
+          impact: [
+            'More cushion for fixed expenses',
+            'Accounts for variable costs (utilities, groceries)',
+            'Less stress about staying on budget'
+          ],
+          tradeoff: 'Less available for other financial goals'
+        },
+        negative: {
+          title: 'Essentials: -$' + absDollar + '/month (-' + absPct + '%)',
+          impact: [
+            'Tighter budget for necessities',
+            'May require cutting expenses or lifestyle changes',
+            'Risk: Could be unrealistic if expenses are actually higher'
+          ],
+          benefit: 'More available for wealth building, freedom, or enjoyment'
+        }
+      }
+    };
+    return narratives[bucket][direction];
+  },
+
+  /**
+   * Generate complete comparison narrative
+   */
+  generateComparisonNarrative(scenario1, scenario2, preSurveyData) {
+    const monthlyIncome = preSurveyData.monthlyIncome || 0;
+    const diffs = this.calculateScenarioDifferences(scenario1, scenario2, monthlyIncome);
+    const strategy1 = this.detectStrategy(scenario1, preSurveyData);
+    const strategy2 = this.detectStrategy(scenario2, preSurveyData);
+
+    const bucketNarratives = [];
+    ['Multiply', 'Freedom', 'Enjoyment', 'Essentials'].forEach(bucket => {
+      const diff = diffs[bucket];
+      if (diff.isSignificant) {
+        bucketNarratives.push(this.generateBucketImpact(bucket, diff, preSurveyData));
+      }
+    });
+
+    return { diffs, strategy1, strategy2, bucketNarratives };
+  },
+
+  /**
+   * Delete a saved scenario
+   */
+  deleteScenario(clientId, scenarioName) {
+    try {
+      const scenariosSheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.TOOL4_SCENARIOS);
+      if (!scenariosSheet) {
+        return { success: false, error: 'Scenarios sheet not found' };
+      }
+
+      const data = scenariosSheet.getDataRange().getValues();
+      for (let i = 1; i < data.length; i++) {
+        const rowClientId = data[i][1];
+        const rowScenarioName = data[i][2];
+        if (rowClientId === clientId && rowScenarioName === scenarioName) {
+          scenariosSheet.deleteRow(i + 1);
+          SpreadsheetApp.flush();
+          Logger.log('Deleted scenario "' + scenarioName + '" for client ' + clientId);
+          return { success: true };
+        }
+      }
+      return { success: false, error: 'Scenario not found' };
+    } catch (error) {
+      Logger.log('Error deleting scenario: ' + error);
+      return { success: false, error: error.toString() };
+    }
+  },
+
+  /**
+   * Get all scenarios for a client from the sheet
+   */
+  getScenariosFromSheet(clientId) {
+    try {
+      const scenariosSheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.TOOL4_SCENARIOS);
+      if (!scenariosSheet) {
+        Logger.log('TOOL4_SCENARIOS sheet not found');
+        return [];
+      }
+
+      const data = scenariosSheet.getDataRange().getValues();
+      const headers = data[0];
+      const scenarios = [];
+
+      const clientIdCol = headers.indexOf('Client_ID');
+      const nameCol = headers.indexOf('Scenario_Name');
+      const timestampCol = headers.indexOf('Timestamp');
+      const priorityCol = headers.indexOf('Priority_Selected');
+      const incomeCol = headers.indexOf('Monthly_Income');
+      const multiplyCol = headers.indexOf('Custom_M_Percent');
+      const essentialsCol = headers.indexOf('Custom_E_Percent');
+      const freedomCol = headers.indexOf('Custom_F_Percent');
+      const enjoymentCol = headers.indexOf('Custom_J_Percent');
+
+      for (let i = 1; i < data.length; i++) {
+        if (data[i][clientIdCol] === clientId) {
+          scenarios.push({
+            name: data[i][nameCol],
+            timestamp: data[i][timestampCol],
+            priority: data[i][priorityCol],
+            monthlyIncome: data[i][incomeCol],
+            allocations: {
+              Multiply: data[i][multiplyCol],
+              Essentials: data[i][essentialsCol],
+              Freedom: data[i][freedomCol],
+              Enjoyment: data[i][enjoymentCol]
+            }
+          });
+        }
+      }
+
+      scenarios.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      return scenarios;
+    } catch (error) {
+      Logger.log('Error getting scenarios from sheet: ' + error);
+      return [];
+    }
+  },
+
+  // ============================================================================
   // RENDERING METHODS
   // ============================================================================
 
@@ -6656,4 +7413,28 @@ function savePrioritySelection(clientId, selectedPriority, goalTimeline) {
  */
 function saveScenario(clientId, scenario) {
   return Tool4.saveScenario(clientId, scenario);
+}
+
+/**
+ * Global wrapper for deleting a scenario
+ * Called by: Scenario list (Delete button)
+ */
+function deleteScenario(clientId, scenarioName) {
+  return Tool4.deleteScenario(clientId, scenarioName);
+}
+
+/**
+ * Global wrapper for getting all scenarios from sheet
+ * Called by: Scenario list component
+ */
+function getScenariosFromSheet(clientId) {
+  return Tool4.getScenariosFromSheet(clientId);
+}
+
+/**
+ * Global wrapper for generating comparison narrative
+ * Called by: Comparison view
+ */
+function generateComparisonNarrative(scenario1, scenario2, preSurveyData) {
+  return Tool4.generateComparisonNarrative(scenario1, scenario2, preSurveyData);
 }
