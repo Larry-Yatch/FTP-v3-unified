@@ -2837,7 +2837,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
           warnings.push({
             severity: 'suggestion',
             bucket: bucket,
-            message: 'Your "' + priority + '" priority typically allocates ' + min + '%+ to ' + bucket + ', but you\'re at ' + formatDollars(actual) + '. Consider adjusting or re-evaluating your priority.'
+            message: 'Your "' + priority + '" priority typically allocates ' + min + '%+ to ' + bucket + ', but you are at ' + formatDollars(actual) + '. Consider adjusting or re-evaluating your priority.'
           });
         }
       });
