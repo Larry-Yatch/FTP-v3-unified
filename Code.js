@@ -372,6 +372,46 @@ function generateTool5PDF(clientId) {
 }
 
 /**
+ * Generate PDF for Tool 4 Financial Freedom Framework Main Report
+ * @param {string} clientId - Client ID
+ * @returns {object} {success, pdf, fileName, mimeType} or {success: false, error}
+ */
+function generateTool4MainPDF(clientId) {
+  const result = PDFGenerator.generateTool4MainPDF(clientId);
+
+  // Log PDF download activity if successful
+  if (result.success) {
+    DataService.logActivity(clientId, 'pdf_downloaded', {
+      toolId: 'tool4',
+      details: 'Downloaded Tool 4 Main PDF report'
+    });
+  }
+
+  return result;
+}
+
+/**
+ * Generate PDF for Tool 4 Scenario Comparison Report
+ * @param {string} clientId - Client ID
+ * @param {Object} scenario1 - First scenario data
+ * @param {Object} scenario2 - Second scenario data
+ * @returns {object} {success, pdf, fileName, mimeType} or {success: false, error}
+ */
+function generateTool4ComparisonPDF(clientId, scenario1, scenario2) {
+  const result = PDFGenerator.generateTool4ComparisonPDF(clientId, scenario1, scenario2);
+
+  // Log PDF download activity if successful
+  if (result.success) {
+    DataService.logActivity(clientId, 'pdf_downloaded', {
+      toolId: 'tool4',
+      details: 'Downloaded Tool 4 Comparison PDF report'
+    });
+  }
+
+  return result;
+}
+
+/**
  * GENERIC: Save tool page data (called from client via google.script.run)
  * Works for ANY tool that implements savePageData()
  *

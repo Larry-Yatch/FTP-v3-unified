@@ -330,13 +330,45 @@ const Tool4 = {
         Logger.log(`Verification - Last row data: ${JSON.stringify(lastRow)}`);
       }
 
-      // Count scenarios for this client
+      // Count scenarios for this client and enforce limit
+      const MAX_SCENARIOS_PER_CLIENT = 10;
       const dataRange = scenariosSheet.getDataRange().getValues();
-      const clientScenarios = dataRange.filter((row, index) => index > 0 && row[1] === clientId);
-      const isFirstScenario = clientScenarios.length === 1;
-      Logger.log(`Client ${clientId} now has ${clientScenarios.length} scenario(s)`);
+      const headers = dataRange[0];
+      const timestampCol = headers.indexOf('Timestamp');
+      const clientIdCol = headers.indexOf('Client_ID');
+      const scenarioNameCol = headers.indexOf('Scenario_Name');
 
+      // Find all scenarios for this client with their row indices
+      const clientScenarioRows = [];
+      for (let i = 1; i < dataRange.length; i++) {
+        if (dataRange[i][clientIdCol] === clientId) {
+          clientScenarioRows.push({
+            rowIndex: i + 1, // 1-indexed for sheet operations
+            timestamp: dataRange[i][timestampCol],
+            name: dataRange[i][scenarioNameCol]
+          });
+        }
+      }
 
+      Logger.log(`Client ${clientId} now has ${clientScenarioRows.length} scenario(s)`);
+
+      // If over limit, delete the oldest scenario (FIFO)
+      let deletedScenario = null;
+      if (clientScenarioRows.length > MAX_SCENARIOS_PER_CLIENT) {
+        // Sort by timestamp ascending (oldest first)
+        clientScenarioRows.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+        const oldestScenario = clientScenarioRows[0];
+
+        Logger.log(`Deleting oldest scenario "${oldestScenario.name}" at row ${oldestScenario.rowIndex} to enforce ${MAX_SCENARIOS_PER_CLIENT} limit`);
+
+        scenariosSheet.deleteRow(oldestScenario.rowIndex);
+        SpreadsheetApp.flush();
+        deletedScenario = oldestScenario.name;
+
+        Logger.log(`Oldest scenario deleted. Client now has ${clientScenarioRows.length - 1} scenarios`);
+      }
+
+      const isFirstScenario = clientScenarioRows.length === 1;
 
       // If this is the first scenario, mark Tool4 as completed in Responses tab
       if (isFirstScenario) {
@@ -363,8 +395,9 @@ const Tool4 = {
       return {
         success: true,
         message: 'Scenario saved successfully',
-        totalScenarios: clientScenarios.length,
-        isFirstScenario: isFirstScenario
+        totalScenarios: clientScenarioRows.length - (deletedScenario ? 1 : 0),
+        isFirstScenario: isFirstScenario,
+        deletedScenario: deletedScenario
       };
     } catch (error) {
       Logger.log(`Error saving scenario: ${error}`);
@@ -452,9 +485,9 @@ const Tool4 = {
     }
 
     .section-title {
-      font-size: 1.3rem;
+      font-size: 1.25rem;
       font-weight: 600;
-      margin-bottom: 8px;
+      margin-bottom: 0;
       color: var(--color-text-primary);
       display: flex;
       align-items: center;
@@ -1509,14 +1542,15 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       padding: 20px 30px;
       cursor: pointer;
       display: flex;
+      justify-content: space-between;
       align-items: center;
-      gap: 12px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(79, 70, 229, 0.1);
+      border-bottom: 2px solid rgba(79, 70, 229, 0.3);
       user-select: none;
     }
 
     .priority-picker-header:hover {
-      background: rgba(255, 255, 255, 0.03);
+      background: rgba(79, 70, 229, 0.15);
     }
 
     .priority-picker-summary {
@@ -2037,7 +2071,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
     <div class="presurvey-section">
       <div class="presurvey-header" onclick="togglePreSurvey()">
         <div class="presurvey-title">
-          ${hasPreSurvey ? '📊 Your Budget Profile' : '📊 Quick Budget Profile Setup (10 questions, 2-3 minutes)'}
+          ${hasPreSurvey ? '📊 Your Allocation Profile' : '📊 Quick Allocation Profile Setup (10 questions, 2-3 minutes)'}
         </div>
         <div style="display: flex; align-items: center; gap: 15px;">
           <span style="font-size: 12px; color: var(--color-text-muted);">(Click to ${hasPreSurvey ? 'expand/collapse' : 'collapse'})</span>
@@ -2305,6 +2339,9 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
             <button type="button" class="btn-secondary" onclick="saveScenario()">
               💾 Save Scenario
             </button>
+            <button type="button" class="btn-secondary" onclick="downloadMainReport()">
+              📄 Download Report
+            </button>
           </div>
 
           <!-- Validation Results (inline display) -->
@@ -2441,32 +2478,46 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
           </div>
         </div>
 
-        <!-- Saved Scenarios Section -->
-        <div class="saved-scenarios-section" style="margin-top: 30px; padding: 25px; background: rgba(255, 255, 255, 0.03); border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.1);">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <h3 style="margin: 0; color: var(--color-text-primary);">💾 Saved Scenarios</h3>
-            <button type="button" class="btn-secondary" onclick="refreshScenarioList()" style="font-size: 0.85rem; padding: 6px 12px;">
-              ↻ Refresh
-            </button>
-          </div>
-
-          <div id="scenarioListContainer">
-            <p style="color: var(--color-text-muted); font-style: italic;">Loading saved scenarios...</p>
-          </div>
-
-          <!-- Comparison View (hidden by default) -->
-          <div id="comparisonView" style="display: none; margin-top: 25px; padding-top: 25px; border-top: 1px solid rgba(255, 255, 255, 0.1);">
-            <h4 style="color: var(--color-text-primary); margin-bottom: 15px;">📊 Compare Scenarios</h4>
-            <div style="display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap;">
-              <select id="scenario1Select" onchange="updateComparison()" style="flex: 1; min-width: 200px; padding: 10px; border-radius: 8px; background: rgba(0,0,0,0.3); color: var(--color-text-primary); border: 1px solid rgba(255,255,255,0.2);">
-                <option value="">Select first scenario...</option>
-              </select>
-              <span style="color: var(--color-text-muted); padding: 10px;">vs</span>
-              <select id="scenario2Select" onchange="updateComparison()" style="flex: 1; min-width: 200px; padding: 10px; border-radius: 8px; background: rgba(0,0,0,0.3); color: var(--color-text-primary); border: 1px solid rgba(255,255,255,0.2);">
-                <option value="">Select second scenario...</option>
-              </select>
+        <!-- Saved Scenarios Section (Collapsible) -->
+        <div class="saved-scenarios-section" style="margin-top: 30px; background: rgba(255, 255, 255, 0.03); border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.1); overflow: hidden;">
+          <div class="scenarios-header" onclick="toggleSavedScenarios()" style="display: flex; justify-content: space-between; align-items: center; padding: 20px 30px; cursor: pointer; background: rgba(79, 70, 229, 0.1); border-bottom: 2px solid rgba(79, 70, 229, 0.3);">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span style="margin: 0; font-size: 1.25rem; font-weight: 600; color: var(--color-text-primary);">💾 Saved Scenarios</span>
+              <span id="scenarioCount" style="font-size: 0.85rem; color: var(--color-text-muted);"></span>
             </div>
-            <div id="comparisonResults"></div>
+            <div style="display: flex; align-items: center; gap: 15px;">
+              <span style="font-size: 12px; color: var(--color-text-muted);">(Click to expand/collapse)</span>
+              <div class="scenarios-toggle" id="scenariosToggle" style="transition: transform 0.3s ease; font-size: 14px;">▼</div>
+            </div>
+          </div>
+
+          <div class="scenarios-body" id="scenariosBody" style="max-height: 0; overflow: hidden; transition: max-height 0.4s ease, opacity 0.3s ease, padding 0.3s ease; opacity: 0; padding: 0 25px;">
+            <div style="padding-bottom: 25px;">
+              <div style="display: flex; justify-content: flex-end; margin-bottom: 15px;">
+                <button type="button" class="btn-secondary" onclick="event.stopPropagation(); refreshScenarioList();" style="font-size: 0.85rem; padding: 6px 12px;">
+                  ↻ Refresh
+                </button>
+              </div>
+
+              <div id="scenarioListContainer">
+                <p style="color: var(--color-text-muted); font-style: italic;">Loading saved scenarios...</p>
+              </div>
+
+              <!-- Comparison View (hidden by default) -->
+              <div id="comparisonView" style="display: none; margin-top: 25px; padding-top: 25px; border-top: 1px solid rgba(255, 255, 255, 0.1);">
+                <h4 style="color: var(--color-text-primary); margin-bottom: 15px;">📊 Compare Scenarios</h4>
+                <div style="display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap;">
+                  <select id="scenario1Select" onchange="updateComparison()" style="flex: 1; min-width: 200px; padding: 10px; border-radius: 8px; background: rgba(0,0,0,0.3); color: var(--color-text-primary); border: 1px solid rgba(255,255,255,0.2);">
+                    <option value="">Select first scenario...</option>
+                  </select>
+                  <span style="color: var(--color-text-muted); padding: 10px;">vs</span>
+                  <select id="scenario2Select" onchange="updateComparison()" style="flex: 1; min-width: 200px; padding: 10px; border-radius: 8px; background: rgba(0,0,0,0.3); color: var(--color-text-primary); border: 1px solid rgba(255,255,255,0.2);">
+                    <option value="">Select second scenario...</option>
+                  </select>
+                </div>
+                <div id="comparisonResults"></div>
+              </div>
+            </div>
           </div>
         </div>
       ` : `
@@ -2506,6 +2557,27 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       body.classList.toggle('collapsed');
       toggle.classList.toggle('collapsed');
       if (summary) summary.classList.toggle('show');
+    }
+
+    // Toggle saved scenarios section
+    var scenariosExpanded = false;
+    function toggleSavedScenarios() {
+      var body = document.getElementById('scenariosBody');
+      var toggle = document.getElementById('scenariosToggle');
+
+      scenariosExpanded = !scenariosExpanded;
+
+      if (scenariosExpanded) {
+        body.style.maxHeight = body.scrollHeight + 500 + 'px'; // Add buffer for dynamic content
+        body.style.opacity = '1';
+        body.style.padding = '0 25px';
+        toggle.style.transform = 'rotate(180deg)';
+      } else {
+        body.style.maxHeight = '0';
+        body.style.opacity = '0';
+        body.style.padding = '0 25px';
+        toggle.style.transform = 'rotate(0deg)';
+      }
     }
 
     // Return to Dashboard function
@@ -3730,7 +3802,26 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
     }
 
     // Save scenario functionality
+    var MAX_SCENARIOS = 10;
+
     function saveScenario() {
+      // Check if we are at the limit and warn user
+      if (savedScenarios.length >= MAX_SCENARIOS) {
+        // Find the oldest scenario (last in the sorted array since we sort newest first)
+        var oldestScenario = savedScenarios[savedScenarios.length - 1];
+        var oldestName = oldestScenario ? oldestScenario.name : 'oldest scenario';
+
+        var confirmSave = confirm(
+          'You have reached the maximum of ' + MAX_SCENARIOS + ' saved scenarios.\\n\\n' +
+          'Saving a new scenario will delete your oldest one:\\n"' + oldestName + '"\\n\\n' +
+          'Do you want to continue?'
+        );
+
+        if (!confirmSave) {
+          return;
+        }
+      }
+
       var scenarioName = prompt('Enter a name for this scenario:', 'My Custom Allocation');
 
       if (scenarioName) {
@@ -3753,12 +3844,16 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
           loadingOverlay.classList.add('show');
         }
 
-        // Call server-side save function (to be implemented)
+        // Call server-side save function
         google.script.run
           .withSuccessHandler(function(result) {
             if (loadingOverlay) loadingOverlay.classList.remove('show');
             if (result.success) {
-              alert('✅ Scenario saved successfully!\\n\\n"' + scenarioName + '" has been saved.');
+              var message = '✅ Scenario saved successfully!\\n\\n"' + scenarioName + '" has been saved.';
+              if (result.deletedScenario) {
+                message += '\\n\\nOldest scenario "' + result.deletedScenario + '" was removed to stay within the ' + MAX_SCENARIOS + ' scenario limit.';
+              }
+              alert(message);
               // Refresh the scenario list to show the new scenario
               if (typeof refreshScenarioList === 'function') {
                 refreshScenarioList();
@@ -3776,6 +3871,94 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       }
     }
 
+    // ============ REPORT DOWNLOAD FUNCTIONS ============
+
+    // Download main report PDF
+    function downloadMainReport() {
+      var loadingOverlay = document.getElementById('loadingOverlay');
+      var loadingText = document.getElementById('loadingText');
+      var loadingSubtext = document.getElementById('loadingSubtext');
+
+      if (loadingOverlay) {
+        if (loadingText) loadingText.textContent = 'Generating Report...';
+        if (loadingSubtext) loadingSubtext.textContent = 'Creating your personalized PDF';
+        loadingOverlay.classList.add('show');
+      }
+
+      google.script.run
+        .withSuccessHandler(function(result) {
+          if (loadingOverlay) loadingOverlay.classList.remove('show');
+          if (result.success) {
+            // Trigger download
+            var link = document.createElement('a');
+            link.href = 'data:application/pdf;base64,' + result.pdf;
+            link.download = result.fileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+          } else {
+            alert('Error generating report: ' + (result.error || 'Unknown error'));
+          }
+        })
+        .withFailureHandler(function(error) {
+          if (loadingOverlay) loadingOverlay.classList.remove('show');
+          console.error('Report generation error:', error);
+          alert('Error generating report: ' + error.message);
+        })
+        .generateTool4MainPDF('${clientId}');
+    }
+
+    // Download comparison report PDF
+    function downloadComparisonReport() {
+      var select1 = document.getElementById('scenario1Select');
+      var select2 = document.getElementById('scenario2Select');
+
+      if (!select1 || !select2 || select1.value === '' || select2.value === '' || select1.value === select2.value) {
+        alert('Please select two different scenarios to compare before downloading.');
+        return;
+      }
+
+      var scenario1 = savedScenarios[parseInt(select1.value)];
+      var scenario2 = savedScenarios[parseInt(select2.value)];
+
+      if (!scenario1 || !scenario2) {
+        alert('Could not find the selected scenarios. Please try again.');
+        return;
+      }
+
+      var loadingOverlay = document.getElementById('loadingOverlay');
+      var loadingText = document.getElementById('loadingText');
+      var loadingSubtext = document.getElementById('loadingSubtext');
+
+      if (loadingOverlay) {
+        if (loadingText) loadingText.textContent = 'Generating Comparison Report...';
+        if (loadingSubtext) loadingSubtext.textContent = 'Creating your scenario comparison PDF';
+        loadingOverlay.classList.add('show');
+      }
+
+      google.script.run
+        .withSuccessHandler(function(result) {
+          if (loadingOverlay) loadingOverlay.classList.remove('show');
+          if (result.success) {
+            // Trigger download
+            var link = document.createElement('a');
+            link.href = 'data:application/pdf;base64,' + result.pdf;
+            link.download = result.fileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+          } else {
+            alert('Error generating comparison report: ' + (result.error || 'Unknown error'));
+          }
+        })
+        .withFailureHandler(function(error) {
+          if (loadingOverlay) loadingOverlay.classList.remove('show');
+          console.error('Comparison report generation error:', error);
+          alert('Error generating comparison report: ' + error.message);
+        })
+        .generateTool4ComparisonPDF('${clientId}', scenario1, scenario2);
+    }
+
     // ============ SCENARIO MANAGEMENT FUNCTIONS ============
 
     // Store scenarios for client-side access
@@ -3789,11 +3972,15 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
 
       google.script.run
         .withSuccessHandler(function(scenarios) {
+          console.log('getScenariosFromSheet success:', scenarios);
+          console.log('scenarios type:', typeof scenarios);
+          console.log('scenarios length:', scenarios ? scenarios.length : 'null/undefined');
           savedScenarios = scenarios || [];
           renderScenarioList(scenarios);
           updateComparisonDropdowns(scenarios);
         })
         .withFailureHandler(function(error) {
+          console.error('getScenariosFromSheet error:', error);
           container.innerHTML = '<p style="color: #ef4444;">Error loading scenarios: ' + error.message + '</p>';
         })
         .getScenariosFromSheet('${clientId}');
@@ -3802,6 +3989,12 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
     // Render the scenario list
     function renderScenarioList(scenarios) {
       var container = document.getElementById('scenarioListContainer');
+      var countEl = document.getElementById('scenarioCount');
+
+      // Update the count in the header
+      if (countEl) {
+        countEl.textContent = scenarios && scenarios.length > 0 ? '(' + scenarios.length + ')' : '';
+      }
 
       if (!scenarios || scenarios.length === 0) {
         container.innerHTML = '<p style="color: var(--color-text-muted);">No saved scenarios yet. Use the "Save Scenario" button above to save your allocation.</p>';
@@ -3859,7 +4052,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       calculatorState.buckets.Enjoyment = scenario.allocations.Enjoyment;
 
       // Update UI
-      updateAllSliders();
+      updateAllBucketDisplays();
 
       // Scroll to calculator
       document.querySelector('.interactive-calculator').scrollIntoView({ behavior: 'smooth' });
@@ -4017,6 +4210,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       html += '<div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px; flex-wrap: wrap;">';
       html += '<button type="button" onclick="loadScenario(' + idx1 + ')" class="btn-secondary">Load "' + scenario1.name + '"</button>';
       html += '<button type="button" onclick="loadScenario(' + idx2 + ')" class="btn-secondary">Load "' + scenario2.name + '"</button>';
+      html += '<button type="button" onclick="downloadComparisonReport()" class="btn-secondary">📄 Download Comparison</button>';
       html += '</div>';
 
       resultsContainer.innerHTML = html;
@@ -4411,12 +4605,20 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       border-radius: 12px;
       padding: 30px;
       margin-bottom: 30px;
+      overflow: hidden;
     }
 
     .section-header {
-      font-size: 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 30px;
+      margin: -30px -30px 25px -30px;
+      background: rgba(79, 70, 229, 0.1);
+      border-bottom: 2px solid rgba(79, 70, 229, 0.3);
+      border-radius: 12px 12px 0 0;
+      font-size: 1.25rem;
       font-weight: 600;
-      margin-bottom: 20px;
       color: var(--color-text-primary);
     }
 
@@ -4506,6 +4708,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       border-radius: 12px;
       padding: 30px;
       margin-top: 30px;
+      overflow: hidden;
     }
 
     .allocation-bars {
@@ -4848,7 +5051,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
 
     <!-- Allocation Output (populated after priority selection) -->
     <div id="allocationSection" class="allocation-output" style="display: none;">
-      <h2 style="font-size: 1.5rem; margin-bottom: 20px;">📊 Your Recommended Allocation</h2>
+      <h2 class="section-header">📊 Your Recommended Allocation</h2>
       <div id="allocationBars" class="allocation-bars"></div>
     </div>
 
@@ -6977,10 +7180,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       <!-- Priority Picker Section -->
       <div class="priority-picker-section ${isCollapsed ? 'collapsed' : ''}">
         <div class="priority-picker-header" onclick="togglePriorityPicker()">
-          <div style="display: flex; align-items: center; gap: 12px;">
-            <span class="section-icon">🎯</span>
-            <span class="section-title">Choose Your Financial Priority</span>
-          </div>
+          <div class="presurvey-title">🎯 Choose Your Financial Priority</div>
           <div style="display: flex; align-items: center; gap: 15px;">
             <span style="font-size: 12px; color: var(--color-text-muted); font-weight: normal;">(Click to expand/collapse)</span>
             <span class="toggle-icon">${isCollapsed ? '▼' : '▲'}</span>
@@ -7310,6 +7510,8 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
    */
   getScenariosFromSheet(clientId) {
     try {
+      Logger.log('getScenariosFromSheet called with clientId: ' + clientId);
+
       const scenariosSheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.TOOL4_SCENARIOS);
       if (!scenariosSheet) {
         Logger.log('TOOL4_SCENARIOS sheet not found');
@@ -7318,6 +7520,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
 
       const data = scenariosSheet.getDataRange().getValues();
       const headers = data[0];
+      Logger.log('Found ' + (data.length - 1) + ' rows in TOOL4_SCENARIOS');
       const scenarios = [];
 
       const clientIdCol = headers.indexOf('Client_ID');
@@ -7330,24 +7533,52 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       const freedomCol = headers.indexOf('Custom_F_Percent');
       const enjoymentCol = headers.indexOf('Custom_J_Percent');
 
+      // Helper to parse percentage strings like "16%" to numbers
+      function parsePercent(val) {
+        if (typeof val === 'number') return val;
+        if (typeof val === 'string') {
+          return parseFloat(val.replace('%', '').replace(',', '')) || 0;
+        }
+        return 0;
+      }
+
+      // Helper to parse currency strings like "$13,000.00" to numbers
+      function parseCurrency(val) {
+        if (typeof val === 'number') return val;
+        if (typeof val === 'string') {
+          return parseFloat(val.replace(/[$,]/g, '')) || 0;
+        }
+        return 0;
+      }
+
       for (let i = 1; i < data.length; i++) {
         if (data[i][clientIdCol] === clientId) {
+          // Convert Date to ISO string for serialization to client
+          var timestampVal = data[i][timestampCol];
+          var timestampStr = '';
+          if (timestampVal instanceof Date) {
+            timestampStr = timestampVal.toISOString();
+          } else if (timestampVal) {
+            timestampStr = String(timestampVal);
+          }
+
           scenarios.push({
-            name: data[i][nameCol],
-            timestamp: data[i][timestampCol],
-            priority: data[i][priorityCol],
-            monthlyIncome: data[i][incomeCol],
+            name: String(data[i][nameCol] || ''),
+            timestamp: timestampStr,
+            priority: String(data[i][priorityCol] || ''),
+            monthlyIncome: parseCurrency(data[i][incomeCol]),
             allocations: {
-              Multiply: data[i][multiplyCol],
-              Essentials: data[i][essentialsCol],
-              Freedom: data[i][freedomCol],
-              Enjoyment: data[i][enjoymentCol]
+              Multiply: parsePercent(data[i][multiplyCol]),
+              Essentials: parsePercent(data[i][essentialsCol]),
+              Freedom: parsePercent(data[i][freedomCol]),
+              Enjoyment: parsePercent(data[i][enjoymentCol])
             }
           });
         }
       }
 
       scenarios.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      Logger.log('Found ' + scenarios.length + ' scenarios for clientId: ' + clientId);
       return scenarios;
     } catch (error) {
       Logger.log('Error getting scenarios from sheet: ' + error);

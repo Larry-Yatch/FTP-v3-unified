@@ -692,5 +692,326 @@ const PDFGenerator = {
         </div>
       `;
     }).join('');
+  },
+
+  // ============================================================================
+  // TOOL 4 PDF GENERATION - Financial Freedom Framework
+  // ============================================================================
+
+  /**
+   * Tool 4 specific styles
+   */
+  getTool4Styles() {
+    return this.getCommonStyles() + `
+      .allocation-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0; }
+      .allocation-card { background: #f9f9f9; padding: 20px; border-radius: 10px; border-left: 4px solid ${CONFIG.UI.PRIMARY_COLOR}; page-break-inside: avoid; }
+      .allocation-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+      .allocation-name { font-size: 18px; font-weight: 600; color: #333; }
+      .allocation-percentage { font-size: 28px; font-weight: 700; color: ${CONFIG.UI.PRIMARY_COLOR}; }
+      .allocation-dollars { font-size: 16px; color: #666; margin-top: 5px; }
+      .allocation-note { font-size: 14px; color: #555; margin-top: 10px; line-height: 1.5; }
+      .priority-box { background: linear-gradient(135deg, ${CONFIG.UI.DARK_BG} 0%, #4b4166 100%); color: white; padding: 25px; text-align: center; margin: 25px 0; border-radius: 10px; }
+      .priority-label { font-size: 14px; text-transform: uppercase; opacity: 0.9; margin-bottom: 8px; }
+      .priority-value { font-size: 22px; font-weight: 700; }
+      .helper-card { background: #fff8e1; border-left: 4px solid #f59e0b; padding: 20px; margin: 15px 0; border-radius: 8px; page-break-inside: avoid; }
+      .helper-critical { background: #fef2f2; border-left-color: #ef4444; }
+      .helper-suggestion { background: #eff6ff; border-left-color: #3b82f6; }
+      .helper-title { font-weight: 600; font-size: 16px; margin-bottom: 10px; color: #333; }
+      .helper-content { font-size: 14px; line-height: 1.6; color: #555; }
+      .helper-action { background: rgba(0,0,0,0.05); padding: 10px; margin-top: 10px; border-radius: 5px; font-weight: 500; }
+      .insight-section { background: #f9f9f9; padding: 20px; margin: 20px 0; border-radius: 8px; }
+      .insight-title { font-size: 16px; font-weight: 600; color: ${CONFIG.UI.PRIMARY_COLOR}; margin-bottom: 15px; }
+      .modifier-item { padding: 8px 0; border-bottom: 1px solid #eee; }
+      .modifier-item:last-child { border-bottom: none; }
+      .trauma-influence { background: rgba(173, 145, 104, 0.1); padding: 15px; margin: 15px 0; border-left: 3px solid ${CONFIG.UI.PRIMARY_COLOR}; border-radius: 5px; }
+      .summary-table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+      .summary-table th { background: ${CONFIG.UI.DARK_BG}; color: white; padding: 12px; text-align: left; }
+      .summary-table td { padding: 12px; border-bottom: 1px solid #ddd; }
+      .summary-table tr:nth-child(even) { background: #f9f9f9; }
+    `;
+  },
+
+  /** Format currency for Tool 4 reports */
+  formatMoney(value) {
+    if (value === null || value === undefined || value === '') return '$0';
+    var num = Number(value);
+    if (num >= 1000000) return '$' + (num / 1000000).toFixed(2) + 'M';
+    if (num >= 1000) return '$' + num.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    return '$' + num.toFixed(0);
+  },
+
+  /** Format percentage for Tool 4 reports */
+  formatPercent(value) {
+    if (value === null || value === undefined || value === '') return '0%';
+    return Math.round(Number(value)) + '%';
+  },
+
+  /** Get priority display name */
+  getPriorityDisplayName(priority) {
+    var names = {
+      'wealth': 'Build Long-Term Wealth', 'debt': 'Get Out of Debt', 'secure': 'Feel Financially Secure',
+      'enjoy': 'Enjoy Life Now', 'bigGoal': 'Save for a Big Goal', 'survival': 'Just Survive Right Now',
+      'business': 'Grow My Business/Income', 'generational': 'Build Generational Wealth',
+      'balance': 'Find Balance Across Everything', 'control': 'Take Control of My Finances'
+    };
+    return names[priority] || priority;
+  },
+
+  /** Get bucket icon */
+  getBucketIcon(bucket) {
+    var icons = { 'Multiply': '💰', 'Essentials': '🏠', 'Freedom': '🚀', 'Enjoyment': '🎉' };
+    return icons[bucket] || '📊';
+  },
+
+  /** Get strategy description */
+  _getStrategyDescription(strategy) {
+    var descriptions = {
+      'Debt Payoff Focus': 'Prioritizes aggressive debt elimination with higher Freedom allocation.',
+      'Wealth Building': 'Focuses on long-term wealth accumulation through higher Multiply allocation.',
+      'Balanced': 'Maintains equilibrium across all buckets for steady progress.',
+      'Lifestyle Priority': 'Emphasizes current quality of life with higher Enjoyment allocation.',
+      'Security Focus': 'Prioritizes financial safety through higher Essentials and Freedom allocations.'
+    };
+    return descriptions[strategy] || 'A balanced approach to financial allocation.';
+  },
+
+  /** Get Tool 1 influences */
+  _getTool1Influences(clientId) {
+    try {
+      if (typeof Tool1Report !== 'undefined' && Tool1Report.getResults) {
+        var results = Tool1Report.getResults(clientId);
+        if (results && results.winner) return { winner: results.winner, scores: results.scores };
+      }
+    } catch (e) { Logger.log('[PDFGenerator] Error getting Tool 1 data: ' + e); }
+    return null;
+  },
+
+  /** Get Tool 2 influences */
+  _getTool2Influences(clientId) {
+    try {
+      if (typeof Tool2Report !== 'undefined' && Tool2Report.getResults) {
+        var results = Tool2Report.getResults(clientId);
+        if (results && results.results) return { archetype: results.results.archetype, domainScores: results.results.domainScores };
+      }
+    } catch (e) { Logger.log('[PDFGenerator] Error getting Tool 2 data: ' + e); }
+    return null;
+  },
+
+  /** Get student name */
+  _getStudentName(clientId) {
+    try {
+      if (typeof Tool1Report !== 'undefined' && Tool1Report.getResults) {
+        var r1 = Tool1Report.getResults(clientId);
+        if (r1 && r1.formData && r1.formData.name) return r1.formData.name;
+      }
+      if (typeof Tool2Report !== 'undefined' && Tool2Report.getResults) {
+        var r2 = Tool2Report.getResults(clientId);
+        if (r2 && r2.formData && r2.formData.name) return r2.formData.name;
+      }
+    } catch (e) { Logger.log('[PDFGenerator] Error getting student name: ' + e); }
+    return null;
+  },
+
+  /**
+   * Generate Tool 4 Main Report PDF
+   */
+  generateTool4MainPDF(clientId) {
+    try {
+      var preSurveyData = Tool4.getPreSurvey(clientId);
+      if (!preSurveyData) return { success: false, error: 'No Tool 4 data found. Please complete the pre-survey first.' };
+
+      var v1Input = Tool4.buildV1Input(clientId, preSurveyData);
+      var allocation = Tool4.calculateAllocationV1(v1Input);
+      if (!allocation || !allocation.percentages) return { success: false, error: 'Unable to calculate allocation' };
+
+      var validationResults = Tool4.runFullValidation ? Tool4.runFullValidation(clientId, allocation.percentages, preSurveyData) : [];
+      var tool1Data = this._getTool1Influences(clientId);
+      var tool2Data = this._getTool2Influences(clientId);
+      var studentName = this._getStudentName(clientId) || 'Student';
+      var monthlyIncome = Number(preSurveyData.monthlyIncome) || 0;
+
+      var dollarAmounts = {
+        Multiply: Math.round(monthlyIncome * allocation.percentages.Multiply / 100),
+        Essentials: Math.round(monthlyIncome * allocation.percentages.Essentials / 100),
+        Freedom: Math.round(monthlyIncome * allocation.percentages.Freedom / 100),
+        Enjoyment: Math.round(monthlyIncome * allocation.percentages.Enjoyment / 100)
+      };
+
+      var header = this.buildHeader('Financial Freedom Framework Report', studentName);
+      var self = this;
+
+      var executiveSummary = '<div class="intro"><p>This report presents your personalized Financial Freedom Framework allocation, designed based on your unique financial situation, behavioral patterns, and life priorities.</p></div>' +
+        '<div class="priority-box"><div class="priority-label">Your Selected Priority</div><div class="priority-value">' + this.getPriorityDisplayName(preSurveyData.selectedPriority) + '</div>' +
+        '<p style="margin-top: 10px; font-size: 14px; opacity: 0.9;">Timeline: ' + (preSurveyData.goalTimeline || 'Not specified') + '</p></div>' +
+        '<h2>Financial Overview</h2><table class="summary-table"><tr><th>Metric</th><th>Value</th></tr>' +
+        '<tr><td>Monthly Income</td><td><strong>' + this.formatMoney(monthlyIncome) + '</strong></td></tr>' +
+        '<tr><td>Monthly Essentials</td><td>' + this.formatMoney(preSurveyData.monthlyEssentials) + '</td></tr>' +
+        '<tr><td>Total Debt</td><td>' + this.formatMoney(preSurveyData.totalDebt || 0) + '</td></tr>' +
+        '<tr><td>Emergency Fund</td><td>' + this.formatMoney(preSurveyData.emergencyFund || 0) + '</td></tr></table>';
+
+      var buckets = ['Multiply', 'Essentials', 'Freedom', 'Enjoyment'];
+      var allocationCards = buckets.map(function(bucket) {
+        return '<div class="allocation-card"><div class="allocation-header"><span class="allocation-name">' + self.getBucketIcon(bucket) + ' ' + bucket + '</span>' +
+          '<span class="allocation-percentage">' + self.formatPercent(allocation.percentages[bucket]) + '</span></div>' +
+          '<div class="allocation-dollars">' + self.formatMoney(dollarAmounts[bucket]) + '/month</div>' +
+          '<div class="allocation-note">' + (allocation.lightNotes ? allocation.lightNotes[bucket] || '' : '') + '</div></div>';
+      }).join('');
+
+      var allocationSection = '<div class="page-break"></div><h2>Your Personalized Allocation</h2>' +
+        '<p>Based on your priority, financial situation, and behavioral profile:</p><div class="allocation-grid">' + allocationCards + '</div>';
+
+      var insightsSection = '<h2>Why These Numbers?</h2><div class="insight-section"><div class="insight-title">Base Allocation from Priority</div>' +
+        '<p>Your "' + this.getPriorityDisplayName(preSurveyData.selectedPriority) + '" priority established starting weights adjusted for your personal factors.</p></div>';
+
+      if (allocation.details && allocation.details.satBoostPct > 0) {
+        insightsSection += '<div class="insight-section"><div class="insight-title">Satisfaction Amplification: +' + Math.round(allocation.details.satBoostPct) + '%</div>' +
+          '<p>Your dissatisfaction level (' + preSurveyData.satisfaction + '/10) amplified positive modifiers toward wealth-building.</p></div>';
+      }
+
+      var influencesSection = '<div class="page-break"></div><h2>How Your Profile Influenced This Allocation</h2>';
+      if (tool1Data) {
+        var traumaNames = { 'FSV': 'False Self-View', 'ExVal': 'External Validation', 'Showing': 'Issues Showing Love', 'Receiving': 'Issues Receiving Love', 'Control': 'Control Leading to Isolation', 'Fear': 'Fear Leading to Isolation' };
+        influencesSection += '<div class="trauma-influence"><h3 style="margin-top: 0; color: ' + CONFIG.UI.PRIMARY_COLOR + ';">Core Trauma Strategy (Tool 1)</h3>' +
+          '<p><strong>Primary Pattern:</strong> ' + (traumaNames[tool1Data.winner] || tool1Data.winner) + '</p>' +
+          '<p>This pattern influenced your allocation through behavioral modifiers based on your psychological profile.</p></div>';
+      }
+      if (tool2Data) {
+        influencesSection += '<div class="trauma-influence"><h3 style="margin-top: 0; color: ' + CONFIG.UI.PRIMARY_COLOR + ';">Financial Clarity Profile (Tool 2)</h3>' +
+          '<p><strong>Your Archetype:</strong> ' + (tool2Data.archetype || 'Financial Clarity Seeker') + '</p></div>';
+      }
+      if (!tool1Data && !tool2Data) {
+        influencesSection += '<div class="insight-section"><p>Complete Tools 1-3 for deeper personalization based on your unique patterns.</p></div>';
+      }
+
+      var validationSection = '<h2>Validation Results</h2>';
+      if (!validationResults || validationResults.length === 0) {
+        validationSection += '<div class="helper-card helper-suggestion" style="background: #f0fdf4; border-left-color: #22c55e;">' +
+          '<div class="helper-title">Your Allocation Looks Good!</div><div class="helper-content">No significant issues detected.</div></div>';
+      } else {
+        validationResults.forEach(function(item) {
+          var cardClass = item.severity === 'Critical' ? 'helper-critical' : (item.severity === 'Suggestion' ? 'helper-suggestion' : '');
+          validationSection += '<div class="helper-card ' + cardClass + '"><div class="helper-title">' + (item.title || item.severity) + '</div>' +
+            '<div class="helper-content">' + item.message + '</div></div>';
+        });
+      }
+
+      var nextStepsSection = '<div class="page-break"></div><h2>Your Next Steps</h2><div style="background: #f9f9f9; padding: 20px; border-radius: 8px;">' +
+        '<h3 style="color: ' + CONFIG.UI.PRIMARY_COLOR + '; margin-top: 0;">Immediate Actions</h3><ol>' +
+        '<li><strong>Set Up Your Buckets:</strong> Open separate accounts or use envelope budgeting.</li>' +
+        '<li><strong>Automate Transfers:</strong> Set up automatic transfers on payday.</li>' +
+        '<li><strong>Track for 30 Days:</strong> Monitor spending before making adjustments.</li></ol>' +
+        '<h3 style="color: ' + CONFIG.UI.PRIMARY_COLOR + ';">Ongoing Optimization</h3><ul>' +
+        '<li>Review quarterly or when major life changes occur</li>' +
+        '<li>Adjust as income grows - consider increasing Multiply</li>' +
+        '<li>Revisit if priorities shift significantly</li></ul></div>';
+
+      var footer = this.buildFooter('This allocation framework is a starting point. Adjust as needed and consult with a financial advisor for personalized advice.');
+
+      var bodyContent = header + executiveSummary + allocationSection + insightsSection + influencesSection + validationSection + nextStepsSection + footer;
+      var htmlContent = this.buildHTMLDocument(this.getTool4Styles(), bodyContent);
+      var fileName = this.generateFileName('FinancialFreedomFramework', studentName);
+      return this.htmlToPDF(htmlContent, fileName);
+
+    } catch (error) {
+      Logger.log('[PDFGenerator] Error generating Tool 4 Main PDF: ' + error);
+      return { success: false, error: error.toString() };
+    }
+  },
+
+  /**
+   * Generate Tool 4 Comparison Report PDF
+   */
+  generateTool4ComparisonPDF(clientId, scenario1, scenario2) {
+    try {
+      if (!scenario1 || !scenario2) return { success: false, error: 'Two scenarios are required for comparison' };
+
+      var preSurveyData = Tool4.getPreSurvey(clientId);
+      var monthlyIncome = preSurveyData ? Number(preSurveyData.monthlyIncome) || 0 : 0;
+      var studentName = this._getStudentName(clientId) || 'Student';
+      var self = this;
+
+      var scenario1Dollars = {
+        Multiply: Math.round(monthlyIncome * (scenario1.allocations ? scenario1.allocations.Multiply || 0 : 0) / 100),
+        Essentials: Math.round(monthlyIncome * (scenario1.allocations ? scenario1.allocations.Essentials || 0 : 0) / 100),
+        Freedom: Math.round(monthlyIncome * (scenario1.allocations ? scenario1.allocations.Freedom || 0 : 0) / 100),
+        Enjoyment: Math.round(monthlyIncome * (scenario1.allocations ? scenario1.allocations.Enjoyment || 0 : 0) / 100)
+      };
+      var scenario2Dollars = {
+        Multiply: Math.round(monthlyIncome * (scenario2.allocations ? scenario2.allocations.Multiply || 0 : 0) / 100),
+        Essentials: Math.round(monthlyIncome * (scenario2.allocations ? scenario2.allocations.Essentials || 0 : 0) / 100),
+        Freedom: Math.round(monthlyIncome * (scenario2.allocations ? scenario2.allocations.Freedom || 0 : 0) / 100),
+        Enjoyment: Math.round(monthlyIncome * (scenario2.allocations ? scenario2.allocations.Enjoyment || 0 : 0) / 100)
+      };
+
+      var comparisonData = Tool4.generateComparisonNarrative ? Tool4.generateComparisonNarrative(scenario1, scenario2, preSurveyData) : {};
+
+      var header = this.buildHeader('Scenario Comparison Report', studentName);
+
+      var executiveSummary = '<div class="intro"><p>This report compares two allocation scenarios, helping you understand the trade-offs of each approach.</p></div>' +
+        '<h2>Scenarios Under Comparison</h2><table class="summary-table"><tr><th>Scenario</th><th>Name</th><th>Saved On</th></tr>' +
+        '<tr><td><strong>Scenario A</strong></td><td>' + (scenario1.name || 'Unnamed') + '</td><td>' + (scenario1.timestamp ? new Date(scenario1.timestamp).toLocaleDateString() : 'Unknown') + '</td></tr>' +
+        '<tr><td><strong>Scenario B</strong></td><td>' + (scenario2.name || 'Unnamed') + '</td><td>' + (scenario2.timestamp ? new Date(scenario2.timestamp).toLocaleDateString() : 'Unknown') + '</td></tr></table>' +
+        '<p style="margin-top: 15px;"><strong>Monthly Income:</strong> ' + this.formatMoney(monthlyIncome) + '</p>';
+
+      var buckets = ['Multiply', 'Essentials', 'Freedom', 'Enjoyment'];
+      var comparisonRows = buckets.map(function(bucket) {
+        var pct1 = scenario1.allocations ? scenario1.allocations[bucket] || 0 : 0;
+        var pct2 = scenario2.allocations ? scenario2.allocations[bucket] || 0 : 0;
+        var diff = pct2 - pct1;
+        var diffColor = diff > 0 ? '#059669' : (diff < 0 ? '#dc2626' : '#666');
+        return '<tr><td><strong>' + self.getBucketIcon(bucket) + ' ' + bucket + '</strong></td>' +
+          '<td>' + self.formatPercent(pct1) + ' (' + self.formatMoney(scenario1Dollars[bucket]) + ')</td>' +
+          '<td>' + self.formatPercent(pct2) + ' (' + self.formatMoney(scenario2Dollars[bucket]) + ')</td>' +
+          '<td style="color: ' + diffColor + '; font-weight: 600;">' + (diff > 0 ? '+' : '') + diff + '%</td></tr>';
+      }).join('');
+
+      var comparisonTable = '<div class="page-break"></div><h2>Allocation Comparison</h2>' +
+        '<table class="summary-table"><tr><th>Bucket</th><th>' + (scenario1.name || 'Scenario A') + '</th><th>' + (scenario2.name || 'Scenario B') + '</th><th>Difference</th></tr>' +
+        comparisonRows + '</table>';
+
+      var impactSection = '<h2>Impact Analysis</h2>';
+      if (comparisonData && comparisonData.bucketImpacts) {
+        for (var bucket in comparisonData.bucketImpacts) {
+          impactSection += '<div class="helper-card" style="background: #f9f9f9; border-left-color: ' + CONFIG.UI.PRIMARY_COLOR + ';">' +
+            '<div class="helper-title">' + this.getBucketIcon(bucket) + ' ' + bucket + ' Impact</div>' +
+            '<div class="helper-content">' + comparisonData.bucketImpacts[bucket] + '</div></div>';
+        }
+      } else {
+        impactSection += '<p>No significant differences detected between scenarios.</p>';
+      }
+
+      var strategySection = '<h2>Strategy Analysis</h2><div class="allocation-grid">' +
+        '<div class="allocation-card"><h3 style="margin-top: 0; color: ' + CONFIG.UI.PRIMARY_COLOR + ';">' + (scenario1.name || 'Scenario A') + '</h3>' +
+        '<p><strong>Strategy:</strong> ' + (comparisonData.strategy1 || 'Balanced') + '</p>' +
+        '<p style="font-size: 14px; color: #666;">' + this._getStrategyDescription(comparisonData.strategy1) + '</p></div>' +
+        '<div class="allocation-card"><h3 style="margin-top: 0; color: ' + CONFIG.UI.PRIMARY_COLOR + ';">' + (scenario2.name || 'Scenario B') + '</h3>' +
+        '<p><strong>Strategy:</strong> ' + (comparisonData.strategy2 || 'Balanced') + '</p>' +
+        '<p style="font-size: 14px; color: #666;">' + this._getStrategyDescription(comparisonData.strategy2) + '</p></div></div>';
+
+      var bottomLineSection = '<div class="page-break"></div><h2>The Bottom Line</h2>' +
+        '<div class="priority-box" style="text-align: left;"><p style="font-size: 16px; line-height: 1.8; margin: 0;">' +
+        (comparisonData.bottomLine || 'Both scenarios offer different approaches. Consider which trade-offs align with your current situation.') + '</p></div>';
+
+      var recommendationSection = '<h2>Making Your Decision</h2><div style="background: #f9f9f9; padding: 20px; border-radius: 8px;">' +
+        '<h3 style="color: ' + CONFIG.UI.PRIMARY_COLOR + '; margin-top: 0;">Consider ' + (scenario1.name || 'Scenario A') + ' If:</h3><ul>' +
+        '<li>Your situation aligns with the ' + (comparisonData.strategy1 || 'balanced') + ' approach</li>' +
+        '<li>The dollar amounts feel sustainable</li></ul>' +
+        '<h3 style="color: ' + CONFIG.UI.PRIMARY_COLOR + ';">Consider ' + (scenario2.name || 'Scenario B') + ' If:</h3><ul>' +
+        '<li>Your situation aligns with the ' + (comparisonData.strategy2 || 'balanced') + ' approach</li>' +
+        '<li>This allocation better addresses pressing concerns</li></ul>' +
+        '<p style="margin-top: 20px; padding: 15px; background: #fff8e1; border-radius: 5px;">' +
+        '<strong>Remember:</strong> The best choice is one you can consistently follow.</p></div>';
+
+      var footer = this.buildFooter('This comparison helps you explore different approaches. Choose the one that resonates with your current needs.');
+
+      var bodyContent = header + executiveSummary + comparisonTable + impactSection + strategySection + bottomLineSection + recommendationSection + footer;
+      var htmlContent = this.buildHTMLDocument(this.getTool4Styles(), bodyContent);
+      var fileName = this.generateFileName('ScenarioComparison', studentName);
+      return this.htmlToPDF(htmlContent, fileName);
+
+    } catch (error) {
+      Logger.log('[PDFGenerator] Error generating Tool 4 Comparison PDF: ' + error);
+      return { success: false, error: error.toString() };
+    }
   }
 };

@@ -1,9 +1,197 @@
 # Tool 4 Redesign Specification: Hybrid V1 + Calculator Architecture
 
 **Created:** 2025-11-28
-**Last Updated:** 2025-11-30 (Phase 4B Extended - 6 Helpers Complete)
-**Status:** Phase 4B Extended Complete ✅ | 6 Helpers Deployed ✅ | Production Ready 🚀
+**Last Updated:** 2025-12-01 (Phase 6 Complete - Report Generation)
+**Status:** Phase 6 Complete ✅ | Report Generation Deployed ✅ | Production Ready 🚀
 **Purpose:** Complete architectural specification for Tool 4 redesign combining V1's personalization engine with interactive calculator
+
+---
+
+## 🔔 Session Notes (2025-12-01 - Phase 6: Report Generation)
+
+**Phase 6: Report Generation - COMPLETE ✅**
+
+**What Was Implemented:**
+- ✅ **Main Report PDF Generation**
+  - Generates comprehensive PDF report for current allocation
+  - Includes: Executive summary, financial overview, personalized allocation with light notes
+  - Shows: Why these numbers (priority, satisfaction amplification, modifiers)
+  - Incorporates: Tool 1/2/3 influences (trauma pattern, archetype) when available
+  - Displays: Validation results with severity-based styling
+  - Provides: Next steps and ongoing optimization recommendations
+
+- ✅ **Comparison Report PDF Generation**
+  - Side-by-side comparison of two selected scenarios
+  - Allocation table with percentage and dollar differences
+  - Impact analysis per bucket (from generateComparisonNarrative)
+  - Strategy detection for each scenario
+  - "Bottom Line" summary with trade-off analysis
+  - Decision guidance for choosing between scenarios
+
+- ✅ **Download Buttons in UI**
+  - "Download Report" button in main calculator controls
+  - "Download Comparison" button in comparison results section
+  - Loading overlay with progress messages during generation
+  - Base64 PDF download triggered via JavaScript
+
+**Technical Implementation:**
+
+*Server-Side (PDFGenerator.js):*
+- `generateTool4MainPDF(clientId)` - Main report generation
+- `generateTool4ComparisonPDF(clientId, scenario1, scenario2)` - Comparison report
+- `getTool4Styles()` - Tool 4-specific CSS styles
+- `formatMoney(value)` / `formatPercent(value)` - Currency/percentage formatting
+- `getPriorityDisplayName(priority)` - Human-readable priority names
+- `getBucketIcon(bucket)` - Emoji icons for buckets
+- `_getTool1Influences(clientId)` - Fetches trauma pattern data
+- `_getTool2Influences(clientId)` - Fetches archetype data
+- `_getStudentName(clientId)` - Gets student name from Tool 1/2
+- `_getStrategyDescription(strategy)` - Strategy explanations
+
+*Server-Side (Code.js):*
+- `generateTool4MainPDF(clientId)` - Wrapper with activity logging
+- `generateTool4ComparisonPDF(clientId, s1, s2)` - Wrapper with activity logging
+
+*Client-Side (Tool4.js):*
+- `downloadMainReport()` - Triggers main PDF generation and download
+- `downloadComparisonReport()` - Triggers comparison PDF generation and download
+
+**Report Structure:**
+
+*Main Report Sections:*
+1. Header (TruPath Financial branding, student name, date)
+2. Executive Summary (priority, timeline, financial overview table)
+3. Your Personalized Allocation (4 bucket cards with %, $, notes)
+4. Why These Numbers (base allocation, satisfaction boost, modifiers)
+5. How Your Profile Influenced This (Tool 1 trauma, Tool 2 archetype)
+6. Validation Results (critical/warning/suggestion cards)
+7. Your Next Steps (immediate actions, ongoing optimization)
+8. Footer (disclaimer, generated date)
+
+*Comparison Report Sections:*
+1. Header (TruPath Financial branding)
+2. Scenarios Under Comparison (names, timestamps)
+3. Allocation Comparison (table with differences)
+4. Impact Analysis (per-bucket impact cards)
+5. Strategy Analysis (side-by-side strategy detection)
+6. The Bottom Line (summary narrative)
+7. Making Your Decision (consider choosing A/B if...)
+8. Footer (disclaimer)
+
+**PDF Generation Approach:**
+- Uses HTML-to-PDF via `Utilities.newBlob().getAs('application/pdf')`
+- Same pattern as Tools 1, 2, 3, 5 (not Google Docs intermediate like Tool 8)
+- Returns base64-encoded PDF for client-side download
+- Activity logged to track report downloads
+
+**Code Statistics:**
+- PDFGenerator.js additions: ~320 lines
+- Code.js wrapper functions: ~40 lines
+- Tool4.js client-side: ~90 lines
+- **Total Phase 6: ~450 lines**
+
+---
+
+## 🔔 Session Notes (2025-12-01 - Phase 5: Scenario Comparison System)
+
+**Phase 5: Scenario Comparison - COMPLETE ✅**
+
+**What Was Implemented:**
+- ✅ **Save Scenario System**
+  - Prompts user for scenario name
+  - Saves allocations to TOOL4_SCENARIOS sheet (Multiply%, Essentials%, Freedom%, Enjoyment%, plus dollar amounts)
+  - Stores timestamp, client ID, scenario name
+  - **10-scenario limit per student** with FIFO deletion
+  - Warning dialog when saving would delete oldest scenario
+
+- ✅ **Load Scenario System**
+  - Retrieves all scenarios for current client from sheet
+  - Displays in collapsible "Saved Scenarios" section
+  - Click "Load" to restore any saved allocation to sliders
+  - Click "Delete" to remove scenarios (with confirmation)
+
+- ✅ **Scenario Comparison View**
+  - Dropdown selectors for Scenario A and Scenario B
+  - Side-by-side comparison with percentage and dollar differences
+  - **Impact Narratives** (simplified from original spec's projections):
+    - Per-bucket impact explanations with lifestyle translations
+    - Strategy detection (Debt Payoff Focus, Wealth Building, Balanced, Lifestyle Priority)
+    - "Bottom Line" summary comparing the two approaches
+  - Load buttons to quickly apply either scenario
+
+- ✅ **Collapsible UI Section**
+  - "Saved Scenarios" section matches header styling of other sections
+  - Purple background with border, consistent font size
+  - Click to expand/collapse with smooth animation
+  - Scenario count badge in header (e.g., "(5)")
+
+- ✅ **UI Consistency Updates**
+  - All section headers now use consistent purple style (rgba(79, 70, 229, 0.1))
+  - Changed "Budget Profile" to "Allocation Profile"
+  - Fixed "Choose Your Financial Priority" header styling to match
+
+**Technical Implementation:**
+
+*Server-Side (Tool4.js):*
+- `saveScenario(clientId, scenarioName, allocations)` - Saves with 10-scenario FIFO limit
+- `deleteScenario(clientId, scenarioName)` - Removes scenario from sheet
+- `getScenariosFromSheet(clientId)` - Retrieves all scenarios with Date→ISO string conversion
+- `calculateScenarioDifferences(scenario1, scenario2, monthlyIncome)` - Computes diffs
+- `translateToLifestyle(monthlyAmount)` - Converts dollars to relatable examples
+- `detectStrategy(scenario, preSurveyData)` - Identifies allocation strategy type
+- `generateBucketImpact(bucket, diff, monthlyIncome)` - Creates per-bucket narrative
+- `generateComparisonNarrative(scenario1, scenario2, preSurveyData)` - Full comparison analysis
+
+*Client-Side (Tool4.js):*
+- `refreshScenarioList()` - Fetches and renders saved scenarios
+- `renderScenarioList(scenarios)` - Builds scenario cards HTML
+- `loadScenario(index)` - Restores scenario allocations to sliders
+- `deleteScenarioConfirm(index)` - Handles deletion with confirmation
+- `showComparisonView()` / `hideComparisonView()` - Toggle comparison UI
+- `updateComparisonDropdowns()` - Populates scenario selectors
+- `updateComparison()` - Triggers server-side comparison analysis
+- `renderComparisonResults(data)` - Displays comparison with impact narratives
+- `toggleSavedScenarios()` - Expands/collapses saved scenarios section
+
+**Design Decisions:**
+- **Simplified from original spec**: Instead of exact financial projections (debt payoff timelines, investment growth), implemented "impact narratives" that focus on lifestyle implications and strategic differences
+- **Why**: Exact projections require many assumptions (interest rates, market returns) that could be misleading. Impact narratives provide meaningful guidance without false precision.
+- **10-scenario limit**: Prevents sheet bloat while giving students room to experiment
+
+**Bug Fixes During Implementation:**
+- Fixed GAS serialization issue (Date objects → ISO strings)
+- Fixed `updateAllSliders` → `updateAllBucketDisplays()` function name
+- Fixed null checks in `updateComparisonDropdowns()` for hidden elements
+- Fixed percentage/currency parsing from spreadsheet formatted values
+
+**Code Statistics:**
+- Server-side Phase 5 functions: ~300 lines
+- Client-side Phase 5 functions: ~450 lines
+- UI HTML for scenarios section: ~80 lines
+- **Total Phase 5: ~830 lines**
+
+**Testing Results:**
+- ✅ Save scenario works with name prompt
+- ✅ Scenarios persist in TOOL4_SCENARIOS sheet
+- ✅ Load scenario restores allocations correctly
+- ✅ Delete scenario removes from sheet and UI
+- ✅ Comparison view shows side-by-side differences
+- ✅ Impact narratives display meaningful guidance
+- ✅ 10-scenario limit enforced with FIFO deletion
+- ✅ Warning shown before oldest scenario deleted
+- ✅ Collapsible section works smoothly
+- ✅ All section headers consistent styling
+
+**Current Stable State:**
+- Deployed to Apps Script: ✅ (clasp push complete)
+- Branch: feature/grounding-tools
+
+**Phase 5 Status:** ✅ **COMPLETE, TESTED, AND PRODUCTION READY**
+
+**Ready for Next Phase:**
+- Phase 4C: Validation UX Refinement (bucket-level indicators, progressive disclosure, severity-based visual design)
+- Phase 6: Report Generation (PDF export, implementation plan)
+- Phase 7: Polish & Optimization
 
 ---
 
@@ -1597,21 +1785,28 @@ Deep Dive: Click warning → opens relevant helper
 
 ---
 
-### **Phase 5: Scenario Comparison (Week 6)**
+### **Phase 5: Scenario Comparison (Week 6)** ✅ COMPLETED 2025-12-01
 
 **Tasks:**
-1. Build "Save as Scenario" modal
-2. Extend TOOL4_SCENARIOS sheet schema (add V1 columns)
-3. Build scenario list UI
-4. Build side-by-side comparison table
-5. Add "Edit" and "Delete" scenario actions
-6. Add "Generate Report" functionality
+1. ✅ Build "Save as Scenario" functionality (prompt for name, save to sheet)
+2. ✅ Extend TOOL4_SCENARIOS sheet schema (allocations %, dollar amounts, timestamp)
+3. ✅ Build scenario list UI (collapsible section with load/delete buttons)
+4. ✅ Build side-by-side comparison view with impact narratives
+5. ✅ Add "Load" and "Delete" scenario actions
+6. ✅ Add 10-scenario limit per student with FIFO deletion
+7. ✅ Add comparison dropdowns and narrative generation
+8. ⏳ Report generation moved to Phase 6
 
 **Success Criteria:**
-- Multiple scenarios saved correctly
-- Comparison table shows differences clearly
-- User can switch between scenarios
-- Report generation works (PDF or Google Doc)
+- ✅ Multiple scenarios saved correctly (up to 10 per student)
+- ✅ Comparison view shows differences clearly with impact narratives
+- ✅ User can load any saved scenario to sliders
+- ✅ User can delete scenarios with confirmation
+- ✅ Collapsible UI matches other section headers
+- ⏳ Report generation (Phase 6)
+
+**Implementation Note:**
+Original spec called for exact financial projections (debt payoff timelines, investment growth projections). Implemented "impact narratives" instead - focusing on lifestyle implications and strategic trade-offs rather than potentially misleading exact numbers that require many assumptions.
 
 ---
 
