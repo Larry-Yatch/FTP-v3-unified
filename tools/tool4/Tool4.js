@@ -4214,6 +4214,15 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       html += '</div>';
 
       resultsContainer.innerHTML = html;
+
+      // Update parent container max-height to accommodate new content
+      var body = document.getElementById('scenariosBody');
+      if (body && scenariosExpanded) {
+        // Use setTimeout to allow DOM to update before measuring
+        setTimeout(function() {
+          body.style.maxHeight = body.scrollHeight + 200 + 'px';
+        }, 50);
+      }
     }
 
     // Render individual bucket impact HTML
