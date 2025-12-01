@@ -1,13 +1,100 @@
 # Tool 4 Redesign Specification: Hybrid V1 + Calculator Architecture
 
 **Created:** 2025-11-28
-**Last Updated:** 2025-11-30 (Phase 4B Complete)
-**Status:** Phase 4B Complete ✅ | Production Tested ✅ | Phase 4C Ready 🚀
+**Last Updated:** 2025-11-30 (Phase 4B Extended - 6 Helpers Complete)
+**Status:** Phase 4B Extended Complete ✅ | 6 Helpers Deployed ✅ | Production Ready 🚀
 **Purpose:** Complete architectural specification for Tool 4 redesign combining V1's personalization engine with interactive calculator
 
 ---
 
-## 🔔 Session Notes (2025-11-30 - Phase 4B Implementation)
+## 🔔 Session Notes (2025-11-30 - Phase 4B Extended: Additional Helpers)
+
+**Phase 4B Extended: Debt Payoff Timeline + Lifestyle Inflation Check Helpers - COMPLETE ✅**
+
+**What Was Implemented:**
+- ✅ **Debt Payoff Timeline Helper** (Helper #5)
+  - **Triggers:** totalDebt > 0 AND Freedom < 30%
+  - **Shows:** Current vs suggested debt payoff timelines with full interest calculations
+  - **Displays:**
+    - Current debt amount with 15% average interest assumption
+    - Timeline at current Freedom allocation (months to payoff, years + months)
+    - Timeline at suggested 30% Freedom allocation
+    - Total interest paid in both scenarios
+    - Time saved (months faster) and money saved (interest reduction)
+  - **Actions:** "Adjust Freedom to 30%" button
+  - **Severity:** Warning (🟡)
+  - **Special handling:** Detects if payment cannot cover interest ("Debt grows indefinitely")
+  - **Implementation:** ~90 lines (loan payoff formula: `n = -log(1 - r*P/M) / log(1 + r)`)
+
+- ✅ **Lifestyle Inflation Check Helper** (Helper #6)
+  - **Triggers:** monthlyIncome > $5,000 AND Enjoyment > 30% AND Multiply < 15%
+  - **Shows:** Income level analysis + wealth projection comparison
+  - **Displays:**
+    - Income classification (Very High/High/Above Average/Average/Below Average)
+    - Income percentile range (Top 5%, Top 15%, etc.)
+    - Current Enjoyment vs Multiply allocation comparison
+    - 10-year wealth projection at 7% average return:
+      - Current path (existing Multiply %)
+      - Suggested path (20% Enjoyment, higher Multiply)
+      - **Wealth gap** highlighting cost of lifestyle inflation
+    - Thought-provoking question: "Are you living like you earn $X/month, or building wealth like someone who earns that much?"
+  - **Actions:** "Shift to X% Multiply" button (dynamically calculated)
+  - **Severity:** Warning (🟡)
+  - **Implementation:** ~105 lines (future value formula with compound interest)
+
+**New Action Function:**
+- ✅ `shiftEnjoymentToMultiply(targetEnjoyment, targetMultiply)` - Adjusts both buckets simultaneously, redistributes remainder proportionally to Essentials/Freedom, normalizes to 100%, updates UI, closes helper, re-validates
+
+**Integration:**
+- ✅ Added to `getHelperTitle()` (2 new titles)
+- ✅ Added to `renderHelperByType()` (2 new cases)
+- ✅ Added `detectDebtPayoffTimeline()` function
+- ✅ Added `detectLifestyleInflation()` function
+- ✅ Integrated into `checkMyPlan()` validation flow
+- ✅ Debt Payoff added to Financial Reality tier (warning severity)
+- ✅ Lifestyle Inflation added to Behavioral Alignment tier (warning severity)
+
+**Code Statistics:**
+- Debt Payoff Timeline Helper: ~90 lines
+- Lifestyle Inflation Check Helper: ~105 lines
+- Action function: ~48 lines
+- Detection functions: ~26 lines
+- Integration code: ~34 lines
+- **Total Phase 4B Extended: ~288 lines**
+- **Cumulative Phase 4B (all 6 helpers): ~821 lines**
+
+**Testing Results:**
+- ✅ Debt Payoff Timeline triggers correctly with debt > 0 and Freedom < 30%
+- ✅ Lifestyle Inflation triggers correctly with income > $5k, Enjoyment > 30%, Multiply < 15%
+- ✅ Both helpers can appear together in validation results
+- ✅ Debt payoff calculations accurate (tested with $25k debt scenarios)
+- ✅ Wealth projection calculations accurate (tested with $10k income scenarios)
+- ✅ Action buttons work correctly (adjust allocations, close helper, re-validate)
+- ✅ No apostrophe escaping issues (follows CLAUDE.md guidelines)
+- ✅ Production deployed and verified
+
+**Current Stable State:**
+- Commit: `a8da9e9` - "feat(tool4): Add Debt Payoff Timeline and Lifestyle Inflation Check helpers"
+- Deployed to Apps Script: ✅ (clasp push complete)
+- Pushed to GitHub: ✅ (origin/feature/grounding-tools)
+
+**Complete Helper Inventory (6 Total):**
+1. ✅ Emergency Fund Timeline Helper (Phase 4B)
+2. ✅ Gap Analysis Helper (Phase 4B)
+3. ✅ Priority Re-Check Helper (Phase 4B)
+4. ✅ Enjoyment Reality Check Helper (Phase 4B)
+5. ✅ Debt Payoff Timeline Helper (Phase 4B Extended)
+6. ✅ Lifestyle Inflation Check Helper (Phase 4B Extended)
+
+**Phase 4B Extended Status:** ✅ **COMPLETE, TESTED, AND PRODUCTION READY**
+
+**Ready for Next Phase:**
+- Phase 4C: Validation UX Refinement (bucket-level indicators, progressive disclosure, severity-based visual design)
+- Or: Consider Phases 5-7 (Progressive Unlock, Scenario Comparison, Report Generation)
+
+---
+
+## 🔔 Session Notes (2025-11-30 - Phase 4B Initial Implementation)
 
 **Phase 4B: Interactive Helpers - COMPLETE ✅**
 
