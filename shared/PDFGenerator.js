@@ -702,11 +702,11 @@ const PDFGenerator = {
    * Tool 4 specific styles
    */
   getTool4Styles() {
-    // Tool 4 uses purple color scheme to match web app
-    var purple = '#4f46e5';
-    var purpleLight = 'rgba(79, 70, 229, 0.08)';
-    var purpleBorder = 'rgba(79, 70, 229, 0.3)';
-    var darkPurple = '#3730a3';
+    // Tool 4 uses purple color scheme - darker tones for better PDF readability
+    var purple = '#5b4b8a';       // Muted dark purple for headings
+    var purpleLight = 'rgba(91, 75, 138, 0.08)';  // Very light purple tint for backgrounds
+    var purpleBorder = 'rgba(91, 75, 138, 0.3)';
+    var darkPurple = '#4b4166';   // Matches existing TruPath dark purple
 
     return `
       body { font-family: Arial, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; line-height: 1.6; color: #333; }
@@ -754,6 +754,21 @@ const PDFGenerator = {
       .decision-section h3 { color: ${purple}; margin-top: 0; }
       .decision-section ul { margin: 10px 0 20px 20px; }
       .remember-box { background: #fffbeb; border: 1px solid #fcd34d; padding: 15px; border-radius: 5px; margin-top: 20px; }
+      .gpt-section { margin: 25px 0; }
+      .gpt-overview { background: ${purpleLight}; padding: 25px; border-radius: 10px; border-left: 4px solid ${purple}; margin-bottom: 20px; }
+      .gpt-overview p { margin: 0 0 15px 0; line-height: 1.7; color: #333; }
+      .gpt-overview p:last-child { margin-bottom: 0; }
+      .strategic-insights { background: #f9fafb; padding: 20px 20px 20px 35px; border-radius: 8px; margin: 20px 0; }
+      .strategic-insights li { margin: 12px 0; line-height: 1.6; color: #444; }
+      .recommendation-box { background: linear-gradient(135deg, ${purpleLight} 0%, rgba(91, 75, 138, 0.12) 100%); padding: 25px; border-radius: 10px; border: 1px solid ${purpleBorder}; margin-top: 20px; }
+      .recommendation-box h3 { margin: 0 0 15px 0; }
+      .recommendation-box p { margin: 0; line-height: 1.7; color: #333; }
+      .gpt-comparison-synthesis { background: ${purpleLight}; padding: 25px; border-radius: 10px; border-left: 4px solid ${purple}; margin-bottom: 20px; }
+      .gpt-comparison-synthesis p { margin: 0 0 15px 0; line-height: 1.7; }
+      .gpt-comparison-synthesis p:last-child { margin-bottom: 0; }
+      .gpt-decision-guidance { background: linear-gradient(135deg, #eff6ff 0%, #e0e7ff 100%); padding: 20px; border-radius: 8px; border: 1px solid #c7d2fe; }
+      .gpt-decision-guidance p { margin: 0; line-height: 1.7; color: #333; }
+      .gpt-source-note { font-size: 11px; color: #888; text-align: right; margin-top: 10px; font-style: italic; }
     `;
   },
 
@@ -839,6 +854,80 @@ const PDFGenerator = {
   },
 
   /**
+   * Build GPT insights section for Tool 4 Main Report
+   * @param {Object} gptInsights - { overview, strategicInsights, recommendation, source }
+   * @returns {string} HTML for GPT section
+   */
+  buildTool4GPTSection(gptInsights) {
+    if (!gptInsights) return '';
+
+    var purpleColor = '#5b4b8a';
+    var sourceNote = gptInsights.source === 'fallback' ? '' :
+      '<div class="gpt-source-note">Analysis generated with AI assistance</div>';
+
+    // Split overview into paragraphs
+    var overviewParagraphs = (gptInsights.overview || '')
+      .split('\n\n')
+      .filter(function(p) { return p.trim().length > 0; })
+      .map(function(p) { return '<p>' + p.trim() + '</p>'; })
+      .join('');
+
+    // Build strategic insights list
+    var insightsList = '';
+    if (gptInsights.strategicInsights && gptInsights.strategicInsights.length > 0) {
+      insightsList = '<ol class="strategic-insights">' +
+        gptInsights.strategicInsights.map(function(insight) {
+          return '<li>' + insight + '</li>';
+        }).join('') +
+        '</ol>';
+    }
+
+    return '<div class="page-break"></div>' +
+      '<h2>Your Personalized Analysis</h2>' +
+      '<div class="gpt-section">' +
+      '<div class="gpt-overview">' + overviewParagraphs + '</div>' +
+      '<h3 style="color: ' + purpleColor + '; margin-top: 25px;">Key Observations</h3>' +
+      insightsList +
+      '<div class="recommendation-box">' +
+      '<h3 style="color: ' + purpleColor + ';">Your Priority Focus</h3>' +
+      '<p>' + (gptInsights.recommendation || '') + '</p>' +
+      '</div>' +
+      sourceNote +
+      '</div>';
+  },
+
+  /**
+   * Build GPT insights section for Tool 4 Comparison Report
+   * @param {Object} gptInsights - { synthesis, decisionGuidance, source }
+   * @returns {string} HTML for GPT comparison section
+   */
+  buildTool4ComparisonGPTSection(gptInsights) {
+    if (!gptInsights) return '';
+
+    var purpleColor = '#5b4b8a';
+    var sourceNote = gptInsights.source === 'fallback' ? '' :
+      '<div class="gpt-source-note">Analysis generated with AI assistance</div>';
+
+    // Split synthesis into paragraphs
+    var synthesisParagraphs = (gptInsights.synthesis || '')
+      .split('\n\n')
+      .filter(function(p) { return p.trim().length > 0; })
+      .map(function(p) { return '<p>' + p.trim() + '</p>'; })
+      .join('');
+
+    return '<div class="page-break"></div>' +
+      '<h2>Personalized Comparison Analysis</h2>' +
+      '<div class="gpt-section">' +
+      '<div class="gpt-comparison-synthesis">' + synthesisParagraphs + '</div>' +
+      '<h3 style="color: ' + purpleColor + '; margin-top: 20px;">Decision Guidance</h3>' +
+      '<div class="gpt-decision-guidance">' +
+      '<p>' + (gptInsights.decisionGuidance || '') + '</p>' +
+      '</div>' +
+      sourceNote +
+      '</div>';
+  },
+
+  /**
    * Generate Tool 4 Main Report PDF
    */
   generateTool4MainPDF(clientId) {
@@ -895,7 +984,7 @@ const PDFGenerator = {
       }
 
       var influencesSection = '<div class="page-break"></div><h2>How Your Profile Influenced This Allocation</h2>';
-      var purpleColor = '#4f46e5';
+      var purpleColor = '#5b4b8a';
       if (tool1Data) {
         var traumaNames = { 'FSV': 'False Self-View', 'ExVal': 'External Validation', 'Showing': 'Issues Showing Love', 'Receiving': 'Issues Receiving Love', 'Control': 'Control Leading to Isolation', 'Fear': 'Fear Leading to Isolation' };
         influencesSection += '<div class="trauma-influence"><h3 style="margin-top: 0; color: ' + purpleColor + ';">Core Trauma Strategy (Tool 1)</h3>' +
@@ -912,6 +1001,29 @@ const PDFGenerator = {
 
       // Get helper insights (Emergency Fund Timeline, Debt Payoff, etc.)
       var helperInsights = Tool4.generateHelperInsights ? Tool4.generateHelperInsights(allocation.percentages, preSurveyData) : [];
+
+      // Get GPT-powered personalized insights
+      var gptInsights = null;
+      try {
+        if (typeof Tool4GPTAnalysis !== 'undefined') {
+          gptInsights = Tool4GPTAnalysis.generateMainReportInsights({
+            clientId: clientId,
+            preSurveyData: preSurveyData,
+            allocation: allocation,
+            validationResults: validationResults,
+            helperInsights: helperInsights,
+            tool1Data: tool1Data,
+            tool2Data: tool2Data
+          });
+          Logger.log('[PDFGenerator] GPT insights generated, source: ' + (gptInsights ? gptInsights.source : 'none'));
+        }
+      } catch (gptError) {
+        Logger.log('[PDFGenerator] GPT insights error: ' + gptError);
+        // Continue without GPT section if it fails
+      }
+
+      // Build GPT section
+      var gptSection = this.buildTool4GPTSection(gptInsights);
 
       var validationSection = '<h2>Validation Results</h2>';
       if ((!validationResults || validationResults.length === 0) && (!helperInsights || helperInsights.length === 0)) {
@@ -988,7 +1100,7 @@ const PDFGenerator = {
 
       var footer = this.buildFooter('This allocation framework is a starting point. Adjust as needed and consult with a financial advisor for personalized advice.');
 
-      var bodyContent = header + executiveSummary + allocationSection + insightsSection + influencesSection + validationSection + nextStepsSection + footer;
+      var bodyContent = header + executiveSummary + gptSection + allocationSection + insightsSection + influencesSection + validationSection + nextStepsSection + footer;
       var htmlContent = this.buildHTMLDocument(this.getTool4Styles(), bodyContent);
       var fileName = this.generateFileName('FinancialFreedomFramework', studentName);
       return this.htmlToPDF(htmlContent, fileName);
@@ -1026,13 +1138,96 @@ const PDFGenerator = {
 
       var comparisonData = Tool4.generateComparisonNarrative ? Tool4.generateComparisonNarrative(scenario1, scenario2, preSurveyData) : {};
 
+      // Get GPT-powered comparison insights
+      var gptComparisonInsights = null;
+      try {
+        if (typeof Tool4GPTAnalysis !== 'undefined') {
+          gptComparisonInsights = Tool4GPTAnalysis.generateComparisonInsights({
+            clientId: clientId,
+            scenario1: scenario1,
+            scenario2: scenario2,
+            preSurveyData: preSurveyData,
+            comparisonData: comparisonData
+          });
+          Logger.log('[PDFGenerator] GPT comparison insights generated, source: ' + (gptComparisonInsights ? gptComparisonInsights.source : 'none'));
+        }
+      } catch (gptError) {
+        Logger.log('[PDFGenerator] GPT comparison insights error: ' + gptError);
+        // Continue without GPT section if it fails
+      }
+
+      // Build GPT comparison section
+      var gptComparisonSection = this.buildTool4ComparisonGPTSection(gptComparisonInsights);
+
       var header = this.buildHeader('Scenario Comparison Report', studentName);
 
-      var executiveSummary = '<div class="intro"><p>This report compares two allocation scenarios, helping you understand the trade-offs of each approach.</p></div>' +
-        '<h2>Scenarios Under Comparison</h2><table class="summary-table"><tr><th>Scenario</th><th>Name</th><th>Saved On</th></tr>' +
-        '<tr><td><strong>Scenario A</strong></td><td>' + (scenario1.name || 'Unnamed') + '</td><td>' + (scenario1.timestamp ? new Date(scenario1.timestamp).toLocaleDateString() : 'Unknown') + '</td></tr>' +
-        '<tr><td><strong>Scenario B</strong></td><td>' + (scenario2.name || 'Unnamed') + '</td><td>' + (scenario2.timestamp ? new Date(scenario2.timestamp).toLocaleDateString() : 'Unknown') + '</td></tr></table>' +
-        '<p style="margin-top: 15px;"><strong>Monthly Income:</strong> ' + this.formatMoney(monthlyIncome) + '</p>';
+      var executiveSummary = '<div class="intro"><p>This report compares two allocation scenarios, helping you understand the trade-offs of each approach.</p></div>';
+
+      // Unified Scenarios Section - combines scenario info with profile context
+      var profile1 = scenario1.profileSnapshot || {};
+      var profile2 = scenario2.profileSnapshot || {};
+      var profileDiffers = (
+        scenario1.monthlyIncome !== scenario2.monthlyIncome ||
+        profile1.currentEssentials !== profile2.currentEssentials ||
+        profile1.debtBalance !== profile2.debtBalance ||
+        profile1.emergencyFund !== profile2.emergencyFund ||
+        scenario1.priority !== scenario2.priority
+      );
+
+      var scenariosSection = '<h2>Scenarios Being Compared</h2>';
+
+      if (profileDiffers) {
+        scenariosSection += '<div style="background: #fffbeb; border: 1px solid #fcd34d; padding: 10px 12px; border-radius: 6px; margin-bottom: 15px; font-size: 13px;">' +
+          '<strong style="color: #b45309;">Note:</strong> These scenarios were saved with different profile settings. ' +
+          'Dollar amounts may reflect different underlying circumstances.</div>';
+      }
+
+      // Side-by-side scenario cards with page-break prevention
+      scenariosSection += '<div class="allocation-grid" style="page-break-inside: avoid;">';
+
+      // Scenario A card
+      var date1 = scenario1.timestamp ? new Date(scenario1.timestamp).toLocaleDateString() : 'Unknown';
+      scenariosSection += '<div class="allocation-card">' +
+        '<div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 2px solid #5b4b8a;">' +
+        '<h3 style="margin: 0; color: #5b4b8a; font-size: 15px;">Scenario A</h3>' +
+        '<span style="font-size: 11px; color: #888;">Saved ' + date1 + '</span></div>' +
+        '<div style="font-weight: 600; color: #333; margin-bottom: 10px; font-size: 14px;">' + (scenario1.name || 'Unnamed') + '</div>' +
+        '<table style="width: 100%; font-size: 12px;">' +
+        '<tr><td style="color: #666; padding: 3px 0;">Income:</td><td style="text-align: right; font-weight: 500;">' + this.formatMoney(scenario1.monthlyIncome || 0) + '/mo</td></tr>' +
+        '<tr><td style="color: #666; padding: 3px 0;">Priority:</td><td style="text-align: right; font-weight: 500;">' + (scenario1.priority || 'Not set') + '</td></tr>';
+      if (profile1.currentEssentials) {
+        scenariosSection += '<tr><td style="color: #666; padding: 3px 0;">Essentials:</td><td style="text-align: right; font-weight: 500;">' + this.formatMoney(profile1.currentEssentials) + '/mo</td></tr>';
+      }
+      if (profile1.debtBalance) {
+        scenariosSection += '<tr><td style="color: #666; padding: 3px 0;">Debt:</td><td style="text-align: right; font-weight: 500;">' + this.formatMoney(profile1.debtBalance) + '</td></tr>';
+      }
+      if (profile1.emergencyFund) {
+        scenariosSection += '<tr><td style="color: #666; padding: 3px 0;">Emergency Fund:</td><td style="text-align: right; font-weight: 500;">' + this.formatMoney(profile1.emergencyFund) + '</td></tr>';
+      }
+      scenariosSection += '</table></div>';
+
+      // Scenario B card
+      var date2 = scenario2.timestamp ? new Date(scenario2.timestamp).toLocaleDateString() : 'Unknown';
+      scenariosSection += '<div class="allocation-card">' +
+        '<div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 2px solid #5b4b8a;">' +
+        '<h3 style="margin: 0; color: #5b4b8a; font-size: 15px;">Scenario B</h3>' +
+        '<span style="font-size: 11px; color: #888;">Saved ' + date2 + '</span></div>' +
+        '<div style="font-weight: 600; color: #333; margin-bottom: 10px; font-size: 14px;">' + (scenario2.name || 'Unnamed') + '</div>' +
+        '<table style="width: 100%; font-size: 12px;">' +
+        '<tr><td style="color: #666; padding: 3px 0;">Income:</td><td style="text-align: right; font-weight: 500;">' + this.formatMoney(scenario2.monthlyIncome || 0) + '/mo</td></tr>' +
+        '<tr><td style="color: #666; padding: 3px 0;">Priority:</td><td style="text-align: right; font-weight: 500;">' + (scenario2.priority || 'Not set') + '</td></tr>';
+      if (profile2.currentEssentials) {
+        scenariosSection += '<tr><td style="color: #666; padding: 3px 0;">Essentials:</td><td style="text-align: right; font-weight: 500;">' + this.formatMoney(profile2.currentEssentials) + '/mo</td></tr>';
+      }
+      if (profile2.debtBalance) {
+        scenariosSection += '<tr><td style="color: #666; padding: 3px 0;">Debt:</td><td style="text-align: right; font-weight: 500;">' + this.formatMoney(profile2.debtBalance) + '</td></tr>';
+      }
+      if (profile2.emergencyFund) {
+        scenariosSection += '<tr><td style="color: #666; padding: 3px 0;">Emergency Fund:</td><td style="text-align: right; font-weight: 500;">' + this.formatMoney(profile2.emergencyFund) + '</td></tr>';
+      }
+      scenariosSection += '</table></div>';
+
+      scenariosSection += '</div>'; // close allocation-grid
 
       var buckets = ['Multiply', 'Essentials', 'Freedom', 'Enjoyment'];
       var comparisonRows = buckets.map(function(bucket) {
@@ -1088,11 +1283,11 @@ const PDFGenerator = {
       }
 
       var strategySection = '<h2>Strategy Analysis</h2><div class="allocation-grid">' +
-        '<div class="allocation-card"><h3 style="margin-top: 0; color: #4f46e5;">' + (scenario1.name || 'Scenario A') + '</h3>' +
+        '<div class="allocation-card"><h3 style="margin-top: 0; color: #5b4b8a;">' + (scenario1.name || 'Scenario A') + '</h3>' +
         '<p><strong>Strategy:</strong> ' + strategy1Name + '</p>' +
         '<p style="font-size: 14px; color: #666;">' + strategy1Desc + '</p>' +
         (strategy1Reflection ? '<p style="font-size: 13px; color: #888; font-style: italic; margin-top: 10px;">' + strategy1Reflection + '</p>' : '') + '</div>' +
-        '<div class="allocation-card"><h3 style="margin-top: 0; color: #4f46e5;">' + (scenario2.name || 'Scenario B') + '</h3>' +
+        '<div class="allocation-card"><h3 style="margin-top: 0; color: #5b4b8a;">' + (scenario2.name || 'Scenario B') + '</h3>' +
         '<p><strong>Strategy:</strong> ' + strategy2Name + '</p>' +
         '<p style="font-size: 14px; color: #666;">' + strategy2Desc + '</p>' +
         (strategy2Reflection ? '<p style="font-size: 13px; color: #888; font-style: italic; margin-top: 10px;">' + strategy2Reflection + '</p>' : '') + '</div></div>';
@@ -1192,7 +1387,7 @@ const PDFGenerator = {
 
       var footer = this.buildFooter('This comparison helps you explore different approaches. Choose the one that resonates with your current needs.');
 
-      var bodyContent = header + executiveSummary + comparisonTable + impactSection + strategySection + bottomLineSection + recommendationSection + footer;
+      var bodyContent = header + executiveSummary + gptComparisonSection + scenariosSection + comparisonTable + impactSection + strategySection + bottomLineSection + recommendationSection + footer;
       var htmlContent = this.buildHTMLDocument(this.getTool4Styles(), bodyContent);
       var fileName = this.generateFileName('ScenarioComparison', studentName);
       return this.htmlToPDF(htmlContent, fileName);
