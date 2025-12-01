@@ -3236,9 +3236,10 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
     // Detect priority mismatch (2+ buckets out of expected range)
     function detectPriorityMismatch() {
       var valuesWarnings = validateValuesAlignment();
+      // Count suggestions from values alignment (these indicate buckets out of expected range)
       var mismatchCount = 0;
       valuesWarnings.forEach(function(warning) {
-        if (warning.severity === 'suggestion' && warning.action === 'priority-recheck') {
+        if (warning.severity === 'suggestion') {
           mismatchCount++;
         }
       });
