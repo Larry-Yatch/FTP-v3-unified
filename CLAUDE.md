@@ -100,3 +100,51 @@ google.script.run
 2. Copy from `core/FormUtils.js` or working examples
 3. DO NOT write navigation from memory
 4. When debugging "X works but Y doesn't", immediately diff the two implementations
+
+---
+
+## 🚨 JavaScript in Template Literals (GAS Projects)
+
+**CRITICAL:** When writing JavaScript code inside template literals (especially for GAS tools that use `document.write()`):
+
+### ❌ AVOID:
+- Escaped apostrophes in strings: `'you\'re'`, `'don\'t'`, `'can\'t'`
+- Contractions with apostrophes in user-facing messages
+- Nested template literals in generated JavaScript
+- Complex string concatenation with mixed quotes
+
+### ✅ USE INSTEAD:
+- Full words: `'you are'`, `'do not'`, `'cannot'`
+- Double quotes for outer strings if apostrophes needed internally: `"user's choice"`
+- String concatenation with `+` operator for clarity
+- Consistent quote style throughout a function
+
+### Why This Matters:
+Google Apps Script's `document.write()` pattern causes **double-escaping issues** when JavaScript code is:
+1. Written inside server-side template literals (backticks)
+2. Returned as HTML strings
+3. Injected via `document.write()`
+
+The escaping gets mangled: `'you\'re'` becomes invalid JavaScript and causes syntax errors like `Unexpected identifier 're'`.
+
+### Pre-Deployment Check:
+```bash
+# Search for potentially problematic escaped apostrophes in message strings
+grep -n "\\\\'.*message:" tools/*/Tool*.js
+```
+
+If found, replace contractions with full words or use double quotes.
+
+### Example:
+```javascript
+// ❌ BAD - Will cause syntax error in GAS
+message: 'You\'re at ' + value + '%. Don\'t exceed 50%.'
+
+// ✅ GOOD - Works reliably
+message: 'You are at ' + value + '%. Do not exceed 50%.'
+
+// ✅ ALSO GOOD - Double quotes protect apostrophes
+message: "You're at " + value + "%. Don't exceed 50%."
+```
+
+**Golden Rule:** If the JavaScript code lives inside backticks (\`\`) and will be output to HTML, treat apostrophes like SQL injection vulnerabilities - sanitize or avoid them entirely.
