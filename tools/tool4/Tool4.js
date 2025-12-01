@@ -2037,7 +2037,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
     <div class="presurvey-section">
       <div class="presurvey-header" onclick="togglePreSurvey()">
         <div class="presurvey-title">
-          ${hasPreSurvey ? '📊 Your Budget Profile' : '📊 Quick Budget Profile Setup (8 questions, 2-3 minutes)'}
+          ${hasPreSurvey ? '📊 Your Budget Profile' : '📊 Quick Budget Profile Setup (10 questions, 2-3 minutes)'}
         </div>
         <div style="display: flex; align-items: center; gap: 15px;">
           <span style="font-size: 12px; color: var(--color-text-muted);">(Click to ${hasPreSurvey ? 'expand/collapse' : 'collapse'})</span>
@@ -2096,9 +2096,23 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
             <input type="number" id="monthlyEssentials" class="form-input" placeholder="e.g., 2000" min="0" step="1" value="${formValues.monthlyEssentials || ''}" required>
           </div>
 
-          <!-- Q3: Financial Satisfaction Slider -->
+          <!-- Q3: Total Debt (excluding mortgage) -->
           <div class="form-question">
-            <label class="question-label">3. How satisfied are you with your current financial situation?</label>
+            <label class="question-label">3. What is your total debt (excluding mortgage)?</label>
+            <div class="question-help">Include credit cards, student loans, car loans, medical debt, personal loans. Don't include your mortgage or rent.</div>
+            <input type="number" id="totalDebt" class="form-input" placeholder="e.g., 15000" min="0" step="1" value="${formValues.totalDebt || ''}" required>
+          </div>
+
+          <!-- Q4: Emergency Fund Amount -->
+          <div class="form-question">
+            <label class="question-label">4. How much money do you currently have in an emergency fund?</label>
+            <div class="question-help">Money set aside specifically for emergencies - easily accessible savings that you wouldn't touch for normal expenses.</div>
+            <input type="number" id="emergencyFund" class="form-input" placeholder="e.g., 2000" min="0" step="1" value="${formValues.emergencyFund || ''}" required>
+          </div>
+
+          <!-- Q5: Financial Satisfaction Slider -->
+          <div class="form-question">
+            <label class="question-label">5. How satisfied are you with your current financial situation?</label>
             <div class="question-help">Your satisfaction level helps us understand how urgent change feels to you.</div>
             <div class="slider-container">
               <div class="slider-value-display" id="satisfactionDisplay">${sliderLabels.satisfaction[formValues.satisfaction]}</div>
@@ -2109,9 +2123,9 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
             </div>
           </div>
 
-          <!-- Q4: Discipline Slider -->
+          <!-- Q6: Discipline Slider -->
           <div class="form-question">
-            <label class="question-label">4. How would you rate your financial discipline?</label>
+            <label class="question-label">6. How would you rate your financial discipline?</label>
             <div class="question-help">Your ability to stick to financial plans and resist temptation.</div>
             <div class="slider-container">
               <div class="slider-value-display" id="disciplineDisplay">${sliderLabels.discipline[formValues.discipline]}</div>
@@ -2122,9 +2136,9 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
             </div>
           </div>
 
-          <!-- Q5: Impulse Control Slider -->
+          <!-- Q7: Impulse Control Slider -->
           <div class="form-question">
-            <label class="question-label">5. How strong is your impulse control with spending?</label>
+            <label class="question-label">7. How strong is your impulse control with spending?</label>
             <div class="question-help">How well you resist unplanned purchases and stay on budget.</div>
             <div class="slider-container">
               <div class="slider-value-display" id="impulseDisplay">${sliderLabels.impulse[formValues.impulse]}</div>
@@ -2135,9 +2149,9 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
             </div>
           </div>
 
-          <!-- Q6: Long-Term Focus Slider -->
+          <!-- Q8: Long-Term Focus Slider -->
           <div class="form-question">
-            <label class="question-label">6. How focused are you on long-term financial goals?</label>
+            <label class="question-label">8. How focused are you on long-term financial goals?</label>
             <div class="question-help">Your orientation toward future versus present financial needs.</div>
             <div class="slider-container">
               <div class="slider-value-display" id="longTermDisplay">${sliderLabels.longTerm[formValues.longTerm]}</div>
@@ -2148,9 +2162,9 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
             </div>
           </div>
 
-          <!-- Q7: Lifestyle Priority Slider -->
+          <!-- Q9: Lifestyle Priority Slider -->
           <div class="form-question">
-            <label class="question-label">7. How do you prioritize enjoying life now versus saving for later?</label>
+            <label class="question-label">9. How do you prioritize enjoying life now versus saving for later?</label>
             <div class="question-help">Where do you fall on the spectrum from maximum saving to maximum present enjoyment?</div>
             <div class="slider-container">
               <div class="slider-value-display" id="lifestyleDisplay">${sliderLabels.lifestyle[formValues.lifestyle]}</div>
@@ -2161,9 +2175,9 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
             </div>
           </div>
 
-          <!-- Q8: Autonomy Preference Slider -->
+          <!-- Q10: Autonomy Preference Slider -->
           <div class="form-question">
-            <label class="question-label">8. Do you prefer following expert guidance or making your own financial choices?</label>
+            <label class="question-label">10. Do you prefer following expert guidance or making your own financial choices?</label>
             <div class="question-help">How much autonomy do you want in shaping your budget?</div>
             <div class="slider-container">
               <div class="slider-value-display" id="autonomyDisplay">${sliderLabels.autonomy[formValues.autonomy]}</div>
@@ -2172,20 +2186,6 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
                 <span>0</span><span>5</span><span>10</span>
               </div>
             </div>
-          </div>
-
-          <!-- Q9: Total Debt (excluding mortgage) -->
-          <div class="form-question">
-            <label class="question-label">9. What is your total debt (excluding mortgage)?</label>
-            <div class="question-help">Include credit cards, student loans, car loans, medical debt, personal loans. Don't include your mortgage or rent.</div>
-            <input type="number" id="totalDebt" class="form-input" placeholder="e.g., 15000" min="0" step="1" value="${formValues.totalDebt || ''}" required>
-          </div>
-
-          <!-- Q10: Emergency Fund Amount -->
-          <div class="form-question">
-            <label class="question-label">10. How much money do you currently have in an emergency fund?</label>
-            <div class="question-help">Money set aside specifically for emergencies - easily accessible savings that you wouldn't touch for normal expenses.</div>
-            <input type="number" id="emergencyFund" class="form-input" placeholder="e.g., 2000" min="0" step="1" value="${formValues.emergencyFund || ''}" required>
           </div>
 
           <!-- Error Message -->
