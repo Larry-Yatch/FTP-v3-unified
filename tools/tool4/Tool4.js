@@ -2745,6 +2745,12 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
 
       // Update UI
       updateAllBucketDisplays();
+
+      // Close any open helper
+      toggleHelper(null);
+
+      // Re-run validation
+      checkMyPlan();
     }
 
     // ============ ENHANCED VALIDATION SYSTEM (Phase 4A) ============
