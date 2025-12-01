@@ -1,9 +1,50 @@
 # Tool 4 Redesign Specification: Hybrid V1 + Calculator Architecture
 
 **Created:** 2025-11-28
-**Last Updated:** 2025-11-29 (Phase 3B Complete)
-**Status:** Phase 3B Complete ✅ | Production Tested ✅ | Phase 4 Ready 🚀
+**Last Updated:** 2025-11-30 (Phase 4A Complete)
+**Status:** Phase 4A Complete ✅ | Production Tested ✅ | Phase 4B Ready 🚀
 **Purpose:** Complete architectural specification for Tool 4 redesign combining V1's personalization engine with interactive calculator
+
+---
+
+## 🔔 Session Notes (2025-11-30 - Phase 4A Implementation)
+
+**Phase 4A: Enhanced Validation Engine - COMPLETE ✅**
+
+**What Was Implemented:**
+- ✅ Added 2 new pre-survey questions (Q3: Total Debt, Q4: Emergency Fund)
+- ✅ Reordered questions: Q1-4 financial dollar inputs, Q5-10 behavioral sliders
+- ✅ Enhanced helper text with "Enter 0 if none" guidance for financial inputs
+- ✅ Simplified slider helper text to avoid redundancy with dynamic labels
+- ✅ Three-tier validation system implemented:
+  1. Behavioral Validation (4 rules: discipline/impulse vs allocations)
+  2. Values Alignment (10 priority mappings with expected ranges)
+  3. Financial Reality Checks (debt-to-income, emergency fund coverage)
+- ✅ Helper functions for tier mapping (debt, emergency fund, interest level)
+- ✅ Updated buildV1Input() to use direct debt/emergency fund inputs
+- ✅ Severity categorization: Critical (🔴), Warning (🟡), Suggestion (🔵)
+- ✅ Calculator state extended with preSurvey data object
+- ✅ All validation messages use trauma-informed language
+
+**Bug Fixes:**
+- ✅ Fixed apostrophe escaping issue in template literals (you're → you are)
+- ✅ Added CLAUDE.md guidelines for JavaScript in template literals
+- ✅ Pre-deployment check command for escaped apostrophes
+
+**Testing Results:**
+- ✅ Deployed to production without errors
+- ✅ Pre-survey form validation working with 10 questions
+- ✅ New questions collecting debt and emergency fund data correctly
+
+**Current Stable State:**
+- Commit: `61bee37` - "refactor(tool4): Simplify slider helper text to avoid redundancy"
+- Deployed to Apps Script: ✅ (latest deployment)
+- Pushed to GitHub: ✅ (origin/feature/grounding-tools)
+
+**Phase 4A Status:** ✅ **COMPLETE, TESTED, AND PRODUCTION READY**
+
+**Ready for Next Phase:**
+- Phase 4B: Interactive Helpers (4 helpers: Enjoyment Reality Check, Gap Analysis, Priority Re-Check, Emergency Fund Timeline)
 
 ---
 
