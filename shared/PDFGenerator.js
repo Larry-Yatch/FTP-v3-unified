@@ -1023,36 +1023,71 @@ const PDFGenerator = {
         '<table class="summary-table"><tr><th>Bucket</th><th>' + (scenario1.name || 'Scenario A') + '</th><th>' + (scenario2.name || 'Scenario B') + '</th><th>Difference</th></tr>' +
         comparisonRows + '</table>';
 
+      // Extract strategy names (strategy objects have .name, .description, .reflection)
+      var strategy1Name = comparisonData && comparisonData.strategy1 ? (comparisonData.strategy1.name || 'Balanced') : 'Balanced';
+      var strategy2Name = comparisonData && comparisonData.strategy2 ? (comparisonData.strategy2.name || 'Balanced') : 'Balanced';
+      var strategy1Desc = comparisonData && comparisonData.strategy1 ? (comparisonData.strategy1.description || '') : '';
+      var strategy2Desc = comparisonData && comparisonData.strategy2 ? (comparisonData.strategy2.description || '') : '';
+      var strategy1Reflection = comparisonData && comparisonData.strategy1 ? (comparisonData.strategy1.reflection || '') : '';
+      var strategy2Reflection = comparisonData && comparisonData.strategy2 ? (comparisonData.strategy2.reflection || '') : '';
+
       var impactSection = '<h2>Impact Analysis</h2>';
-      if (comparisonData && comparisonData.bucketImpacts) {
-        for (var bucket in comparisonData.bucketImpacts) {
-          impactSection += '<div class="helper-card" style="background: #f9f9f9; border-left-color: ' + CONFIG.UI.PRIMARY_COLOR + ';">' +
-            '<div class="helper-title">' + this.getBucketIcon(bucket) + ' ' + bucket + ' Impact</div>' +
-            '<div class="helper-content">' + comparisonData.bucketImpacts[bucket] + '</div></div>';
-        }
+      // bucketNarratives is an array of impact objects from generateBucketImpact
+      // Each narrative has: title, impact (array), and tradeoff or benefit
+      if (comparisonData && comparisonData.bucketNarratives && comparisonData.bucketNarratives.length > 0) {
+        comparisonData.bucketNarratives.forEach(function(narrative) {
+          if (narrative) {
+            var content = '';
+            if (narrative.impact && Array.isArray(narrative.impact)) {
+              content = '<ul style="margin: 10px 0; padding-left: 20px;">';
+              narrative.impact.forEach(function(item) {
+                content += '<li>' + item + '</li>';
+              });
+              content += '</ul>';
+            }
+            if (narrative.tradeoff) {
+              content += '<p style="margin-top: 10px; color: #dc2626;"><strong>Trade-off:</strong> ' + narrative.tradeoff + '</p>';
+            }
+            if (narrative.benefit) {
+              content += '<p style="margin-top: 10px; color: #059669;"><strong>Benefit:</strong> ' + narrative.benefit + '</p>';
+            }
+            impactSection += '<div class="helper-card" style="background: #f9f9f9; border-left-color: ' + CONFIG.UI.PRIMARY_COLOR + ';">' +
+              '<div class="helper-title">' + (narrative.title || 'Impact') + '</div>' +
+              '<div class="helper-content">' + content + '</div></div>';
+          }
+        });
       } else {
         impactSection += '<p>No significant differences detected between scenarios.</p>';
       }
 
       var strategySection = '<h2>Strategy Analysis</h2><div class="allocation-grid">' +
         '<div class="allocation-card"><h3 style="margin-top: 0; color: ' + CONFIG.UI.PRIMARY_COLOR + ';">' + (scenario1.name || 'Scenario A') + '</h3>' +
-        '<p><strong>Strategy:</strong> ' + (comparisonData.strategy1 || 'Balanced') + '</p>' +
-        '<p style="font-size: 14px; color: #666;">' + this._getStrategyDescription(comparisonData.strategy1) + '</p></div>' +
+        '<p><strong>Strategy:</strong> ' + strategy1Name + '</p>' +
+        '<p style="font-size: 14px; color: #666;">' + strategy1Desc + '</p>' +
+        (strategy1Reflection ? '<p style="font-size: 13px; color: #888; font-style: italic; margin-top: 10px;">' + strategy1Reflection + '</p>' : '') + '</div>' +
         '<div class="allocation-card"><h3 style="margin-top: 0; color: ' + CONFIG.UI.PRIMARY_COLOR + ';">' + (scenario2.name || 'Scenario B') + '</h3>' +
-        '<p><strong>Strategy:</strong> ' + (comparisonData.strategy2 || 'Balanced') + '</p>' +
-        '<p style="font-size: 14px; color: #666;">' + this._getStrategyDescription(comparisonData.strategy2) + '</p></div></div>';
+        '<p><strong>Strategy:</strong> ' + strategy2Name + '</p>' +
+        '<p style="font-size: 14px; color: #666;">' + strategy2Desc + '</p>' +
+        (strategy2Reflection ? '<p style="font-size: 13px; color: #888; font-style: italic; margin-top: 10px;">' + strategy2Reflection + '</p>' : '') + '</div></div>';
+
+      // Generate bottom line based on strategies
+      var bottomLine = 'Both scenarios offer different approaches. ';
+      if (strategy1Name !== strategy2Name) {
+        bottomLine += '"' + (scenario1.name || 'Scenario A') + '" takes a ' + strategy1Name + ' approach, while "' + (scenario2.name || 'Scenario B') + '" uses a ' + strategy2Name + ' approach. ';
+      }
+      bottomLine += 'Consider which trade-offs align with your current life situation and short-term needs.';
 
       var bottomLineSection = '<div class="page-break"></div><h2>The Bottom Line</h2>' +
         '<div class="priority-box" style="text-align: left;"><p style="font-size: 16px; line-height: 1.8; margin: 0;">' +
-        (comparisonData.bottomLine || 'Both scenarios offer different approaches. Consider which trade-offs align with your current situation.') + '</p></div>';
+        bottomLine + '</p></div>';
 
       var recommendationSection = '<h2>Making Your Decision</h2><div style="background: #f9f9f9; padding: 20px; border-radius: 8px;">' +
         '<h3 style="color: ' + CONFIG.UI.PRIMARY_COLOR + '; margin-top: 0;">Consider ' + (scenario1.name || 'Scenario A') + ' If:</h3><ul>' +
-        '<li>Your situation aligns with the ' + (comparisonData.strategy1 || 'balanced') + ' approach</li>' +
-        '<li>The dollar amounts feel sustainable</li></ul>' +
+        '<li>Your situation aligns with the ' + strategy1Name + ' approach</li>' +
+        '<li>' + (strategy1Desc || 'The dollar amounts feel sustainable') + '</li></ul>' +
         '<h3 style="color: ' + CONFIG.UI.PRIMARY_COLOR + ';">Consider ' + (scenario2.name || 'Scenario B') + ' If:</h3><ul>' +
-        '<li>Your situation aligns with the ' + (comparisonData.strategy2 || 'balanced') + ' approach</li>' +
-        '<li>This allocation better addresses pressing concerns</li></ul>' +
+        '<li>Your situation aligns with the ' + strategy2Name + ' approach</li>' +
+        '<li>' + (strategy2Desc || 'This allocation better addresses pressing concerns') + '</li></ul>' +
         '<p style="margin-top: 20px; padding: 15px; background: #fff8e1; border-radius: 5px;">' +
         '<strong>Remember:</strong> The best choice is one you can consistently follow.</p></div>';
 
