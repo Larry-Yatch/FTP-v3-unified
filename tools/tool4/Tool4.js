@@ -438,13 +438,14 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
 
   // Pre-fill form values if pre-survey exists
   // Handle both old format (incomeRange/essentialsRange) and new format (monthlyIncome/monthlyEssentials)
+  // Note: Use explicit null/undefined checks for numeric fields to preserve 0 values
   const formValues = preSurveyData ? {
     selectedPriority: preSurveyData.selectedPriority || '',
     goalTimeline: preSurveyData.goalTimeline || '',
-    monthlyIncome: preSurveyData.monthlyIncome || '',
-    monthlyEssentials: preSurveyData.monthlyEssentials || '',
-    totalDebt: preSurveyData.totalDebt || '',
-    emergencyFund: preSurveyData.emergencyFund || '',
+    monthlyIncome: preSurveyData.monthlyIncome != null ? preSurveyData.monthlyIncome : '',
+    monthlyEssentials: preSurveyData.monthlyEssentials != null ? preSurveyData.monthlyEssentials : '',
+    totalDebt: preSurveyData.totalDebt != null ? preSurveyData.totalDebt : '',
+    emergencyFund: preSurveyData.emergencyFund != null ? preSurveyData.emergencyFund : '',
     satisfaction: preSurveyData.satisfaction || 5,
     discipline: preSurveyData.discipline || 5,
     impulse: preSurveyData.impulse || 5,
@@ -1416,28 +1417,28 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
           <div class="form-question">
             <label class="question-label">1. What is your average monthly take-home income?</label>
             <div class="question-help">After taxes, how much money hits your bank account each month? If it varies, estimate your average. Include all sources: salary, side income, benefits, etc.</div>
-            <input type="number" id="monthlyIncome" class="form-input" placeholder="e.g., 3500" min="0" step="1" value="${formValues.monthlyIncome || ''}" required>
+            <input type="number" id="monthlyIncome" class="form-input" placeholder="e.g., 3500" min="0" step="1" value="${formValues.monthlyIncome !== '' ? formValues.monthlyIncome : ''}" required>
           </div>
 
           <!-- Q2: Monthly Essentials -->
           <div class="form-question">
             <label class="question-label">2. What is your monthly essentials spending?</label>
             <div class="question-help">Your core fixed expenses: rent/mortgage, utilities, groceries, insurance, transportation, minimum debt payments. Do not include dining out, entertainment, or other discretionary spending.</div>
-            <input type="number" id="monthlyEssentials" class="form-input" placeholder="e.g., 2000" min="0" step="1" value="${formValues.monthlyEssentials || ''}" required>
+            <input type="number" id="monthlyEssentials" class="form-input" placeholder="e.g., 2000" min="0" step="1" value="${formValues.monthlyEssentials !== '' ? formValues.monthlyEssentials : ''}" required>
           </div>
 
           <!-- Q3: Total Debt (excluding mortgage) -->
           <div class="form-question">
             <label class="question-label">3. What is your total debt (excluding mortgage)?</label>
-            <div class="question-help">Add up all non-mortgage debt: credit cards, student loans, car loans, medical debt, personal loans. Enter 0 if you have no debt. Do not include your mortgage or rent.</div>
-            <input type="number" id="totalDebt" class="form-input" placeholder="Enter 0 if none" min="0" step="1" value="${formValues.totalDebt || ''}" required>
+            <div class="question-help">Add up all non-mortgage debt: credit cards, student loans, car loans, medical debt, personal loans. Enter 0 if you have no debt. Do not include your mortgage.</div>
+            <input type="number" id="totalDebt" class="form-input" placeholder="Enter 0 if none" min="0" step="1" value="${formValues.totalDebt !== '' ? formValues.totalDebt : ''}" required>
           </div>
 
           <!-- Q4: Emergency Fund Amount -->
           <div class="form-question">
             <label class="question-label">4. How much money do you currently have in an emergency fund?</label>
             <div class="question-help">Money set aside specifically for emergencies - liquid savings you could access quickly but would not touch for normal expenses. Enter 0 if you do not have an emergency fund yet.</div>
-            <input type="number" id="emergencyFund" class="form-input" placeholder="Enter 0 if none" min="0" step="1" value="${formValues.emergencyFund || ''}" required>
+            <input type="number" id="emergencyFund" class="form-input" placeholder="Enter 0 if none" min="0" step="1" value="${formValues.emergencyFund !== '' ? formValues.emergencyFund : ''}" required>
           </div>
 
           <!-- Q5: Financial Satisfaction Slider -->
@@ -2612,7 +2613,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       html += '<strong>At ' + currentFreedom + '% Freedom allocation:</strong><br>';
       html += '$' + currentFreedomDollars.toLocaleString() + '/month to debt paydown<br>';
       if (currentMonths >= 999) {
-        html += 'Timeline: <strong style="color: #ef4444;">Cannot pay off</strong> (payment does not cover interest)<br>';
+        html += 'Timeline: <strong style="color: #ef4444;">Cannot pay off</strong><br>';
         html += 'Total interest: <strong style="color: #ef4444;">Debt grows indefinitely</strong>';
       } else {
         html += 'Timeline: <strong>' + currentMonths + ' months</strong> (' + Math.floor(currentMonths / 12) + ' years, ' + (currentMonths % 12) + ' months)<br>';
@@ -2626,7 +2627,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
         html += '<strong>If you increased to ' + suggestedFreedom + '% Freedom:</strong><br>';
         html += '$' + suggestedFreedomDollars.toLocaleString() + '/month to debt paydown<br>';
         if (suggestedMonths >= 999) {
-          html += 'Timeline: <strong style="color: #ef4444;">Cannot pay off</strong> (payment does not cover interest)';
+          html += 'Timeline: <strong style="color: #ef4444;">Cannot pay off</strong>';
         } else {
           html += 'Timeline: <strong>' + suggestedMonths + ' months</strong> (' + Math.floor(suggestedMonths / 12) + ' years, ' + (suggestedMonths % 12) + ' months)<br>';
           html += 'Total interest paid: <strong>$' + Math.round(suggestedInterest).toLocaleString() + '</strong><br>';
@@ -5334,7 +5335,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
         </div>
         <div class="priority-reason">${priority.reason}</div>
         <div class="priority-allocation">
-          Starting: M${priority.baseAllocation.M}% · E${priority.baseAllocation.E}% · F${priority.baseAllocation.F}% · J${priority.baseAllocation.J}%
+          Starting: Multiply ${priority.baseAllocation.M}% · Essentials ${priority.baseAllocation.E}% · Freedom ${priority.baseAllocation.F}% · Enjoyment ${priority.baseAllocation.J}%
         </div>
       </div>
     `;
