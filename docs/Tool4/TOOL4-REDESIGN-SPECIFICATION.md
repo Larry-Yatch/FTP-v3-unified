@@ -1,9 +1,13 @@
 # Tool 4 Redesign Specification: Hybrid V1 + Calculator Architecture
 
 **Created:** 2025-11-28
-**Last Updated:** 2025-12-01 (Phase 7 Complete - Report Generation Finalized)
-**Status:** All Phases Complete ✅ | Report Generation Finalized ✅ | Production Ready 🚀
+**Last Updated:** 2025-12-01 (Final Review Complete)
+**Status:** All Phases Complete ✅ | Production Ready 🚀
 **Purpose:** Complete architectural specification for Tool 4 redesign combining V1's personalization engine with interactive calculator
+
+**Skipped Features (intentional):**
+- Phase 4C: Validation UX Refinement (bucket-level indicators, progressive disclosure summary)
+- Progressive Priority Unlock Model (see TOOL4-PROGRESSIVE-UNLOCK-MODEL.md - marked as skipped)
 
 ---
 
@@ -2077,53 +2081,14 @@ Action: "Adjust Freedom" or "Keep Current Plan"
 
 ---
 
-#### **Phase 4C: Validation UX Refinement** ⏳ **POLISH PHASE**
+#### **Phase 4C: Validation UX Refinement** ⏭️ **SKIPPED**
 
-**Goal:** Make validation results more scannable and actionable
+**Decision (2025-12-01):** Intentionally skipped. Current validation UX with severity colors and expandable helpers is sufficient for production. Additional polish (bucket-level indicators, collapsed summary counts) deemed unnecessary complexity.
 
-**Enhancements:**
-
-**1. Severity-Based Visual Design**
-```
-🔴 CRITICAL (Red accent)
-  - Mathematical impossibility or crisis situation
-  - Example: Essentials allocation < actual spending
-  - Example: No emergency fund + very low Freedom
-
-🟡 WARNING (Yellow/Orange accent)
-  - Likely to cause problems
-  - Example: Low discipline + aggressive Multiply
-  - Example: High debt + low Freedom
-
-🔵 SUGGESTION (Blue accent)
-  - Optimization opportunities
-  - Example: Good emergency fund, could shift to growth
-
-✅ LOOKS GOOD (Green accent)
-  - All validations passed
-```
-
-**2. Bucket-Level Indicators**
-```
-Add small status icon to each allocation card:
-  Multiply: ✅ (no issues)
-  Essentials: 🔴 (critical issue)
-  Freedom: 🟡 (warning)
-  Enjoyment: 🔵 (suggestion available)
-```
-
-**3. Progressive Disclosure**
-```
-Collapsed: "🔴 1 Critical | 🟡 2 Warnings | 🔵 1 Suggestion - Click to Review"
-Expanded: Full list with helper buttons
-Deep Dive: Click warning → opens relevant helper
-```
-
-**Success Criteria:**
-- ✅ Color-coded severity system
-- ✅ Bucket-level status indicators
-- ✅ Scannable summary view
-- ✅ Progressive disclosure working
+**Original scope (for reference):**
+- Bucket-level status indicators (✅ 🔴 🟡 🔵 on each allocation card)
+- Progressive disclosure summary ("🔴 1 Critical | 🟡 2 Warnings - Click to Review")
+- Enhanced severity visual design
 
 ---
 

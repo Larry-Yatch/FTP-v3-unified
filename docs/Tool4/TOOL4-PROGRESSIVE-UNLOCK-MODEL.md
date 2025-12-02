@@ -1,8 +1,18 @@
 # Tool 4: Progressive Priority Unlock Model
 
 **Date:** November 17, 2025
-**Status:** New Framework - Replaces Static Priority Selection
-**Key Insight:** Not all priorities should be available to all students. Financial health determines access.
+**Status:** ⏭️ **SKIPPED** - Feature not implemented
+**Decision (2025-12-01):** This feature was intentionally skipped. The current implementation allows all 10 priorities to be available to all students. The validation system and interactive helpers provide sufficient guardrails without restricting priority selection.
+
+**Original Key Insight:** Not all priorities should be available to all students. Financial health determines access.
+
+---
+
+## ⚠️ THIS DOCUMENT IS FOR REFERENCE ONLY
+
+The progressive unlock system described below was explored but not implemented. Tool 4 shipped with all priorities available and relies on validation warnings + helpers to guide students toward appropriate choices.
+
+---
 
 ---
 
