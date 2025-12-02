@@ -537,7 +537,7 @@ const Tool4 = {
     }
 
     .question-help {
-      font-size: 0.85rem;
+      font-size: 0.95rem;
       color: var(--color-text-secondary);
       font-style: italic;
       margin-top: 6px;
@@ -588,7 +588,7 @@ const Tool4 = {
       display: flex;
       justify-content: space-between;
       margin-top: 8px;
-      font-size: 0.85rem;
+      font-size: 0.95rem;
       color: var(--color-text-secondary);
     }
 
@@ -730,7 +730,7 @@ const Tool4 = {
     }
 
     .progress-text {
-      font-size: 0.9rem;
+      font-size: 1rem;
       color: var(--color-text-secondary);
       margin-bottom: 8px;
     }
@@ -1446,7 +1446,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
     }
 
     .question-help {
-      font-size: 0.9rem;
+      font-size: 1rem;
       color: var(--color-text-secondary);
       margin-bottom: 12px;
       font-style: italic;
@@ -1471,7 +1471,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
     }
 
     .priority-desc {
-      font-size: 0.85rem;
+      font-size: 0.95rem;
       color: var(--color-text-secondary);
       margin-left: 10px;
       font-style: italic;
@@ -1529,7 +1529,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       display: flex;
       justify-content: space-between;
       margin-top: 5px;
-      font-size: 0.8rem;
+      font-size: 0.9rem;
       color: var(--color-text-secondary);
     }
 
@@ -1650,20 +1650,20 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       color: white;
       padding: 2px 10px;
       border-radius: 12px;
-      font-size: 0.85em;
+      font-size: 0.95em;
       font-weight: 600;
     }
 
     .priority-reason {
       color: var(--color-text-secondary);
-      font-size: 0.95em;
+      font-size: 1em;
       margin-bottom: 8px;
       padding-left: 35px;
     }
 
     .priority-allocation {
       color: var(--color-text-muted);
-      font-size: 0.85em;
+      font-size: 0.95em;
       font-family: 'Courier New', monospace;
       padding-left: 35px;
     }
@@ -1735,7 +1735,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
     }
 
     .bucket-name {
-      font-size: 0.9rem;
+      font-size: 1rem;
       text-transform: uppercase;
       letter-spacing: 1px;
       color: var(--color-text-secondary);
@@ -1942,7 +1942,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
     }
 
     .bucket-description {
-      font-size: 0.85rem;
+      font-size: 0.95rem;
       color: var(--color-text-secondary);
       margin-top: 5px;
       font-style: italic;
@@ -2086,7 +2086,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       <!-- Summary (shown when collapsed) -->
       ${hasPreSurvey ? `
       <div class="presurvey-summary show" id="preSurveySummary">
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; font-size: 0.9rem;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; font-size: 1rem;">
           <div style="color: var(--color-text-secondary);">
             <strong style="color: var(--color-text-primary);">Income:</strong> $${formValues.monthlyIncome || 'Not set'}
           </div>
@@ -2247,7 +2247,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       <!-- Debug: Priority recommendations failed or empty -->
       <div style="background: rgba(239, 68, 68, 0.1); padding: 20px; margin: 20px 0; border-radius: 8px;">
         <p style="color: var(--color-text-primary);">Debug: Priority calculation issue</p>
-        <p style="color: var(--color-text-secondary); font-size: 0.9rem;">
+        <p style="color: var(--color-text-secondary); font-size: 1rem;">
           Recommendations calculated: ${priorityRecommendations ? priorityRecommendations.length : 'null'}
         </p>
       </div>
@@ -2316,7 +2316,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
 
         <div style="background: rgba(79, 70, 229, 0.1); padding: 20px; border-radius: 8px; margin-top: 20px;">
           <h3 style="margin-top: 0; color: var(--color-text-primary);">💡 Why These Numbers?</h3>
-          <p style="color: var(--color-text-muted); font-size: 0.9rem; margin-top: -10px; margin-bottom: 15px;">
+          <p style="color: var(--color-text-muted); font-size: 1rem; margin-top: -10px; margin-bottom: 15px;">
             Personalized reasoning based on your financial profile and goals
           </p>
           <div style="color: var(--color-text-secondary); line-height: 1.6;">
@@ -2358,7 +2358,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
                 <span class="bucket-slider-name">💰 Multiply</span>
                 <span class="bucket-slider-value">
                   <span id="multiplyValue">${allocation.percentages.Multiply}%</span>
-                  <span id="multiplyDollar" style="color: #ffc107; margin-left: 8px; font-size: 0.9em;">
+                  <span id="multiplyDollar" style="color: #ffc107; margin-left: 8px; font-size: 1em;">
                     ${preSurveyData && preSurveyData.monthlyIncome ? `($${Math.round(preSurveyData.monthlyIncome * allocation.percentages.Multiply / 100).toLocaleString()})` : ''}
                   </span>
                 </span>
@@ -2389,7 +2389,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
                 <span class="bucket-slider-name">🏠 Essentials</span>
                 <span class="bucket-slider-value">
                   <span id="essentialsValue">${allocation.percentages.Essentials}%</span>
-                  <span id="essentialsDollar" style="color: #ffc107; margin-left: 8px; font-size: 0.9em;">
+                  <span id="essentialsDollar" style="color: #ffc107; margin-left: 8px; font-size: 1em;">
                     ${preSurveyData && preSurveyData.monthlyIncome ? `($${Math.round(preSurveyData.monthlyIncome * allocation.percentages.Essentials / 100).toLocaleString()})` : ''}
                   </span>
                 </span>
@@ -2420,7 +2420,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
                 <span class="bucket-slider-name">🚀 Freedom</span>
                 <span class="bucket-slider-value">
                   <span id="freedomValue">${allocation.percentages.Freedom}%</span>
-                  <span id="freedomDollar" style="color: #ffc107; margin-left: 8px; font-size: 0.9em;">
+                  <span id="freedomDollar" style="color: #ffc107; margin-left: 8px; font-size: 1em;">
                     ${preSurveyData && preSurveyData.monthlyIncome ? `($${Math.round(preSurveyData.monthlyIncome * allocation.percentages.Freedom / 100).toLocaleString()})` : ''}
                   </span>
                 </span>
@@ -2451,7 +2451,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
                 <span class="bucket-slider-name">🎉 Enjoyment</span>
                 <span class="bucket-slider-value">
                   <span id="enjoymentValue">${allocation.percentages.Enjoyment}%</span>
-                  <span id="enjoymentDollar" style="color: #ffc107; margin-left: 8px; font-size: 0.9em;">
+                  <span id="enjoymentDollar" style="color: #ffc107; margin-left: 8px; font-size: 1em;">
                     ${preSurveyData && preSurveyData.monthlyIncome ? `($${Math.round(preSurveyData.monthlyIncome * allocation.percentages.Enjoyment / 100).toLocaleString()})` : ''}
                   </span>
                 </span>
@@ -2476,8 +2476,8 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
           </div>
 
           <div style="text-align: center; margin-top: 20px; padding: 15px; background: rgba(0, 0, 0, 0.2); border-radius: 8px;">
-            <div style="font-size: 0.9rem; color: var(--color-text-secondary);">
-              Total Allocation: <span id="totalAllocation" style="font-size: 1.2rem; font-weight: 700; color: var(--color-primary);">100%</span>
+            <div style="font-size: 1rem; color: var(--color-text-secondary);">
+              Total Allocation: <span id="totalAllocation" style="font-size: 1.3rem; font-weight: 700; color: var(--color-primary);">100%</span>
             </div>
           </div>
         </div>
@@ -2487,18 +2487,18 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
           <div class="scenarios-header" onclick="toggleSavedScenarios()" style="display: flex; justify-content: space-between; align-items: center; padding: 20px 30px; cursor: pointer; background: rgba(79, 70, 229, 0.1); border-bottom: 2px solid rgba(79, 70, 229, 0.3);">
             <div style="display: flex; align-items: center; gap: 10px;">
               <span style="margin: 0; font-size: 1.25rem; font-weight: 600; color: var(--color-text-primary);">💾 Saved Scenarios</span>
-              <span id="scenarioCount" style="font-size: 0.85rem; color: var(--color-text-muted);"></span>
+              <span id="scenarioCount" style="font-size: 0.95rem; color: var(--color-text-muted);"></span>
             </div>
             <div style="display: flex; align-items: center; gap: 15px;">
-              <span style="font-size: 12px; color: var(--color-text-muted);">(Click to expand/collapse)</span>
-              <div class="scenarios-toggle" id="scenariosToggle" style="transition: transform 0.3s ease; font-size: 14px;">▼</div>
+              <span style="font-size: 14px; color: var(--color-text-muted);">(Click to expand/collapse)</span>
+              <div class="scenarios-toggle" id="scenariosToggle" style="transition: transform 0.3s ease; font-size: 16px;">▼</div>
             </div>
           </div>
 
           <div class="scenarios-body" id="scenariosBody" style="max-height: 0; overflow: hidden; transition: max-height 0.4s ease, opacity 0.3s ease, padding 0.3s ease; opacity: 0; padding: 0 25px;">
             <div style="padding-bottom: 25px;">
               <div style="display: flex; justify-content: flex-end; margin-bottom: 15px;">
-                <button type="button" class="btn-secondary" onclick="event.stopPropagation(); refreshScenarioList();" style="font-size: 0.85rem; padding: 6px 12px;">
+                <button type="button" class="btn-secondary" onclick="event.stopPropagation(); refreshScenarioList();" style="font-size: 0.95rem; padding: 6px 12px;">
                   ↻ Refresh
                 </button>
               </div>
@@ -4016,17 +4016,17 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
         html += '<div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px;">';
         html += '<div>';
         html += '<div style="font-weight: 600; color: var(--color-text-primary); margin-bottom: 5px;">' + scenario.name + '</div>';
-        html += '<div style="font-size: 0.85rem; color: var(--color-text-muted);">';
+        html += '<div style="font-size: 0.95rem; color: var(--color-text-muted);">';
         html += 'M:' + scenario.allocations.Multiply + '% ';
         html += 'E:' + scenario.allocations.Essentials + '% ';
         html += 'F:' + scenario.allocations.Freedom + '% ';
         html += 'J:' + scenario.allocations.Enjoyment + '%';
         html += '</div>';
-        html += '<div style="font-size: 0.8rem; color: var(--color-text-muted); margin-top: 3px;">Saved: ' + dateStr + '</div>';
+        html += '<div style="font-size: 0.9rem; color: var(--color-text-muted); margin-top: 3px;">Saved: ' + dateStr + '</div>';
         html += '</div>';
         html += '<div style="display: flex; gap: 8px;">';
-        html += '<button type="button" onclick="loadScenario(' + index + ')" style="padding: 6px 12px; font-size: 0.85rem; background: rgba(79, 70, 229, 0.2); border: 1px solid rgba(79, 70, 229, 0.4); color: var(--color-primary); border-radius: 6px; cursor: pointer;">Load</button>';
-        html += '<button type="button" onclick="deleteScenarioConfirm(' + index + ')" style="padding: 6px 12px; font-size: 0.85rem; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); color: #ef4444; border-radius: 6px; cursor: pointer;">Delete</button>';
+        html += '<button type="button" onclick="loadScenario(' + index + ')" style="padding: 6px 12px; font-size: 0.95rem; background: rgba(79, 70, 229, 0.2); border: 1px solid rgba(79, 70, 229, 0.4); color: var(--color-primary); border-radius: 6px; cursor: pointer;">Load</button>';
+        html += '<button type="button" onclick="deleteScenarioConfirm(' + index + ')" style="padding: 6px 12px; font-size: 0.95rem; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); color: #ef4444; border-radius: 6px; cursor: pointer;">Delete</button>';
         html += '</div>';
         html += '</div>';
         html += '</div>';
@@ -4181,7 +4181,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       }
       html += '</div>';
 
-      html += '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; font-size: 0.85rem;">';
+      html += '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; font-size: 0.95rem;">';
 
       // Scenario 1 profile
       html += '<div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 6px;">';
@@ -4208,7 +4208,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       html += '</div>'; // grid
 
       if (profileDiffers) {
-        html += '<div style="margin-top: 12px; padding: 10px; background: rgba(251, 191, 36, 0.1); border-radius: 6px; font-size: 0.8rem; color: #fbbf24;">';
+        html += '<div style="margin-top: 12px; padding: 10px; background: rgba(251, 191, 36, 0.1); border-radius: 6px; font-size: 0.9rem; color: #fbbf24;">';
         html += '⚠️ These scenarios were saved with different profile settings. The comparison shows allocation differences, but dollar amounts may reflect different underlying circumstances.';
         html += '</div>';
       }
@@ -4394,7 +4394,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
         html += '<li style="margin-bottom: 4px;">' + impact + '</li>';
       });
       html += '</ul>';
-      html += '<div style="font-size: 0.85rem; color: var(--color-text-muted); font-style: italic;">' + tradeoff + '</div>';
+      html += '<div style="font-size: 0.95rem; color: var(--color-text-muted); font-style: italic;">' + tradeoff + '</div>';
       html += '</div>';
 
       return html;
@@ -4767,7 +4767,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
 
     .priority-hint,
     .unlock-requirement {
-      font-size: 0.85rem;
+      font-size: 0.95rem;
       color: var(--color-text-muted);
     }
 
@@ -4873,7 +4873,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       display: inline-block;
       padding: 4px 12px;
       border-radius: 12px;
-      font-size: 0.85rem;
+      font-size: 0.95rem;
       font-weight: 600;
     }
 
@@ -4892,7 +4892,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       display: block;
       margin-top: 4px;
       color: var(--color-text-muted);
-      font-size: 0.85rem;
+      font-size: 0.95rem;
     }
 
     .category-input {
@@ -4983,7 +4983,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
 
     .gap-difference {
       margin-top: 5px;
-      font-size: 0.85rem;
+      font-size: 0.95rem;
       color: var(--color-text-muted);
     }
 
