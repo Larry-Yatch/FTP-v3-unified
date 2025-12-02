@@ -18,7 +18,7 @@ const PDFGenerator = {
       li { margin: 8px 0; }
       .header { text-align: center; margin-bottom: 30px; }
       .intro { background: #f5f5f5; padding: 20px; border-left: 4px solid ${CONFIG.UI.PRIMARY_COLOR}; margin: 20px 0; }
-      .footer { margin-top: 40px; padding-top: 20px; border-top: 2px solid ${CONFIG.UI.PRIMARY_COLOR}; font-size: 14px; color: #666; }
+      .footer { margin-top: 40px; padding-top: 20px; border-top: 2px solid ${CONFIG.UI.PRIMARY_COLOR}; font-size: 13px; color: #666; }
       @media print {
         body { padding: 20px; }
         .page-break { page-break-before: always; }
@@ -41,10 +41,10 @@ const PDFGenerator = {
 
     return `
       <div class="header" style="margin-bottom: 15px;">
-        <h1 style="font-size: 22px; margin-bottom: 5px;">TruPath Financial</h1>
-        <h2 style="margin-top: 0; font-size: 16px; color: #5b4b8a;">${title}</h2>
-        <p style="margin: 5px 0; font-size: 13px;"><strong>${studentName}</strong></p>
-        <p style="margin: 3px 0; font-size: 12px; color: #666;">${date}</p>
+        <h1 style="font-size: 24px; margin-bottom: 5px;">TruPath Financial</h1>
+        <h2 style="margin-top: 0; font-size: 18px; color: #5b4b8a;">${title}</h2>
+        <p style="margin: 5px 0; font-size: 14px;"><strong>${studentName}</strong></p>
+        <p style="margin: 3px 0; font-size: 13px; color: #666;">${date}</p>
       </div>
     `;
   },
@@ -59,9 +59,9 @@ const PDFGenerator = {
     const defaultText = 'This assessment is the beginning of your journey. Use these insights to guide conversations with your financial advisor.';
 
     return `
-      <div class="footer">
-        <p>${customText || defaultText}</p>
-        <p style="margin-top: 20px;"><strong>TruPath Financial</strong><br>Generated: ${date}</p>
+      <div class="footer" style="font-size: 13px;">
+        <p style="margin: 0 0 10px 0;">${customText || defaultText}</p>
+        <p style="margin-top: 15px;"><strong>TruPath Financial</strong><br>Generated: ${date}</p>
       </div>
     `;
   },
@@ -717,8 +717,8 @@ const PDFGenerator = {
       ul, ol { margin: 15px 0 15px 25px; }
       li { margin: 8px 0; }
       .header { text-align: center; margin-bottom: 30px; }
-      .intro { background: ${purpleLight}; padding: 12px 15px; border-left: 3px solid ${purple}; margin: 12px 0; border-radius: 6px; font-size: 12px; }
-      .footer { margin-top: 40px; padding-top: 20px; border-top: 2px solid ${purple}; font-size: 14px; color: #666; }
+      .intro { background: ${purpleLight}; padding: 12px 15px; border-left: 3px solid ${purple}; margin: 12px 0; border-radius: 6px; font-size: 13px; }
+      .footer { margin-top: 40px; padding-top: 20px; border-top: 2px solid ${purple}; font-size: 13px; color: #666; }
       @media print {
         body { padding: 20px; }
         .page-break { page-break-before: always; }
@@ -726,13 +726,13 @@ const PDFGenerator = {
       .allocation-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 12px 0; }
       .allocation-card { background: ${purpleLight}; padding: 10px 12px; border-radius: 6px; border-left: 3px solid ${purple}; }
       .allocation-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
-      .allocation-name { font-size: 13px; font-weight: 600; color: #333; }
-      .allocation-percentage { font-size: 20px; font-weight: 700; color: ${purple}; }
-      .allocation-dollars { font-size: 12px; color: #666; margin-top: 2px; }
-      .allocation-note { font-size: 11px; color: #555; margin-top: 6px; line-height: 1.4; }
+      .allocation-name { font-size: 14px; font-weight: 600; color: #333; }
+      .allocation-percentage { font-size: 22px; font-weight: 700; color: ${purple}; }
+      .allocation-dollars { font-size: 13px; color: #666; margin-top: 2px; }
+      .allocation-note { font-size: 12px; color: #555; margin-top: 6px; line-height: 1.4; }
       .priority-box { background: ${purpleLight}; border: 1px solid ${purpleBorder}; padding: 15px; text-align: center; margin: 15px 0; border-radius: 8px; }
-      .priority-label { font-size: 11px; text-transform: uppercase; color: ${purple}; margin-bottom: 5px; letter-spacing: 0.5px; }
-      .priority-value { font-size: 16px; font-weight: 700; color: ${darkPurple}; }
+      .priority-label { font-size: 12px; text-transform: uppercase; color: ${purple}; margin-bottom: 5px; letter-spacing: 0.5px; }
+      .priority-value { font-size: 18px; font-weight: 700; color: ${darkPurple}; }
       .helper-card { background: #f9fafb; border-left: 4px solid ${purple}; padding: 20px; margin: 15px 0; border-radius: 8px; page-break-inside: avoid; }
       .helper-critical { background: #fef2f2; border-left-color: #ef4444; }
       .helper-suggestion { background: #eff6ff; border-left-color: #3b82f6; }
@@ -744,8 +744,8 @@ const PDFGenerator = {
       .modifier-item { padding: 8px 0; border-bottom: 1px solid #eee; }
       .modifier-item:last-child { border-bottom: none; }
       .trauma-influence { background: ${purpleLight}; padding: 15px; margin: 15px 0; border-left: 3px solid ${purple}; border-radius: 5px; }
-      .summary-table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 12px; }
-      .summary-table th { background: ${purple}; color: white; padding: 8px 10px; text-align: left; font-size: 11px; }
+      .summary-table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 13px; }
+      .summary-table th { background: ${purple}; color: white; padding: 8px 10px; text-align: left; font-size: 12px; }
       .summary-table td { padding: 8px 10px; border-bottom: 1px solid #ddd; }
       .summary-table tr:nth-child(even) { background: ${purpleLight}; }
       .bottom-line-box { background: ${purpleLight}; border: 2px solid ${purpleBorder}; padding: 25px; margin: 25px 0; border-radius: 10px; }
@@ -756,13 +756,13 @@ const PDFGenerator = {
       .remember-box { background: #fffbeb; border: 1px solid #fcd34d; padding: 15px; border-radius: 5px; margin-top: 20px; }
       .gpt-section { margin: 10px 0; page-break-inside: avoid; }
       .gpt-overview { background: ${purpleLight}; padding: 10px 12px; border-radius: 6px; border-left: 3px solid ${purple}; margin-bottom: 8px; }
-      .gpt-overview p { margin: 0 0 6px 0; line-height: 1.4; color: #333; font-size: 12px; }
+      .gpt-overview p { margin: 0 0 6px 0; line-height: 1.4; color: #333; font-size: 13px; }
       .gpt-overview p:last-child { margin-bottom: 0; }
       .strategic-insights { background: #f9fafb; padding: 8px 10px 8px 25px; border-radius: 4px; margin: 8px 0; }
-      .strategic-insights li { margin: 5px 0; line-height: 1.4; color: #444; font-size: 12px; }
+      .strategic-insights li { margin: 5px 0; line-height: 1.4; color: #444; font-size: 13px; }
       .recommendation-box { background: linear-gradient(135deg, ${purpleLight} 0%, rgba(91, 75, 138, 0.12) 100%); padding: 10px 12px; border-radius: 6px; border: 1px solid ${purpleBorder}; margin-top: 8px; }
-      .recommendation-box h3 { margin: 0 0 5px 0; font-size: 13px; }
-      .recommendation-box p { margin: 0; line-height: 1.4; color: #333; font-size: 12px; }
+      .recommendation-box h3 { margin: 0 0 5px 0; font-size: 14px; }
+      .recommendation-box p { margin: 0; line-height: 1.4; color: #333; font-size: 13px; }
       .gpt-comparison-synthesis { background: ${purpleLight}; padding: 15px 18px; border-radius: 8px; border-left: 4px solid ${purple}; margin-bottom: 12px; }
       .gpt-comparison-synthesis p { margin: 0 0 10px 0; line-height: 1.5; font-size: 14px; }
       .gpt-comparison-synthesis p:last-child { margin-bottom: 0; }
@@ -882,13 +882,13 @@ const PDFGenerator = {
         '</ol>';
     }
 
-    return '<h2 style="margin-top: 12px; margin-bottom: 6px; font-size: 16px;">Your Personalized Analysis</h2>' +
+    return '<h2 style="margin-top: 12px; margin-bottom: 6px; font-size: 18px;">Your Personalized Analysis</h2>' +
       '<div class="gpt-section">' +
       '<div class="gpt-overview">' + overviewParagraphs + '</div>' +
-      '<h3 style="color: ' + purpleColor + '; margin-top: 8px; margin-bottom: 5px; font-size: 13px;">Key Observations</h3>' +
+      '<h3 style="color: ' + purpleColor + '; margin-top: 8px; margin-bottom: 5px; font-size: 14px;">Key Observations</h3>' +
       insightsList +
       '<div class="recommendation-box">' +
-      '<h3 style="color: ' + purpleColor + '; font-size: 13px;">Your Priority Focus</h3>' +
+      '<h3 style="color: ' + purpleColor + ';">Your Priority Focus</h3>' +
       '<p>' + (gptInsights.recommendation || '') + '</p>' +
       '</div>' +
       sourceNote +
@@ -914,10 +914,10 @@ const PDFGenerator = {
       .map(function(p) { return '<p>' + p.trim() + '</p>'; })
       .join('');
 
-    return '<h2 style="margin-top: 20px;">Personalized Comparison Analysis</h2>' +
+    return '<h2 style="margin-top: 20px; font-size: 18px;">Personalized Comparison Analysis</h2>' +
       '<div class="gpt-section">' +
       '<div class="gpt-comparison-synthesis">' + synthesisParagraphs + '</div>' +
-      '<h3 style="color: ' + purpleColor + '; margin-top: 12px; margin-bottom: 8px; font-size: 15px;">Decision Guidance</h3>' +
+      '<h3 style="color: ' + purpleColor + '; margin-top: 12px; margin-bottom: 8px; font-size: 14px;">Decision Guidance</h3>' +
       '<div class="gpt-decision-guidance">' +
       '<p>' + (gptInsights.decisionGuidance || '') + '</p>' +
       '</div>' +
@@ -955,8 +955,8 @@ const PDFGenerator = {
 
       var executiveSummary = '<div class="intro"><p style="margin: 0;">This report presents your personalized Financial Freedom Framework allocation, designed based on your unique financial situation, behavioral patterns, and life priorities.</p></div>' +
         '<div class="priority-box"><div class="priority-label">Your Selected Priority</div><div class="priority-value">' + this.getPriorityDisplayName(preSurveyData.selectedPriority) + '</div>' +
-        '<p style="margin-top: 6px; font-size: 11px; opacity: 0.9;">Timeline: ' + (preSurveyData.goalTimeline || 'Not specified') + '</p></div>' +
-        '<h2 style="font-size: 16px; margin-top: 15px; margin-bottom: 8px;">Financial Overview</h2><table class="summary-table"><tr><th>Metric</th><th>Value</th></tr>' +
+        '<p style="margin-top: 6px; font-size: 12px; opacity: 0.9;">Timeline: ' + (preSurveyData.goalTimeline || 'Not specified') + '</p></div>' +
+        '<h2 style="font-size: 18px; margin-top: 15px; margin-bottom: 8px;">Financial Overview</h2><table class="summary-table"><tr><th>Metric</th><th>Value</th></tr>' +
         '<tr><td>Monthly Income</td><td><strong>' + this.formatMoney(monthlyIncome) + '</strong></td></tr>' +
         '<tr><td>Monthly Essentials</td><td>' + this.formatMoney(preSurveyData.monthlyEssentials) + '</td></tr>' +
         '<tr><td>Total Debt</td><td>' + this.formatMoney(preSurveyData.totalDebt || 0) + '</td></tr>' +
@@ -970,31 +970,31 @@ const PDFGenerator = {
           '<div class="allocation-note">' + (allocation.lightNotes ? allocation.lightNotes[bucket] || '' : '') + '</div></div>';
       }).join('');
 
-      var allocationSection = '<div class="page-break"></div><h2 style="margin-top: 0; margin-bottom: 6px; font-size: 16px;">Your Personalized Allocation</h2>' +
-        '<p style="margin: 0 0 8px 0; font-size: 11px; color: #555;">Based on your priority, financial situation, and behavioral profile:</p><div class="allocation-grid">' + allocationCards + '</div>';
+      var allocationSection = '<div class="page-break"></div><h2 style="margin-top: 0; margin-bottom: 6px; font-size: 18px;">Your Personalized Allocation</h2>' +
+        '<p style="margin: 0 0 8px 0; font-size: 12px; color: #555;">Based on your priority, financial situation, and behavioral profile:</p><div class="allocation-grid">' + allocationCards + '</div>';
 
-      var insightsSection = '<h2 style="margin-top: 15px; font-size: 14px;">Why These Numbers?</h2><div class="insight-section" style="padding: 12px; margin: 8px 0;"><div class="insight-title" style="font-size: 13px; margin-bottom: 8px;">Base Allocation from Priority</div>' +
-        '<p style="font-size: 12px; margin: 0;">Your "' + this.getPriorityDisplayName(preSurveyData.selectedPriority) + '" priority established starting weights adjusted for your personal factors.</p></div>';
+      var insightsSection = '<h2 style="margin-top: 15px; font-size: 16px;">Why These Numbers?</h2><div class="insight-section" style="padding: 12px; margin: 8px 0;"><div class="insight-title" style="font-size: 14px; margin-bottom: 8px;">Base Allocation from Priority</div>' +
+        '<p style="font-size: 13px; margin: 0;">Your "' + this.getPriorityDisplayName(preSurveyData.selectedPriority) + '" priority established starting weights adjusted for your personal factors.</p></div>';
 
       if (allocation.details && allocation.details.satBoostPct > 0) {
         insightsSection += '<div class="insight-section"><div class="insight-title">Dissatisfaction Amplification: +' + Math.round(allocation.details.satBoostPct) + '%</div>' +
           '<p>Because your satisfaction level is only ' + preSurveyData.satisfaction + '/10, we amplified positive modifiers to help you change faster.</p></div>';
       }
 
-      var influencesSection = '<div class="page-break"></div><h2 style="margin-top: 0; font-size: 16px;">How Your Profile Influenced This Allocation</h2>';
+      var influencesSection = '<div class="page-break"></div><h2 style="margin-top: 0; font-size: 18px;">How Your Profile Influenced This Allocation</h2>';
       var purpleColor = '#5b4b8a';
       if (tool1Data) {
         var traumaNames = { 'FSV': 'False Self-View', 'ExVal': 'External Validation', 'Showing': 'Issues Showing Love', 'Receiving': 'Issues Receiving Love', 'Control': 'Control Leading to Isolation', 'Fear': 'Fear Leading to Isolation' };
-        influencesSection += '<div class="trauma-influence" style="padding: 10px; margin: 10px 0;"><h3 style="margin-top: 0; color: ' + purpleColor + '; font-size: 13px;">Core Trauma Strategy (Tool 1)</h3>' +
-          '<p style="font-size: 12px; margin: 5px 0;"><strong>Primary Pattern:</strong> ' + (traumaNames[tool1Data.winner] || tool1Data.winner) + '</p>' +
-          '<p style="font-size: 11px; margin: 5px 0; color: #555;">This pattern influenced your allocation through behavioral modifiers based on your psychological profile.</p></div>';
+        influencesSection += '<div class="trauma-influence" style="padding: 10px; margin: 10px 0;"><h3 style="margin-top: 0; color: ' + purpleColor + '; font-size: 14px;">Core Trauma Strategy (Tool 1)</h3>' +
+          '<p style="font-size: 13px; margin: 5px 0;"><strong>Primary Pattern:</strong> ' + (traumaNames[tool1Data.winner] || tool1Data.winner) + '</p>' +
+          '<p style="font-size: 12px; margin: 5px 0; color: #555;">This pattern influenced your allocation through behavioral modifiers based on your psychological profile.</p></div>';
       }
       if (tool2Data) {
-        influencesSection += '<div class="trauma-influence" style="padding: 10px; margin: 10px 0;"><h3 style="margin-top: 0; color: ' + purpleColor + '; font-size: 13px;">Financial Clarity Profile (Tool 2)</h3>' +
-          '<p style="font-size: 12px; margin: 5px 0;"><strong>Your Archetype:</strong> ' + (tool2Data.archetype || 'Financial Clarity Seeker') + '</p></div>';
+        influencesSection += '<div class="trauma-influence" style="padding: 10px; margin: 10px 0;"><h3 style="margin-top: 0; color: ' + purpleColor + '; font-size: 14px;">Financial Clarity Profile (Tool 2)</h3>' +
+          '<p style="font-size: 13px; margin: 5px 0;"><strong>Your Archetype:</strong> ' + (tool2Data.archetype || 'Financial Clarity Seeker') + '</p></div>';
       }
       if (!tool1Data && !tool2Data) {
-        influencesSection += '<div class="insight-section" style="padding: 10px;"><p style="font-size: 12px; margin: 0;">Complete Tools 1-3 for deeper personalization based on your unique patterns.</p></div>';
+        influencesSection += '<div class="insight-section" style="padding: 10px;"><p style="font-size: 13px; margin: 0;">Complete Tools 1-3 for deeper personalization based on your unique patterns.</p></div>';
       }
 
       // Get helper insights (Emergency Fund Timeline, Debt Payoff, etc.)
@@ -1023,19 +1023,19 @@ const PDFGenerator = {
       // Build GPT section
       var gptSection = this.buildTool4GPTSection(gptInsights);
 
-      var validationSection = '<h2 style="margin-top: 15px; font-size: 16px;">Validation Results</h2>';
+      var validationSection = '<h2 style="margin-top: 15px; font-size: 18px;">Validation Results</h2>';
       if ((!validationResults || validationResults.length === 0) && (!helperInsights || helperInsights.length === 0)) {
         validationSection += '<div class="helper-card helper-suggestion" style="background: #f0fdf4; border-left-color: #22c55e; padding: 12px;">' +
-          '<div class="helper-title" style="font-size: 13px;">Your Allocation Looks Good!</div><div class="helper-content" style="font-size: 12px;">No significant issues detected.</div></div>';
+          '<div class="helper-title" style="font-size: 14px;">Your Allocation Looks Good!</div><div class="helper-content" style="font-size: 13px;">No significant issues detected.</div></div>';
       } else {
         // Show validation warnings first
         if (validationResults && validationResults.length > 0) {
           validationResults.forEach(function(item) {
             var cardClass = item.severity === 'Critical' ? 'helper-critical' : (item.severity === 'Suggestion' ? 'helper-suggestion' : '');
-            validationSection += '<div class="helper-card ' + cardClass + '" style="padding: 12px; margin: 10px 0;"><div class="helper-title" style="font-size: 13px; margin-bottom: 6px;">' + (item.title || item.severity) + '</div>' +
-              '<div class="helper-content" style="font-size: 12px;">' + item.message + '</div>';
+            validationSection += '<div class="helper-card ' + cardClass + '" style="padding: 12px; margin: 10px 0;"><div class="helper-title" style="font-size: 14px; margin-bottom: 6px;">' + (item.title || item.severity) + '</div>' +
+              '<div class="helper-content" style="font-size: 13px;">' + item.message + '</div>';
             if (item.action) {
-              validationSection += '<div class="helper-action" style="font-size: 11px; padding: 8px; margin-top: 8px;"><strong>Recommendation:</strong> ' + item.action + '</div>';
+              validationSection += '<div class="helper-action" style="font-size: 12px; padding: 8px; margin-top: 8px;"><strong>Recommendation:</strong> ' + item.action + '</div>';
             }
             validationSection += '</div>';
           });
@@ -1086,12 +1086,12 @@ const PDFGenerator = {
         }
       }
 
-      var nextStepsSection = '<h2 style="margin-top: 20px; font-size: 16px;">Your Next Steps</h2><div class="decision-section" style="padding: 12px; font-size: 12px;">' +
-        '<h3 style="color: ' + purpleColor + '; margin-top: 0; font-size: 13px;">Immediate Actions</h3><ol style="margin: 8px 0 12px 20px;">' +
+      var nextStepsSection = '<h2 style="margin-top: 20px; font-size: 18px;">Your Next Steps</h2><div class="decision-section" style="padding: 12px; font-size: 13px;">' +
+        '<h3 style="color: ' + purpleColor + '; margin-top: 0; font-size: 14px;">Immediate Actions</h3><ol style="margin: 8px 0 12px 20px;">' +
         '<li style="margin: 4px 0;"><strong>Set Up Your Buckets:</strong> Open separate accounts or use envelope budgeting.</li>' +
         '<li style="margin: 4px 0;"><strong>Automate Transfers:</strong> Set up automatic transfers on payday.</li>' +
         '<li style="margin: 4px 0;"><strong>Track for 30 Days:</strong> Monitor spending before making adjustments.</li></ol>' +
-        '<h3 style="color: ' + purpleColor + '; font-size: 13px; margin-top: 10px;">Ongoing Optimization</h3><ul style="margin: 8px 0 8px 20px;">' +
+        '<h3 style="color: ' + purpleColor + '; font-size: 14px; margin-top: 10px;">Ongoing Optimization</h3><ul style="margin: 8px 0 8px 20px;">' +
         '<li style="margin: 4px 0;">Review quarterly or when major life changes occur</li>' +
         '<li style="margin: 4px 0;">Adjust as income grows - consider increasing Multiply</li>' +
         '<li style="margin: 4px 0;">Revisit if priorities shift significantly</li></ul></div>';
@@ -1187,10 +1187,10 @@ const PDFGenerator = {
       var date1 = scenario1.timestamp ? new Date(scenario1.timestamp).toLocaleDateString() : 'Unknown';
       scenariosSection += '<div class="allocation-card">' +
         '<div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 2px solid #5b4b8a;">' +
-        '<h3 style="margin: 0; color: #5b4b8a; font-size: 15px;">Scenario A</h3>' +
-        '<span style="font-size: 11px; color: #888;">Saved ' + date1 + '</span></div>' +
+        '<h3 style="margin: 0; color: #5b4b8a; font-size: 16px;">Scenario A</h3>' +
+        '<span style="font-size: 12px; color: #888;">Saved ' + date1 + '</span></div>' +
         '<div style="font-weight: 600; color: #333; margin-bottom: 10px; font-size: 14px;">' + (scenario1.name || 'Unnamed') + '</div>' +
-        '<table style="width: 100%; font-size: 12px;">' +
+        '<table style="width: 100%; font-size: 13px;">' +
         '<tr><td style="color: #666; padding: 3px 0;">Income:</td><td style="text-align: right; font-weight: 500;">' + this.formatMoney(scenario1.monthlyIncome || 0) + '/mo</td></tr>' +
         '<tr><td style="color: #666; padding: 3px 0;">Priority:</td><td style="text-align: right; font-weight: 500;">' + (scenario1.priority || 'Not set') + '</td></tr>';
       if (profile1.currentEssentials) {
@@ -1208,10 +1208,10 @@ const PDFGenerator = {
       var date2 = scenario2.timestamp ? new Date(scenario2.timestamp).toLocaleDateString() : 'Unknown';
       scenariosSection += '<div class="allocation-card">' +
         '<div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 2px solid #5b4b8a;">' +
-        '<h3 style="margin: 0; color: #5b4b8a; font-size: 15px;">Scenario B</h3>' +
-        '<span style="font-size: 11px; color: #888;">Saved ' + date2 + '</span></div>' +
+        '<h3 style="margin: 0; color: #5b4b8a; font-size: 16px;">Scenario B</h3>' +
+        '<span style="font-size: 12px; color: #888;">Saved ' + date2 + '</span></div>' +
         '<div style="font-weight: 600; color: #333; margin-bottom: 10px; font-size: 14px;">' + (scenario2.name || 'Unnamed') + '</div>' +
-        '<table style="width: 100%; font-size: 12px;">' +
+        '<table style="width: 100%; font-size: 13px;">' +
         '<tr><td style="color: #666; padding: 3px 0;">Income:</td><td style="text-align: right; font-weight: 500;">' + this.formatMoney(scenario2.monthlyIncome || 0) + '/mo</td></tr>' +
         '<tr><td style="color: #666; padding: 3px 0;">Priority:</td><td style="text-align: right; font-weight: 500;">' + (scenario2.priority || 'Not set') + '</td></tr>';
       if (profile2.currentEssentials) {
