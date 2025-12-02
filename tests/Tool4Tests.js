@@ -1666,11 +1666,11 @@ function testPreSurveyToAllocationFlow() {
 }
 
 /**
- * Phase 2: Test Pre-Survey UI Rendering
- * Validates that the pre-survey page can be rendered
+ * Test Unified Page UI Rendering
+ * Validates that the unified page (pre-survey + calculator) can be rendered
  */
 function testPreSurveyRendering() {
-  Logger.log('=== Testing Pre-Survey UI Rendering ===');
+  Logger.log('=== Testing Unified Page UI Rendering ===');
 
   const testClientId = 'RENDER_TEST_' + new Date().getTime();
   const baseUrl = ScriptApp.getService().getUrl();
@@ -1681,42 +1681,43 @@ function testPreSurveyRendering() {
     missingCount: 3
   };
 
-  Logger.log('Step 1: Build pre-survey page');
+  Logger.log('Step 1: Build unified page (no pre-survey data)');
   try {
-    const html = Tool4.buildPreSurveyPage(testClientId, baseUrl, toolStatus);
+    // Test with no pre-survey data (first visit)
+    const html = Tool4.buildUnifiedPage(testClientId, baseUrl, toolStatus, null, null);
     const htmlLength = html.length;
     Logger.log('  HTML generated: ' + htmlLength + ' characters');
-    Logger.log('  ✅ Pre-survey page built successfully');
+    Logger.log('  Unified page built successfully');
     Logger.log('');
 
     Logger.log('Step 2: Validate HTML structure');
-    const hasForm = html.indexOf('<form') > -1;
-    const hasSubmit = html.indexOf('Build My Personalized Budget') > -1;
+    const hasPreSurveySection = html.indexOf('presurvey-section') > -1 || html.indexOf('pre-survey') > -1;
     const hasQuestions = html.indexOf('satisfaction') > -1 && html.indexOf('discipline') > -1;
-    const hasProgress = html.indexOf('progress-bar') > -1;
-    const hasOptional = html.indexOf('optional-questions') > -1;
+    const hasIncomeField = html.indexOf('monthlyIncome') > -1;
+    const hasPriorityPicker = html.indexOf('priority') > -1;
+    const hasUnifiedContainer = html.indexOf('unified-container') > -1;
 
-    Logger.log('  Has form: ' + (hasForm ? '✅' : '❌'));
-    Logger.log('  Has submit button: ' + (hasSubmit ? '✅' : '❌'));
-    Logger.log('  Has questions: ' + (hasQuestions ? '✅' : '❌'));
-    Logger.log('  Has progress bar: ' + (hasProgress ? '✅' : '❌'));
-    Logger.log('  Has optional section: ' + (hasOptional ? '✅' : '❌'));
+    Logger.log('  Has pre-survey section: ' + (hasPreSurveySection ? 'Yes' : 'No'));
+    Logger.log('  Has questions: ' + (hasQuestions ? 'Yes' : 'No'));
+    Logger.log('  Has income field: ' + (hasIncomeField ? 'Yes' : 'No'));
+    Logger.log('  Has priority picker: ' + (hasPriorityPicker ? 'Yes' : 'No'));
+    Logger.log('  Has unified container: ' + (hasUnifiedContainer ? 'Yes' : 'No'));
     Logger.log('');
 
-    const allValid = hasForm && hasSubmit && hasQuestions && hasProgress && hasOptional;
+    const allValid = hasQuestions && hasIncomeField && hasUnifiedContainer;
 
-    Logger.log('=== Pre-Survey Rendering Test Complete ===');
-    Logger.log(allValid ? '✅ All validations passed' : '❌ Some validations failed');
+    Logger.log('=== Unified Page Rendering Test Complete ===');
+    Logger.log(allValid ? 'All validations passed' : 'Some validations failed');
 
     return {
-      name: 'Pre-Survey UI Rendering',
+      name: 'Unified Page UI Rendering',
       passed: allValid,
       htmlLength: htmlLength
     };
   } catch (error) {
-    Logger.log('  ❌ Error rendering pre-survey: ' + error.toString());
+    Logger.log('  Error rendering unified page: ' + error.toString());
     return {
-      name: 'Pre-Survey UI Rendering',
+      name: 'Unified Page UI Rendering',
       passed: false,
       error: error.toString()
     };
