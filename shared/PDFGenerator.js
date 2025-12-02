@@ -842,8 +842,11 @@ const PDFGenerator = {
   _getTool3Data(clientId) {
     try {
       if (typeof DataService !== 'undefined' && DataService.getLatestResponse) {
-        var tool3Data = DataService.getLatestResponse(clientId, 'tool3');
-        if (tool3Data) {
+        var response = DataService.getLatestResponse(clientId, 'tool3');
+        // getLatestResponse returns {timestamp, clientId, toolId, data, status, version}
+        // The actual tool data is in response.data
+        if (response && response.data) {
+          var tool3Data = response.data;
           return {
             scoring: tool3Data.scoring || tool3Data.scoringResult,
             syntheses: tool3Data.syntheses
