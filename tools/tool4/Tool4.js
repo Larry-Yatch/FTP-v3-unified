@@ -4243,9 +4243,9 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       Enjoyment:  Math.round(percentages.Enjoyment)
     };
 
-    // Calculate user's actual essentials percentage from their income/expenses
-    // (This is calculated in buildV1Input at line 3436: monthlyEssentials / monthlyIncome * 100)
-    const actualEssentialsPct = CONFIG.essentialPctMap[input.essentialsRange] || 40;
+    // Use the actual essentials percentage from input (calculated in buildV1Input)
+    // This is the real percentage, not the tier midpoint
+    const actualEssentialsPct = input.actualEssentialsPct || CONFIG.essentialPctMap[input.essentialsRange] || 40;
 
     // Validation: Check if recommended Essentials is lower than actual spending
     const validationWarnings = [];
@@ -4353,6 +4353,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
         // Calculated from dollar inputs
         incomeRange: incomeRange,
         essentialsRange: essentialsRange,
+        actualEssentialsPct: Math.round(essentialsPct), // Actual % for validation messages
 
         // From pre-survey (behavioral questions)
         satisfaction: preSurveyAnswers.satisfaction || 5,
@@ -4384,6 +4385,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       return {
         incomeRange: 'C',
         essentialsRange: 'C',
+        actualEssentialsPct: 25, // Default for tier C
         satisfaction: 5,
         discipline: 5,
         impulse: 5,
