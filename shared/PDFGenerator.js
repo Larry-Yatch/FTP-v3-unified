@@ -1159,7 +1159,7 @@ const PDFGenerator = {
 
       var header = this.buildHeader('Scenario Comparison Report', studentName);
 
-      var executiveSummary = '<div class="intro"><p>This report compares two allocation scenarios, helping you understand the trade-offs of each approach.</p></div>';
+      var executiveSummary = '<div class="intro"><p style="margin: 0;">This report compares two allocation scenarios, helping you understand the trade-offs of each approach.</p></div>';
 
       // Unified Scenarios Section - combines scenario info with profile context
       var profile1 = scenario1.profileSnapshot || {};
@@ -1172,7 +1172,7 @@ const PDFGenerator = {
         scenario1.priority !== scenario2.priority
       );
 
-      var scenariosSection = '<h2>Scenarios Being Compared</h2>';
+      var scenariosSection = '<h2 style="font-size: 18px;">Scenarios Being Compared</h2>';
 
       if (profileDiffers) {
         scenariosSection += '<div style="background: #fffbeb; border: 1px solid #fcd34d; padding: 10px 12px; border-radius: 6px; margin-bottom: 15px; font-size: 13px;">' +
@@ -1239,7 +1239,7 @@ const PDFGenerator = {
           '<td style="color: ' + diffColor + '; font-weight: 600;">' + (diff > 0 ? '+' : '') + diff + '%</td></tr>';
       }).join('');
 
-      var comparisonTable = '<div class="page-break"></div><h2>Allocation Comparison</h2>' +
+      var comparisonTable = '<div class="page-break"></div><h2 style="font-size: 18px;">Allocation Comparison</h2>' +
         '<table class="summary-table"><tr><th>Bucket</th><th>' + (scenario1.name || 'Scenario A') + '</th><th>' + (scenario2.name || 'Scenario B') + '</th><th>Difference</th></tr>' +
         comparisonRows + '</table>';
 
@@ -1251,7 +1251,7 @@ const PDFGenerator = {
       var strategy1Reflection = comparisonData && comparisonData.strategy1 ? (comparisonData.strategy1.reflection || '') : '';
       var strategy2Reflection = comparisonData && comparisonData.strategy2 ? (comparisonData.strategy2.reflection || '') : '';
 
-      var impactSection = '<h2>Impact Analysis</h2>';
+      var impactSection = '<h2 style="font-size: 18px;">Impact Analysis</h2>';
       // bucketNarratives is an array of impact objects from generateBucketImpact
       // Each narrative has: title, impact (array), and tradeoff or benefit
       if (comparisonData && comparisonData.bucketNarratives && comparisonData.bucketNarratives.length > 0) {
@@ -1259,17 +1259,17 @@ const PDFGenerator = {
           if (narrative) {
             var content = '';
             if (narrative.impact && Array.isArray(narrative.impact)) {
-              content = '<ul style="margin: 10px 0; padding-left: 20px;">';
+              content = '<ul style="margin: 10px 0; padding-left: 20px; font-size: 13px;">';
               narrative.impact.forEach(function(item) {
-                content += '<li>' + item + '</li>';
+                content += '<li style="margin: 4px 0;">' + item + '</li>';
               });
               content += '</ul>';
             }
             if (narrative.tradeoff) {
-              content += '<p style="margin-top: 10px; color: #dc2626;"><strong>Trade-off:</strong> ' + narrative.tradeoff + '</p>';
+              content += '<p style="margin-top: 10px; color: #dc2626; font-size: 13px;"><strong>Trade-off:</strong> ' + narrative.tradeoff + '</p>';
             }
             if (narrative.benefit) {
-              content += '<p style="margin-top: 10px; color: #059669;"><strong>Benefit:</strong> ' + narrative.benefit + '</p>';
+              content += '<p style="margin-top: 10px; color: #059669; font-size: 13px;"><strong>Benefit:</strong> ' + narrative.benefit + '</p>';
             }
             impactSection += '<div class="helper-card">' +
               '<div class="helper-title">' + (narrative.title || 'Impact') + '</div>' +
@@ -1277,18 +1277,18 @@ const PDFGenerator = {
           }
         });
       } else {
-        impactSection += '<p>No significant differences detected between scenarios.</p>';
+        impactSection += '<p style="font-size: 13px;">No significant differences detected between scenarios.</p>';
       }
 
-      var strategySection = '<h2>Strategy Analysis</h2><div class="allocation-grid">' +
-        '<div class="allocation-card"><h3 style="margin-top: 0; color: #5b4b8a;">' + (scenario1.name || 'Scenario A') + '</h3>' +
-        '<p><strong>Strategy:</strong> ' + strategy1Name + '</p>' +
-        '<p style="font-size: 14px; color: #666;">' + strategy1Desc + '</p>' +
-        (strategy1Reflection ? '<p style="font-size: 13px; color: #888; font-style: italic; margin-top: 10px;">' + strategy1Reflection + '</p>' : '') + '</div>' +
-        '<div class="allocation-card"><h3 style="margin-top: 0; color: #5b4b8a;">' + (scenario2.name || 'Scenario B') + '</h3>' +
-        '<p><strong>Strategy:</strong> ' + strategy2Name + '</p>' +
-        '<p style="font-size: 14px; color: #666;">' + strategy2Desc + '</p>' +
-        (strategy2Reflection ? '<p style="font-size: 13px; color: #888; font-style: italic; margin-top: 10px;">' + strategy2Reflection + '</p>' : '') + '</div></div>';
+      var strategySection = '<h2 style="font-size: 18px;">Strategy Analysis</h2><div class="allocation-grid">' +
+        '<div class="allocation-card"><h3 style="margin-top: 0; color: #5b4b8a; font-size: 14px;">' + (scenario1.name || 'Scenario A') + '</h3>' +
+        '<p style="font-size: 13px;"><strong>Strategy:</strong> ' + strategy1Name + '</p>' +
+        '<p style="font-size: 13px; color: #666;">' + strategy1Desc + '</p>' +
+        (strategy1Reflection ? '<p style="font-size: 12px; color: #888; font-style: italic; margin-top: 10px;">' + strategy1Reflection + '</p>' : '') + '</div>' +
+        '<div class="allocation-card"><h3 style="margin-top: 0; color: #5b4b8a; font-size: 14px;">' + (scenario2.name || 'Scenario B') + '</h3>' +
+        '<p style="font-size: 13px;"><strong>Strategy:</strong> ' + strategy2Name + '</p>' +
+        '<p style="font-size: 13px; color: #666;">' + strategy2Desc + '</p>' +
+        (strategy2Reflection ? '<p style="font-size: 12px; color: #888; font-style: italic; margin-top: 10px;">' + strategy2Reflection + '</p>' : '') + '</div></div>';
 
       // Generate bottom line and recommendations based on strategies and allocations
       var sameStrategy = (strategy1Name === strategy2Name);
@@ -1325,10 +1325,10 @@ const PDFGenerator = {
         bottomLine += 'The right choice depends on your current priorities and which trade-offs feel most sustainable.';
 
         // Build differentiated recommendations based on actual allocations
-        recommendationSection = '<h2>Making Your Decision</h2><div class="decision-section">';
+        recommendationSection = '<h2 style="font-size: 18px;">Making Your Decision</h2><div class="decision-section" style="font-size: 13px;">';
 
         // Scenario 1 recommendations
-        recommendationSection += '<h3>Consider ' + (scenario1.name || 'Scenario A') + ' If:</h3><ul>';
+        recommendationSection += '<h3 style="font-size: 14px;">Consider ' + (scenario1.name || 'Scenario A') + ' If:</h3><ul style="margin: 8px 0 12px 20px;">';
         if ((alloc1.Freedom || 0) > (alloc2.Freedom || 0)) {
           recommendationSection += '<li>You want to pay down debt faster or build emergency savings quicker</li>';
         }
@@ -1341,11 +1341,11 @@ const PDFGenerator = {
         if ((alloc1.Essentials || 0) > (alloc2.Essentials || 0)) {
           recommendationSection += '<li>You need more cushion for fixed expenses and bills</li>';
         }
-        recommendationSection += '<li>The $' + self.formatMoney(scenario1Dollars.Freedom + scenario1Dollars.Multiply).replace('$', '') + '/month toward Freedom + Multiply feels right</li>';
+        recommendationSection += '<li style="margin: 4px 0;">The $' + self.formatMoney(scenario1Dollars.Freedom + scenario1Dollars.Multiply).replace('$', '') + '/month toward Freedom + Multiply feels right</li>';
         recommendationSection += '</ul>';
 
         // Scenario 2 recommendations
-        recommendationSection += '<h3>Consider ' + (scenario2.name || 'Scenario B') + ' If:</h3><ul>';
+        recommendationSection += '<h3 style="font-size: 14px;">Consider ' + (scenario2.name || 'Scenario B') + ' If:</h3><ul style="margin: 8px 0 12px 20px;">';
         if ((alloc2.Freedom || 0) > (alloc1.Freedom || 0)) {
           recommendationSection += '<li>You want to pay down debt faster or build emergency savings quicker</li>';
         }
@@ -1358,29 +1358,29 @@ const PDFGenerator = {
         if ((alloc2.Essentials || 0) > (alloc1.Essentials || 0)) {
           recommendationSection += '<li>You need more cushion for fixed expenses and bills</li>';
         }
-        recommendationSection += '<li>The $' + self.formatMoney(scenario2Dollars.Freedom + scenario2Dollars.Multiply).replace('$', '') + '/month toward Freedom + Multiply feels right</li>';
+        recommendationSection += '<li style="margin: 4px 0;">The $' + self.formatMoney(scenario2Dollars.Freedom + scenario2Dollars.Multiply).replace('$', '') + '/month toward Freedom + Multiply feels right</li>';
         recommendationSection += '</ul>';
 
-        recommendationSection += '<div class="remember-box"><strong>Remember:</strong> The best choice is one you can consistently follow. Small differences in allocation matter less than sticking with a plan.</div></div>';
+        recommendationSection += '<div class="remember-box" style="font-size: 13px;"><strong>Remember:</strong> The best choice is one you can consistently follow. Small differences in allocation matter less than sticking with a plan.</div></div>';
       } else {
         // Different strategies - original logic with better formatting
         bottomLine = '"' + (scenario1.name || 'Scenario A') + '" takes a <strong>' + strategy1Name + '</strong> approach, while "' +
           (scenario2.name || 'Scenario B') + '" uses a <strong>' + strategy2Name + '</strong> approach. ' +
           'Consider which trade-offs align with your current life situation and short-term needs.';
 
-        recommendationSection = '<h2>Making Your Decision</h2><div class="decision-section">' +
-          '<h3>Consider ' + (scenario1.name || 'Scenario A') + ' If:</h3><ul>' +
-          '<li>The ' + strategy1Name + ' approach matches your current priorities</li>' +
-          '<li>' + (strategy1Desc || 'These dollar amounts feel sustainable for your lifestyle') + '</li>' +
-          '<li>You can commit to $' + self.formatMoney(scenario1Dollars.Freedom).replace('$', '') + '/month toward Freedom</li></ul>' +
-          '<h3>Consider ' + (scenario2.name || 'Scenario B') + ' If:</h3><ul>' +
-          '<li>The ' + strategy2Name + ' approach better addresses your pressing concerns</li>' +
-          '<li>' + (strategy2Desc || 'This allocation feels more aligned with where you are now') + '</li>' +
-          '<li>You can commit to $' + self.formatMoney(scenario2Dollars.Freedom).replace('$', '') + '/month toward Freedom</li></ul>' +
-          '<div class="remember-box"><strong>Remember:</strong> The best choice is one you can consistently follow.</div></div>';
+        recommendationSection = '<h2 style="font-size: 18px;">Making Your Decision</h2><div class="decision-section" style="font-size: 13px;">' +
+          '<h3 style="font-size: 14px;">Consider ' + (scenario1.name || 'Scenario A') + ' If:</h3><ul style="margin: 8px 0 12px 20px;">' +
+          '<li style="margin: 4px 0;">The ' + strategy1Name + ' approach matches your current priorities</li>' +
+          '<li style="margin: 4px 0;">' + (strategy1Desc || 'These dollar amounts feel sustainable for your lifestyle') + '</li>' +
+          '<li style="margin: 4px 0;">You can commit to $' + self.formatMoney(scenario1Dollars.Freedom).replace('$', '') + '/month toward Freedom</li></ul>' +
+          '<h3 style="font-size: 14px;">Consider ' + (scenario2.name || 'Scenario B') + ' If:</h3><ul style="margin: 8px 0 12px 20px;">' +
+          '<li style="margin: 4px 0;">The ' + strategy2Name + ' approach better addresses your pressing concerns</li>' +
+          '<li style="margin: 4px 0;">' + (strategy2Desc || 'This allocation feels more aligned with where you are now') + '</li>' +
+          '<li style="margin: 4px 0;">You can commit to $' + self.formatMoney(scenario2Dollars.Freedom).replace('$', '') + '/month toward Freedom</li></ul>' +
+          '<div class="remember-box" style="font-size: 13px;"><strong>Remember:</strong> The best choice is one you can consistently follow.</div></div>';
       }
 
-      var bottomLineSection = '<h2>The Bottom Line</h2>' +
+      var bottomLineSection = '<h2 style="font-size: 18px;">The Bottom Line</h2>' +
         '<div class="bottom-line-box"><p>' + bottomLine + '</p></div>';
 
       var footer = this.buildFooter('This comparison helps you explore different approaches. Choose the one that resonates with your current needs.');
