@@ -838,6 +838,22 @@ const PDFGenerator = {
     return null;
   },
 
+  /** Get Tool 3 grounding data (scoring and syntheses) */
+  _getTool3Data(clientId) {
+    try {
+      if (typeof DataService !== 'undefined' && DataService.getLatestResponse) {
+        var tool3Data = DataService.getLatestResponse(clientId, 'tool3');
+        if (tool3Data) {
+          return {
+            scoring: tool3Data.scoring || tool3Data.scoringResult,
+            syntheses: tool3Data.syntheses
+          };
+        }
+      }
+    } catch (e) { Logger.log('[PDFGenerator] Error getting Tool 3 data: ' + e); }
+    return null;
+  },
+
   /** Get student name */
   _getStudentName(clientId) {
     try {
@@ -940,6 +956,7 @@ const PDFGenerator = {
       var validationResults = Tool4.runFullValidation ? Tool4.runFullValidation(clientId, allocation.percentages, preSurveyData) : [];
       var tool1Data = this._getTool1Influences(clientId);
       var tool2Data = this._getTool2Influences(clientId);
+      var tool3Data = this._getTool3Data(clientId);
       var studentName = this._getStudentName(clientId) || 'Student';
       var monthlyIncome = Number(preSurveyData.monthlyIncome) || 0;
 
@@ -1000,7 +1017,7 @@ const PDFGenerator = {
       // Get helper insights (Emergency Fund Timeline, Debt Payoff, etc.)
       var helperInsights = Tool4.generateHelperInsights ? Tool4.generateHelperInsights(allocation.percentages, preSurveyData) : [];
 
-      // Get GPT-powered personalized insights
+      // Get GPT-powered personalized insights (now with trauma-informed context)
       var gptInsights = null;
       try {
         if (typeof Tool4GPTAnalysis !== 'undefined') {
@@ -1011,7 +1028,8 @@ const PDFGenerator = {
             validationResults: validationResults,
             helperInsights: helperInsights,
             tool1Data: tool1Data,
-            tool2Data: tool2Data
+            tool2Data: tool2Data,
+            tool3Data: tool3Data
           });
           Logger.log('[PDFGenerator] GPT insights generated, source: ' + (gptInsights ? gptInsights.source : 'none'));
         }
@@ -1119,6 +1137,8 @@ const PDFGenerator = {
       var preSurveyData = Tool4.getPreSurvey(clientId);
       var monthlyIncome = preSurveyData ? Number(preSurveyData.monthlyIncome) || 0 : 0;
       var studentName = this._getStudentName(clientId) || 'Student';
+      var tool1Data = this._getTool1Influences(clientId);
+      var tool3Data = this._getTool3Data(clientId);
       var self = this;
 
       var scenario1Dollars = {
@@ -1136,7 +1156,7 @@ const PDFGenerator = {
 
       var comparisonData = Tool4.generateComparisonNarrative ? Tool4.generateComparisonNarrative(scenario1, scenario2, preSurveyData) : {};
 
-      // Get GPT-powered comparison insights
+      // Get GPT-powered comparison insights (now with trauma-informed context)
       var gptComparisonInsights = null;
       try {
         if (typeof Tool4GPTAnalysis !== 'undefined') {
@@ -1145,7 +1165,9 @@ const PDFGenerator = {
             scenario1: scenario1,
             scenario2: scenario2,
             preSurveyData: preSurveyData,
-            comparisonData: comparisonData
+            comparisonData: comparisonData,
+            tool1Data: tool1Data,
+            tool3Data: tool3Data
           });
           Logger.log('[PDFGenerator] GPT comparison insights generated, source: ' + (gptComparisonInsights ? gptComparisonInsights.source : 'none'));
         }
@@ -1239,7 +1261,7 @@ const PDFGenerator = {
           '<td style="color: ' + diffColor + '; font-weight: 600;">' + (diff > 0 ? '+' : '') + diff + '%</td></tr>';
       }).join('');
 
-      var comparisonTable = '<div class="page-break"></div><h2 style="font-size: 18px;">Allocation Comparison</h2>' +
+      var comparisonTable = '<h2 style="font-size: 18px;">Allocation Comparison</h2>' +
         '<table class="summary-table"><tr><th>Bucket</th><th>' + (scenario1.name || 'Scenario A') + '</th><th>' + (scenario2.name || 'Scenario B') + '</th><th>Difference</th></tr>' +
         comparisonRows + '</table>';
 
