@@ -2889,12 +2889,12 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
         });
       }
 
-      // High satisfaction (stressed) but low Enjoyment = burnout risk
-      if (preSurvey.satisfaction >= 8 && buckets.Enjoyment <= 10) {
+      // Low satisfaction (stressed) but low Enjoyment = burnout risk
+      if (preSurvey.satisfaction <= 3 && buckets.Enjoyment <= 10) {
         warnings.push({
           severity: 'suggestion',
           bucket: 'Enjoyment',
-          message: 'You report high financial stress (' + preSurvey.satisfaction + '/10). Consider allocating more to Enjoyment (currently ' + formatDollars(buckets.Enjoyment) + ') to avoid burnout.'
+          message: 'You report low financial satisfaction (' + preSurvey.satisfaction + '/10). Consider allocating more to Enjoyment (currently ' + formatDollars(buckets.Enjoyment) + ') to avoid burnout.'
         });
       }
 
