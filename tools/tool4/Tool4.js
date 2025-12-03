@@ -2503,8 +2503,16 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
         });
       }
 
+      // Zero Enjoyment = unsustainable (always warn, regardless of other factors)
+      if (buckets.Enjoyment === 0) {
+        warnings.push({
+          severity: 'warning',
+          bucket: 'Enjoyment',
+          message: 'Allocating 0% to Enjoyment is unsustainable long-term. Even small amounts for quality of life help prevent burnout and maintain motivation. Consider allocating at least 5-10%.'
+        });
+      }
       // Low satisfaction (stressed) but low Enjoyment = burnout risk
-      if (preSurvey.satisfaction <= 3 && buckets.Enjoyment <= 10) {
+      else if (preSurvey.satisfaction <= 3 && buckets.Enjoyment <= 10) {
         warnings.push({
           severity: 'suggestion',
           bucket: 'Enjoyment',
