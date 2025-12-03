@@ -2275,7 +2275,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
           console.error('Navigation error:', error);
           alert('Error loading tool: ' + error.message);
         })
-        .getToolPageHtml(toolId, '${clientId}', null);
+        .getToolPageHtml(toolId, '${clientId}', 1);
     }
 
     // Toggle pre-survey section
