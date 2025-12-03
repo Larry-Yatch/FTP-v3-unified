@@ -471,10 +471,12 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
   let priorityRecommendations = [];
   if (hasPreSurvey) {
     try {
-      // Get Tool 2 data if available
+      // Get all tool data if available
+      const tool1Data = hasTool1 ? toolStatus.tool1Data : null;
       const tool2Data = hasTool2 ? toolStatus.tool2Data : null;
+      const tool3Data = hasTool3 ? toolStatus.tool3Data : null;
       Logger.log(`Calculating priorities for client ${clientId}`);
-      priorityRecommendations = this.calculatePriorityRecommendations(preSurveyData, tool2Data);
+      priorityRecommendations = this.calculatePriorityRecommendations(preSurveyData, tool1Data, tool2Data, tool3Data);
       Logger.log(`Calculated ${priorityRecommendations.length} priority recommendations`);
     } catch (error) {
       Logger.log(`Error calculating priority recommendations: ${error.message}`);
@@ -5130,10 +5132,115 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
   },
 
   /**
-   * Calculate priority recommendations based on pre-survey + Tool 2 data
-   * Returns array of priorities sorted by recommendation strength
+   * Get trauma-aware priority modifiers based on Tool 1 and Tool 3 data
+   *
+   * Maps trauma patterns to priority boosts/penalties:
+   * - FSV (False Self-View): Boost stability/balance, penalize aggressive wealth
+   * - ExVal (External Validation): Boost wealth/stability, penalize lifestyle (image spending risk)
+   * - Showing (Over-giving): Boost balance/wealth (self-permission), penalize aggressive wealth
+   * - Receiving (Dependency): Boost wealth/stability (independence)
+   * - Control: Boost balance/stability, penalize aggressive (too much pressure)
+   * - Fear: Boost stability/balance, strongly penalize aggressive (self-sabotage risk)
+   *
+   * Tool 3's overall quotient (0-100 disconnection score) scales the intensity.
+   *
+   * @param {Object} tool1Data - Tool 1 response data
+   * @param {Object} tool3Data - Tool 3 response data
+   * @returns {Object} { pattern, intensity, modifiers: { priorityName: adjustment } }
    */
-  calculatePriorityRecommendations(preSurveyData, tool2Data) {
+  getTraumaPriorityModifiers(tool1Data, tool3Data) {
+    // Extract trauma pattern from Tool 1
+    // tool1Data structure: { data: { formData, scores, winner }, clientId, ... }
+    const tool1 = tool1Data?.data;
+    const traumaPattern = tool1?.winner || null;
+
+    // Extract disconnection score from Tool 3 (0-100 scale, higher = more disconnected)
+    // tool3Data structure: { data: { responses, scoring, syntheses, ... }, clientId, ... }
+    const tool3 = tool3Data?.data;
+    const overallQuotient = tool3?.scoring?.overallQuotient || 50; // Default to moderate if not available
+
+    // Calculate intensity multiplier (0.5 to 1.25 based on disconnection)
+    // Low disconnection (0-25): 0.5x adjustment
+    // Medium (25-50): 0.75x
+    // High (50-75): 1.0x
+    // Very high (75-100): 1.25x
+    let intensity = 0.5;
+    if (overallQuotient >= 75) intensity = 1.25;
+    else if (overallQuotient >= 50) intensity = 1.0;
+    else if (overallQuotient >= 25) intensity = 0.75;
+
+    // Base boost/penalty amounts (will be scaled by intensity)
+    const BASE_BOOST = 20;      // Points to add for boosted priorities
+    const BASE_PENALTY = -15;   // Points to subtract for penalized priorities
+
+    // Priority modifier map for each trauma pattern
+    const traumaPriorityMap = {
+      'FSV': {
+        // False Self-View: Creates confusion/scarcity, needs structure and self-care permission
+        boosts: ['Feel Financially Secure', 'Create Life Balance', 'Stabilize to Survive'],
+        penalties: ['Create Generational Wealth']  // Too aggressive/complex feeds confusion
+      },
+      'ExVal': {
+        // External Validation: Image spending, needs internal focus
+        boosts: ['Build Long-Term Wealth', 'Feel Financially Secure', 'Reclaim Financial Control'],
+        penalties: ['Enjoy Life Now', 'Create Life Balance']  // Risk of image spending
+      },
+      'Showing': {
+        // Over-giving: Depletes self for others, needs self-permission
+        boosts: ['Create Life Balance', 'Enjoy Life Now', 'Build Long-Term Wealth'],
+        penalties: ['Create Generational Wealth']  // May give it away before building
+      },
+      'Receiving': {
+        // Dependency: Needs to build independence and self-sufficiency
+        boosts: ['Build Long-Term Wealth', 'Feel Financially Secure', 'Reclaim Financial Control'],
+        penalties: []  // Main issue is dependency, not specific priority
+      },
+      'Control': {
+        // Over-control: Needs permission to enjoy, release grip
+        boosts: ['Create Life Balance', 'Enjoy Life Now', 'Feel Financially Secure'],
+        penalties: ['Create Generational Wealth', 'Build Long-Term Wealth']  // Too much pressure
+      },
+      'Fear': {
+        // Self-sabotage: Needs safe foundation, gentle approach
+        boosts: ['Feel Financially Secure', 'Stabilize to Survive', 'Create Life Balance'],
+        penalties: ['Create Generational Wealth', 'Build Long-Term Wealth', 'Build or Stabilize a Business']  // Will self-sabotage risk
+      }
+    };
+
+    // Build modifiers object
+    const modifiers = {};
+
+    if (traumaPattern && traumaPriorityMap[traumaPattern]) {
+      const config = traumaPriorityMap[traumaPattern];
+
+      // Apply boosts
+      for (const priority of config.boosts) {
+        modifiers[priority] = Math.round(BASE_BOOST * intensity);
+      }
+
+      // Apply penalties
+      for (const priority of config.penalties) {
+        modifiers[priority] = Math.round(BASE_PENALTY * intensity);
+      }
+    }
+
+    return {
+      pattern: traumaPattern,
+      intensity: intensity,
+      overallQuotient: overallQuotient,
+      modifiers: modifiers
+    };
+  },
+
+  /**
+   * Calculate priority recommendations based on pre-survey + Tool 1/2/3 data
+   * Returns array of priorities sorted by recommendation strength
+   *
+   * Trauma-aware enhancements:
+   * - Tool 1 winner (trauma pattern) boosts/penalizes certain priorities
+   * - Tool 3 overall quotient (disconnection score) scales the intensity
+   */
+  calculatePriorityRecommendations(preSurveyData, tool1Data, tool2Data, tool3Data) {
     // Derive tiers from pre-survey
     const monthlyIncome = preSurveyData.monthlyIncome || 3500;
     const monthlyEssentials = preSurveyData.monthlyEssentials || 2000;
@@ -5160,6 +5267,13 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
 
     // Extract pre-survey values
     const { satisfaction, discipline, impulse, longTerm, lifestyle, autonomy } = preSurveyData;
+
+    // ============================================================
+    // TRAUMA-AWARE PRIORITY MODIFIERS
+    // ============================================================
+    // Extract trauma pattern from Tool 1 and disconnection score from Tool 3
+    const traumaModifiers = this.getTraumaPriorityModifiers(tool1Data, tool3Data);
+    Logger.log(`Trauma modifiers: pattern=${traumaModifiers.pattern}, intensity=${traumaModifiers.intensity}`);
 
     // Bundle all data for personalized reason generation
     const allData = {
@@ -5223,19 +5337,27 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       }
     ];
 
-    // Add indicators and personalized reasons
+    // Apply trauma modifiers to each priority score and add indicators
     return priorities.map(p => {
-      const indicator = p.score >= 50 ? 'recommended' : p.score <= -50 ? 'challenging' : 'available';
-      const icon = p.score >= 50 ? '⭐' : p.score <= -50 ? '⚠️' : '⚪';
+      // Apply trauma-aware adjustment if available
+      const traumaAdjustment = traumaModifiers.modifiers[p.name] || 0;
+      const adjustedScore = p.score + traumaAdjustment;
+
+      const indicator = adjustedScore >= 50 ? 'recommended' : adjustedScore <= -50 ? 'challenging' : 'available';
+      const icon = adjustedScore >= 50 ? '⭐' : adjustedScore <= -50 ? '⚠️' : '⚪';
       const reason = this.getPersonalizedReason(p.name, indicator, allData);
 
       return {
         ...p,
+        baseScore: p.score,           // Original score before trauma adjustment
+        traumaAdjustment: traumaAdjustment,  // How much trauma pattern affected score
+        score: adjustedScore,          // Final adjusted score
         indicator: indicator,
         icon: icon,
-        reason: reason
+        reason: reason,
+        traumaPattern: traumaModifiers.pattern  // Include for potential UI display
       };
-    }).sort((a, b) => b.score - a.score); // Sort by recommendation strength
+    }).sort((a, b) => b.score - a.score); // Sort by adjusted recommendation strength
   },
 
   /**
