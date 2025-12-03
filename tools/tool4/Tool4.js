@@ -929,6 +929,43 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       color: var(--color-text-secondary);
     }
 
+    /* Statement Card Styles (for backup questions) */
+    .statement-card {
+      display: block;
+      cursor: pointer;
+      padding: 16px 20px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 2px solid rgba(255, 255, 255, 0.1);
+      transition: all 0.2s ease;
+      color: var(--color-text-secondary);
+      font-size: 1rem;
+      line-height: 1.5;
+    }
+
+    .statement-card:hover {
+      background: rgba(79, 70, 229, 0.1);
+      border-color: rgba(79, 70, 229, 0.3);
+    }
+
+    .statement-card.selected {
+      background: rgba(79, 70, 229, 0.2);
+      border-color: var(--color-primary);
+      color: var(--color-text-primary);
+    }
+
+    .statement-card input[type="radio"] {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .statement-group {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
     /* Priority Picker Section */
     .priority-picker-section {
       background: rgba(255, 255, 255, 0.05);
@@ -1638,31 +1675,31 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
             <!-- Backup Q1: Stress Response -->
             <div class="form-question">
               <label class="question-label">11. When money stress hits, what is your typical first response?</label>
-              <div class="question-help">Think about your automatic reaction when finances feel tight or uncertain.</div>
-              <div class="radio-group" style="display: flex; flex-direction: column; gap: 12px;">
-                <label class="radio-option" style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; padding: 12px; border-radius: 8px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);">
-                  <input type="radio" name="backupStressResponse" value="FSV" ${formValues.backupStressResponse === 'FSV' ? 'checked' : ''} style="margin-top: 3px;">
-                  <span style="color: var(--color-text-secondary);">I create confusion or ignore the numbers to avoid seeing how bad things are</span>
+              <div class="question-help">Think about your automatic reaction when finances feel tight or uncertain. Click on the statement that fits you best.</div>
+              <div class="statement-group">
+                <label class="statement-card ${formValues.backupStressResponse === 'FSV' ? 'selected' : ''}" onclick="selectStatement(this, 'backupStressResponse')">
+                  <input type="radio" name="backupStressResponse" value="FSV" ${formValues.backupStressResponse === 'FSV' ? 'checked' : ''}>
+                  I create confusion or ignore the numbers to avoid seeing how bad things are
                 </label>
-                <label class="radio-option" style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; padding: 12px; border-radius: 8px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);">
-                  <input type="radio" name="backupStressResponse" value="ExVal" ${formValues.backupStressResponse === 'ExVal' ? 'checked' : ''} style="margin-top: 3px;">
-                  <span style="color: var(--color-text-secondary);">I worry about what others will think or hide my situation from people</span>
+                <label class="statement-card ${formValues.backupStressResponse === 'ExVal' ? 'selected' : ''}" onclick="selectStatement(this, 'backupStressResponse')">
+                  <input type="radio" name="backupStressResponse" value="ExVal" ${formValues.backupStressResponse === 'ExVal' ? 'checked' : ''}>
+                  I worry about what others will think or hide my situation from people
                 </label>
-                <label class="radio-option" style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; padding: 12px; border-radius: 8px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);">
-                  <input type="radio" name="backupStressResponse" value="Showing" ${formValues.backupStressResponse === 'Showing' ? 'checked' : ''} style="margin-top: 3px;">
-                  <span style="color: var(--color-text-secondary);">I find ways to help others anyway, even if it hurts my own finances</span>
+                <label class="statement-card ${formValues.backupStressResponse === 'Showing' ? 'selected' : ''}" onclick="selectStatement(this, 'backupStressResponse')">
+                  <input type="radio" name="backupStressResponse" value="Showing" ${formValues.backupStressResponse === 'Showing' ? 'checked' : ''}>
+                  I find ways to help others anyway, even if it hurts my own finances
                 </label>
-                <label class="radio-option" style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; padding: 12px; border-radius: 8px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);">
-                  <input type="radio" name="backupStressResponse" value="Receiving" ${formValues.backupStressResponse === 'Receiving' ? 'checked' : ''} style="margin-top: 3px;">
-                  <span style="color: var(--color-text-secondary);">I look to others to fix it or take over my financial decisions</span>
+                <label class="statement-card ${formValues.backupStressResponse === 'Receiving' ? 'selected' : ''}" onclick="selectStatement(this, 'backupStressResponse')">
+                  <input type="radio" name="backupStressResponse" value="Receiving" ${formValues.backupStressResponse === 'Receiving' ? 'checked' : ''}>
+                  I look to others to fix it or take over my financial decisions
                 </label>
-                <label class="radio-option" style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; padding: 12px; border-radius: 8px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);">
-                  <input type="radio" name="backupStressResponse" value="Control" ${formValues.backupStressResponse === 'Control' ? 'checked' : ''} style="margin-top: 3px;">
-                  <span style="color: var(--color-text-secondary);">I tighten control on everything, even going without things I need</span>
+                <label class="statement-card ${formValues.backupStressResponse === 'Control' ? 'selected' : ''}" onclick="selectStatement(this, 'backupStressResponse')">
+                  <input type="radio" name="backupStressResponse" value="Control" ${formValues.backupStressResponse === 'Control' ? 'checked' : ''}>
+                  I tighten control on everything, even going without things I need
                 </label>
-                <label class="radio-option" style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; padding: 12px; border-radius: 8px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);">
-                  <input type="radio" name="backupStressResponse" value="Fear" ${formValues.backupStressResponse === 'Fear' ? 'checked' : ''} style="margin-top: 3px;">
-                  <span style="color: var(--color-text-secondary);">I freeze up or make decisions that seem to make things worse</span>
+                <label class="statement-card ${formValues.backupStressResponse === 'Fear' ? 'selected' : ''}" onclick="selectStatement(this, 'backupStressResponse')">
+                  <input type="radio" name="backupStressResponse" value="Fear" ${formValues.backupStressResponse === 'Fear' ? 'checked' : ''}>
+                  I freeze up or make decisions that seem to make things worse
                 </label>
               </div>
             </div>
@@ -1671,30 +1708,30 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
             <div class="form-question">
               <label class="question-label">12. Which statement feels most true about money for you?</label>
               <div class="question-help">Choose the one that resonates most deeply, even if uncomfortable.</div>
-              <div class="radio-group" style="display: flex; flex-direction: column; gap: 12px;">
-                <label class="radio-option" style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; padding: 12px; border-radius: 8px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);">
-                  <input type="radio" name="backupCoreBelief" value="FSV" ${formValues.backupCoreBelief === 'FSV' ? 'checked' : ''} style="margin-top: 3px;">
-                  <span style="color: var(--color-text-secondary);">If I had more money, I would finally feel safe</span>
+              <div class="statement-group">
+                <label class="statement-card ${formValues.backupCoreBelief === 'FSV' ? 'selected' : ''}" onclick="selectStatement(this, 'backupCoreBelief')">
+                  <input type="radio" name="backupCoreBelief" value="FSV" ${formValues.backupCoreBelief === 'FSV' ? 'checked' : ''}>
+                  If I had more money, I would finally feel safe
                 </label>
-                <label class="radio-option" style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; padding: 12px; border-radius: 8px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);">
-                  <input type="radio" name="backupCoreBelief" value="ExVal" ${formValues.backupCoreBelief === 'ExVal' ? 'checked' : ''} style="margin-top: 3px;">
-                  <span style="color: var(--color-text-secondary);">How much money I have affects how others see me</span>
+                <label class="statement-card ${formValues.backupCoreBelief === 'ExVal' ? 'selected' : ''}" onclick="selectStatement(this, 'backupCoreBelief')">
+                  <input type="radio" name="backupCoreBelief" value="ExVal" ${formValues.backupCoreBelief === 'ExVal' ? 'checked' : ''}>
+                  How much money I have affects how others see me
                 </label>
-                <label class="radio-option" style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; padding: 12px; border-radius: 8px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);">
-                  <input type="radio" name="backupCoreBelief" value="Showing" ${formValues.backupCoreBelief === 'Showing' ? 'checked' : ''} style="margin-top: 3px;">
-                  <span style="color: var(--color-text-secondary);">Giving to others, even when it hurts me, is how I show love</span>
+                <label class="statement-card ${formValues.backupCoreBelief === 'Showing' ? 'selected' : ''}" onclick="selectStatement(this, 'backupCoreBelief')">
+                  <input type="radio" name="backupCoreBelief" value="Showing" ${formValues.backupCoreBelief === 'Showing' ? 'checked' : ''}>
+                  Giving to others, even when it hurts me, is how I show love
                 </label>
-                <label class="radio-option" style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; padding: 12px; border-radius: 8px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);">
-                  <input type="radio" name="backupCoreBelief" value="Receiving" ${formValues.backupCoreBelief === 'Receiving' ? 'checked' : ''} style="margin-top: 3px;">
-                  <span style="color: var(--color-text-secondary);">I need others to help with my finances because I cannot or should not handle it alone</span>
+                <label class="statement-card ${formValues.backupCoreBelief === 'Receiving' ? 'selected' : ''}" onclick="selectStatement(this, 'backupCoreBelief')">
+                  <input type="radio" name="backupCoreBelief" value="Receiving" ${formValues.backupCoreBelief === 'Receiving' ? 'checked' : ''}>
+                  I need others to help with my finances because I cannot or should not handle it alone
                 </label>
-                <label class="radio-option" style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; padding: 12px; border-radius: 8px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);">
-                  <input type="radio" name="backupCoreBelief" value="Control" ${formValues.backupCoreBelief === 'Control' ? 'checked' : ''} style="margin-top: 3px;">
-                  <span style="color: var(--color-text-secondary);">I must control every dollar or things will fall apart</span>
+                <label class="statement-card ${formValues.backupCoreBelief === 'Control' ? 'selected' : ''}" onclick="selectStatement(this, 'backupCoreBelief')">
+                  <input type="radio" name="backupCoreBelief" value="Control" ${formValues.backupCoreBelief === 'Control' ? 'checked' : ''}>
+                  I must control every dollar or things will fall apart
                 </label>
-                <label class="radio-option" style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; padding: 12px; border-radius: 8px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);">
-                  <input type="radio" name="backupCoreBelief" value="Fear" ${formValues.backupCoreBelief === 'Fear' ? 'checked' : ''} style="margin-top: 3px;">
-                  <span style="color: var(--color-text-secondary);">No matter what I do, something bad will probably happen with money</span>
+                <label class="statement-card ${formValues.backupCoreBelief === 'Fear' ? 'selected' : ''}" onclick="selectStatement(this, 'backupCoreBelief')">
+                  <input type="radio" name="backupCoreBelief" value="Fear" ${formValues.backupCoreBelief === 'Fear' ? 'checked' : ''}>
+                  No matter what I do, something bad will probably happen with money
                 </label>
               </div>
             </div>
@@ -1703,30 +1740,30 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
             <div class="form-question">
               <label class="question-label">13. What financial pattern do you notice repeating in your life?</label>
               <div class="question-help">Look at the outcomes that keep showing up, not what you intend to happen.</div>
-              <div class="radio-group" style="display: flex; flex-direction: column; gap: 12px;">
-                <label class="radio-option" style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; padding: 12px; border-radius: 8px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);">
-                  <input type="radio" name="backupConsequence" value="FSV" ${formValues.backupConsequence === 'FSV' ? 'checked' : ''} style="margin-top: 3px;">
-                  <span style="color: var(--color-text-secondary);">I never seem to have money when I need it, even when I earn enough</span>
+              <div class="statement-group">
+                <label class="statement-card ${formValues.backupConsequence === 'FSV' ? 'selected' : ''}" onclick="selectStatement(this, 'backupConsequence')">
+                  <input type="radio" name="backupConsequence" value="FSV" ${formValues.backupConsequence === 'FSV' ? 'checked' : ''}>
+                  I never seem to have money when I need it, even when I earn enough
                 </label>
-                <label class="radio-option" style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; padding: 12px; border-radius: 8px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);">
-                  <input type="radio" name="backupConsequence" value="ExVal" ${formValues.backupConsequence === 'ExVal' ? 'checked' : ''} style="margin-top: 3px;">
-                  <span style="color: var(--color-text-secondary);">I spend money on image or hide my situation to manage how others see me</span>
+                <label class="statement-card ${formValues.backupConsequence === 'ExVal' ? 'selected' : ''}" onclick="selectStatement(this, 'backupConsequence')">
+                  <input type="radio" name="backupConsequence" value="ExVal" ${formValues.backupConsequence === 'ExVal' ? 'checked' : ''}>
+                  I spend money on image or hide my situation to manage how others see me
                 </label>
-                <label class="radio-option" style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; padding: 12px; border-radius: 8px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);">
-                  <input type="radio" name="backupConsequence" value="Showing" ${formValues.backupConsequence === 'Showing' ? 'checked' : ''} style="margin-top: 3px;">
-                  <span style="color: var(--color-text-secondary);">I take on other people's financial burdens or refuse repayment when offered</span>
+                <label class="statement-card ${formValues.backupConsequence === 'Showing' ? 'selected' : ''}" onclick="selectStatement(this, 'backupConsequence')">
+                  <input type="radio" name="backupConsequence" value="Showing" ${formValues.backupConsequence === 'Showing' ? 'checked' : ''}>
+                  I take on other people's financial burdens or refuse repayment when offered
                 </label>
-                <label class="radio-option" style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; padding: 12px; border-radius: 8px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);">
-                  <input type="radio" name="backupConsequence" value="Receiving" ${formValues.backupConsequence === 'Receiving' ? 'checked' : ''} style="margin-top: 3px;">
-                  <span style="color: var(--color-text-secondary);">I become dependent on others or rack up debt that creates obligation</span>
+                <label class="statement-card ${formValues.backupConsequence === 'Receiving' ? 'selected' : ''}" onclick="selectStatement(this, 'backupConsequence')">
+                  <input type="radio" name="backupConsequence" value="Receiving" ${formValues.backupConsequence === 'Receiving' ? 'checked' : ''}>
+                  I become dependent on others or rack up debt that creates obligation
                 </label>
-                <label class="radio-option" style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; padding: 12px; border-radius: 8px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);">
-                  <input type="radio" name="backupConsequence" value="Control" ${formValues.backupConsequence === 'Control' ? 'checked' : ''} style="margin-top: 3px;">
-                  <span style="color: var(--color-text-secondary);">I have money but do not charge my worth, collect what I am owed, or spend on myself</span>
+                <label class="statement-card ${formValues.backupConsequence === 'Control' ? 'selected' : ''}" onclick="selectStatement(this, 'backupConsequence')">
+                  <input type="radio" name="backupConsequence" value="Control" ${formValues.backupConsequence === 'Control' ? 'checked' : ''}>
+                  I have money but do not charge my worth, collect what I am owed, or spend on myself
                 </label>
-                <label class="radio-option" style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; padding: 12px; border-radius: 8px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);">
-                  <input type="radio" name="backupConsequence" value="Fear" ${formValues.backupConsequence === 'Fear' ? 'checked' : ''} style="margin-top: 3px;">
-                  <span style="color: var(--color-text-secondary);">I trust the wrong people or skip protections, and then bad things happen</span>
+                <label class="statement-card ${formValues.backupConsequence === 'Fear' ? 'selected' : ''}" onclick="selectStatement(this, 'backupConsequence')">
+                  <input type="radio" name="backupConsequence" value="Fear" ${formValues.backupConsequence === 'Fear' ? 'checked' : ''}>
+                  I trust the wrong people or skip protections, and then bad things happen
                 </label>
               </div>
             </div>
@@ -2161,6 +2198,24 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
         slider.addEventListener('input', function() { updateSliderDisplay(id); });
       }
     });
+
+    // Statement card selection handler (for backup questions 11-13)
+    function selectStatement(clickedCard, groupName) {
+      // Remove 'selected' from all cards in this group
+      var allCards = clickedCard.parentElement.querySelectorAll('.statement-card');
+      allCards.forEach(function(card) {
+        card.classList.remove('selected');
+      });
+
+      // Add 'selected' to the clicked card
+      clickedCard.classList.add('selected');
+
+      // Check the radio input inside
+      var radio = clickedCard.querySelector('input[type="radio"]');
+      if (radio) {
+        radio.checked = true;
+      }
+    }
 
     // Toggle pre-survey section
     function togglePreSurvey() {
