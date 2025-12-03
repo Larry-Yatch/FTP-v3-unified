@@ -434,7 +434,9 @@ const Tool4 = {
 buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
   const styles = HtmlService.createHtmlOutputFromFile('shared/styles').getContent();
   const hasPreSurvey = !!preSurveyData;
+  const hasTool1 = toolStatus.hasTool1;
   const hasTool2 = toolStatus.hasTool2;
+  const hasTool3 = toolStatus.hasTool3;
 
   // Pre-fill form values if pre-survey exists
   // Handle both old format (incomeRange/essentialsRange) and new format (monthlyIncome/monthlyEssentials)
@@ -451,7 +453,17 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
     impulse: preSurveyData.impulse || 5,
     longTerm: preSurveyData.longTerm || 5,
     lifestyle: preSurveyData.lifestyle || 5,
-    autonomy: preSurveyData.autonomy || 5
+    autonomy: preSurveyData.autonomy || 5,
+    // Backup questions (only used when Tool 1/3 data missing)
+    backupStressResponse: preSurveyData.backupStressResponse || '',
+    backupCoreBelief: preSurveyData.backupCoreBelief || '',
+    backupConsequence: preSurveyData.backupConsequence || '',
+    backupWorthiness: preSurveyData.backupWorthiness != null ? preSurveyData.backupWorthiness : 5,
+    backupScarcity: preSurveyData.backupScarcity != null ? preSurveyData.backupScarcity : 5,
+    backupAvoidance: preSurveyData.backupAvoidance != null ? preSurveyData.backupAvoidance : 5,
+    backupWorthMoney: preSurveyData.backupWorthMoney != null ? preSurveyData.backupWorthMoney : 5,
+    backupOthersJudgment: preSurveyData.backupOthersJudgment != null ? preSurveyData.backupOthersJudgment : 5,
+    backupProving: preSurveyData.backupProving != null ? preSurveyData.backupProving : 5
   } : {
     selectedPriority: '',
     goalTimeline: '',
@@ -464,7 +476,17 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
     impulse: 5,
     longTerm: 5,
     lifestyle: 5,
-    autonomy: 5
+    autonomy: 5,
+    // Backup questions defaults
+    backupStressResponse: '',
+    backupCoreBelief: '',
+    backupConsequence: '',
+    backupWorthiness: 5,
+    backupScarcity: 5,
+    backupAvoidance: 5,
+    backupWorthMoney: 5,
+    backupOthersJudgment: 5,
+    backupProving: 5
   };
 
   // Calculate priority recommendations if pre-survey data exists
@@ -565,6 +587,85 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       "Strong preference for making my own choices",
       "Heavy autonomy - just give me the framework",
       "Complete autonomy - I'll decide everything myself"
+    ],
+    // Backup question slider labels (for Tool 3 proxies)
+    backupWorthiness: [
+      "Completely unworthy - I do not deserve good things",
+      "Very unworthy - rarely feel deserving",
+      "Mostly unworthy - often doubt my value",
+      "Somewhat unworthy - frequently question worth",
+      "Slightly unworthy - occasional self-doubt",
+      "Neutral - unsure about my worthiness",
+      "Slightly worthy - starting to believe in myself",
+      "Somewhat worthy - often feel deserving",
+      "Mostly worthy - believe I deserve good things",
+      "Very worthy - confident in my value",
+      "Completely worthy - I absolutely deserve abundance"
+    ],
+    backupScarcity: [
+      "Never enough - constant anxiety about running out",
+      "Rarely enough - always worried about shortage",
+      "Usually not enough - frequent scarcity fears",
+      "Sometimes not enough - occasional worry",
+      "Slightly scarce - mild concerns about having enough",
+      "Neutral - balanced view of resources",
+      "Usually enough - generally feel provided for",
+      "Mostly enough - rarely worry about shortage",
+      "Almost always enough - confident in sufficiency",
+      "Always enough - trust in abundance",
+      "More than enough - complete trust in sufficiency"
+    ],
+    backupAvoidance: [
+      "Constant avoidance - never look at finances",
+      "Severe avoidance - dread financial tasks",
+      "Strong avoidance - put off money matters often",
+      "Moderate avoidance - delay financial decisions",
+      "Some avoidance - occasionally avoid money topics",
+      "Neutral - handle finances when necessary",
+      "Somewhat engaged - usually stay on top of things",
+      "Mostly engaged - regularly review finances",
+      "Very engaged - proactively manage money",
+      "Highly engaged - enjoy financial planning",
+      "Fully engaged - finances are a priority focus"
+    ],
+    backupWorthMoney: [
+      "Completely defines my worth - my value equals my bank account",
+      "Strongly defines worth - money is my measure",
+      "Significantly affects worth - financial success matters a lot",
+      "Moderately affects worth - money influences how I see myself",
+      "Somewhat affects worth - some connection between money and value",
+      "Neutral - money is somewhat connected to worth",
+      "Slightly separate - my worth is somewhat independent of money",
+      "Mostly separate - money does not define me much",
+      "Largely separate - my value is mostly independent",
+      "Almost completely separate - money rarely affects self-worth",
+      "Completely separate - my worth has nothing to do with money"
+    ],
+    backupOthersJudgment: [
+      "Completely consumed - others opinions about my money define me",
+      "Very focused - constantly worried about financial judgment",
+      "Strongly focused - often concerned what others think",
+      "Moderately focused - care about financial perceptions",
+      "Somewhat focused - sometimes worry about judgment",
+      "Neutral - balanced concern about others views",
+      "Somewhat independent - not too worried about judgment",
+      "Mostly independent - rarely care what others think",
+      "Largely independent - make my own financial choices",
+      "Very independent - others opinions rarely matter",
+      "Completely independent - I make my own financial path"
+    ],
+    backupProving: [
+      "Constantly proving - always demonstrating my worth through money",
+      "Very often proving - frequently trying to show my value",
+      "Often proving - regularly using money to prove myself",
+      "Sometimes proving - occasionally demonstrate worth financially",
+      "Occasionally proving - sometimes feel need to prove",
+      "Neutral - sometimes try to prove, sometimes not",
+      "Rarely proving - do not often need to demonstrate worth",
+      "Seldom proving - my value is usually known",
+      "Almost never proving - confident without demonstration",
+      "Very rarely proving - at peace with my worth",
+      "Never proving - completely secure in my value"
     ]
   };
 
@@ -1521,6 +1622,212 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
             </div>
           </div>
 
+          ${!hasTool1 || !hasTool3 ? `
+          <!-- Backup Questions Section - Only shown when Tool 1 or Tool 3 data is missing -->
+          <div class="backup-questions-section" style="margin-top: 30px; padding-top: 30px; border-top: 2px solid rgba(255,255,255,0.1);">
+            <div class="intro-section" style="margin-bottom: 25px;">
+              <div class="intro-title" style="font-size: 1.2rem; margin-bottom: 10px;">A Few More Questions</div>
+              <div class="intro-text" style="font-size: 1rem;">
+                To give you the most personalized recommendations, we need a bit more insight into your relationship with money. These questions help us understand patterns that affect your financial decisions.
+              </div>
+            </div>
+
+            ${!hasTool1 ? `
+            <!-- Tool 1 Backup Questions (3 questions for trauma pattern detection) -->
+
+            <!-- Backup Q1: Stress Response -->
+            <div class="form-question">
+              <label class="question-label">11. When money stress hits, what is your typical first response?</label>
+              <div class="question-help">Think about your automatic reaction when finances feel tight or uncertain.</div>
+              <div class="radio-group" style="display: flex; flex-direction: column; gap: 12px;">
+                <label class="radio-option" style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; padding: 12px; border-radius: 8px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);">
+                  <input type="radio" name="backupStressResponse" value="FSV" ${formValues.backupStressResponse === 'FSV' ? 'checked' : ''} style="margin-top: 3px;">
+                  <span style="color: var(--color-text-secondary);">I create confusion or ignore the numbers to avoid seeing how bad things are</span>
+                </label>
+                <label class="radio-option" style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; padding: 12px; border-radius: 8px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);">
+                  <input type="radio" name="backupStressResponse" value="ExVal" ${formValues.backupStressResponse === 'ExVal' ? 'checked' : ''} style="margin-top: 3px;">
+                  <span style="color: var(--color-text-secondary);">I worry about what others will think or hide my situation from people</span>
+                </label>
+                <label class="radio-option" style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; padding: 12px; border-radius: 8px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);">
+                  <input type="radio" name="backupStressResponse" value="Showing" ${formValues.backupStressResponse === 'Showing' ? 'checked' : ''} style="margin-top: 3px;">
+                  <span style="color: var(--color-text-secondary);">I find ways to help others anyway, even if it hurts my own finances</span>
+                </label>
+                <label class="radio-option" style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; padding: 12px; border-radius: 8px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);">
+                  <input type="radio" name="backupStressResponse" value="Receiving" ${formValues.backupStressResponse === 'Receiving' ? 'checked' : ''} style="margin-top: 3px;">
+                  <span style="color: var(--color-text-secondary);">I look to others to fix it or take over my financial decisions</span>
+                </label>
+                <label class="radio-option" style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; padding: 12px; border-radius: 8px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);">
+                  <input type="radio" name="backupStressResponse" value="Control" ${formValues.backupStressResponse === 'Control' ? 'checked' : ''} style="margin-top: 3px;">
+                  <span style="color: var(--color-text-secondary);">I tighten control on everything, even going without things I need</span>
+                </label>
+                <label class="radio-option" style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; padding: 12px; border-radius: 8px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);">
+                  <input type="radio" name="backupStressResponse" value="Fear" ${formValues.backupStressResponse === 'Fear' ? 'checked' : ''} style="margin-top: 3px;">
+                  <span style="color: var(--color-text-secondary);">I freeze up or make decisions that seem to make things worse</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Backup Q2: Core Belief -->
+            <div class="form-question">
+              <label class="question-label">12. Which statement feels most true about money for you?</label>
+              <div class="question-help">Choose the one that resonates most deeply, even if uncomfortable.</div>
+              <div class="radio-group" style="display: flex; flex-direction: column; gap: 12px;">
+                <label class="radio-option" style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; padding: 12px; border-radius: 8px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);">
+                  <input type="radio" name="backupCoreBelief" value="FSV" ${formValues.backupCoreBelief === 'FSV' ? 'checked' : ''} style="margin-top: 3px;">
+                  <span style="color: var(--color-text-secondary);">If I had more money, I would finally feel safe</span>
+                </label>
+                <label class="radio-option" style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; padding: 12px; border-radius: 8px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);">
+                  <input type="radio" name="backupCoreBelief" value="ExVal" ${formValues.backupCoreBelief === 'ExVal' ? 'checked' : ''} style="margin-top: 3px;">
+                  <span style="color: var(--color-text-secondary);">How much money I have affects how others see me</span>
+                </label>
+                <label class="radio-option" style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; padding: 12px; border-radius: 8px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);">
+                  <input type="radio" name="backupCoreBelief" value="Showing" ${formValues.backupCoreBelief === 'Showing' ? 'checked' : ''} style="margin-top: 3px;">
+                  <span style="color: var(--color-text-secondary);">Giving to others, even when it hurts me, is how I show love</span>
+                </label>
+                <label class="radio-option" style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; padding: 12px; border-radius: 8px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);">
+                  <input type="radio" name="backupCoreBelief" value="Receiving" ${formValues.backupCoreBelief === 'Receiving' ? 'checked' : ''} style="margin-top: 3px;">
+                  <span style="color: var(--color-text-secondary);">I need others to help with my finances because I cannot or should not handle it alone</span>
+                </label>
+                <label class="radio-option" style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; padding: 12px; border-radius: 8px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);">
+                  <input type="radio" name="backupCoreBelief" value="Control" ${formValues.backupCoreBelief === 'Control' ? 'checked' : ''} style="margin-top: 3px;">
+                  <span style="color: var(--color-text-secondary);">I must control every dollar or things will fall apart</span>
+                </label>
+                <label class="radio-option" style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; padding: 12px; border-radius: 8px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);">
+                  <input type="radio" name="backupCoreBelief" value="Fear" ${formValues.backupCoreBelief === 'Fear' ? 'checked' : ''} style="margin-top: 3px;">
+                  <span style="color: var(--color-text-secondary);">No matter what I do, something bad will probably happen with money</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Backup Q3: Consequence Pattern -->
+            <div class="form-question">
+              <label class="question-label">13. What financial pattern do you notice repeating in your life?</label>
+              <div class="question-help">Look at the outcomes that keep showing up, not what you intend to happen.</div>
+              <div class="radio-group" style="display: flex; flex-direction: column; gap: 12px;">
+                <label class="radio-option" style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; padding: 12px; border-radius: 8px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);">
+                  <input type="radio" name="backupConsequence" value="FSV" ${formValues.backupConsequence === 'FSV' ? 'checked' : ''} style="margin-top: 3px;">
+                  <span style="color: var(--color-text-secondary);">I never seem to have money when I need it, even when I earn enough</span>
+                </label>
+                <label class="radio-option" style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; padding: 12px; border-radius: 8px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);">
+                  <input type="radio" name="backupConsequence" value="ExVal" ${formValues.backupConsequence === 'ExVal' ? 'checked' : ''} style="margin-top: 3px;">
+                  <span style="color: var(--color-text-secondary);">I spend money on image or hide my situation to manage how others see me</span>
+                </label>
+                <label class="radio-option" style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; padding: 12px; border-radius: 8px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);">
+                  <input type="radio" name="backupConsequence" value="Showing" ${formValues.backupConsequence === 'Showing' ? 'checked' : ''} style="margin-top: 3px;">
+                  <span style="color: var(--color-text-secondary);">I take on other people's financial burdens or refuse repayment when offered</span>
+                </label>
+                <label class="radio-option" style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; padding: 12px; border-radius: 8px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);">
+                  <input type="radio" name="backupConsequence" value="Receiving" ${formValues.backupConsequence === 'Receiving' ? 'checked' : ''} style="margin-top: 3px;">
+                  <span style="color: var(--color-text-secondary);">I become dependent on others or rack up debt that creates obligation</span>
+                </label>
+                <label class="radio-option" style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; padding: 12px; border-radius: 8px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);">
+                  <input type="radio" name="backupConsequence" value="Control" ${formValues.backupConsequence === 'Control' ? 'checked' : ''} style="margin-top: 3px;">
+                  <span style="color: var(--color-text-secondary);">I have money but do not charge my worth, collect what I am owed, or spend on myself</span>
+                </label>
+                <label class="radio-option" style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; padding: 12px; border-radius: 8px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);">
+                  <input type="radio" name="backupConsequence" value="Fear" ${formValues.backupConsequence === 'Fear' ? 'checked' : ''} style="margin-top: 3px;">
+                  <span style="color: var(--color-text-secondary);">I trust the wrong people or skip protections, and then bad things happen</span>
+                </label>
+              </div>
+            </div>
+            ` : ''}
+
+            ${!hasTool3 ? `
+            <!-- Tool 3 Backup Questions (6 sliders for FSV and ExVal domains) -->
+
+            <!-- FSV Domain Proxies (3 questions) -->
+            <div style="margin-top: 20px; margin-bottom: 15px;">
+              <div style="font-size: 1.1rem; font-weight: 600; color: var(--color-text-primary);">Self-Worth and Money</div>
+              <div style="font-size: 1rem; color: var(--color-text-secondary);">These questions explore your inner relationship with money and self-worth.</div>
+            </div>
+
+            <!-- Backup Q: Worthiness -->
+            <div class="form-question">
+              <label class="question-label">${!hasTool1 ? '14' : '11'}. How worthy do you feel of financial abundance?</label>
+              <div class="question-help">Deep down, do you believe you deserve to have money and good things?</div>
+              <div class="slider-container">
+                <div class="slider-value-display" id="backupWorthinessDisplay">${sliderLabels.backupWorthiness[formValues.backupWorthiness]}</div>
+                <input type="range" id="backupWorthiness" class="slider-input" min="0" max="10" value="${formValues.backupWorthiness}">
+                <div class="slider-scale">
+                  <span>0</span><span>5</span><span>10</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Backup Q: Scarcity -->
+            <div class="form-question">
+              <label class="question-label">${!hasTool1 ? '15' : '12'}. How often do you feel there is not enough?</label>
+              <div class="question-help">Regardless of your actual situation, how prevalent is the feeling of scarcity?</div>
+              <div class="slider-container">
+                <div class="slider-value-display" id="backupScarcityDisplay">${sliderLabels.backupScarcity[formValues.backupScarcity]}</div>
+                <input type="range" id="backupScarcity" class="slider-input" min="0" max="10" value="${formValues.backupScarcity}">
+                <div class="slider-scale">
+                  <span>0</span><span>5</span><span>10</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Backup Q: Avoidance -->
+            <div class="form-question">
+              <label class="question-label">${!hasTool1 ? '16' : '13'}. How much do you avoid looking at your finances?</label>
+              <div class="question-help">Do you engage with your money situation or tend to look away?</div>
+              <div class="slider-container">
+                <div class="slider-value-display" id="backupAvoidanceDisplay">${sliderLabels.backupAvoidance[formValues.backupAvoidance]}</div>
+                <input type="range" id="backupAvoidance" class="slider-input" min="0" max="10" value="${formValues.backupAvoidance}">
+                <div class="slider-scale">
+                  <span>0</span><span>5</span><span>10</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- ExVal Domain Proxies (3 questions) -->
+            <div style="margin-top: 30px; margin-bottom: 15px;">
+              <div style="font-size: 1.1rem; font-weight: 600; color: var(--color-text-primary);">Money and Others</div>
+              <div style="font-size: 1rem; color: var(--color-text-secondary);">These questions explore how others influence your relationship with money.</div>
+            </div>
+
+            <!-- Backup Q: Worth = Money -->
+            <div class="form-question">
+              <label class="question-label">${!hasTool1 ? '17' : '14'}. How much does money define your worth as a person?</label>
+              <div class="question-help">Is your value as a human connected to your financial situation?</div>
+              <div class="slider-container">
+                <div class="slider-value-display" id="backupWorthMoneyDisplay">${sliderLabels.backupWorthMoney[formValues.backupWorthMoney]}</div>
+                <input type="range" id="backupWorthMoney" class="slider-input" min="0" max="10" value="${formValues.backupWorthMoney}">
+                <div class="slider-scale">
+                  <span>0</span><span>5</span><span>10</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Backup Q: Others Judgment -->
+            <div class="form-question">
+              <label class="question-label">${!hasTool1 ? '18' : '15'}. How much do you worry about what others think of your finances?</label>
+              <div class="question-help">Do you feel judged or manage your image around money?</div>
+              <div class="slider-container">
+                <div class="slider-value-display" id="backupOthersJudgmentDisplay">${sliderLabels.backupOthersJudgment[formValues.backupOthersJudgment]}</div>
+                <input type="range" id="backupOthersJudgment" class="slider-input" min="0" max="10" value="${formValues.backupOthersJudgment}">
+                <div class="slider-scale">
+                  <span>0</span><span>5</span><span>10</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Backup Q: Proving -->
+            <div class="form-question">
+              <label class="question-label">${!hasTool1 ? '19' : '16'}. How often do you feel you need to prove your worth through money?</label>
+              <div class="question-help">Do you use financial achievements to demonstrate your value?</div>
+              <div class="slider-container">
+                <div class="slider-value-display" id="backupProvingDisplay">${sliderLabels.backupProving[formValues.backupProving]}</div>
+                <input type="range" id="backupProving" class="slider-input" min="0" max="10" value="${formValues.backupProving}">
+                <div class="slider-scale">
+                  <span>0</span><span>5</span><span>10</span>
+                </div>
+              </div>
+            </div>
+            ` : ''}
+          </div>
+          ` : ''}
+
           <!-- Error Message -->
           <div class="error-message" id="errorMessage"></div>
 
@@ -1845,6 +2152,14 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
     ['satisfaction', 'discipline', 'impulse', 'longTerm', 'lifestyle', 'autonomy'].forEach(function(id) {
       var slider = document.getElementById(id);
       slider.addEventListener('input', function() { updateSliderDisplay(id); });
+    });
+
+    // Initialize backup sliders if they exist (only shown when Tool 1/3 data is missing)
+    ['backupWorthiness', 'backupScarcity', 'backupAvoidance', 'backupWorthMoney', 'backupOthersJudgment', 'backupProving'].forEach(function(id) {
+      var slider = document.getElementById(id);
+      if (slider) {
+        slider.addEventListener('input', function() { updateSliderDisplay(id); });
+      }
     });
 
     // Toggle pre-survey section
@@ -3878,6 +4193,31 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
         emergencyFund: parseFloat(document.getElementById('emergencyFund').value)
       };
 
+      // Collect backup question values if they exist (only shown when Tool 1/3 data missing)
+      // Tool 1 backup questions (radio buttons for trauma pattern)
+      var stressResponseEl = document.querySelector('input[name="backupStressResponse"]:checked');
+      var coreBeliefEl = document.querySelector('input[name="backupCoreBelief"]:checked');
+      var consequenceEl = document.querySelector('input[name="backupConsequence"]:checked');
+
+      if (stressResponseEl) formData.backupStressResponse = stressResponseEl.value;
+      if (coreBeliefEl) formData.backupCoreBelief = coreBeliefEl.value;
+      if (consequenceEl) formData.backupConsequence = consequenceEl.value;
+
+      // Tool 3 backup questions (sliders for FSV/ExVal domains)
+      var backupWorthinessEl = document.getElementById('backupWorthiness');
+      var backupScarcityEl = document.getElementById('backupScarcity');
+      var backupAvoidanceEl = document.getElementById('backupAvoidance');
+      var backupWorthMoneyEl = document.getElementById('backupWorthMoney');
+      var backupOthersJudgmentEl = document.getElementById('backupOthersJudgment');
+      var backupProvingEl = document.getElementById('backupProving');
+
+      if (backupWorthinessEl) formData.backupWorthiness = parseInt(backupWorthinessEl.value);
+      if (backupScarcityEl) formData.backupScarcity = parseInt(backupScarcityEl.value);
+      if (backupAvoidanceEl) formData.backupAvoidance = parseInt(backupAvoidanceEl.value);
+      if (backupWorthMoneyEl) formData.backupWorthMoney = parseInt(backupWorthMoneyEl.value);
+      if (backupOthersJudgmentEl) formData.backupOthersJudgment = parseInt(backupOthersJudgmentEl.value);
+      if (backupProvingEl) formData.backupProving = parseInt(backupProvingEl.value);
+
       // Show loading overlay with specific message
       var loadingOverlay = document.getElementById('loadingOverlay');
       var loadingText = document.getElementById('loadingText');
@@ -5020,7 +5360,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
   /**
    * Get personalized reason based on user's actual data
    */
-  getPersonalizedReason(priorityName, indicator, data) {
+  getPersonalizedReason(priorityName, indicator, data, traumaPattern = null) {
     const { discipline, longTerm, debtLoad, satisfaction, incomeStability, emergencyFund, lifestyle, autonomy, essentialsPct, surplus } = data;
 
     // Translate tiers to plain English
@@ -5128,7 +5468,259 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       }
     };
 
-    return reasons[priorityName]?.[indicator] || 'A valid financial priority';
+    // Get base financial reason
+    const baseReason = reasons[priorityName]?.[indicator] || 'A valid financial priority';
+
+    // Add trauma-informed context if pattern is available
+    const traumaContext = this.getTraumaContextForPriority(priorityName, indicator, traumaPattern);
+
+    if (traumaContext) {
+      return `${baseReason}. ${traumaContext}`;
+    }
+
+    return baseReason;
+  },
+
+  /**
+   * Get trauma-informed context for a priority based on the user's trauma pattern
+   * Explains WHY certain priorities are especially helpful or challenging given their pattern
+   *
+   * @param {string} priorityName - Name of the priority
+   * @param {string} indicator - 'recommended', 'available', or 'challenging'
+   * @param {string|null} traumaPattern - FSV, ExVal, Showing, Receiving, Control, or Fear
+   * @returns {string|null} Trauma context explanation or null if not applicable
+   */
+  getTraumaContextForPriority(priorityName, indicator, traumaPattern) {
+    if (!traumaPattern) return null;
+
+    // Map: traumaPattern -> priorityName -> indicator -> context
+    const traumaContextMap = {
+      'FSV': {
+        // False Self-View: "Money is Safety" - they create scarcity to prove inadequacy
+        'Feel Financially Secure': {
+          recommended: 'Your pattern shows you may equate money with safety - this priority helps build genuine security from self-trust, not just account balances',
+          available: 'Building real security can help break the cycle of manufactured scarcity'
+        },
+        'Create Life Balance': {
+          recommended: 'Balance helps counter the confusion and chaos that your pattern may create around finances'
+        },
+        'Stabilize to Survive': {
+          recommended: 'Stabilization addresses the scarcity your pattern may unconsciously create'
+        },
+        'Build Long-Term Wealth': {
+          challenging: 'Your pattern may create obstacles to wealth-building - consider addressing the underlying scarcity beliefs first'
+        },
+        'Create Generational Wealth': {
+          challenging: 'Long-term wealth goals may trigger scarcity responses - build personal security first'
+        }
+      },
+      'ExVal': {
+        // External Validation: "Money is Acceptance" - they curate perception through money
+        'Build Long-Term Wealth': {
+          recommended: 'Building real wealth helps shift focus from appearances to genuine financial strength'
+        },
+        'Feel Financially Secure': {
+          recommended: 'True security comes from within, not from others\' perceptions of your finances'
+        },
+        'Reclaim Financial Control': {
+          recommended: 'Taking control helps you make decisions based on your needs, not others\' expectations'
+        },
+        'Enjoy Life Now': {
+          challenging: 'Be mindful that enjoyment spending does not become about maintaining an image for others',
+          available: 'If you choose this, focus on genuine enjoyment rather than visible spending'
+        },
+        'Create Life Balance': {
+          challenging: 'Balance is good, but watch for the temptation to curate a "balanced" appearance rather than actual balance'
+        }
+      },
+      'Showing': {
+        // Issues Showing Love: "Money is Sacrifice" - they over-give and refuse repayment
+        'Create Life Balance': {
+          recommended: 'Balance gives you permission to include yourself in your financial priorities'
+        },
+        'Enjoy Life Now': {
+          recommended: 'Allowing yourself enjoyment is a powerful counter to the sacrifice pattern'
+        },
+        'Build Long-Term Wealth': {
+          recommended: 'Building your own wealth is an act of self-love, not selfishness',
+          available: 'Growing your resources allows you to give from abundance, not depletion'
+        },
+        'Create Generational Wealth': {
+          challenging: 'Be careful this does not become another way to sacrifice yourself for others'
+        }
+      },
+      'Receiving': {
+        // Issues Receiving Love: "Money is Evil" - they become dependent, creating obligation
+        'Build Long-Term Wealth': {
+          recommended: 'Building your own wealth creates healthy independence without obligation'
+        },
+        'Feel Financially Secure': {
+          recommended: 'Self-created security breaks the dependency cycle and allows genuine connection'
+        },
+        'Reclaim Financial Control': {
+          recommended: 'Taking control of your finances removes the obligation that blocks receiving love freely'
+        },
+        'Enjoy Life Now': {
+          available: 'If you choose enjoyment, fund it yourself - this builds healthy independence'
+        }
+      },
+      'Control': {
+        // Control Leading to Isolation: "Money is Control" - they go without to maintain control
+        'Create Life Balance': {
+          recommended: 'Balance invites you to release the grip and allow life to unfold'
+        },
+        'Enjoy Life Now': {
+          recommended: 'Allowing enjoyment counters the self-imposed deprivation your pattern creates'
+        },
+        'Feel Financially Secure': {
+          recommended: 'True security comes from trust, not from controlling every outcome'
+        },
+        'Create Generational Wealth': {
+          challenging: 'This goal may reinforce control tendencies - consider loosening the grip first'
+        },
+        'Build Long-Term Wealth': {
+          challenging: 'Wealth-building under your pattern may become about control rather than freedom'
+        }
+      },
+      'Fear': {
+        // Fear Leading to Isolation: "Money is Fear" - they ensure things go wrong
+        'Feel Financially Secure': {
+          recommended: 'Building security with proper protections helps counter the self-sabotage pattern'
+        },
+        'Stabilize to Survive': {
+          recommended: 'Stabilization with clear boundaries protects against the disasters your pattern may create'
+        },
+        'Create Life Balance': {
+          recommended: 'Balance and visibility counter the hiding and isolation your pattern may cause'
+        },
+        'Create Generational Wealth': {
+          challenging: 'Large goals may trigger fear of loss and self-sabotage - build trust in yourself first'
+        },
+        'Build Long-Term Wealth': {
+          challenging: 'Your pattern may create the very losses you fear - focus on building trust and protection first'
+        },
+        'Build or Stabilize a Business': {
+          challenging: 'Business ventures carry risks that may trigger your pattern - ensure strong protections are in place'
+        }
+      }
+    };
+
+    return traumaContextMap[traumaPattern]?.[priorityName]?.[indicator] || null;
+  },
+
+  /**
+   * Derive trauma pattern from backup questions when Tool 1 data is missing
+   * Uses majority voting across 3 questions: stress response, core belief, and consequence pattern
+   *
+   * @param {Object} preSurveyData - Pre-survey data containing backup question answers
+   * @returns {string|null} - Trauma pattern (FSV, ExVal, Showing, Receiving, Control, Fear) or null
+   */
+  deriveTraumaPatternFromBackup(preSurveyData) {
+    const { backupStressResponse, backupCoreBelief, backupConsequence } = preSurveyData || {};
+
+    // If no backup questions answered, return null
+    if (!backupStressResponse && !backupCoreBelief && !backupConsequence) {
+      return null;
+    }
+
+    // Count votes for each pattern
+    const votes = {};
+    const patterns = ['FSV', 'ExVal', 'Showing', 'Receiving', 'Control', 'Fear'];
+
+    patterns.forEach(p => votes[p] = 0);
+
+    if (backupStressResponse && patterns.includes(backupStressResponse)) {
+      votes[backupStressResponse]++;
+    }
+    if (backupCoreBelief && patterns.includes(backupCoreBelief)) {
+      votes[backupCoreBelief]++;
+    }
+    if (backupConsequence && patterns.includes(backupConsequence)) {
+      votes[backupConsequence]++;
+    }
+
+    // Find pattern with most votes
+    let maxVotes = 0;
+    let winner = null;
+
+    for (const pattern of patterns) {
+      if (votes[pattern] > maxVotes) {
+        maxVotes = votes[pattern];
+        winner = pattern;
+      }
+    }
+
+    Logger.log(`Derived trauma pattern from backup: ${winner} (votes: ${JSON.stringify(votes)})`);
+    return winner;
+  },
+
+  /**
+   * Derive disconnection score from backup questions when Tool 3 data is missing
+   * Averages 6 slider values (inverted where needed) to create 0-100 score
+   *
+   * FSV Domain (3 questions): worthiness (inverted), scarcity, avoidance
+   * ExVal Domain (3 questions): worthMoney, othersJudgment, proving
+   *
+   * @param {Object} preSurveyData - Pre-survey data containing backup slider values
+   * @returns {number|null} - Disconnection score (0-100) or null
+   */
+  deriveDisconnectionFromBackup(preSurveyData) {
+    const {
+      backupWorthiness,
+      backupScarcity,
+      backupAvoidance,
+      backupWorthMoney,
+      backupOthersJudgment,
+      backupProving
+    } = preSurveyData || {};
+
+    // Check if any backup sliders were answered
+    const hasAny = [backupWorthiness, backupScarcity, backupAvoidance,
+                    backupWorthMoney, backupOthersJudgment, backupProving]
+                   .some(v => v != null);
+
+    if (!hasAny) {
+      return null;
+    }
+
+    // Convert sliders to disconnection scores (0-10 where 10 = more disconnected)
+    // Most sliders: 0 = most disconnected, 10 = least disconnected, so we invert
+    // Exception: scarcity already measures disconnection (0 = never enough, 10 = more than enough)
+
+    const scores = [];
+
+    // Worthiness: 0 = completely unworthy (high disconnection), 10 = completely worthy (low disconnection)
+    // Invert: disconnection = 10 - worthiness
+    if (backupWorthiness != null) scores.push(10 - backupWorthiness);
+
+    // Scarcity: 0 = never enough (high disconnection), 10 = more than enough (low disconnection)
+    // Invert: disconnection = 10 - scarcity
+    if (backupScarcity != null) scores.push(10 - backupScarcity);
+
+    // Avoidance: 0 = constant avoidance (high disconnection), 10 = fully engaged (low disconnection)
+    // Invert: disconnection = 10 - avoidance
+    if (backupAvoidance != null) scores.push(10 - backupAvoidance);
+
+    // Worth=Money: 0 = completely defines worth (high disconnection), 10 = completely separate (low disconnection)
+    // Invert: disconnection = 10 - worthMoney
+    if (backupWorthMoney != null) scores.push(10 - backupWorthMoney);
+
+    // Others Judgment: 0 = completely consumed (high disconnection), 10 = completely independent (low disconnection)
+    // Invert: disconnection = 10 - othersJudgment
+    if (backupOthersJudgment != null) scores.push(10 - backupOthersJudgment);
+
+    // Proving: 0 = constantly proving (high disconnection), 10 = never proving (low disconnection)
+    // Invert: disconnection = 10 - proving
+    if (backupProving != null) scores.push(10 - backupProving);
+
+    // Average and convert to 0-100 scale
+    if (scores.length === 0) return null;
+
+    const avg = scores.reduce((sum, s) => sum + s, 0) / scores.length;
+    const overallQuotient = Math.round(avg * 10); // Scale 0-10 to 0-100
+
+    Logger.log(`Derived disconnection from backup: ${overallQuotient} (from ${scores.length} answers: ${scores.join(', ')})`);
+    return overallQuotient;
   },
 
   /**
@@ -5148,16 +5740,29 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
    * @param {Object} tool3Data - Tool 3 response data
    * @returns {Object} { pattern, intensity, modifiers: { priorityName: adjustment } }
    */
-  getTraumaPriorityModifiers(tool1Data, tool3Data) {
+  getTraumaPriorityModifiers(tool1Data, tool3Data, preSurveyData = null) {
     // Extract trauma pattern from Tool 1
     // tool1Data structure: { data: { formData, scores, winner }, clientId, ... }
     const tool1 = tool1Data?.data;
-    const traumaPattern = tool1?.winner || null;
+    let traumaPattern = tool1?.winner || null;
+
+    // If no Tool 1 data, try to derive from backup questions in preSurveyData
+    if (!traumaPattern && preSurveyData) {
+      traumaPattern = this.deriveTraumaPatternFromBackup(preSurveyData);
+    }
 
     // Extract disconnection score from Tool 3 (0-100 scale, higher = more disconnected)
     // tool3Data structure: { data: { responses, scoring, syntheses, ... }, clientId, ... }
     const tool3 = tool3Data?.data;
-    const overallQuotient = tool3?.scoring?.overallQuotient || 50; // Default to moderate if not available
+    let overallQuotient = tool3?.scoring?.overallQuotient;
+
+    // If no Tool 3 data, try to derive from backup questions in preSurveyData
+    if (overallQuotient == null && preSurveyData) {
+      overallQuotient = this.deriveDisconnectionFromBackup(preSurveyData);
+    }
+
+    // Default to moderate if still not available
+    if (overallQuotient == null) overallQuotient = 50;
 
     // Calculate intensity multiplier (0.5 to 1.25 based on disconnection)
     // Low disconnection (0-25): 0.5x adjustment
@@ -5272,8 +5877,9 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
     // TRAUMA-AWARE PRIORITY MODIFIERS
     // ============================================================
     // Extract trauma pattern from Tool 1 and disconnection score from Tool 3
-    const traumaModifiers = this.getTraumaPriorityModifiers(tool1Data, tool3Data);
-    Logger.log(`Trauma modifiers: pattern=${traumaModifiers.pattern}, intensity=${traumaModifiers.intensity}`);
+    // Falls back to backup questions in preSurveyData if Tool 1/3 data is missing
+    const traumaModifiers = this.getTraumaPriorityModifiers(tool1Data, tool3Data, preSurveyData);
+    Logger.log(`Trauma modifiers: pattern=${traumaModifiers.pattern}, intensity=${traumaModifiers.intensity}, source=${tool1Data ? 'Tool1' : 'backup'}`);
 
     // Bundle all data for personalized reason generation
     const allData = {
@@ -5345,7 +5951,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
 
       const indicator = adjustedScore >= 50 ? 'recommended' : adjustedScore <= -50 ? 'challenging' : 'available';
       const icon = adjustedScore >= 50 ? '⭐' : adjustedScore <= -50 ? '⚠️' : '⚪';
-      const reason = this.getPersonalizedReason(p.name, indicator, allData);
+      const reason = this.getPersonalizedReason(p.name, indicator, allData, traumaModifiers.pattern);
 
       return {
         ...p,
