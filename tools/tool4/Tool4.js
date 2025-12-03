@@ -1664,8 +1664,33 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
           <div class="backup-questions-section" style="margin-top: 30px; padding-top: 30px; border-top: 2px solid rgba(255,255,255,0.1);">
             <div class="intro-section" style="margin-bottom: 25px;">
               <div class="intro-title" style="font-size: 1.2rem; margin-bottom: 10px;">A Few More Questions</div>
+
+              <!-- Explanation about missing tools -->
+              <div style="background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.3); border-radius: 10px; padding: 16px 20px; margin-bottom: 20px;">
+                <div style="color: var(--color-text-primary); font-size: 1rem; margin-bottom: 12px;">
+                  Because you have not completed ${!hasTool1 && !hasTool3 ? 'Tool 1 (Financial Trauma Patterns) and Tool 3 (Identity & Grounding)' : !hasTool1 ? 'Tool 1 (Financial Trauma Patterns)' : 'Tool 3 (Identity & Grounding)'}, we need to gather a bit more information from you.
+                </div>
+                <div style="color: var(--color-text-secondary); font-size: 0.95rem; margin-bottom: 15px;">
+                  For deeper insights and more personalized recommendations, we recommend going back to complete ${!hasTool1 && !hasTool3 ? 'those tools' : 'that tool'} first.
+                </div>
+                <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                  ${!hasTool1 ? `
+                  <button type="button" onclick="navigateToTool('tool1')" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-size: 0.95rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                    <span>Go to Tool 1</span>
+                    <span style="font-size: 0.85rem; opacity: 0.9;">Financial Trauma Patterns</span>
+                  </button>
+                  ` : ''}
+                  ${!hasTool3 ? `
+                  <button type="button" onclick="navigateToTool('tool3')" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-size: 0.95rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                    <span>Go to Tool 3</span>
+                    <span style="font-size: 0.85rem; opacity: 0.9;">Identity & Grounding</span>
+                  </button>
+                  ` : ''}
+                </div>
+              </div>
+
               <div class="intro-text" style="font-size: 1rem;">
-                To give you the most personalized recommendations, we need a bit more insight into your relationship with money. These questions help us understand patterns that affect your financial decisions.
+                Or, answer the questions below and we will use your responses to personalize your recommendations.
               </div>
             </div>
 
@@ -2215,6 +2240,43 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       if (radio) {
         radio.checked = true;
       }
+    }
+
+    // Navigate to Tool 1 or Tool 3 (from backup questions section)
+    function navigateToTool(toolId) {
+      var loadingOverlay = document.getElementById('loadingOverlay');
+      var loadingText = document.getElementById('loadingText');
+      var loadingSubtext = document.getElementById('loadingSubtext');
+
+      if (loadingOverlay) {
+        if (toolId === 'tool1') {
+          if (loadingText) loadingText.textContent = 'Loading Tool 1...';
+          if (loadingSubtext) loadingSubtext.textContent = 'Financial Trauma Patterns';
+        } else if (toolId === 'tool3') {
+          if (loadingText) loadingText.textContent = 'Loading Tool 3...';
+          if (loadingSubtext) loadingSubtext.textContent = 'Identity & Grounding';
+        }
+        loadingOverlay.classList.add('show');
+      }
+
+      google.script.run
+        .withSuccessHandler(function(result) {
+          if (result && result.nextPageHtml) {
+            document.open();
+            document.write(result.nextPageHtml);
+            document.close();
+            window.scrollTo(0, 0);
+          } else {
+            if (loadingOverlay) loadingOverlay.classList.remove('show');
+            alert('Error loading tool');
+          }
+        })
+        .withFailureHandler(function(error) {
+          if (loadingOverlay) loadingOverlay.classList.remove('show');
+          console.error('Navigation error:', error);
+          alert('Error loading tool: ' + error.message);
+        })
+        .getToolPage('${clientId}', toolId);
     }
 
     // Toggle pre-survey section
