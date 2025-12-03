@@ -4334,7 +4334,8 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       const tool3Data = DataService.getLatestResponse(clientId, 'tool3');
 
       // Extract Tool 2 form data (with safe defaults)
-      const tool2Form = tool2Data?.formData || {};
+      // Note: tool2Data structure is { data: { data: allData, results, gptInsights, ... }, clientId, ... }
+      const tool2Form = tool2Data?.data?.data || {};
 
       // Calculate income and essentials ranges from dollar amounts
       const monthlyIncome = preSurveyAnswers.monthlyIncome || 3500;
@@ -5144,14 +5145,18 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
     const essentialsPct = (monthlyEssentials / monthlyIncome) * 100;
     const surplusRate = (surplus / monthlyIncome) * 100; // Percentage of income left after essentials
 
+    // Extract Tool 2 form data from nested structure
+    // tool2Data structure: { data: { data: allData, results, gptInsights, ... }, clientId, ... }
+    const tool2Form = tool2Data?.data?.data || {};
+
     // Get Tool 2 derived data (or use safe defaults)
-    const debtLoad = tool2Data ? this.deriveDebtLoad(tool2Data.currentDebts, tool2Data.debtStress) : 'C';
-    const interestLevel = tool2Data ? this.deriveInterestLevel(tool2Data.debtStress) : 'Medium';
-    const emergencyFund = tool2Data ? this.mapEmergencyFundMonths(tool2Data.emergencyFundMonths) : 'C';
-    const incomeStability = tool2Data ? this.mapIncomeStability(tool2Data.incomeConsistency) : 'Stable';
-    const dependents = tool2Data?.dependents || 'No';
-    const growth = tool2Data ? this.deriveGrowthFromTool2(tool2Data) : 5;
-    const stability = tool2Data ? this.deriveStabilityFromTool2(tool2Data) : 5;
+    const debtLoad = tool2Form ? this.deriveDebtLoad(tool2Form.currentDebts, tool2Form.debtStress) : 'C';
+    const interestLevel = tool2Form ? this.deriveInterestLevel(tool2Form.debtStress) : 'Medium';
+    const emergencyFund = tool2Form ? this.mapEmergencyFundMonths(tool2Form.emergencyFundMonths) : 'C';
+    const incomeStability = tool2Form ? this.mapIncomeStability(tool2Form.incomeConsistency) : 'Stable';
+    const dependents = tool2Form?.dependents || 'No';
+    const growth = tool2Form ? this.deriveGrowthFromTool2(tool2Form) : 5;
+    const stability = tool2Form ? this.deriveStabilityFromTool2(tool2Form) : 5;
 
     // Extract pre-survey values
     const { satisfaction, discipline, impulse, longTerm, lifestyle, autonomy } = preSurveyData;

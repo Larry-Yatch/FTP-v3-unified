@@ -245,7 +245,9 @@ const Tool4GPTAnalysis = {
    * Maps each trauma pattern to its financial implications
    */
   buildTool1Context(tool1Data) {
-    if (!tool1Data || !tool1Data.winner) return null;
+    // tool1Data structure: { data: { formData, scores, winner }, clientId, ... }
+    const tool1 = tool1Data?.data;
+    if (!tool1 || !tool1.winner) return null;
 
     const traumaFinancialContext = {
       'FSV': {
@@ -298,14 +300,14 @@ const Tool4GPTAnalysis = {
       }
     };
 
-    const context = traumaFinancialContext[tool1Data.winner];
+    const context = traumaFinancialContext[tool1.winner];
     if (!context) return null;
 
     // Include secondary patterns if scores are available
     let secondaryContext = '';
-    if (tool1Data.scores) {
-      const sortedScores = Object.entries(tool1Data.scores)
-        .filter(([key]) => key !== tool1Data.winner)
+    if (tool1.scores) {
+      const sortedScores = Object.entries(tool1.scores)
+        .filter(([key]) => key !== tool1.winner)
         .sort((a, b) => b[1] - a[1]);
 
       if (sortedScores.length > 0 && sortedScores[0][1] > 0) {
@@ -327,10 +329,12 @@ const Tool4GPTAnalysis = {
    * Extracts overall score, domain insights, and syntheses
    */
   buildTool3Context(tool3Data) {
-    if (!tool3Data) return null;
+    // tool3Data structure: { data: { responses, scoring, gpt_insights, syntheses, ... }, clientId, ... }
+    const tool3 = tool3Data?.data;
+    if (!tool3) return null;
 
-    const scoring = tool3Data.scoring || tool3Data.scoringResult;
-    const syntheses = tool3Data.syntheses;
+    const scoring = tool3.scoring || tool3.scoringResult;
+    const syntheses = tool3.syntheses;
 
     if (!scoring) return null;
 
@@ -444,9 +448,11 @@ const Tool4GPTAnalysis = {
     }
 
     // Tool 2 archetype (simpler context)
+    // tool2Data structure: { data: { data: allData, results, gptInsights, ... }, clientId, ... }
     let archetypeContext = '';
-    if (tool2Data && tool2Data.archetype) {
-      archetypeContext = `\nFINANCIAL ARCHETYPE (Tool 2): ${tool2Data.archetype}`;
+    const tool2Archetype = tool2Data?.data?.results?.archetype;
+    if (tool2Archetype) {
+      archetypeContext = `\nFINANCIAL ARCHETYPE (Tool 2): ${tool2Archetype}`;
     }
 
     return `You are a trauma-informed financial coach writing a personalized analysis for a student's budget allocation report.
