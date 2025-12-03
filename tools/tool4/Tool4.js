@@ -1675,15 +1675,15 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
                 </div>
                 <div style="display: flex; gap: 12px; flex-wrap: wrap;">
                   ${!hasTool1 ? `
-                  <button type="button" onclick="navigateToTool('tool1')" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-size: 0.95rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                  <button type="button" onclick="navigateToTool('tool1')" style="background: linear-gradient(135deg, #ffc107 0%, #e6ac00 100%); color: #1a1a2e; border: none; padding: 10px 20px; border-radius: 8px; font-size: 0.95rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px;">
                     <span>Go to Tool 1</span>
-                    <span style="font-size: 0.85rem; opacity: 0.9;">Financial Trauma Patterns</span>
+                    <span style="font-size: 0.85rem; opacity: 0.8;">Financial Trauma Patterns</span>
                   </button>
                   ` : ''}
                   ${!hasTool3 ? `
-                  <button type="button" onclick="navigateToTool('tool3')" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-size: 0.95rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                  <button type="button" onclick="navigateToTool('tool3')" style="background: linear-gradient(135deg, #ffc107 0%, #e6ac00 100%); color: #1a1a2e; border: none; padding: 10px 20px; border-radius: 8px; font-size: 0.95rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px;">
                     <span>Go to Tool 3</span>
-                    <span style="font-size: 0.85rem; opacity: 0.9;">Identity & Grounding</span>
+                    <span style="font-size: 0.85rem; opacity: 0.8;">Identity & Grounding</span>
                   </button>
                   ` : ''}
                 </div>
@@ -2260,10 +2260,10 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       }
 
       google.script.run
-        .withSuccessHandler(function(result) {
-          if (result && result.nextPageHtml) {
+        .withSuccessHandler(function(html) {
+          if (html) {
             document.open();
-            document.write(result.nextPageHtml);
+            document.write(html);
             document.close();
             window.scrollTo(0, 0);
           } else {
@@ -2276,7 +2276,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
           console.error('Navigation error:', error);
           alert('Error loading tool: ' + error.message);
         })
-        .getToolPage('${clientId}', toolId);
+        .getToolPageHtml(toolId, '${clientId}', null);
     }
 
     // Toggle pre-survey section
