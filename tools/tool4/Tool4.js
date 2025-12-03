@@ -26,7 +26,6 @@ const Tool4 = {
    */
   render(params) {
     const clientId = params.clientId;
-    const baseUrl = ScriptApp.getService().getUrl();
 
     try {
       // Check Tools 1/2/3 completion status
@@ -49,7 +48,7 @@ const Tool4 = {
       }
 
       // Always show unified page (pre-survey + calculator in one view)
-      const htmlContent = this.buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation);
+      const htmlContent = this.buildUnifiedPage(clientId, toolStatus, preSurveyData, allocation);
 
       return HtmlService.createHtmlOutput(htmlContent)
         .setTitle('TruPath - Financial Freedom Framework')
@@ -119,7 +118,6 @@ const Tool4 = {
       Logger.log(`Pre-survey saved for client: ${clientId}`);
 
       // Return updated HTML - calculate allocation ONLY if priority already selected
-      const baseUrl = ScriptApp.getService().getUrl();
       const toolStatus = this.checkToolCompletion(clientId);
       const savedPreSurvey = this.getPreSurvey(clientId);
 
@@ -136,7 +134,7 @@ const Tool4 = {
         }
       }
 
-      const htmlContent = this.buildUnifiedPage(clientId, baseUrl, toolStatus, savedPreSurvey, allocation);
+      const htmlContent = this.buildUnifiedPage(clientId, toolStatus, savedPreSurvey, allocation);
       return { success: true, nextPageHtml: htmlContent };
     } catch (error) {
       Logger.log(`Error saving pre-survey: ${error}`);
@@ -179,7 +177,6 @@ const Tool4 = {
       Logger.log(`Priority selection saved for client: ${clientId} - Priority: ${selectedPriority}, Timeline: ${goalTimeline}`);
 
       // Calculate V1 allocation with the selected priority
-      const baseUrl = ScriptApp.getService().getUrl();
       const toolStatus = this.checkToolCompletion(clientId);
       let allocation = null;
 
@@ -191,7 +188,7 @@ const Tool4 = {
       }
 
       // Return updated page HTML with priority picker collapsed and calculator showing allocation
-      const htmlContent = this.buildUnifiedPage(clientId, baseUrl, toolStatus, savedPreSurvey, allocation);
+      const htmlContent = this.buildUnifiedPage(clientId, toolStatus, savedPreSurvey, allocation);
       return { success: true, nextPageHtml: htmlContent };
     } catch (error) {
       Logger.log(`Error saving priority selection: ${error}`);
@@ -423,7 +420,6 @@ const Tool4 = {
   /**
    * Build unified page with collapsible pre-survey + calculator (Phase 3)
    * @param {string} clientId - Client ID
-   * @param {string} baseUrl - Base URL for navigation
    * @param {Object} toolStatus - Tool completion status
    * @param {Object|null} preSurveyData - Existing pre-survey data (null if first visit)
    * @param {Object|null} allocation - V1 allocation result (null if no pre-survey)
@@ -431,7 +427,7 @@ const Tool4 = {
 // COMPLETE REWRITE OF buildUnifiedPage with redesigned pre-survey
 // This will replace Tool4.js lines 813-1433
 
-buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
+buildUnifiedPage(clientId, toolStatus, preSurveyData, allocation) {
   const styles = HtmlService.createHtmlOutputFromFile('shared/styles').getContent();
   const hasPreSurvey = !!preSurveyData;
   const hasTool1 = toolStatus.hasTool1;
@@ -463,7 +459,13 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
     backupAvoidance: preSurveyData.backupAvoidance != null ? preSurveyData.backupAvoidance : 5,
     backupWorthMoney: preSurveyData.backupWorthMoney != null ? preSurveyData.backupWorthMoney : 5,
     backupOthersJudgment: preSurveyData.backupOthersJudgment != null ? preSurveyData.backupOthersJudgment : 5,
-    backupProving: preSurveyData.backupProving != null ? preSurveyData.backupProving : 5
+    backupProving: preSurveyData.backupProving != null ? preSurveyData.backupProving : 5,
+    // Tool 2 backup questions
+    backupGrowthOrientation: preSurveyData.backupGrowthOrientation != null ? preSurveyData.backupGrowthOrientation : 5,
+    backupStabilityOrientation: preSurveyData.backupStabilityOrientation != null ? preSurveyData.backupStabilityOrientation : 5,
+    backupIncomeConsistency: preSurveyData.backupIncomeConsistency || '',
+    backupDependents: preSurveyData.backupDependents || '',
+    backupLifeStage: preSurveyData.backupLifeStage || ''
   } : {
     selectedPriority: '',
     goalTimeline: '',
@@ -486,7 +488,13 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
     backupAvoidance: 5,
     backupWorthMoney: 5,
     backupOthersJudgment: 5,
-    backupProving: 5
+    backupProving: 5,
+    // Tool 2 backup questions defaults
+    backupGrowthOrientation: 5,
+    backupStabilityOrientation: 5,
+    backupIncomeConsistency: '',
+    backupDependents: '',
+    backupLifeStage: ''
   };
 
   // Calculate priority recommendations if pre-survey data exists
@@ -666,6 +674,33 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       "Almost never proving - confident without demonstration",
       "Very rarely proving - at peace with my worth",
       "Never proving - completely secure in my value"
+    ],
+    // Tool 2 backup slider labels
+    backupGrowthOrientation: [
+      "No growth focus - not thinking about the future at all",
+      "Very low focus - rarely consider saving or investing",
+      "Low focus - occasionally think about growing money",
+      "Somewhat low - some interest but little action",
+      "Below average - trying but not consistent",
+      "Moderate - some effort toward growth",
+      "Above average - regular savings and some investing",
+      "Good focus - actively working on wealth building",
+      "Strong focus - consistent saving and investing",
+      "Very strong - growth is a top priority",
+      "Maximum focus - fully committed to building wealth"
+    ],
+    backupStabilityOrientation: [
+      "No stability focus - living paycheck to paycheck",
+      "Very low focus - no safety net or protection",
+      "Low focus - minimal emergency preparedness",
+      "Somewhat low - starting to think about protection",
+      "Below average - some awareness of risks",
+      "Moderate - basic emergency fund started",
+      "Above average - building financial buffers",
+      "Good focus - solid emergency fund and protection",
+      "Strong focus - well-prepared for unexpected events",
+      "Very strong - comprehensive financial safety net",
+      "Maximum focus - fully protected and debt-managed"
     ]
   };
 
@@ -698,47 +733,22 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       padding: 20px;
     }
 
-    /* Tool 2 Banner */
-    .tool2-banner {
-      background: linear-gradient(135deg, rgba(79, 70, 229, 0.15) 0%, rgba(124, 58, 237, 0.15) 100%);
-      border: 2px solid rgba(79, 70, 229, 0.3);
-      border-radius: 12px;
-      padding: 20px;
-      margin-bottom: 30px;
-      display: flex;
-      align-items: center;
-      gap: 15px;
-    }
-
-    .tool2-banner-icon {
-      font-size: 2rem;
-    }
-
-    .tool2-banner-content {
-      flex: 1;
-    }
-
-    .tool2-banner-title {
-      font-weight: 600;
-      color: var(--color-text-primary);
-      margin-bottom: 5px;
-    }
-
-    .tool2-banner-text {
-      color: var(--color-text-secondary);
-      font-size: 0.95rem;
-    }
-
-    .tool2-banner-btn {
-      background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-      color: white;
+    /* Override btn-nav to match gold pill style */
+    .btn-nav {
+      background: var(--gold);
+      color: #140f23;
       border: none;
       padding: 10px 20px;
-      border-radius: 8px;
-      font-weight: 600;
+      border-radius: 50px;
+      font-size: 0.95rem;
+      font-weight: 700;
       cursor: pointer;
-      text-decoration: none;
-      display: inline-block;
+    }
+
+    .btn-nav:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 15px rgba(255, 193, 7, 0.3);
+      background: var(--gold);
     }
 
     /* Pre-Survey Section */
@@ -1218,20 +1228,20 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
     }
 
     .btn-secondary {
-      background: rgba(79, 70, 229, 0.2);
-      color: var(--color-text-primary);
-      border: 1px solid rgba(79, 70, 229, 0.4);
+      background: var(--gold);
+      color: #140f23;
+      border: none;
       padding: 10px 20px;
-      border-radius: 8px;
+      border-radius: 50px;
       font-size: 0.95rem;
-      font-weight: 600;
+      font-weight: 700;
       cursor: pointer;
       transition: all 0.2s;
     }
 
     .btn-secondary:hover {
-      background: rgba(79, 70, 229, 0.3);
-      border-color: rgba(79, 70, 229, 0.6);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 15px rgba(255, 193, 7, 0.3);
     }
 
     .btn-secondary:disabled {
@@ -1381,13 +1391,13 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
     }
 
     .submit-btn {
-      background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-      color: white;
+      background: var(--gold);
+      color: #140f23;
       border: none;
       padding: 15px 40px;
-      border-radius: 8px;
-      font-size: 1.1rem;
-      font-weight: 600;
+      border-radius: 50px;
+      font-size: 0.95rem;
+      font-weight: 700;
       cursor: pointer;
       width: 100%;
       transition: transform 0.2s, box-shadow 0.2s;
@@ -1396,7 +1406,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
 
     .submit-btn:hover {
       transform: translateY(-2px);
-      box-shadow: 0 10px 25px rgba(79, 70, 229, 0.3);
+      box-shadow: 0 10px 25px rgba(255, 193, 7, 0.3);
     }
 
     .submit-btn:disabled {
@@ -1490,18 +1500,6 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
         ← Return to Dashboard
       </button>
     </div>
-
-    ${!hasTool2 ? `
-    <!-- Tool 2 Banner -->
-    <div class="tool2-banner">
-      <div class="tool2-banner-icon">💡</div>
-      <div class="tool2-banner-content">
-        <div class="tool2-banner-title">Want Better Recommendations?</div>
-        <div class="tool2-banner-text">Complete Tool 2: Financial Clarity Grounding first for more personalized results.</div>
-      </div>
-      <a href="${baseUrl}?tool=tool2&clientId=${clientId}" class="tool2-banner-btn">Go to Tool 2</a>
-    </div>
-    ` : ''}
 
     <!-- Pre-Survey Section -->
     <div class="presurvey-section">
@@ -1658,8 +1656,8 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
             </div>
           </div>
 
-          ${!hasTool1 || !hasTool3 ? `
-          <!-- Backup Questions Section - Only shown when Tool 1 or Tool 3 data is missing -->
+          ${!hasTool1 || !hasTool2 || !hasTool3 ? `
+          <!-- Backup Questions Section - Only shown when Tool 1, 2, or 3 data is missing -->
           <div class="backup-questions-section" style="margin-top: 30px; padding-top: 30px; border-top: 2px solid rgba(255,255,255,0.1);">
             <div class="intro-section" style="margin-bottom: 25px;">
               <div class="intro-title" style="font-size: 1.2rem; margin-bottom: 10px;">A Few More Questions</div>
@@ -1667,21 +1665,27 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
               <!-- Explanation about missing tools -->
               <div style="background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.3); border-radius: 10px; padding: 16px 20px; margin-bottom: 20px;">
                 <div style="color: var(--color-text-primary); font-size: 1rem; margin-bottom: 12px;">
-                  Because you have not completed ${!hasTool1 && !hasTool3 ? 'Tool 1 (Financial Trauma Patterns) and Tool 3 (Identity & Grounding)' : !hasTool1 ? 'Tool 1 (Financial Trauma Patterns)' : 'Tool 3 (Identity & Grounding)'}, we need to gather a bit more information from you.
+                  Because you have not completed ${this.getMissingToolsText(hasTool1, hasTool2, hasTool3)}, we need to gather a bit more information from you.
                 </div>
                 <div style="color: var(--color-text-secondary); font-size: 0.95rem; margin-bottom: 15px;">
-                  For deeper insights and more personalized recommendations, we recommend going back to complete ${!hasTool1 && !hasTool3 ? 'those tools' : 'that tool'} first.
+                  For deeper insights and more personalized recommendations, we recommend going back to complete ${(!hasTool1 && !hasTool2) || (!hasTool1 && !hasTool3) || (!hasTool2 && !hasTool3) ? 'those tools' : 'that tool'} first.
                 </div>
                 <div style="display: flex; gap: 12px; flex-wrap: wrap;">
                   ${!hasTool1 ? `
-                  <button type="button" onclick="navigateToTool('tool1')" style="background: linear-gradient(135deg, #ffc107 0%, #e6ac00 100%); color: #1a1a2e; border: none; padding: 10px 20px; border-radius: 8px; font-size: 0.95rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px;">
-                    <span>Go to Tool 1</span>
+                  <button type="button" class="btn-primary" onclick="navigateToTool('tool1')" style="width: auto; display: flex; align-items: center; gap: 8px;">
+                    <span style="font-weight: 700; font-size: 1rem;">Go to Tool 1</span>
                     <span style="font-size: 0.85rem; opacity: 0.8;">Financial Trauma Patterns</span>
                   </button>
                   ` : ''}
+                  ${!hasTool2 ? `
+                  <button type="button" class="btn-primary" onclick="navigateToTool('tool2')" style="width: auto; display: flex; align-items: center; gap: 8px;">
+                    <span style="font-weight: 700; font-size: 1rem;">Go to Tool 2</span>
+                    <span style="font-size: 0.85rem; opacity: 0.8;">Financial Clarity</span>
+                  </button>
+                  ` : ''}
                   ${!hasTool3 ? `
-                  <button type="button" onclick="navigateToTool('tool3')" style="background: linear-gradient(135deg, #ffc107 0%, #e6ac00 100%); color: #1a1a2e; border: none; padding: 10px 20px; border-radius: 8px; font-size: 0.95rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px;">
-                    <span>Go to Tool 3</span>
+                  <button type="button" class="btn-primary" onclick="navigateToTool('tool3')" style="width: auto; display: flex; align-items: center; gap: 8px;">
+                    <span style="font-weight: 700; font-size: 1rem;">Go to Tool 3</span>
                     <span style="font-size: 0.85rem; opacity: 0.8;">Identity & Grounding</span>
                   </button>
                   ` : ''}
@@ -1883,6 +1887,106 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
                 <div class="slider-scale">
                   <span>0</span><span>5</span><span>10</span>
                 </div>
+              </div>
+            </div>
+            ` : ''}
+
+            ${!hasTool2 ? `
+            <!-- Tool 2 Backup Questions (5 questions for financial clarity data) -->
+
+            <!-- Financial Growth & Stability Section Header -->
+            <div style="margin-top: 30px; margin-bottom: 15px;">
+              <div style="font-size: 1.1rem; font-weight: 600; color: var(--color-text-primary);">Financial Priorities & Life Context</div>
+              <div style="font-size: 1rem; color: var(--color-text-secondary);">These questions help us understand your financial focus and life situation.</div>
+            </div>
+
+            <!-- Backup Q: Growth Orientation -->
+            <div class="form-question">
+              <label class="question-label">${!hasTool1 && !hasTool3 ? '20' : !hasTool1 ? '14' : !hasTool3 ? '17' : '11'}. How focused are you on growing your money for the future?</label>
+              <div class="question-help">Consider your emphasis on investing, saving for retirement, and building long-term wealth.</div>
+              <div class="slider-container">
+                <div class="slider-value-display" id="backupGrowthOrientationDisplay">${sliderLabels.backupGrowthOrientation[formValues.backupGrowthOrientation]}</div>
+                <input type="range" id="backupGrowthOrientation" class="slider-input" min="0" max="10" value="${formValues.backupGrowthOrientation}">
+                <div class="slider-scale">
+                  <span>0</span><span>5</span><span>10</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Backup Q: Stability Orientation -->
+            <div class="form-question">
+              <label class="question-label">${!hasTool1 && !hasTool3 ? '21' : !hasTool1 ? '15' : !hasTool3 ? '18' : '12'}. How focused are you on protecting what you have?</label>
+              <div class="question-help">Consider your emphasis on emergency funds, debt reduction, and financial safety nets.</div>
+              <div class="slider-container">
+                <div class="slider-value-display" id="backupStabilityOrientationDisplay">${sliderLabels.backupStabilityOrientation[formValues.backupStabilityOrientation]}</div>
+                <input type="range" id="backupStabilityOrientation" class="slider-input" min="0" max="10" value="${formValues.backupStabilityOrientation}">
+                <div class="slider-scale">
+                  <span>0</span><span>5</span><span>10</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Backup Q: Income Consistency -->
+            <div class="form-question">
+              <label class="question-label">${!hasTool1 && !hasTool3 ? '22' : !hasTool1 ? '16' : !hasTool3 ? '19' : '13'}. How consistent is your monthly income?</label>
+              <div class="question-help">Consider how predictable your income is from month to month.</div>
+              <div class="statement-group">
+                <label class="statement-card ${formValues.backupIncomeConsistency === 'unstable' ? 'selected' : ''}" onclick="selectStatement(this, 'backupIncomeConsistency')">
+                  <input type="radio" name="backupIncomeConsistency" value="unstable" ${formValues.backupIncomeConsistency === 'unstable' ? 'checked' : ''}>
+                  Unstable - income varies significantly each month
+                </label>
+                <label class="statement-card ${formValues.backupIncomeConsistency === 'stable' ? 'selected' : ''}" onclick="selectStatement(this, 'backupIncomeConsistency')">
+                  <input type="radio" name="backupIncomeConsistency" value="stable" ${formValues.backupIncomeConsistency === 'stable' ? 'checked' : ''}>
+                  Stable - income is fairly consistent month to month
+                </label>
+                <label class="statement-card ${formValues.backupIncomeConsistency === 'very-stable' ? 'selected' : ''}" onclick="selectStatement(this, 'backupIncomeConsistency')">
+                  <input type="radio" name="backupIncomeConsistency" value="very-stable" ${formValues.backupIncomeConsistency === 'very-stable' ? 'checked' : ''}>
+                  Very stable - income is highly predictable
+                </label>
+              </div>
+            </div>
+
+            <!-- Backup Q: Dependents -->
+            <div class="form-question">
+              <label class="question-label">${!hasTool1 && !hasTool3 ? '23' : !hasTool1 ? '17' : !hasTool3 ? '20' : '14'}. Do you have dependents?</label>
+              <div class="question-help">People who rely on you financially (children, elderly parents, spouse not working, etc.).</div>
+              <div class="statement-group">
+                <label class="statement-card ${formValues.backupDependents === 'no' ? 'selected' : ''}" onclick="selectStatement(this, 'backupDependents')">
+                  <input type="radio" name="backupDependents" value="no" ${formValues.backupDependents === 'no' ? 'checked' : ''}>
+                  No dependents
+                </label>
+                <label class="statement-card ${formValues.backupDependents === 'yes' ? 'selected' : ''}" onclick="selectStatement(this, 'backupDependents')">
+                  <input type="radio" name="backupDependents" value="yes" ${formValues.backupDependents === 'yes' ? 'checked' : ''}>
+                  Yes, I have dependents
+                </label>
+              </div>
+            </div>
+
+            <!-- Backup Q: Life Stage -->
+            <div class="form-question">
+              <label class="question-label">${!hasTool1 && !hasTool3 ? '24' : !hasTool1 ? '18' : !hasTool3 ? '21' : '15'}. What best describes your current stage of life?</label>
+              <div class="question-help">Select the option that best fits where you are right now.</div>
+              <div class="statement-group">
+                <label class="statement-card ${formValues.backupLifeStage === 'Early Career' ? 'selected' : ''}" onclick="selectStatement(this, 'backupLifeStage')">
+                  <input type="radio" name="backupLifeStage" value="Early Career" ${formValues.backupLifeStage === 'Early Career' ? 'checked' : ''}>
+                  Early Career - just starting out in your working life
+                </label>
+                <label class="statement-card ${formValues.backupLifeStage === 'Mid-Career' ? 'selected' : ''}" onclick="selectStatement(this, 'backupLifeStage')">
+                  <input type="radio" name="backupLifeStage" value="Mid-Career" ${formValues.backupLifeStage === 'Mid-Career' ? 'checked' : ''}>
+                  Mid-Career - established in your career, building wealth
+                </label>
+                <label class="statement-card ${formValues.backupLifeStage === 'Late Career' ? 'selected' : ''}" onclick="selectStatement(this, 'backupLifeStage')">
+                  <input type="radio" name="backupLifeStage" value="Late Career" ${formValues.backupLifeStage === 'Late Career' ? 'checked' : ''}>
+                  Late Career - peak earning years, focused on retirement prep
+                </label>
+                <label class="statement-card ${formValues.backupLifeStage === 'Pre-Retirement' ? 'selected' : ''}" onclick="selectStatement(this, 'backupLifeStage')">
+                  <input type="radio" name="backupLifeStage" value="Pre-Retirement" ${formValues.backupLifeStage === 'Pre-Retirement' ? 'checked' : ''}>
+                  Pre-Retirement - transitioning toward retirement
+                </label>
+                <label class="statement-card ${formValues.backupLifeStage === 'Retirement' ? 'selected' : ''}" onclick="selectStatement(this, 'backupLifeStage')">
+                  <input type="radio" name="backupLifeStage" value="Retirement" ${formValues.backupLifeStage === 'Retirement' ? 'checked' : ''}>
+                  Retirement - no longer working full-time
+                </label>
               </div>
             </div>
             ` : ''}
@@ -2217,6 +2321,14 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
 
     // Initialize backup sliders if they exist (only shown when Tool 1/3 data is missing)
     ['backupWorthiness', 'backupScarcity', 'backupAvoidance', 'backupWorthMoney', 'backupOthersJudgment', 'backupProving'].forEach(function(id) {
+      var slider = document.getElementById(id);
+      if (slider) {
+        slider.addEventListener('input', function() { updateSliderDisplay(id); });
+      }
+    });
+
+    // Initialize Tool 2 backup sliders if they exist (only shown when Tool 2 data is missing)
+    ['backupGrowthOrientation', 'backupStabilityOrientation'].forEach(function(id) {
       var slider = document.getElementById(id);
       if (slider) {
         slider.addEventListener('input', function() { updateSliderDisplay(id); });
@@ -4342,6 +4454,19 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       if (backupOthersJudgmentEl) formData.backupOthersJudgment = parseInt(backupOthersJudgmentEl.value);
       if (backupProvingEl) formData.backupProving = parseInt(backupProvingEl.value);
 
+      // Tool 2 backup questions (sliders and radio buttons)
+      var backupGrowthOrientationEl = document.getElementById('backupGrowthOrientation');
+      var backupStabilityOrientationEl = document.getElementById('backupStabilityOrientation');
+      var backupIncomeConsistencyEl = document.querySelector('input[name="backupIncomeConsistency"]:checked');
+      var backupDependentsEl = document.querySelector('input[name="backupDependents"]:checked');
+      var backupLifeStageEl = document.querySelector('input[name="backupLifeStage"]:checked');
+
+      if (backupGrowthOrientationEl) formData.backupGrowthOrientation = parseInt(backupGrowthOrientationEl.value);
+      if (backupStabilityOrientationEl) formData.backupStabilityOrientation = parseInt(backupStabilityOrientationEl.value);
+      if (backupIncomeConsistencyEl) formData.backupIncomeConsistency = backupIncomeConsistencyEl.value;
+      if (backupDependentsEl) formData.backupDependents = backupDependentsEl.value;
+      if (backupLifeStageEl) formData.backupLifeStage = backupLifeStageEl.value;
+
       // Show loading overlay with specific message
       var loadingOverlay = document.getElementById('loadingOverlay');
       var loadingText = document.getElementById('loadingText');
@@ -4803,6 +4928,9 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       // Note: tool2Data structure is { data: { data: allData, results, gptInsights, ... }, clientId, ... }
       const tool2Form = tool2Data?.data?.data || {};
 
+      // If Tool 2 data is missing, try to derive from backup questions
+      const tool2Backup = !tool2Data ? this.deriveTool2DataFromBackup(preSurveyAnswers) : null;
+
       // Calculate income and essentials ranges from dollar amounts
       const monthlyIncome = preSurveyAnswers.monthlyIncome || 3500;
       const monthlyEssentials = preSurveyAnswers.monthlyEssentials || 2000;
@@ -4840,12 +4968,12 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
         emergencyFund: emergencyFundTier,
         interestLevel: this.deriveInterestLevelFromDebt(debtLoad),
 
-        // Derived from Tool 2 data (with fallbacks)
-        growth: this.deriveGrowthFromTool2(tool2Form),
-        stability: this.deriveStabilityFromTool2(tool2Form),
-        stageOfLife: this.deriveStageOfLife(tool2Form),
-        incomeStability: this.mapIncomeStability(tool2Form.incomeConsistency),
-        dependents: (tool2Form.dependents && tool2Form.dependents > 0) ? 'Yes' : 'No'
+        // Derived from Tool 2 data (or backup questions if Tool 2 missing)
+        growth: tool2Backup?.growth != null ? tool2Backup.growth : this.deriveGrowthFromTool2(tool2Form),
+        stability: tool2Backup?.stability != null ? tool2Backup.stability : this.deriveStabilityFromTool2(tool2Form),
+        stageOfLife: tool2Backup?.stageOfLife || this.deriveStageOfLife(tool2Form),
+        incomeStability: tool2Backup?.incomeStability || this.mapIncomeStability(tool2Form.incomeConsistency),
+        dependents: tool2Backup?.dependents || ((tool2Form.dependents && tool2Form.dependents > 0) ? 'Yes' : 'No')
       };
     } catch (error) {
       Logger.log('Error in buildV1Input: ' + error);
@@ -5733,6 +5861,25 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
   },
 
   /**
+   * Helper: Generate text describing which tools are missing
+   * Used in the backup questions intro section
+   */
+  getMissingToolsText(hasTool1, hasTool2, hasTool3) {
+    const missing = [];
+    if (!hasTool1) missing.push('Tool 1 (Financial Trauma Patterns)');
+    if (!hasTool2) missing.push('Tool 2 (Financial Clarity)');
+    if (!hasTool3) missing.push('Tool 3 (Identity & Grounding)');
+
+    if (missing.length === 3) {
+      return 'Tool 1, Tool 2, and Tool 3';
+    } else if (missing.length === 2) {
+      return missing.join(' and ');
+    } else {
+      return missing[0];
+    }
+  },
+
+  /**
    * Derive trauma pattern from backup questions when Tool 1 data is missing
    * Uses majority voting across 3 questions: stress response, core belief, and consequence pattern
    *
@@ -5845,6 +5992,70 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
 
     Logger.log(`Derived disconnection from backup: ${overallQuotient} (from ${scores.length} answers: ${scores.join(', ')})`);
     return overallQuotient;
+  },
+
+  /**
+   * Derive Tool 2 data from backup questions when Tool 2 data is missing
+   * Returns growth orientation, stability orientation, income stability, dependents, and life stage
+   *
+   * @param {Object} preSurveyData - Pre-survey data containing backup question answers
+   * @returns {Object|null} - Object with Tool 2 equivalent values or null if no backup data
+   */
+  deriveTool2DataFromBackup(preSurveyData) {
+    const {
+      backupGrowthOrientation,
+      backupStabilityOrientation,
+      backupIncomeConsistency,
+      backupDependents,
+      backupLifeStage
+    } = preSurveyData || {};
+
+    // Check if any backup questions were answered
+    const hasAny = backupGrowthOrientation != null ||
+                   backupStabilityOrientation != null ||
+                   backupIncomeConsistency ||
+                   backupDependents ||
+                   backupLifeStage;
+
+    if (!hasAny) {
+      return null;
+    }
+
+    // Map backup values to Tool 2 equivalent values
+    const result = {};
+
+    // Growth orientation: slider 0-10 maps directly
+    if (backupGrowthOrientation != null) {
+      result.growth = backupGrowthOrientation;
+    }
+
+    // Stability orientation: slider 0-10 maps directly
+    if (backupStabilityOrientation != null) {
+      result.stability = backupStabilityOrientation;
+    }
+
+    // Income consistency: maps to categorical
+    if (backupIncomeConsistency) {
+      const incomeMap = {
+        'unstable': 'Unstable / irregular',
+        'stable': 'Stable',
+        'very-stable': 'Very stable'
+      };
+      result.incomeStability = incomeMap[backupIncomeConsistency] || 'Stable';
+    }
+
+    // Dependents: yes/no
+    if (backupDependents) {
+      result.dependents = backupDependents === 'yes' ? 'Yes' : 'No';
+    }
+
+    // Life stage: maps directly (values match)
+    if (backupLifeStage) {
+      result.stageOfLife = backupLifeStage;
+    }
+
+    Logger.log(`Derived Tool 2 data from backup: ${JSON.stringify(result)}`);
+    return result;
   },
 
   /**
@@ -6166,7 +6377,7 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
             </select>
           </div>
 
-          <button type="button" class="btn-primary" id="calculateAllocationBtn" onclick="calculateAllocation()">
+          <button type="button" class="btn-primary" id="calculateAllocationBtn" onclick="calculateAllocation()" style="font-weight: 700; font-size: 0.95rem;">
             Calculate My Allocation
           </button>
         </div>
