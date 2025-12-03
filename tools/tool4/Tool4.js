@@ -746,7 +746,6 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
       background: rgba(255, 255, 255, 0.05);
       border-radius: 12px;
       margin-bottom: 30px;
-      overflow: hidden;
     }
 
     .presurvey-header {
@@ -779,9 +778,9 @@ buildUnifiedPage(clientId, baseUrl, toolStatus, preSurveyData, allocation) {
     }
 
     .presurvey-body {
-      max-height: 5000px;
+      max-height: none;
       opacity: 1;
-      transition: max-height 0.4s ease, opacity 0.3s ease;
+      transition: opacity 0.3s ease;
       padding: 30px;
     }
 
