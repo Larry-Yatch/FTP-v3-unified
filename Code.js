@@ -174,7 +174,33 @@ function registerTools() {
     Tool5.manifest = tool5Manifest;
     ToolRegistry.register('tool5', Tool5, tool5Manifest);
 
-    console.log('Tools registered successfully (Tool 1, Tool 2, Tool 3, Tool 4, Tool 5)');
+    // Tool 7: Security & Control Grounding Tool
+    const tool7Manifest = {
+      id: "tool7",
+      version: "1.0.0",
+      name: "Security & Control Grounding Tool",
+      pattern: "multi-phase",
+      route: "tool7",
+      routes: ["/tool7"],
+      description: "Grounding assessment revealing patterns of disconnection from trust through control and fear-based isolation",
+      icon: "🛡️",
+      estimatedTime: "20-25 minutes",
+      sections: 7,
+      totalQuestions: 30,
+      categories: ["control_leading_to_isolation", "fear_leading_to_isolation"],
+      outputs: {
+        report: true,
+        email: true,
+        insights: true
+      },
+      dependencies: ["tool5"],
+      unlocks: ["tool8"]
+    };
+
+    Tool7.manifest = tool7Manifest;
+    ToolRegistry.register('tool7', Tool7, tool7Manifest);
+
+    console.log('Tools registered successfully (Tool 1, Tool 2, Tool 3, Tool 4, Tool 5, Tool 7)');
   } catch (error) {
     console.error('Error registering tools:', error);
   }
@@ -365,6 +391,25 @@ function generateTool5PDF(clientId) {
     DataService.logActivity(clientId, 'pdf_downloaded', {
       toolId: 'tool5',
       details: 'Downloaded Tool 5 PDF report'
+    });
+  }
+
+  return result;
+}
+
+/**
+ * Generate PDF for Tool 7 Security & Control Report
+ * @param {string} clientId - Client ID
+ * @returns {object} {success, pdf, fileName, mimeType} or {success: false, error}
+ */
+function generateTool7PDF(clientId) {
+  const result = PDFGenerator.generateTool7PDF(clientId);
+
+  // Log PDF download activity if successful
+  if (result.success) {
+    DataService.logActivity(clientId, 'pdf_downloaded', {
+      toolId: 'tool7',
+      details: 'Downloaded Tool 7 PDF report'
     });
   }
 
@@ -626,6 +671,8 @@ function completeToolSubmission(toolId, data) {
       reportHtml = Tool3Report.render(clientId).getContent();
     } else if (reportRoute === 'tool5_report' && typeof Tool5Report !== 'undefined') {
       reportHtml = Tool5Report.render(clientId).getContent();
+    } else if (reportRoute === 'tool7_report' && typeof Tool7Report !== 'undefined') {
+      reportHtml = Tool7Report.render(clientId).getContent();
     } else {
       // Fallback - just return success message
       reportHtml = `

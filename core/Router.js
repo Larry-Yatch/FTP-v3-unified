@@ -45,7 +45,7 @@ const Router = {
    * @private
    */
   _isSystemRoute(route) {
-    const systemRoutes = ['login', 'dashboard', 'admin', 'admin-login', 'admin-dashboard', 'logout', 'tool1_report', 'tool2_report', 'tool3_report', 'tool5_report'];
+    const systemRoutes = ['login', 'dashboard', 'admin', 'admin-login', 'admin-dashboard', 'logout', 'tool1_report', 'tool2_report', 'tool3_report', 'tool5_report', 'tool7_report'];
     return systemRoutes.includes(route);
   },
 
@@ -82,6 +82,9 @@ const Router = {
 
       case 'tool5_report':
         return Tool5Report.render(params.client || params.clientId);
+
+      case 'tool7_report':
+        return Tool7Report.render(params.client || params.clientId);
 
       default:
         return this._handle404(route);
@@ -523,6 +526,12 @@ const Router = {
     const tool5Completed = tool5Latest && tool5Latest.status === 'COMPLETED';
     const tool5Access = ToolAccessControl.canAccessTool(clientId, 'tool5');
 
+    // Check Tool 7 status
+    const tool7Latest = DataService.getLatestResponse(clientId, 'tool7');
+    const tool7HasDraft = tool7Latest && (tool7Latest.status === 'DRAFT' || tool7Latest.status === 'EDIT_DRAFT');
+    const tool7Completed = tool7Latest && tool7Latest.status === 'COMPLETED';
+    const tool7Access = ToolAccessControl.canAccessTool(clientId, 'tool7');
+
     // Build Tool 1 card HTML based on status
     let tool1CardHTML = '';
 
@@ -646,6 +655,8 @@ const Router = {
             ${tool4CardHTML}
 
             ${this._buildTool5Card(clientId, baseUrl, tool5Latest, tool5HasDraft, tool5Completed, tool5Access)}
+
+            ${this._buildTool7Card(clientId, baseUrl, tool7Latest, tool7HasDraft, tool7Completed, tool7Access)}
 
             <p class="muted mt-20 text-center">More tools will unlock as you progress</p>
           </div>
@@ -1018,6 +1029,96 @@ const Router = {
           <span class="badge">🔒 Locked</span>
           <p class="muted mt-10" style="font-size: 14px;">
             ${tool5Access.reason || 'Complete previous tools to unlock'}
+          </p>
+        </div>
+      `;
+    }
+  },
+
+  _buildTool7Card(clientId, baseUrl, tool7Latest, tool7HasDraft, tool7Completed, tool7Access) {
+    if (tool7Completed) {
+      const completedDate = new Date(tool7Latest.timestamp).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+
+      return `
+        <div class="tool-card" style="margin-bottom: 15px; border: 2px solid #4CAF50;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <h3 style="margin: 0;">Tool 7: Security & Control</h3>
+            <span class="badge" style="background: #4CAF50; color: white;">✓ Completed</span>
+          </div>
+          <p class="muted" style="margin-bottom: 10px;">Completed on ${completedDate}</p>
+
+          <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px;">
+            <button class="btn-primary" onclick="viewTool7Report()">
+              📊 View Report
+            </button>
+            <button class="btn-secondary" onclick="editTool7Response()">
+              ✏️ Edit Answers
+            </button>
+            <button class="btn-secondary" onclick="retakeTool7()">
+              🔄 Start Fresh
+            </button>
+          </div>
+        </div>
+        <script>
+          function viewTool7Report() {
+            showLoading('Loading Report');
+            window.top.location.href = '${baseUrl}?route=tool7_report&client=${clientId}';
+          }
+          function editTool7Response() {
+            showLoading('Loading Assessment');
+            window.top.location.href = '${baseUrl}?route=tool7&client=${clientId}&page=1&editMode=true';
+          }
+          function retakeTool7() {
+            if(confirm('Start fresh? This will create a new assessment while preserving your previous results.')) {
+              showLoading('Starting Fresh Assessment');
+              window.top.location.href = '${baseUrl}?route=tool7&client=${clientId}&page=1&clearDraft=true';
+            }
+          }
+        </script>
+      `;
+    } else if (tool7HasDraft) {
+      return `
+        <div class="tool-card" style="margin-bottom: 15px; border: 2px solid #FF9800;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <h3 style="margin: 0;">Tool 7: Security & Control</h3>
+            <span class="badge" style="background: #FF9800; color: white;">⏸️ In Progress</span>
+          </div>
+          <p class="muted" style="margin-bottom: 10px;">You have a draft in progress</p>
+
+          <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px;">
+            <button class="btn-primary" onclick="showLoading('Loading Assessment'); window.top.location.href='${baseUrl}?route=tool7&client=${clientId}&page=1'">
+              ▶️ Continue
+            </button>
+            <button class="btn-secondary" onclick="if(confirm('Discard your draft and lose all progress?')) { showLoading('Discarding draft...'); window.top.location.href='${baseUrl}?route=dashboard&client=${clientId}&discardDraft=tool7'; }">
+              ❌ Discard Draft
+            </button>
+          </div>
+        </div>
+      `;
+    } else if (tool7Access.allowed) {
+      return `
+        <div class="tool-card" style="margin-bottom: 15px;">
+          <h3>Tool 7: Security & Control</h3>
+          <p class="muted">Grounding assessment revealing patterns of disconnection from trust</p>
+          <span class="badge" style="background: #2196F3; color: white;">✓ Ready</span>
+          <br><br>
+          <button class="btn-primary" onclick="showLoading('Loading Assessment'); window.top.location.href='${baseUrl}?route=tool7&client=${clientId}&page=1'">
+            Start Assessment
+          </button>
+        </div>
+      `;
+    } else {
+      return `
+        <div class="tool-card locked" style="margin-bottom: 15px;">
+          <h3>Tool 7: Security & Control</h3>
+          <p class="muted">Grounding assessment revealing patterns of disconnection from trust</p>
+          <span class="badge">🔒 Locked</span>
+          <p class="muted mt-10" style="font-size: 14px;">
+            ${tool7Access.reason || 'Complete previous tools to unlock'}
           </p>
         </div>
       `;

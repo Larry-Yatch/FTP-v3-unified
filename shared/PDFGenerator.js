@@ -462,7 +462,16 @@ const PDFGenerator = {
   },
 
   /**
-   * Generic grounding tool PDF generator (used by Tool 3 and Tool 5)
+   * Generate PDF for Tool 7 (Security & Control Grounding)
+   * @param {string} clientId - Client ID
+   * @returns {Object} {success, pdf, fileName, mimeType} or error
+   */
+  generateTool7PDF(clientId) {
+    return this.generateGroundingPDF('tool7', Tool7Report, Tool7.config, clientId);
+  },
+
+  /**
+   * Generic grounding tool PDF generator (used by Tool 3, Tool 5, and Tool 7)
    * @param {string} toolId - Tool identifier
    * @param {Object} ToolReport - Tool report object
    * @param {Object} toolConfig - Tool configuration
