@@ -419,10 +419,11 @@ function generateTool7PDF(clientId) {
 /**
  * Generate PDF for Tool 4 Financial Freedom Framework Main Report
  * @param {string} clientId - Client ID
+ * @param {Object} [allocationOverride] - Optional allocation percentages to use instead of recalculating
  * @returns {object} {success, pdf, fileName, mimeType} or {success: false, error}
  */
-function generateTool4MainPDF(clientId) {
-  const result = PDFGenerator.generateTool4MainPDF(clientId);
+function generateTool4MainPDF(clientId, allocationOverride) {
+  const result = PDFGenerator.generateTool4MainPDF(clientId, allocationOverride);
 
   // Log PDF download activity if successful
   if (result.success) {

@@ -3735,6 +3735,14 @@ buildUnifiedPage(clientId, toolStatus, preSurveyData, allocation) {
         loadingOverlay.classList.add('show');
       }
 
+      // Pass current calculator state to ensure PDF reflects loaded scenario
+      var currentAllocation = {
+        Multiply: calculatorState.buckets.Multiply,
+        Essentials: calculatorState.buckets.Essentials,
+        Freedom: calculatorState.buckets.Freedom,
+        Enjoyment: calculatorState.buckets.Enjoyment
+      };
+
       google.script.run
         .withSuccessHandler(function(result) {
           if (loadingOverlay) loadingOverlay.classList.remove('show');
@@ -3755,7 +3763,7 @@ buildUnifiedPage(clientId, toolStatus, preSurveyData, allocation) {
           console.error('Report generation error:', error);
           alert('Error generating report: ' + error.message);
         })
-        .generateTool4MainPDF('${clientId}');
+        .generateTool4MainPDF('${clientId}', currentAllocation);
     }
 
     // Download comparison report PDF
@@ -4272,6 +4280,11 @@ buildUnifiedPage(clientId, toolStatus, preSurveyData, allocation) {
     }
 
     // Client-side strategy detection
+    // NOTE: Three implementations exist for different contexts:
+    //   1. detectStrategyClient() here - returns rich object for comparison modal UI
+    //   2. Tool4.detectStrategy() (line ~6449) - server-side, same logic/format
+    //   3. Tool4Fallbacks.detectStrategy() - returns simple string for GPT fallbacks
+    // If changing strategy logic, consider updating all three.
     function detectStrategyClient(scenario, hasDebt) {
       var allocs = scenario.allocations;
 
@@ -6445,6 +6458,12 @@ buildUnifiedPage(clientId, toolStatus, preSurveyData, allocation) {
 
   /**
    * Detect overall strategy of a scenario
+   *
+   * NOTE: Three implementations exist for different contexts:
+   *   1. detectStrategyClient() (line ~4275) - client-side, same logic/format
+   *   2. This function - server-side, returns rich object for narratives
+   *   3. Tool4Fallbacks.detectStrategy() - returns simple string for GPT fallbacks
+   * If changing strategy logic, consider updating all three.
    */
   detectStrategy(scenario, preSurveyData) {
     const { Multiply, Freedom, Enjoyment, Essentials } = scenario.allocations;

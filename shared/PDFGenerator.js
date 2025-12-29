@@ -955,8 +955,10 @@ const PDFGenerator = {
 
   /**
    * Generate Tool 4 Main Report PDF
+   * @param {string} clientId - Client ID
+   * @param {Object} [allocationOverride] - Optional allocation percentages to use instead of recalculating
    */
-  generateTool4MainPDF(clientId) {
+  generateTool4MainPDF(clientId, allocationOverride) {
     try {
       var preSurveyData = Tool4.getPreSurvey(clientId);
       if (!preSurveyData) return { success: false, error: 'No Tool 4 data found. Please complete the pre-survey first.' };
@@ -964,6 +966,16 @@ const PDFGenerator = {
       var v1Input = Tool4.buildV1Input(clientId, preSurveyData);
       var allocation = Tool4.calculateAllocationV1(v1Input);
       if (!allocation || !allocation.percentages) return { success: false, error: 'Unable to calculate allocation' };
+
+      // If allocation override provided (from loaded scenario), use those percentages
+      if (allocationOverride && allocationOverride.Multiply !== undefined) {
+        allocation.percentages = {
+          Multiply: allocationOverride.Multiply,
+          Essentials: allocationOverride.Essentials,
+          Freedom: allocationOverride.Freedom,
+          Enjoyment: allocationOverride.Enjoyment
+        };
+      }
 
       var validationResults = Tool4.runFullValidation ? Tool4.runFullValidation(clientId, allocation.percentages, preSurveyData) : [];
       var tool1Data = this._getTool1Influences(clientId);
