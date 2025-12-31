@@ -372,66 +372,66 @@ const Tool5 = {
 
       {
         key: 'subdomain_2_3',
-        label: 'If They Stop Giving, I\'m Abandoned',
-        description: 'Exploring patterns of believing you\'ll be abandoned without help',
-        beliefBehaviorConnection: 'Believing you\'ll be abandoned without help leads to emotional manipulation',
+        label: 'I Stay in Debt',
+        description: 'Exploring patterns of chronic debt accumulation that keep you financially trapped',
+        beliefBehaviorConnection: 'Believing you can never get ahead financially leads to accumulating debt that keeps you trapped in instability',
 
         questions: [
           // Belief
           {
             aspect: 'Belief',
-            text: 'If people stop helping me financially, it means they don\'t care and I\'m abandoned',
+            text: 'I will always be in debt; no matter what I do, I can not get ahead financially',
             scale: [
-              { value: -3, label: 'Strongly agree - I\'m certain stopping help means complete abandonment; it proves they never cared' },
-              { value: -2, label: 'Agree - I believe ending financial help means they don\'t love me; it\'s rejection and abandonment' },
-              { value: -1, label: 'Slightly agree - I often feel abandoned when help stops, though I\'m questioning this interpretation' },
-              { value: 1, label: 'Slightly disagree - I\'m learning help and love are separate, though anxiety about abandonment lingers' },
-              { value: 2, label: 'Disagree - I generally know love isn\'t measured by money, though occasional fear surfaces' },
-              { value: 3, label: 'Strongly disagree - I absolutely know financial help and love are independent; boundaries aren\'t abandonment' }
+              { value: -3, label: 'Strongly agree - I am certain I will never escape debt; getting ahead financially is impossible for someone like me' },
+              { value: -2, label: 'Agree - I believe I will always owe money; no matter what I try, I end up back in debt' },
+              { value: -1, label: 'Slightly agree - I often feel like I will never get out of debt, though I hope things could change' },
+              { value: 1, label: 'Slightly disagree - I am starting to believe I can become debt-free, though old patterns still pull at me' },
+              { value: 2, label: 'Disagree - I generally believe I can get ahead financially, though occasional doubt surfaces' },
+              { value: 3, label: 'Strongly disagree - I know I can be debt-free and financially stable; my past does not determine my future' }
             ]
           },
           // Behavior
           {
             aspect: 'Behavior',
-            text: 'I seek constant financial reassurance from others to feel secure in my relationships',
+            text: 'I accumulate debt—credit cards, loans, personal borrowing—or spend money before I have it, keeping myself in a financial hole',
             scale: [
-              { value: -3, label: 'Always - I constantly need financial proof that people care; always seeking reassurance' },
-              { value: -2, label: 'Very often - I frequently seek financial support to confirm I\'m not abandoned' },
-              { value: -1, label: 'Often - I often look for financial gestures to feel secure in relationships' },
-              { value: 1, label: 'Occasionally - I occasionally seek financial reassurance, but I\'m learning other ways to feel secure' },
-              { value: 2, label: 'Rarely - I rarely need financial proof of connection; other forms of support reassure me' },
-              { value: 3, label: 'Never - I never need financial reassurance to feel secure; I know I\'m valued beyond money' }
+              { value: -3, label: 'Always - I constantly accumulate debt across credit cards, loans, and personal borrowing; I am always in a financial hole' },
+              { value: -2, label: 'Very often - I regularly take on new debt or spend beyond my means, keeping myself financially behind' },
+              { value: -1, label: 'Often - I frequently rely on credit or borrowing, struggling to stay ahead of what I owe' },
+              { value: 1, label: 'Occasionally - I sometimes take on debt I should not, but I am working toward living within my means' },
+              { value: 2, label: 'Rarely - I occasionally use credit but generally manage it responsibly without accumulating debt' },
+              { value: 3, label: 'Never - I live within my means and use credit as a tool, not a crutch; I do not accumulate unnecessary debt' }
             ]
           },
           // Feeling
           {
             aspect: 'Feeling',
-            text: 'I feel anxious and abandoned when I think about managing financially on my own',
+            text: 'I feel shame, stress, and anxiety about my debt—trapped in a cycle I can not escape',
             scale: [
-              { value: -3, label: 'Always - Constant terror and abandonment at the thought of financial independence' },
-              { value: -2, label: 'Very often - Deep anxiety and abandonment feelings when considering being on my own financially' },
-              { value: -1, label: 'Often - Frequent anxiety about abandonment when thinking about financial independence' },
-              { value: 1, label: 'Occasionally - Sometimes feel anxious about independence, but I\'m building confidence' },
-              { value: 2, label: 'Rarely - Occasional anxiety about being financially independent, but generally feel capable' },
-              { value: 3, label: 'Never - No anxiety or abandonment feelings about financial independence; I feel secure' }
+              { value: -3, label: 'Always - Constant shame, stress, and anxiety about my debt; I feel completely trapped with no way out' },
+              { value: -2, label: 'Very often - Persistent shame and anxiety about what I owe; I regularly feel stressed and stuck in a cycle I cannot break' },
+              { value: -1, label: 'Often - Frequent shame, stress, and anxiety about my debt; the weight of it feels overwhelming' },
+              { value: 1, label: 'Occasionally - I sometimes feel stress or anxiety about debt, but I am building hope for change' },
+              { value: 2, label: 'Rarely - I occasionally feel concern about debt, but I generally feel calm and capable of managing it' },
+              { value: 3, label: 'Never - I feel no shame or anxiety about my financial situation; I am in control and at peace' }
             ]
           },
           // Consequence
           {
             aspect: 'Consequence',
-            text: 'I\'ve stayed in unhealthy relationships or situations because I was afraid to lose financial support',
+            text: 'My debt has kept me financially unstable—unable to build savings, create independence, or feel secure',
             scale: [
-              { value: -3, label: 'Always - I\'ve repeatedly stayed in harmful situations due to fear of financial abandonment; severe damage' },
-              { value: -2, label: 'Very often - I regularly stay in unhealthy situations because I fear losing financial support' },
-              { value: -1, label: 'Often - I\'ve often remained in situations I shouldn\'t due to financial fears' },
-              { value: 1, label: 'Occasionally - I\'ve occasionally stayed too long from financial fear, but I\'m learning to leave' },
-              { value: 2, label: 'Rarely - I rarely let financial concerns trap me in unhealthy situations' },
-              { value: 3, label: 'Never - I never stay in unhealthy situations for financial reasons; my wellbeing comes first' }
+              { value: -3, label: 'Always - My debt has created severe instability; I have no savings, no independence, and constant financial insecurity' },
+              { value: -2, label: 'Very often - My debt regularly prevents me from saving or feeling secure; I am stuck in financial instability' },
+              { value: -1, label: 'Often - My debt frequently blocks my ability to build savings or create financial stability' },
+              { value: 1, label: 'Occasionally - My debt has sometimes limited me, but I am working toward stability and independence' },
+              { value: 2, label: 'Rarely - I have occasional debt concerns, but they do not prevent me from building savings and security' },
+              { value: 3, label: 'Never - I am financially stable with savings and security; debt does not control my life' }
             ]
           },
           // Open Response
           {
-            text: 'What do you fear would happen if your financial support stopped? Go deeper than money—what\'s the emotional fear underneath?'
+            text: 'What is your biggest source of debt right now, and what keeps you from getting out from under it—go deeper than the money itself?'
           }
         ]
       }
