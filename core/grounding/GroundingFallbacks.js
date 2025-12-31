@@ -352,24 +352,24 @@ const GroundingFallbacks = {
     },
 
     'tool5_subdomain_2_3': {
-      // "If They Stop Giving, I'm Abandoned"
+      // "I Stay in Debt"
       critical: {
-        pattern: "Terror of financial abandonment drives desperate and manipulative behaviors",
-        insight: "You believe if someone stops helping financially it means they've abandoned you, creating panic",
-        action: "Build one small financial safety net of your own - any amount - to reduce panic",
-        rootBelief: "Financial help = love; no help = abandonment"
+        pattern: "Chronic debt accumulation keeps you trapped in financial instability and dependence",
+        insight: "You believe you will never escape debt, so you continue patterns that keep you in a financial hole",
+        action: "List all your debts in one place - seeing the full picture is the first step to changing the pattern",
+        rootBelief: "I will always be in debt; getting ahead is impossible for someone like me"
       },
       moderate: {
-        pattern: "Fear of financial abandonment affects relationships",
-        insight: "You worry that if help stops, you'll be abandoned emotionally too",
-        action: "Notice the difference between financial support and emotional support - they're not the same",
-        rootBelief: "I'm afraid they'll abandon me if they stop helping"
+        pattern: "Recurring debt patterns prevent financial stability",
+        insight: "You often take on debt or spend beyond your means, keeping yourself financially behind",
+        action: "Identify one debt pattern (credit cards, borrowing, overspending) and commit to one small change this week",
+        rootBelief: "No matter what I try, I end up back in debt"
       },
       healthy: {
-        pattern: "Secure in relationships regardless of financial dynamics",
-        insight: "You know that love and financial support are separate things",
-        action: "Continue building security that isn't dependent on others' financial support",
-        rootBelief: "Love isn't conditional on financial support"
+        pattern: "Generally managing debt with occasional setbacks",
+        insight: "You mostly live within your means, with some room to strengthen your relationship with debt",
+        action: "Continue building your debt-free habits and notice what triggers any slips into old patterns",
+        rootBelief: "I am capable of managing my finances and staying out of unnecessary debt"
       }
     },
 
