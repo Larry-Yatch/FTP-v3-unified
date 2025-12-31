@@ -77,6 +77,12 @@ const Tool4Fallbacks = {
 
   /**
    * Detect strategy from percentages
+   *
+   * NOTE: Three implementations exist for different contexts:
+   *   1. detectStrategyClient() in Tool4.js - returns rich object for comparison modal
+   *   2. Tool4.detectStrategy() - server-side rich object for narratives
+   *   3. This function - returns simple string for GPT fallback content
+   * If changing strategy logic, consider updating all three.
    */
   detectStrategy(percentages) {
     const { Multiply = 0, Freedom = 0, Enjoyment = 0 } = percentages;

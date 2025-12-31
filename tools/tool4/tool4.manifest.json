@@ -11,11 +11,8 @@
     "entryPoint": "Tool4.render",
     "processor": "Tool4.processSubmission",
     "dependencies": [
-      "Tool4Calculator",
-      "Tool4BaseWeights",
-      "Tool4Modifiers",
-      "Tool4ProgressiveUnlock",
-      "Tool4Report"
+      "Tool4GPTAnalysis",
+      "Tool4Fallbacks"
     ]
   },
   "architecture": {
@@ -25,7 +22,7 @@
     "multipleScenarios": true
   },
   "features": {
-    "progressiveUnlock": true,
+    "priorityScoring": true,
     "backupQuestions": true,
     "scenarioManagement": true,
     "pdfGeneration": true,

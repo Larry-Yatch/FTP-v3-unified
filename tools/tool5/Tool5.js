@@ -523,7 +523,7 @@ const Tool5 = {
   },
 
   /**
-   * Get custom intro content for Tool 3
+   * Get custom intro content for Tool 5
    */
   getIntroContent() {
     return `
