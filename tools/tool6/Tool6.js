@@ -123,13 +123,35 @@ const Tool6 = {
   /**
    * Map upstream tool fields to Tool 6 field names
    * Per spec Data Sources table (lines 96-111)
+   *
+   * NOTE: getLatestResponse returns { data: {...}, status, timestamp, ... }
+   * The actual form data is nested in .data property
    */
   mapUpstreamFields(tool1Data, tool2Data, tool3Data, tool4Data, tool5Data) {
-    const t1 = tool1Data || {};
-    const t2 = tool2Data || {};
-    const t3 = tool3Data || {};
-    const t4 = tool4Data || {};
-    const t5 = tool5Data || {};
+    // DEBUG: Log raw response structure
+    Logger.log('=== Tool6 mapUpstreamFields DEBUG ===');
+    Logger.log('tool1Data keys: ' + (tool1Data ? JSON.stringify(Object.keys(tool1Data)) : 'null'));
+    Logger.log('tool2Data keys: ' + (tool2Data ? JSON.stringify(Object.keys(tool2Data)) : 'null'));
+    Logger.log('tool4Data keys: ' + (tool4Data ? JSON.stringify(Object.keys(tool4Data)) : 'null'));
+
+    if (tool2Data && tool2Data.data) {
+      Logger.log('tool2Data.data keys: ' + JSON.stringify(Object.keys(tool2Data.data)));
+      Logger.log('tool2Data.data.age: ' + tool2Data.data.age);
+      Logger.log('tool2Data.data.marital: ' + tool2Data.data.marital);
+    }
+    if (tool4Data && tool4Data.data) {
+      Logger.log('tool4Data.data keys: ' + JSON.stringify(Object.keys(tool4Data.data)));
+      Logger.log('tool4Data.data.monthlyIncome: ' + tool4Data.data.monthlyIncome);
+      Logger.log('tool4Data.data.multiply: ' + tool4Data.data.multiply);
+    }
+    Logger.log('=== END DEBUG ===');
+
+    // Extract the .data property from each response (where actual form data lives)
+    const t1 = (tool1Data && tool1Data.data) || {};
+    const t2 = (tool2Data && tool2Data.data) || {};
+    const t3 = (tool3Data && tool3Data.data) || {};
+    const t4 = (tool4Data && tool4Data.data) || {};
+    const t5 = (tool5Data && tool5Data.data) || {};
 
     // Infer filing status from marital status
     const inferFilingStatus = (maritalStatus) => {
@@ -145,17 +167,26 @@ const Tool6 = {
       return filingStatus === 'MFJ' ? 'Family' : 'Individual';
     };
 
-    const filingStatus = inferFilingStatus(t2.maritalStatus || t2.filingStatus);
+    // Tool 2 uses 'marital' field (not maritalStatus)
+    const filingStatus = inferFilingStatus(t2.marital || t2.maritalStatus || t2.filingStatus);
+
+    // Tool 4 saves: { multiply, essentials, freedom, enjoyment, monthlyIncome, priority, scenarioName }
+    // Note: 'multiply' is lowercase and is a percentage (0-100)
+    const monthlyIncome = t4.monthlyIncome || 0;
+    const multiplyPercent = t4.multiply || t4.Multiply || (t4.allocations && t4.allocations.Multiply) || 0;
+    const monthlyBudget = monthlyIncome > 0 && multiplyPercent > 0
+      ? Math.round(monthlyIncome * multiplyPercent / 100)
+      : 0;
 
     return {
       // From Tool 1: Trauma patterns
-      traumaPattern: t1.winningPattern || t1.primaryPattern || null,
-      traumaScores: t1.patternScores || null,
+      traumaPattern: t1.winningPattern || t1.primaryPattern || t1.winner || null,
+      traumaScores: t1.patternScores || t1.scores || null,
 
-      // From Tool 2: Demographics and employment
+      // From Tool 2: Demographics and employment (field names: age, marital, employment)
       age: t2.age || t2.currentAge || null,
       grossIncome: t2.annualIncome || t2.grossIncome || t2.income || null,
-      employmentType: t2.employmentType || t2.workSituation || null,
+      employmentType: t2.employment || t2.employmentType || t2.workSituation || null,
       businessOwner: t2.businessOwner || t2.isBusinessOwner || false,
       filingStatus: filingStatus,
       hsaCoverageType: inferHSACoverageType(filingStatus),
@@ -164,11 +195,13 @@ const Tool6 = {
       identitySubdomainScores: t3.subdomainScores || t3.scores || null,
 
       // From Tool 4: Financial data (CRITICAL - required for Tool 6)
-      monthlyTakeHome: t4.monthlyIncome || t4.takeHomeIncome || null,
+      // Tool 4 saves: monthlyIncome, goalTimeline, allocations.Multiply (percentage)
+      monthlyTakeHome: monthlyIncome,
       yearsToRetirement: t4.goalTimeline || t4.yearsToRetirement || null,
-      monthlyBudget: t4.multiply || t4.multiplyAmount || 0, // M bucket from M/E/F/J
+      monthlyBudget: monthlyBudget, // M bucket dollar amount
+      multiplyPercent: multiplyPercent, // Keep percentage too
       investmentScore: t4.investmentScore || 4, // Default to Moderate (4)
-      tool4Allocation: t4.allocation || null,
+      tool4Allocation: t4.allocations || t4.allocation || null,
 
       // From Tool 5: Connection subdomain scores
       connectionSubdomainScores: t5.subdomainScores || t5.scores || null

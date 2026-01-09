@@ -526,6 +526,12 @@ const Router = {
     const tool5Completed = tool5Latest && tool5Latest.status === 'COMPLETED';
     const tool5Access = ToolAccessControl.canAccessTool(clientId, 'tool5');
 
+    // Check Tool 6 status
+    const tool6Latest = DataService.getLatestResponse(clientId, 'tool6');
+    const tool6HasDraft = tool6Latest && (tool6Latest.status === 'DRAFT' || tool6Latest.status === 'EDIT_DRAFT');
+    const tool6Completed = tool6Latest && tool6Latest.status === 'COMPLETED';
+    const tool6Access = ToolAccessControl.canAccessTool(clientId, 'tool6');
+
     // Check Tool 7 status
     const tool7Latest = DataService.getLatestResponse(clientId, 'tool7');
     const tool7HasDraft = tool7Latest && (tool7Latest.status === 'DRAFT' || tool7Latest.status === 'EDIT_DRAFT');
@@ -655,6 +661,8 @@ const Router = {
             ${tool4CardHTML}
 
             ${this._buildTool5Card(clientId, baseUrl, tool5Latest, tool5HasDraft, tool5Completed, tool5Access)}
+
+            ${this._buildTool6Card(clientId, baseUrl, tool6Latest, tool6HasDraft, tool6Completed, tool6Access)}
 
             ${this._buildTool7Card(clientId, baseUrl, tool7Latest, tool7HasDraft, tool7Completed, tool7Access)}
 
@@ -1029,6 +1037,63 @@ const Router = {
           <span class="badge">🔒 Locked</span>
           <p class="muted mt-10" style="font-size: 14px;">
             ${tool5Access.reason || 'Complete previous tools to unlock'}
+          </p>
+        </div>
+      `;
+    }
+  },
+
+  _buildTool6Card(clientId, baseUrl, tool6Latest, tool6HasDraft, tool6Completed, tool6Access) {
+    // Tool 6 is a single-page calculator (like Tool 4), not a multi-page assessment
+    if (tool6Completed) {
+      const completedDate = new Date(tool6Latest.timestamp).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+
+      return `
+        <div class="tool-card" style="margin-bottom: 15px; border: 2px solid #4CAF50;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <h3 style="margin: 0;">Tool 6: Retirement Blueprint</h3>
+            <span class="badge" style="background: #4CAF50; color: white;">✓ Completed</span>
+          </div>
+          <p class="muted" style="margin-bottom: 10px;">Completed on ${completedDate}</p>
+
+          <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px;">
+            <button class="btn-primary" onclick="openTool6Calculator()">
+              📊 Open Calculator
+            </button>
+          </div>
+        </div>
+
+        <script>
+          function openTool6Calculator() {
+            showLoading('Loading Calculator');
+            window.top.location.href = '${baseUrl}?route=tool6&client=${clientId}';
+          }
+        </script>
+      `;
+    } else if (tool6Access.allowed) {
+      return `
+        <div class="tool-card" style="margin-bottom: 15px;">
+          <h3>Tool 6: Retirement Blueprint</h3>
+          <p class="muted">Optimize your retirement vehicle allocations for maximum tax efficiency</p>
+          <span class="badge" style="background: #2196F3; color: white;">✓ Ready</span>
+          <br><br>
+          <button class="btn-primary" onclick="showLoading('Loading Calculator'); window.top.location.href='${baseUrl}?route=tool6&client=${clientId}'">
+            📊 Open Calculator
+          </button>
+        </div>
+      `;
+    } else {
+      return `
+        <div class="tool-card locked" style="margin-bottom: 15px; opacity: 0.6;">
+          <h3>Tool 6: Retirement Blueprint</h3>
+          <p class="muted">Retirement vehicle allocation calculator</p>
+          <span class="badge" style="background: #9E9E9E; color: white;">🔒 Locked</span>
+          <p class="muted mt-10" style="font-size: 0.9rem;">
+            ${tool6Access.reason || 'Complete Tool 5 to unlock'}
           </p>
         </div>
       `;
