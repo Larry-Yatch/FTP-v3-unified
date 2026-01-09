@@ -165,8 +165,8 @@ google.script.run
 - [x] Sprint 0.2: Skeleton Tool & Registration
 - [x] Sprint 0.3: Basic Page Layout
 
-### Phase 1: Data Layer 🔄 IN PROGRESS
-- [x] Sprint 1.1: Upstream Data Pull
+### Phase 1: Data Layer 🚫 BLOCKED
+- [ ] Sprint 1.1: Upstream Data Pull - **BUG: Data not mapping, see Session Handoff**
 - [ ] Sprint 1.2: Fallback/Backup Questions
 - [ ] Sprint 1.3: TOOL6_SCENARIOS Sheet
 
@@ -378,35 +378,65 @@ When ending a session, update this section:
 ### Last Session Summary
 - **Date:** January 9, 2026
 - **What was done:**
-  - **Sprint 1.1 COMPLETE**: Upstream Data Pull
-    - Updated `checkToolCompletion()` with full field mapping from Tools 1-5
-    - Added `mapUpstreamFields()` helper with filing status and HSA coverage inference
-    - Created `getDataStatus()` for UI status badges (green/yellow/red)
-    - Updated `buildUnifiedPage()` with data status bar and blocker message
-    - Refactored `getPrefillData()` to use mapped fields
-  - UI now shows:
-    - Data availability badges for each category (Demographics, Financial, etc.)
-    - Blocker message if Tool 4 not complete
-    - Data summary grid showing pulled values
-- **Current state:** Sprint 1.1 complete, ready for Sprint 1.2
-- **Next task:** Sprint 1.2 - Fallback/Backup Questions
-- **Blockers:** None
+  - Added Tool 6 to dashboard in Router.js (`_buildTool6Card` method)
+  - Implemented `mapUpstreamFields()` to extract data from Tools 1-5
+  - Implemented `getDataStatus()` for UI status badges
+  - Updated `buildUnifiedPage()` with data status bar and data summary grid
+- **Current state:** Sprint 1.1 BLOCKED - data not mapping correctly
+- **Next task:** Fix data mapping bug before continuing to Sprint 1.2
+- **Blockers:** See BUG section below
+
+### 🐛 ACTIVE BUG: Data Not Mapping from Tools 1-5
+
+**Symptoms:**
+- Tool 6 UI shows all data fields as "Not available"
+- Status badges: Demographics red, Financial Data yellow, Investment Profile green, Trauma Insights green, Identity Insights red, Connection Insights red
+- Blocker message incorrectly shows "Tool 4 must be completed first"
+- User has completed ALL tools (1-7) for client 6123LY
+
+**What we know:**
+1. `DataService.getLatestResponse()` returns `{ data: {...}, status, timestamp, ... }`
+2. The actual form data is nested in the `.data` property
+3. Code in `mapUpstreamFields()` extracts `.data` correctly: `const t2 = (tool2Data && tool2Data.data) || {}`
+4. Tool 4 saves: `{ scenarioName, priority, multiply, essentials, freedom, enjoyment, monthlyIncome }`
+5. Tool 2 saves with field names: `age`, `marital`, `employment`
+
+**What we tried (all failed):**
+1. Added `Logger.log()` debug statements - logs don't appear in GAS execution logs
+2. Changed to `console.log()` debug statements - still don't appear
+3. Verified code is deployed via `clasp push` and `clasp pull` comparison
+4. The logs show FrameworkCore and InsightsPipeline running, but NO logs from Tool6.render() or mapUpstreamFields()
+
+**Likely root cause:**
+The `console.log` and `Logger.log` statements inside Tool6.js are NOT appearing in execution logs, even though the tool renders successfully. This suggests either:
+- Tool6 code is being cached/not refreshed despite clasp push
+- There's a different code path being executed
+- GAS is swallowing the logs somehow
+
+**Next steps to try:**
+1. Check the actual RESPONSES sheet to see the raw data structure for client 6123LY
+2. Look at how Tool 4 successfully pulls data forward (it works) and copy that pattern exactly
+3. Try adding an intentional error to Tool6.js to verify code is actually being executed
+4. Check if there's a GAS execution cache that needs to be cleared
+
+**Test data:**
+- Client ID: 6123LY
+- Spreadsheet: https://docs.google.com/spreadsheets/d/1dEcTk-ODdp4mmYqPl4Du8jgmoUjhpnEjOgFfOOdEznc/edit?gid=2673055#gid=2673055
 
 ### Files Modified This Session
+- `core/Router.js` - Added `_buildTool6Card` method (lines 1038-1093), Tool 6 status checks
 - `tools/tool6/Tool6.js` - Major updates:
-  - `checkToolCompletion()` now returns mapped fields + `hasCriticalData` flag
-  - Added `mapUpstreamFields()` method (lines 127-176)
-  - Added `getDataStatus()` method (lines 178-268)
-  - Updated `buildUnifiedPage()` with status badges and data summary (lines 347-820)
-  - Refactored `getPrefillData()` to use mapped fields (lines 823-843)
-- `docs/Tool6/TOOL6-DEV-STARTUP.md` - Updated sprint checklist and handoff
+  - `checkToolCompletion()` with field mapping
+  - `mapUpstreamFields()` method (lines 133-212)
+  - `getDataStatus()` method (lines 218-304)
+  - Added debug logging (console.log) - NOT APPEARING IN LOGS
 
 ### Notes for Next Session
-- Start with Sprint 1.2: Fallback/Backup Questions
-- Need to implement backup question UI for missing Tool 2 data (age, income, etc.)
-- Tool 4 is REQUIRED (no backup) - show blocker message
-- Use `getDataStatus()` to determine which backup questions to show
-- Reference spec section "Backup Questions for Missing Data" (around line 1290)
+1. **FIRST**: Verify Tool6.js code is actually executing by adding an intentional syntax error or throw statement
+2. Check RESPONSES sheet directly for 6123LY to see actual data structure
+3. Compare with Tool 4's data pull pattern (Tool4.js) - it successfully shows data
+4. Consider if FrameworkCore/InsightsPipeline is interfering with Tool6.render()
+5. May need to examine how ToolRegistry.findByRoute() returns the tool module
 
 ---
 
