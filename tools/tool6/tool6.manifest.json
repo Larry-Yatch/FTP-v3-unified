@@ -1,0 +1,70 @@
+{
+  "id": "tool6",
+  "name": "Retirement Blueprint Calculator",
+  "version": "1.0.0",
+  "description": "Interactive retirement vehicle allocation calculator that transforms savings into optimized tax-advantaged investments across 9 investor profiles",
+  "category": "calculator",
+  "estimatedMinutes": 25,
+  "requires": ["tool4"],
+  "unlocks": ["tool7"],
+  "manifest": {
+    "entryPoint": "Tool6.render",
+    "processor": "Tool6.processSubmission",
+    "dependencies": [
+      "Tool6Constants",
+      "Tool6Profiles",
+      "Tool6Allocation",
+      "Tool6Projections",
+      "Tool6Validation",
+      "Tool6Report",
+      "Tool6GPTAnalysis",
+      "Tool6Fallbacks"
+    ]
+  },
+  "architecture": {
+    "type": "single-page-calculator",
+    "pattern": "calculator-report",
+    "storage": "TOOL6_SCENARIOS",
+    "multipleScenarios": true
+  },
+  "features": {
+    "profileClassification": true,
+    "ambitionQuotient": true,
+    "vehicleAllocation": true,
+    "sliderCoupling": true,
+    "backupQuestions": true,
+    "scenarioManagement": true,
+    "pdfGeneration": true,
+    "traumaIntegration": true,
+    "investmentScoreAdjustment": true,
+    "taxStrategyToggle": true,
+    "employerMatchCalculation": true,
+    "irsLimitValidation": true
+  },
+  "dataFlow": {
+    "pulls": {
+      "tool1": ["winningPattern"],
+      "tool2": ["age", "income", "employmentType", "businessOwner", "maritalStatus"],
+      "tool3": ["subdomainScores"],
+      "tool4": ["monthlyIncome", "goalTimeline", "multiply", "investmentScore"],
+      "tool5": ["subdomainScores"]
+    },
+    "stores": {
+      "profileId": "Classified investor profile (1-9)",
+      "domainWeights": "Ambition Quotient weights",
+      "allocations": "Vehicle allocation amounts",
+      "projections": "Future value calculations"
+    }
+  },
+  "profiles": [
+    { "id": 1, "name": "ROBS-In-Use Strategist" },
+    { "id": 2, "name": "ROBS-Curious Candidate" },
+    { "id": 3, "name": "Business Owner with Employees" },
+    { "id": 4, "name": "Solo 401(k) Optimizer" },
+    { "id": 5, "name": "Bracket Strategist" },
+    { "id": 6, "name": "Catch-Up Contributor" },
+    { "id": 7, "name": "Foundation Builder" },
+    { "id": 8, "name": "Roth Maximizer" },
+    { "id": 9, "name": "Late-Stage Growth" }
+  ]
+}

@@ -174,6 +174,30 @@ function registerTools() {
     Tool5.manifest = tool5Manifest;
     ToolRegistry.register('tool5', Tool5, tool5Manifest);
 
+    // Tool 6: Retirement Blueprint Calculator
+    const tool6Manifest = {
+      id: "tool6",
+      version: "1.0.0",
+      name: "Retirement Blueprint Calculator",
+      pattern: "calculator",
+      route: "tool6",
+      routes: ["/tool6"],
+      description: "Interactive retirement vehicle allocation calculator with profile classification and tax-optimized recommendations",
+      icon: "🏦",
+      estimatedTime: "20-30 minutes",
+      categories: ["retirement", "allocation", "tax-planning"],
+      outputs: {
+        report: true,
+        pdf: true,
+        scenarios: true
+      },
+      dependencies: ["tool4"],
+      unlocks: ["tool7"]
+    };
+
+    Tool6.manifest = tool6Manifest;
+    ToolRegistry.register('tool6', Tool6, tool6Manifest);
+
     // Tool 7: Security & Control Grounding Tool
     const tool7Manifest = {
       id: "tool7",
@@ -200,7 +224,7 @@ function registerTools() {
     Tool7.manifest = tool7Manifest;
     ToolRegistry.register('tool7', Tool7, tool7Manifest);
 
-    console.log('Tools registered successfully (Tool 1, Tool 2, Tool 3, Tool 4, Tool 5, Tool 7)');
+    console.log('Tools registered successfully (Tool 1, Tool 2, Tool 3, Tool 4, Tool 5, Tool 6, Tool 7)');
   } catch (error) {
     console.error('Error registering tools:', error);
   }
