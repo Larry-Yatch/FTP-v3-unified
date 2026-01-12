@@ -1,6 +1,6 @@
 # Tool 6: Retirement Blueprint Calculator - Consolidated Specification
 
-> **Version:** 1.5
+> **Version:** 1.6
 > **Date:** January 11, 2026
 > **Status:** Approved for Implementation
 > **Consolidates:** Tool-6-Design-Spec.md + Tool6-Technical-Specification.md + Legacy Tool 6
@@ -9,6 +9,7 @@
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 1.6 | Jan 11, 2026 | **Education Domain Enhancement:** Added Q14 (numChildren), Q20 (currentEducationBalance), Q24 (monthlyEducationContribution); uses "Combined CESA" approach (total across all children, not per-child); renumbered questions to **24 total**; fixed ROBS qualifiers to only show for "Interested"; added `calculateEducationProjections()` algorithm; expanded TOOL6_SCENARIOS schema (15 columns A-O); updated Sprints 5.1, 6.1, 6.2, 7.1 with education domain requirements |
 | 1.5 | Jan 11, 2026 | Added UI Style Requirements section (Tool 4 alignment), added Q1/Q2 as required Tool 6 questions (gross income, years to retirement), renumbered questions to 22 total |
 | 1.4 | Jan 9, 2026 | Added HSA coverage type inference from filing status (Section 7 under Advanced Allocation Logic) - MFJ infers Family coverage, Single/MFS infers Individual coverage |
 | 1.3 | Jan 9, 2026 | **Agentic coding optimizations:** Added explicit monthly budget calculation formula, shared 401(k)/IRA limit algorithm with slider coupling, employer match seeding implementation, scenario comparison metrics table, GPT prompt template with API call pattern, fixed Profile 7 mapping in Appendix A, added implementation order note for Phase 4 |
@@ -164,6 +165,9 @@ Loading overlay must be a static element in the body (not dynamically created):
 | Trauma Pattern | Tool 1 | `tool1` | `data.winningPattern` |
 | Identity Subdomain Scores | Tool 3 | `tool3` | `scoring.subdomainQuotients` |
 | Connection Subdomain Scores | Tool 5 | `tool5` | `scoring.subdomainQuotients` |
+| **Number of Children** | **Tool 6 Question** | `tool6` | Asked when Q13=Yes |
+| **Current Education Balance** | **Tool 6 Question** | `tool6` | Combined across all 529/CESA/UTMA accounts |
+| **Monthly Education Contribution** | **Tool 6 Question** | `tool6` | Combined across all children |
 
 > **Important:** For detailed data structure documentation for all tools, see `docs/Middleware/middleware-mapping.md`. This document defines the canonical save formats and response schemas for Tools 1-5.
 
@@ -204,7 +208,9 @@ function getMonthlyBudget(toolStatus) {
 
 > **Note:** Questions 1-2 (Gross Income and Years to Retirement) are NOT available from Tools 1-5. Tool 2 only captures income clarity/stress scores, not actual dollar amounts. Tool 4's goalTimeline is a categorical field for the selected financial priority, not years until retirement.
 
-#### ROBS Qualifier Questions (3 - Conditional on Q4 = Yes/Interested)
+#### ROBS Qualifier Questions (3 - Conditional on Q4 = Interested ONLY)
+
+> **Note:** These questions only appear when user selects "Interested" in ROBS. If user already uses ROBS ("Yes"), they don't need to qualify.
 
 | # | Question | Type | Purpose |
 |---|----------|------|---------|
@@ -212,30 +218,36 @@ function getMonthlyBudget(toolStatus) {
 | 11 | Do you have at least $50,000 in a rollover-eligible retirement account? | Y/N/N/A | ROBS eligibility |
 | 12 | Can you fund the estimated $5,000-$10,000 setup cost? | Y/N/N/A | ROBS eligibility |
 
-#### Ambition Quotient Questions (2-3)
+#### Ambition Quotient Questions (4 - Education domain)
 
 | # | Question | Type | Purpose |
 |---|----------|------|---------|
 | 13 | Do you have children or plan to save for education? | Y/N | Education domain activation |
-| 14 | Years until first child needs education funds | Number | Education urgency (if Q13=Y) |
-| 15 | Rank your savings priorities (drag to reorder) | Ranking | Relative importance |
+| 14 | How many children/dependents are you saving for? | Number (1-10) | Education planning (if Q13=Y) |
+| 15 | Years until first child needs education funds | Number (0-25) | Education urgency (if Q13=Y) |
+| 16 | Rank your savings priorities (drag to reorder) | Ranking | Relative importance |
 
-Options for Q15:
+Options for Q16:
 - Retirement security
 - Children's education
 - Health/medical expenses
 
-#### Current State Questions (Required)
+> **Education Domain Design:** Uses "Combined CESA" approach from legacy Tool 6 - tracks total education savings across ALL children (529, Coverdell ESA, UTMA), not per-child accounts. This simplifies UI and matches how most families think about education savings.
+
+#### Current State Questions (8 total)
+
+> **Note:** Total retirement balance is calculated from Q17+Q18+Q19 (no separate question). Education balances are combined across all children.
 
 | # | Question | Type | Purpose |
 |---|----------|------|---------|
-| 16 | Current retirement account balance (total) | Currency | Starting point for projections |
-| 17 | Current 401(k) balance | Currency | Vehicle-specific |
-| 18 | Current IRA balance (Traditional + Roth) | Currency | Vehicle-specific |
-| 19 | Current HSA balance | Currency | Vehicle-specific |
-| 20 | Current monthly 401(k) contribution | Currency | Baseline for improvement |
-| 21 | Current monthly IRA contribution | Currency | Baseline for improvement |
-| 22 | Current monthly HSA contribution | Currency | Baseline for improvement |
+| 17 | Current 401(k) balance | Currency | Vehicle-specific (conditional on Q5=Yes) |
+| 18 | Current IRA balance (Traditional + Roth) | Currency | Vehicle-specific (always shown) |
+| 19 | Current HSA balance | Currency | Vehicle-specific (conditional on Q9=Yes) |
+| 20 | Current education savings balance (all children combined) | Currency | 529/CESA/UTMA total (conditional on Q13=Yes) |
+| 21 | Current monthly 401(k) contribution | Currency | Baseline (conditional on Q5=Yes) |
+| 22 | Current monthly IRA contribution | Currency | Baseline (always shown) |
+| 23 | Current monthly HSA contribution | Currency | Baseline (conditional on Q9=Yes) |
+| 24 | Current monthly education contribution (all children) | Currency | Combined (conditional on Q13=Yes) |
 
 ---
 
@@ -252,25 +264,40 @@ const QUESTION_VISIBILITY = {
   q7_matchFormula: (answers) => answers.q6_hasMatch === 'Yes',
 
   // Q8: Roth 401k option - only show if Q5 = Yes
-  q8_roth401kOption: (answers) => answers.q5_has401k === 'Yes',
+  q8_hasRoth401k: (answers) => answers.q5_has401k === 'Yes',
 
-  // Q10-12: ROBS qualifiers - only show if Q4 = Yes or Interested
-  q10_robsNewBusiness: (answers) => ['Yes', 'Interested'].includes(answers.q4_robsInterest),
-  q11_robsBalance: (answers) => ['Yes', 'Interested'].includes(answers.q4_robsInterest),
-  q12_robsSetupCost: (answers) => ['Yes', 'Interested'].includes(answers.q4_robsInterest),
+  // Q10-12: ROBS qualifiers - only show if Q4 = "Interested" (not "Yes" - already using)
+  q10_robsNewBusiness: (answers) => answers.q4_robsInterest === 'Interested',
+  q11_robsBalance: (answers) => answers.q4_robsInterest === 'Interested',
+  q12_robsSetupCost: (answers) => answers.q4_robsInterest === 'Interested',
 
-  // Q14: Years to education - only show if Q13 = Yes
-  q14_yearsToEducation: (answers) => answers.q13_hasChildren === 'Yes',
+  // Q14-15: Education domain - only show if Q13 = Yes
+  q14_numChildren: (answers) => answers.q13_hasChildren === 'Yes',
+  q15_yearsToEducation: (answers) => answers.q13_hasChildren === 'Yes',
 
-  // Q17-19: Vehicle balances - show based on eligibility
-  q17_401kBalance: (answers) => answers.q5_has401k === 'Yes',
-  q18_iraBalance: () => true, // Always show
-  q19_hsaBalance: (answers) => answers.q9_hsaEligible === 'Yes',
+  // Q17: 401k balance - show if has 401k
+  q17_current401kBalance: (answers) => answers.q5_has401k === 'Yes',
 
-  // Q20-22: Vehicle contributions - show based on eligibility
-  q20_401kContribution: (answers) => answers.q5_has401k === 'Yes',
-  q21_iraContribution: () => true, // Always show
-  q22_hsaContribution: (answers) => answers.q9_hsaEligible === 'Yes'
+  // Q18: IRA balance - always show
+  q18_currentIRABalance: () => true,
+
+  // Q19: HSA balance - show if HSA eligible
+  q19_currentHSABalance: (answers) => answers.q9_hsaEligible === 'Yes',
+
+  // Q20: Education balance - show if has children
+  q20_currentEducationBalance: (answers) => answers.q13_hasChildren === 'Yes',
+
+  // Q21: 401k contribution - show if has 401k
+  q21_monthly401kContribution: (answers) => answers.q5_has401k === 'Yes',
+
+  // Q22: IRA contribution - always show
+  q22_monthlyIRAContribution: () => true,
+
+  // Q23: HSA contribution - show if HSA eligible
+  q23_monthlyHSAContribution: (answers) => answers.q9_hsaEligible === 'Yes',
+
+  // Q24: Education contribution - show if has children
+  q24_monthlyEducationContribution: (answers) => answers.q13_hasChildren === 'Yes'
 };
 ```
 
@@ -281,9 +308,11 @@ const QUESTION_VISIBILITY = {
 | Q7 (match formula) | null (no match) |
 | Q8 (Roth 401k) | false |
 | Q10-12 (ROBS qualifiers) | 'N/A' |
-| Q14 (years to education) | 99 (effectively disables Education domain) |
-| Q17, Q20 (401k) | 0 |
-| Q19, Q22 (HSA) | 0 |
+| Q14 (num children) | 0 |
+| Q15 (years to education) | 99 (effectively disables Education domain) |
+| Q17, Q21 (401k balance/contrib) | 0 |
+| Q19, Q23 (HSA balance/contrib) | 0 |
+| Q20, Q24 (Education balance/contrib) | 0 |
 
 ---
 
@@ -1276,6 +1305,57 @@ function calculateTaxBreakdown(allocations, projections) {
 }
 ```
 
+### Education Domain Projections
+
+Education projections use the same `futureValue()` function but with education-specific inputs:
+
+```javascript
+function calculateEducationProjections(inputs) {
+  const {
+    currentEducationBalance,      // Q20: Combined across all 529/CESA/UTMA
+    monthlyEducationContribution, // Q24: Combined monthly for all children
+    yearsToEducation,             // Q15: Years until first child needs funds
+    numChildren,                  // Q14: Number of children (for context)
+    annualReturn = 0.07           // More conservative than retirement (default 7%)
+  } = inputs;
+
+  // Skip if no children or no education savings
+  if (yearsToEducation >= 99 || numChildren === 0) {
+    return {
+      projectedBalance: 0,
+      improvement: 0,
+      baseline: 0,
+      yearsUsed: 0,
+      numChildren: 0
+    };
+  }
+
+  // Future value of monthly contributions
+  const fvContributions = futureValue(monthlyEducationContribution, annualReturn, yearsToEducation);
+
+  // Future value of current balance
+  const cappedYears = Math.min(yearsToEducation, PROJECTION_CONFIG.MAX_YEARS);
+  const fvBalance = currentEducationBalance * Math.pow(1 + annualReturn, cappedYears);
+
+  // Total projected
+  const projectedBalance = Math.min(fvBalance + fvContributions, PROJECTION_CONFIG.MAX_FV);
+
+  // Baseline (if they did nothing)
+  const baseline = currentEducationBalance * Math.pow(1 + annualReturn, cappedYears);
+
+  return {
+    projectedBalance,
+    baseline,
+    improvement: projectedBalance - baseline,
+    yearsUsed: cappedYears,
+    numChildren,
+    perChildEstimate: numChildren > 0 ? Math.round(projectedBalance / numChildren) : 0
+  };
+}
+```
+
+> **Note:** Education projections are shown separately from retirement projections. The "Combined CESA" approach tracks total across all children - the `perChildEstimate` divides by `numChildren` for informational purposes only.
+
 ---
 
 ## Scenario Management
@@ -1284,20 +1364,25 @@ function calculateTaxBreakdown(allocations, projections) {
 
 Saves to `TOOL6_SCENARIOS` sheet:
 
-| Column | Field |
-|--------|-------|
-| A | Timestamp |
-| B | Client_ID |
-| C | Scenario_Name |
-| D | Profile_ID |
-| E | Monthly_Budget |
-| F | Domain_Weights (JSON) |
-| G | Allocations (JSON) |
-| H | Investment_Score |
-| I | Tax_Strategy |
-| J | Projected_Balance |
-| K | Current_Balances (JSON) |
-| L | Is_Latest |
+| Column | Field | Notes |
+|--------|-------|-------|
+| A | Timestamp | ISO format |
+| B | Client_ID | |
+| C | Scenario_Name | User-defined or auto-generated |
+| D | Profile_ID | 1-9 |
+| E | Monthly_Budget | From Tool 4 multiply |
+| F | Domain_Weights (JSON) | `{ Retirement, Education, Health }` |
+| G | Allocations (JSON) | Vehicle allocations |
+| H | Investment_Score | 1-7 |
+| I | Tax_Strategy | Traditional/Balanced/Roth |
+| J | Projected_Balance | Retirement projection |
+| K | Current_Balances (JSON) | `{ '401k', ira, hsa, education }` |
+| L | Current_Contributions (JSON) | `{ '401k', ira, hsa, education }` |
+| M | Education_Inputs (JSON) | `{ numChildren, yearsToEducation }` |
+| N | Education_Projection | Education domain projection |
+| O | Is_Latest | Boolean |
+
+> **v1.6 Update:** Added columns L-N for education domain data. The `Current_Balances` and `Current_Contributions` JSON objects now include `education` field for combined 529/CESA/UTMA totals.
 
 ### Load Scenario
 
@@ -2101,17 +2186,22 @@ function handleSharedLimitSlider(changedVehicle, newValue, allocations) {
 #### Sprint 5.1: Current State Inputs
 **Goal:** Current balances and contributions section
 
+> **v1.6 Note:** This sprint is largely complete from Sprint 1.2 questionnaire. The Current Balances (Q17-Q20) and Current Contributions (Q21-Q24) sections are already built with education fields included. This sprint focuses on the calculator UI integration.
+
 **Tasks:**
 1. Create current state section (collapsible, required)
-2. Add balance inputs (total, 401k, IRA, HSA)
-3. Add monthly contribution inputs
+2. Add balance inputs (401k, IRA, HSA, **education**)
+3. Add monthly contribution inputs (401k, IRA, HSA, **education**)
 4. Add validation (required fields, numeric)
+5. **Education fields conditional on Q13=Yes** (visibility already handled in questionnaire)
 
 **Test:**
-- All fields required → validation error if blank
+- Q13=Yes → education balance/contribution fields visible
+- Q13=No → education fields hidden, default to 0
+- All visible fields required → validation error if blank
 - Fill all → values accessible via `getCurrentState()`
 
-**Deliverable:** Current state UI
+**Deliverable:** Current state UI with education domain support
 
 ---
 
@@ -2216,37 +2306,54 @@ function handleSharedLimitSlider(changedVehicle, newValue, allocations) {
 ### Phase 6: Projections
 
 #### Sprint 6.1: Projections Calculation
-**Goal:** Calculate future balance projections
+**Goal:** Calculate future balance projections for **both retirement and education domains**
+
+> **v1.6 Note:** Education projections are now separate from retirement projections. Use `calculateEducationProjections()` for the education domain with its own inputs (Q14-15, Q20, Q24).
 
 **Tasks:**
 1. Create `Tool6Projections.js`
-2. Implement `calculateProjections()` per spec
-3. Handle edge cases (0 years, 0 contribution, etc.)
+2. Implement `calculateProjections()` per spec (retirement domain)
+3. **Implement `calculateEducationProjections()` per spec (education domain)**
+4. Handle edge cases (0 years, 0 contribution, no children, etc.)
 
-**Test:**
+**Test - Retirement:**
 - $50k current, $1k/mo, 20 years, 10% → ~$1.2M projected
 - 0 years → projected = current
 - 0 contribution → just growth on current
 
-**Deliverable:** Projection engine
+**Test - Education (v1.6):**
+- Q13=No → education projections return 0
+- Q13=Yes, $20k current, $300/mo, 10 years, 7% → ~$75k projected
+- `numChildren=2` → perChildEstimate = projection / 2
+- `yearsToEducation=99` → projection returns 0 (education disabled)
+
+**Deliverable:** Projection engine for both domains
 
 ---
 
 #### Sprint 6.2: Projections Display
-**Goal:** Show projections in right panel
+**Goal:** Show projections in right panel for **both retirement and education**
+
+> **v1.6 Note:** Education projections should be displayed separately when Q13=Yes.
 
 **Tasks:**
 1. Create projections section
-2. Display: projected balance, real balance, baseline, improvement
+2. Display retirement: projected balance, real balance, baseline, improvement
 3. Display estimated monthly retirement income
-4. Format as currency
+4. **Display education projections (if hasChildren):**
+   - Projected education balance at first child's college
+   - Per-child estimate (informational)
+   - Years until needed
+5. Format as currency
 
 **Test:**
-- All 5 metrics displayed
+- All retirement metrics displayed
+- **If Q13=Yes: education metrics also displayed**
+- **If Q13=No: education section hidden**
 - Updates when sliders change
 - Currency formatting correct
 
-**Deliverable:** Projections UI
+**Deliverable:** Projections UI with education domain
 
 ---
 
@@ -2271,18 +2378,26 @@ function handleSharedLimitSlider(changedVehicle, newValue, allocations) {
 #### Sprint 7.1: Save Scenario
 **Goal:** Save current state to sheet
 
+> **v1.6 Note:** Schema expanded to 15 columns (A-O) to include education domain data. See "Scenario Management" section for full schema.
+
 **Tasks:**
 1. Implement `Tool6.saveScenario(clientId, scenarioName)`
-2. Collect all current values
-3. Write to TOOL6_SCENARIOS sheet
+2. Collect all current values including:
+   - Current_Balances JSON (401k, ira, hsa, **education**)
+   - Current_Contributions JSON (401k, ira, hsa, **education**)
+   - **Education_Inputs JSON (numChildren, yearsToEducation)**
+   - **Education_Projection (if applicable)**
+3. Write to TOOL6_SCENARIOS sheet (15 columns)
 4. Handle duplicate names (overwrite or version)
 
 **Test:**
 - Click Save → row appears in sheet
-- All columns populated correctly
+- All 15 columns populated correctly (A-O)
+- **Q13=Yes: education fields populated with values**
+- **Q13=No: education fields have defaults (0, 99)**
 - Success message shown
 
-**Deliverable:** Scenario persistence
+**Deliverable:** Scenario persistence with education support
 
 ---
 
@@ -3329,25 +3444,35 @@ function collectFormData() {
     // Currency inputs - parse and validate
     monthlyBudget: parseCurrency(document.getElementById('monthlyBudget').value),
     currentBalances: {
-      total: parseCurrency(document.getElementById('totalBalance').value),
-      '401k': parseCurrency(document.getElementById('401kBalance').value),
-      ira: parseCurrency(document.getElementById('iraBalance').value),
-      hsa: parseCurrency(document.getElementById('hsaBalance').value)
+      // Retirement vehicles (total calculated from these)
+      '401k': parseCurrency(document.getElementById('q17_current401kBalance').value),
+      ira: parseCurrency(document.getElementById('q18_currentIRABalance').value),
+      hsa: parseCurrency(document.getElementById('q19_currentHSABalance').value),
+      // Education (combined across all children - "Combined CESA" approach)
+      education: parseCurrency(document.getElementById('q20_currentEducationBalance').value)
+    },
+    currentContributions: {
+      '401k': parseCurrency(document.getElementById('q21_monthly401kContribution').value),
+      ira: parseCurrency(document.getElementById('q22_monthlyIRAContribution').value),
+      hsa: parseCurrency(document.getElementById('q23_monthlyHSAContribution').value),
+      education: parseCurrency(document.getElementById('q24_monthlyEducationContribution').value)
     },
 
     // Select inputs
-    employerMatch: document.getElementById('employerMatch').value,
+    employerMatch: document.getElementById('q7_matchFormula').value,
     taxStrategy: document.querySelector('input[name="taxStrategy"]:checked')?.value,
 
     // Yes/No inputs
-    hasEmployees: document.getElementById('hasEmployees').value === 'Yes',
-    hsaEligible: document.getElementById('hsaEligible').value === 'Yes',
+    hasEmployees: document.getElementById('q3_hasW2Employees').value === 'Yes',
+    hsaEligible: document.getElementById('q9_hsaEligible').value === 'Yes',
+    hasChildren: document.getElementById('q13_hasChildren').value === 'Yes',
 
     // Ranking inputs (drag-and-drop order)
     priorityRanking: getPriorityRanking(),
 
     // Numeric inputs
-    yearsToEducation: parseInt(document.getElementById('yearsToEducation').value) || 99
+    numChildren: parseInt(document.getElementById('q14_numChildren').value) || 0,
+    yearsToEducation: parseInt(document.getElementById('q15_yearsToEducation').value) || 99
   };
 }
 

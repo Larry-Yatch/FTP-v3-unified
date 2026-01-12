@@ -1081,14 +1081,21 @@ const Tool6 = {
     var visibilityRules = {
       q7_matchFormula: function() { return formData.q6_hasMatch === 'Yes'; },
       q8_hasRoth401k: function() { return formData.q5_has401k === 'Yes'; },
-      q10_robsNewBusiness: function() { return ['Yes', 'Interested'].includes(formData.q4_robsInterest); },
-      q11_robsBalance: function() { return ['Yes', 'Interested'].includes(formData.q4_robsInterest); },
-      q12_robsSetupCost: function() { return ['Yes', 'Interested'].includes(formData.q4_robsInterest); },
-      q14_yearsToEducation: function() { return formData.q13_hasChildren === 'Yes'; },
+      // ROBS qualifiers only show for "Interested" - if already using ROBS, no need to qualify
+      q10_robsNewBusiness: function() { return formData.q4_robsInterest === 'Interested'; },
+      q11_robsBalance: function() { return formData.q4_robsInterest === 'Interested'; },
+      q12_robsSetupCost: function() { return formData.q4_robsInterest === 'Interested'; },
+      // Education-related questions only show if has children
+      q14_numChildren: function() { return formData.q13_hasChildren === 'Yes'; },
+      q15_yearsToEducation: function() { return formData.q13_hasChildren === 'Yes'; },
+      q20_currentEducationBalance: function() { return formData.q13_hasChildren === 'Yes'; },
+      q24_monthlyEducationContribution: function() { return formData.q13_hasChildren === 'Yes'; },
+      // Retirement account questions
       q17_current401kBalance: function() { return formData.q5_has401k === 'Yes'; },
+      q21_monthly401kContribution: function() { return formData.q5_has401k === 'Yes'; },
+      // HSA questions
       q19_currentHSABalance: function() { return formData.q9_hsaEligible === 'Yes'; },
-      q20_monthly401kContribution: function() { return formData.q5_has401k === 'Yes'; },
-      q22_monthlyHSAContribution: function() { return formData.q9_hsaEligible === 'Yes'; }
+      q23_monthlyHSAContribution: function() { return formData.q9_hsaEligible === 'Yes'; }
     };
 
     function toggleSection(sectionId) {
@@ -1163,10 +1170,9 @@ const Tool6 = {
         { id: 'q6_hasMatch', label: 'Employer match' },
         { id: 'q9_hsaEligible', label: 'HSA eligibility' },
         { id: 'q13_hasChildren', label: 'Children/education question' },
-        { id: 'q15_priorityRanking', label: 'Priority ranking' },
-        { id: 'q16_currentRetirementBalance', label: 'Current retirement balance' },
+        { id: 'q16_priorityRanking', label: 'Priority ranking' },
         { id: 'q18_currentIRABalance', label: 'Current IRA balance' },
-        { id: 'q21_monthlyIRAContribution', label: 'Monthly IRA contribution' }
+        { id: 'q22_monthlyIRAContribution', label: 'Monthly IRA contribution' }
       ];
 
       requiredFields.forEach(function(field) {

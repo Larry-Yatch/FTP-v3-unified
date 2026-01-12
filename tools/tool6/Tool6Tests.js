@@ -26,22 +26,35 @@ function testSprint1_1() {
   }
 
   // Test 2: mapUpstreamFields with mock data
+  // NOTE: Mock data must match actual DataService.getLatestResponse() structure
+  // Tool 2 saves: { data: formData, results: {...} } -> access via .data.data
+  // Tool 4 saves flat: { multiply, monthlyIncome, ... } -> access via .data
   Logger.log('Test 2: mapUpstreamFields()');
   try {
+    // Tool 2 structure: { data: { data: formData } }
     const mockTool2 = {
-      age: 35,
-      annualIncome: 85000,
-      employmentType: 'W-2',
-      maritalStatus: 'Married'
+      data: {
+        data: {
+          age: 35,
+          annualIncome: 85000,
+          employmentType: 'W-2',
+          marital: 'Married'  // Tool 2 uses 'marital' not 'maritalStatus'
+        }
+      }
     };
+    // Tool 4 structure: { data: { multiply, monthlyIncome, ... } } (flat)
     const mockTool4 = {
-      multiply: 800,
-      goalTimeline: 25,
-      investmentScore: 5
+      data: {
+        multiply: 16,  // This is a percentage (16%)
+        monthlyIncome: 5000,  // Monthly income
+        goalTimeline: 25,
+        investmentScore: 5
+      }
     };
 
     const mapped = Tool6.mapUpstreamFields(null, mockTool2, null, mockTool4, null);
 
+    // Expected: monthlyBudget = monthlyIncome * multiply / 100 = 5000 * 16 / 100 = 800
     Logger.log('  age: ' + mapped.age + ' (expected: 35)');
     Logger.log('  grossIncome: ' + mapped.grossIncome + ' (expected: 85000)');
     Logger.log('  filingStatus: ' + mapped.filingStatus + ' (expected: MFJ)');
@@ -64,7 +77,14 @@ function testSprint1_1() {
   // Test 3: mapUpstreamFields with Single filing status
   Logger.log('Test 3: Filing Status Inference - Single');
   try {
-    const mockTool2Single = { maritalStatus: 'Single' };
+    // Tool 2 structure with Single status
+    const mockTool2Single = {
+      data: {
+        data: {
+          marital: 'Single'
+        }
+      }
+    };
     const mapped = Tool6.mapUpstreamFields(null, mockTool2Single, null, null, null);
 
     Logger.log('  filingStatus: ' + mapped.filingStatus + ' (expected: Single)');

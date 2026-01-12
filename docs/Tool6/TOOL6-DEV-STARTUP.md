@@ -2,7 +2,7 @@
 
 > **Purpose:** Get any AI coder up to speed quickly for multi-session development
 > **Last Updated:** January 11, 2026
-> **Current Sprint:** Sprint 1.1 Complete, Ready for Sprint 1.2
+> **Current Sprint:** Sprint 1.2 Complete (24 questions), Ready for Sprint 2.2
 
 ---
 
@@ -117,6 +117,18 @@ Weights allocation across Retirement/Education/Health domains based on:
 Inferred from filing status (added in v1.4):
 - MFJ → Family ($8,550/yr)
 - Single/MFS → Individual ($4,300/yr)
+
+### 7. Questionnaire Summary (24 Questions)
+
+| Section | Questions | Notes |
+|---------|-----------|-------|
+| Core (9) | Q1-Q9 | Q7 conditional on Q6=Yes, Q8 conditional on Q5=Yes |
+| ROBS Qualifiers (3) | Q10-Q12 | Only show if Q4="Interested" (not "Yes") |
+| Education Domain (4) | Q13-Q16 | Q14-Q15 conditional on Q13=Yes |
+| Current Balances (4) | Q17-Q20 | Q17 on Q5=Yes, Q19 on Q9=Yes, Q20 on Q13=Yes |
+| Current Contributions (4) | Q21-Q24 | Q21 on Q5=Yes, Q23 on Q9=Yes, Q24 on Q13=Yes |
+
+**Education Domain Design:** "Combined CESA" approach - tracks total education savings across ALL children (529, Coverdell ESA, UTMA), not per-child accounts.
 
 ---
 
@@ -365,6 +377,9 @@ This startup doc serves as persistent memory across sessions. **Always update th
 | Use spec algorithms, not legacy code | Legacy has known bugs (e.g., Profile 8 classification) | Jan 9, 2026 |
 | **Always consult middleware-mapping.md** | Canonical reference for tool data structures; prevents data path bugs | Jan 11, 2026 |
 | **Gross Income & Years to Retirement must be asked in Tool 6** | Tool 2 only has clarity scores (not dollar amounts); Tool 4 goalTimeline is categorical goal priority, not retirement years | Jan 11, 2026 |
+| **Education uses "Combined CESA" approach** | Track total education savings across ALL children (529, Coverdell ESA, UTMA), not per-child accounts; matches legacy Tool 6 and simplifies UI | Jan 11, 2026 |
+| **ROBS qualifiers only for "Interested"** | If user already uses ROBS ("Yes"), they don't need qualification questions; qualifiers only show for "Interested" | Jan 11, 2026 |
+| **Combined balances (no Trad/Roth split)** | Keep 401k and IRA balances combined for MVP; Tool 6 allocates FUTURE contributions, not existing funds; same growth rate for projections; can add "Advanced Mode" later if needed | Jan 11, 2026 |
 
 ### Design Patterns Established
 1. **Single-page calculator** - Same as Tool 4, not multi-phase like Tools 1-3
@@ -397,17 +412,20 @@ When ending a session, update this section:
 ### Last Session Summary
 - **Date:** January 11, 2026
 - **What was done:**
-  - ✅ **COMPLETED Sprint 1.2: Fallback/Backup Questions UI**
-  - Added QUESTIONNAIRE_FIELDS config (22 questions) to Tool6Constants.js
-  - Added QUESTIONNAIRE_SECTIONS for logical grouping
-  - Built `buildQuestionnaireHtml()` method with all input types (currency, number, yesno, select, ranking)
-  - Added conditional visibility logic (client-side JavaScript)
-  - Added form validation before submission
-  - Added `savePreSurveyTool6()` global wrapper for GAS
-  - Added questionnaire-specific CSS styles
-  - Updated spec to add Q1 (gross income) and Q2 (years to retirement) as required questions
-- **Current state:** Sprint 1.2 COMPLETE - ready for Sprint 1.3 (TOOL6_SCENARIOS Sheet) or Sprint 2 (Profile Classification)
-- **Next task:** Sprint 1.3 or Sprint 2.1
+  - ✅ **COMPLETED Sprint 1.2: Fallback/Backup Questions UI (24 questions total)**
+  - ✅ **Added Education Domain Questions** (following legacy "Combined CESA" approach):
+    - Q14: numChildren (how many children/dependents)
+    - Q15: yearsToEducation (was Q14, renumbered)
+    - Q16: priorityRanking (was Q15, renumbered)
+    - Q20: currentEducationBalance (combined across all 529/CESA/UTMA)
+    - Q24: monthlyEducationContribution (combined across all children)
+  - ✅ **Fixed ROBS qualifier visibility** - Q10-12 now only show for "Interested" (not "Yes - already using")
+  - ✅ **Removed redundant total retirement balance** - Q16 removed, total calculated from Q17+Q18+Q19
+  - Updated Tool6Constants.js with new questions and sections
+  - Updated Tool6.js with visibility rules and validation
+  - Updated spec document to v1.6 with all question changes
+- **Current state:** Sprint 1.2 COMPLETE with 24 questions - ready for Sprint 2.2 (Profile Classification)
+- **Next task:** Sprint 2.2 (Decision Tree Implementation) - Sprint 2.1 skipped since questionnaire already collects all inputs
 - **Blockers:** None
 
 ### ✅ RESOLVED: Data Not Mapping from Tools 1-5 (Jan 11, 2026)
@@ -449,32 +467,46 @@ The `docs/Middleware/middleware-mapping.md` document is the **canonical referenc
 
 ### Files Modified This Session
 - `tools/tool6/Tool6.js` - Major updates for Sprint 1.2:
-  - Added `buildQuestionnaireHtml()` method (22 questions across 5 sections)
+  - Added `buildQuestionnaireHtml()` method (**24 questions** across 5 sections)
   - Added questionnaire-specific CSS styles
   - Added client-side JavaScript for conditional visibility, validation, form submission
   - Added `savePreSurveyTool6()` global wrapper function
+  - Added education domain visibility rules (Q14, Q15, Q20, Q24)
+  - Fixed ROBS qualifier visibility (Q10-12 only for "Interested")
 - `tools/tool6/Tool6Constants.js` - Added questionnaire configuration:
-  - `QUESTIONNAIRE_FIELDS` - 22 question definitions with types, validation, conditional visibility
+  - `QUESTIONNAIRE_FIELDS` - **24 question definitions** with types, validation, conditional visibility
   - `QUESTIONNAIRE_SECTIONS` - 5 logical groupings for UI organization
-- `docs/Tool6/Tool6-Consolidated-Specification.md` - Updated for Q1/Q2 requirement:
-  - Marked grossIncome and yearsToRetirement as "Tool 6 Question" in Data Sources table
-  - Renumbered all questions (now 22 total vs 20)
-  - Updated Question Conditional Logic section
+  - Education questions: numChildren, yearsToEducation, currentEducationBalance, monthlyEducationContribution
+- `docs/Tool6/Tool6-Consolidated-Specification.md` - Updated to v1.6:
+  - Added education fields to Data Sources table
+  - Updated Ambition Quotient Questions section (Q13-Q16)
+  - Updated Current State Questions section (Q17-Q24, 8 total)
+  - Rewrote Question Conditional Logic section with all 24 questions
+  - Updated Default Values When Hidden table
 - `docs/Tool6/TOOL6-DEV-STARTUP.md` - Updated status and session notes
 
-### Notes for Next Session (Sprint 1.3 or 2.1)
+### Notes for Next Session (Sprint 2.2)
 
-**Option A: Sprint 1.3 - TOOL6_SCENARIOS Sheet**
-- Create TOOL6_SCENARIOS sheet structure
-- Implement saveScenario() method
-- Implement getScenarios() method
-- Add scenario naming and timestamp
+**Recommended: Sprint 2.2 - Decision Tree Implementation**
+- The questionnaire already collects all 24 inputs needed for profile classification
+- Skip Sprint 2.1 (Classification Input Gathering) - already done in Sprint 1.2
+- Skip Sprint 1.3 (TOOL6_SCENARIOS Sheet) - scenarios not needed until after allocation works
 
-**Option B: Sprint 2.1 - Classification Input Gathering**
-- The questionnaire already collects all inputs needed for profile classification
-- Can skip directly to Sprint 2.2 (Decision Tree Implementation)
+**Sprint 2.2 Tasks:**
+1. Implement `classifyProfile()` method using decision tree from spec
+2. Decision tree: First match wins (Profile 1-9)
+3. Use Q4 (ROBS interest) + Q10-12 (ROBS qualifiers) for Profiles 1-3
+4. Use Q3 (W-2 employees) + Q5 (401k) for Profiles 4-6
+5. Profile 7 (Foundation Builder) is the catch-all default
+6. Age + retirement years for Profile 8-9
 
-**Recommendation:** Skip 1.3 for now (scenarios not needed until after allocation works), proceed to Sprint 2.2
+**Test Cases:**
+- ROBS Yes → Profile 1
+- ROBS Interested + all qualifiers Yes → Profile 2
+- Has employees + no 401k → Profile 4
+- Standard W-2 with 401k → Profile 7
+- Aggressive investor (score 6-7) + sufficient capital → Profile 8
+- Age 55+ or <5 years to retire → Profile 9
 
 ---
 

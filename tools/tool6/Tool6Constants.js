@@ -674,27 +674,28 @@ const QUESTIONNAIRE_FIELDS = {
     helpText: 'HSA provides triple tax advantages for medical expenses'
   },
 
-  // ROBS Qualifier Questions (Conditional on Q4 = Yes/Interested)
+  // ROBS Qualifier Questions (Conditional on Q4 = Interested ONLY)
+  // If user already uses ROBS (Yes), they don't need to qualify
   q10_robsNewBusiness: {
     id: 'q10_robsNewBusiness',
     label: 'Is this a new business (or one you could restructure under a new C-corp)?',
     type: 'yesnoNA',
     required: false,
-    showIf: (answers) => ['Yes', 'Interested'].includes(answers.q4_robsInterest)
+    showIf: (answers) => answers.q4_robsInterest === 'Interested'
   },
   q11_robsBalance: {
     id: 'q11_robsBalance',
     label: 'Do you have at least $50,000 in a rollover-eligible retirement account?',
     type: 'yesnoNA',
     required: false,
-    showIf: (answers) => ['Yes', 'Interested'].includes(answers.q4_robsInterest)
+    showIf: (answers) => answers.q4_robsInterest === 'Interested'
   },
   q12_robsSetupCost: {
     id: 'q12_robsSetupCost',
     label: 'Can you fund the estimated $5,000-$10,000 setup cost?',
     type: 'yesnoNA',
     required: false,
-    showIf: (answers) => ['Yes', 'Interested'].includes(answers.q4_robsInterest)
+    showIf: (answers) => answers.q4_robsInterest === 'Interested'
   },
 
   // Ambition Quotient Questions
@@ -705,19 +706,31 @@ const QUESTIONNAIRE_FIELDS = {
     required: true,
     helpText: 'Affects allocation between retirement and education savings'
   },
-  q14_yearsToEducation: {
-    id: 'q14_yearsToEducation',
+  q14_numChildren: {
+    id: 'q14_numChildren',
+    label: 'How many children/dependents are you saving for?',
+    type: 'number',
+    required: false,
+    min: 1,
+    max: 10,
+    placeholder: 'e.g., 2',
+    showIf: (answers) => answers.q13_hasChildren === 'Yes',
+    defaultWhenHidden: 0
+  },
+  q15_yearsToEducation: {
+    id: 'q15_yearsToEducation',
     label: 'Years until first child needs education funds',
     type: 'number',
     required: false,
     min: 0,
     max: 25,
     placeholder: 'e.g., 10',
+    helpText: 'Years until your oldest child starts college/education',
     showIf: (answers) => answers.q13_hasChildren === 'Yes',
     defaultWhenHidden: 99  // Effectively disables Education domain
   },
-  q15_priorityRanking: {
-    id: 'q15_priorityRanking',
+  q16_priorityRanking: {
+    id: 'q16_priorityRanking',
     label: 'Rank your savings priorities (1 = highest priority)',
     type: 'ranking',
     required: true,
@@ -730,14 +743,7 @@ const QUESTIONNAIRE_FIELDS = {
   },
 
   // Current State Questions
-  q16_currentRetirementBalance: {
-    id: 'q16_currentRetirementBalance',
-    label: 'Current retirement account balance (total)',
-    type: 'currency',
-    required: true,
-    placeholder: 'e.g., 150000',
-    helpText: 'Combined balance of all retirement accounts'
-  },
+  // NOTE: Removed q16_currentRetirementBalance - redundant with sum of Q17+Q18+Q19
   q17_current401kBalance: {
     id: 'q17_current401kBalance',
     label: 'Current 401(k) balance',
@@ -763,8 +769,21 @@ const QUESTIONNAIRE_FIELDS = {
     showIf: (answers) => answers.q9_hsaEligible === 'Yes',
     defaultWhenHidden: 0
   },
-  q20_monthly401kContribution: {
-    id: 'q20_monthly401kContribution',
+  // Education savings (combined across all children - 529, CESA, UTMA)
+  q20_currentEducationBalance: {
+    id: 'q20_currentEducationBalance',
+    label: 'Current education savings balance (all children combined)',
+    type: 'currency',
+    required: false,
+    placeholder: 'e.g., 25000',
+    helpText: 'Total across 529 plans, Coverdell ESAs, UTMA accounts',
+    showIf: (answers) => answers.q13_hasChildren === 'Yes',
+    defaultWhenHidden: 0
+  },
+
+  // Monthly contributions
+  q21_monthly401kContribution: {
+    id: 'q21_monthly401kContribution',
     label: 'Current monthly 401(k) contribution',
     type: 'currency',
     required: false,
@@ -772,20 +791,30 @@ const QUESTIONNAIRE_FIELDS = {
     showIf: (answers) => answers.q5_has401k === 'Yes',
     defaultWhenHidden: 0
   },
-  q21_monthlyIRAContribution: {
-    id: 'q21_monthlyIRAContribution',
+  q22_monthlyIRAContribution: {
+    id: 'q22_monthlyIRAContribution',
     label: 'Current monthly IRA contribution',
     type: 'currency',
     required: true,
     placeholder: 'e.g., 200'
   },
-  q22_monthlyHSAContribution: {
-    id: 'q22_monthlyHSAContribution',
+  q23_monthlyHSAContribution: {
+    id: 'q23_monthlyHSAContribution',
     label: 'Current monthly HSA contribution',
     type: 'currency',
     required: false,
     placeholder: 'e.g., 100',
     showIf: (answers) => answers.q9_hsaEligible === 'Yes',
+    defaultWhenHidden: 0
+  },
+  q24_monthlyEducationContribution: {
+    id: 'q24_monthlyEducationContribution',
+    label: 'Current monthly education contribution (all children)',
+    type: 'currency',
+    required: false,
+    placeholder: 'e.g., 200',
+    helpText: 'Combined monthly savings for all children',
+    showIf: (answers) => answers.q13_hasChildren === 'Yes',
     defaultWhenHidden: 0
   }
 };
@@ -814,13 +843,13 @@ const QUESTIONNAIRE_SECTIONS = [
     id: 'priorities',
     title: 'Savings Priorities',
     description: 'How you want to allocate between goals',
-    fields: ['q13_hasChildren', 'q14_yearsToEducation', 'q15_priorityRanking']
+    fields: ['q13_hasChildren', 'q14_numChildren', 'q15_yearsToEducation', 'q16_priorityRanking']
   },
   {
     id: 'current_state',
     title: 'Current Balances & Contributions',
-    description: 'Your starting point for projections',
-    fields: ['q16_currentRetirementBalance', 'q17_current401kBalance', 'q18_currentIRABalance', 'q19_currentHSABalance', 'q20_monthly401kContribution', 'q21_monthlyIRAContribution', 'q22_monthlyHSAContribution']
+    description: 'Your starting point for projections (total is calculated from individual accounts)',
+    fields: ['q17_current401kBalance', 'q18_currentIRABalance', 'q19_currentHSABalance', 'q20_currentEducationBalance', 'q21_monthly401kContribution', 'q22_monthlyIRAContribution', 'q23_monthlyHSAContribution', 'q24_monthlyEducationContribution']
   }
 ];
 
