@@ -574,29 +574,199 @@ const AMBITION_QUOTIENT_CONFIG = {
 };
 
 // ============================================================================
-// QUESTIONNAIRE CONFIGURATION
+// QUESTIONNAIRE CONFIGURATION - TWO-PHASE APPROACH
 // ============================================================================
 
 /**
- * Question definitions for Sprint 1.2 questionnaire
- * Per spec "New Questions Required" (lines 136-183)
+ * TWO-PHASE QUESTIONNAIRE DESIGN
+ * ==============================
  *
- * Questions 1-2 are ALWAYS required (not available from Tools 1-5)
- * Questions 3-22 have conditional visibility rules
+ * Phase A: CLASSIFICATION (Short-Circuit Decision Tree)
+ * - Ask questions in decision tree order
+ * - STOP as soon as profile is determined (2-4 questions max)
+ * - Uses derived values from Tools 1-5 when available
+ *
+ * Phase B: ALLOCATION INPUTS (Profile-Specific)
+ * - Only ask questions relevant to the assigned profile
+ * - Skip questions that don't apply to user's situation
+ *
+ * QUESTION REDUCTION:
+ * | Scenario        | Old Approach | New Approach |
+ * |-----------------|--------------|--------------|
+ * | ROBS In Use     | 31 questions | ~9 questions |
+ * | Solo 401k       | 31 questions | ~12 questions|
+ * | Standard W-2    | 31 questions | ~16 questions|
+ *
+ * LEGACY ALIGNMENT: Classification logic matches code.js lines 3127-3152
  */
-const QUESTIONNAIRE_FIELDS = {
-  // Core Questions (Always Asked)
-  q1_grossIncome: {
-    id: 'q1_grossIncome',
+
+// ============================================================================
+// PHASE A: CLASSIFICATION QUESTIONS
+// ============================================================================
+// Asked in decision tree order. Stop as soon as profile is determined.
+// Most users will answer 2-4 questions max.
+
+const CLASSIFICATION_QUESTIONS = {
+  // Step 1: ROBS Check (Profile 1 or continue)
+  c1_robsStatus: {
+    id: 'c1_robsStatus',
+    label: 'Are you using or interested in ROBS (Rollover for Business Startups)?',
+    type: 'select',
+    required: true,
+    options: [
+      { value: '', label: '-- Select --' },
+      { value: 'using', label: 'Yes, I am currently using ROBS' },
+      { value: 'interested', label: 'Interested - I would like to learn more' },
+      { value: 'no', label: 'No, not applicable to me' }
+    ],
+    helpText: 'ROBS allows using retirement funds to start or buy a business tax-free',
+    terminatesAt: {
+      'using': 1  // Profile 1: ROBS-In-Use Strategist
+    },
+    nextQuestion: {
+      'using': null,      // Stop - Profile 1
+      'interested': 'c2_robsQualifier1',  // Continue to qualifiers
+      'no': 'c5_workSituation'  // Skip to work situation
+    }
+  },
+
+  // Steps 2-4: ROBS Qualifiers (only if "interested")
+  c2_robsQualifier1: {
+    id: 'c2_robsQualifier1',
+    label: 'Is this a new business (or one you could restructure under a new C-corp)?',
+    type: 'yesno',
+    required: true,
+    showIf: (answers) => answers.c1_robsStatus === 'interested',
+    nextQuestion: {
+      'Yes': 'c3_robsQualifier2',
+      'No': 'c5_workSituation'  // Doesn't qualify, continue tree
+    }
+  },
+  c3_robsQualifier2: {
+    id: 'c3_robsQualifier2',
+    label: 'Do you have at least $50,000 in a rollover-eligible retirement account?',
+    type: 'yesno',
+    required: true,
+    showIf: (answers) => answers.c1_robsStatus === 'interested' && answers.c2_robsQualifier1 === 'Yes',
+    nextQuestion: {
+      'Yes': 'c4_robsQualifier3',
+      'No': 'c5_workSituation'  // Doesn't qualify, continue tree
+    }
+  },
+  c4_robsQualifier3: {
+    id: 'c4_robsQualifier3',
+    label: 'Can you fund the estimated $5,000-$10,000 ROBS setup cost?',
+    type: 'yesno',
+    required: true,
+    showIf: (answers) => answers.c1_robsStatus === 'interested' &&
+                         answers.c2_robsQualifier1 === 'Yes' &&
+                         answers.c3_robsQualifier2 === 'Yes',
+    terminatesAt: {
+      'Yes': 2  // Profile 2: ROBS-Curious Candidate (all 3 qualifiers passed)
+    },
+    nextQuestion: {
+      'Yes': null,  // Stop - Profile 2
+      'No': 'c5_workSituation'  // Doesn't qualify, continue tree
+    }
+  },
+
+  // Step 5: Work/Business Situation (Profiles 3, 4, or continue)
+  c5_workSituation: {
+    id: 'c5_workSituation',
+    label: 'What best describes your work situation?',
+    type: 'select',
+    required: true,
+    options: [
+      { value: '', label: '-- Select --' },
+      { value: 'W-2', label: 'W-2 Employee only' },
+      { value: 'Self-employed', label: 'Self-employed / 1099 (no W-2 employees)' },
+      { value: 'Both', label: 'Both W-2 job + self-employment income' },
+      { value: 'BizWithEmployees', label: 'Business owner with W-2 employees' }
+    ],
+    helpText: 'This determines which retirement account types are available',
+    terminatesAt: {
+      'Self-employed': 4,      // Profile 4: Solo 401(k) Optimizer
+      'Both': 4,               // Profile 4: Solo 401(k) Optimizer
+      'BizWithEmployees': 3    // Profile 3: Business Owner with Employees
+    },
+    nextQuestion: {
+      'W-2': 'c6_hasTradIRA',
+      'Self-employed': null,   // Stop - Profile 4
+      'Both': null,            // Stop - Profile 4
+      'BizWithEmployees': null // Stop - Profile 3
+    }
+  },
+
+  // Step 6: Traditional IRA Check (Profile 5 or continue)
+  c6_hasTradIRA: {
+    id: 'c6_hasTradIRA',
+    label: 'Do you have a Traditional IRA?',
+    type: 'yesno',
+    required: true,
+    showIf: (answers) => answers.c5_workSituation === 'W-2',
+    helpText: 'This affects backdoor Roth and conversion strategies',
+    terminatesAt: {
+      'Yes': 5  // Profile 5: Bracket Strategist (has Trad IRA)
+    },
+    nextQuestion: {
+      'Yes': null,  // Stop - Profile 5
+      'No': 'c7_derivedChecks'  // Continue to derived checks
+    }
+  },
+
+  // Step 7: Tax Focus (Profiles 7 or 8)
+  // Note: Profiles 6 and 9 are determined by DERIVED values (age, nearRetirement)
+  // which are checked in classifyProfile() before asking this question
+  c7_taxFocus: {
+    id: 'c7_taxFocus',
+    label: 'When would you prefer to minimize taxes?',
+    type: 'select',
+    required: true,
+    showIf: (answers) => answers.c5_workSituation === 'W-2' && answers.c6_hasTradIRA === 'No',
+    options: [
+      { value: '', label: '-- Select --' },
+      { value: 'Now', label: 'Now - Reduce my current tax bill' },
+      { value: 'Later', label: 'Later - Pay taxes now for tax-free retirement' },
+      { value: 'Both', label: 'Both - Balance current and future savings' }
+    ],
+    helpText: 'Affects whether we prioritize Traditional or Roth accounts',
+    terminatesAt: {
+      'Now': 8,   // Profile 8: Roth Maximizer (tax focus now = traditional priority)
+      'Both': 8,  // Profile 8: Roth Maximizer
+      'Later': 7  // Profile 7: Foundation Builder (default)
+    }
+  }
+};
+
+// Order to ask classification questions (decision tree order)
+const CLASSIFICATION_ORDER = [
+  'c1_robsStatus',
+  'c2_robsQualifier1',
+  'c3_robsQualifier2',
+  'c4_robsQualifier3',
+  'c5_workSituation',
+  'c6_hasTradIRA',
+  'c7_taxFocus'
+];
+
+// ============================================================================
+// PHASE B: ALLOCATION INPUT QUESTIONS
+// ============================================================================
+// Asked AFTER profile is determined. Only relevant questions shown.
+
+const ALLOCATION_QUESTIONS = {
+  // --- Income & Timeline (Always asked - not available from Tools 1-5) ---
+  a1_grossIncome: {
+    id: 'a1_grossIncome',
     label: 'What is your gross annual income (before taxes)?',
     type: 'currency',
     required: true,
     placeholder: 'e.g., 85000',
     helpText: 'Your total annual income before any deductions',
-    alwaysShow: true  // Not available from Tools 1-5
+    category: 'income'
   },
-  q2_yearsToRetirement: {
-    id: 'q2_yearsToRetirement',
+  a2_yearsToRetirement: {
+    id: 'a2_yearsToRetirement',
     label: 'How many years until you plan to retire?',
     type: 'number',
     required: true,
@@ -604,44 +774,31 @@ const QUESTIONNAIRE_FIELDS = {
     max: 50,
     placeholder: 'e.g., 20',
     helpText: 'Approximate years until your planned retirement',
-    alwaysShow: true  // Not available from Tools 1-5
+    category: 'income'
   },
-  q3_hasW2Employees: {
-    id: 'q3_hasW2Employees',
-    label: 'Do you have W-2 employees (excluding yourself/spouse)?',
+
+  // --- Employer Plans (W-2 employees only, not ROBS/Solo profiles) ---
+  a3_has401k: {
+    id: 'a3_has401k',
+    label: 'Do you have access to an employer 401(k) or 403(b)?',
     type: 'yesno',
     required: true,
-    helpText: 'This affects which retirement plans you can use'
+    helpText: 'Employer-sponsored retirement plan',
+    category: 'employer',
+    skipForProfiles: [1, 2, 3, 4]  // ROBS and self-employed profiles
   },
-  q4_robsInterest: {
-    id: 'q4_robsInterest',
-    label: 'Are you currently using or interested in ROBS?',
-    type: 'select',
-    required: true,
-    options: [
-      { value: '', label: '-- Select --' },
-      { value: 'Yes', label: 'Yes - I currently use ROBS' },
-      { value: 'Interested', label: 'Interested - I want to learn more' },
-      { value: 'No', label: 'No - Not applicable to me' }
-    ],
-    helpText: 'Rollover for Business Startups - using retirement funds to start a business'
-  },
-  q5_has401k: {
-    id: 'q5_has401k',
-    label: 'Does your employer offer a 401(k) plan?',
-    type: 'yesno',
-    required: true,
-    helpText: 'Or similar employer-sponsored retirement plan'
-  },
-  q6_hasMatch: {
-    id: 'q6_hasMatch',
+  a4_hasMatch: {
+    id: 'a4_hasMatch',
     label: 'Does your employer offer matching contributions?',
     type: 'yesno',
-    required: true,
-    helpText: 'Employer matches a portion of your contributions'
+    required: false,
+    helpText: 'Free money - employer matches your contributions',
+    category: 'employer',
+    showIf: (answers) => answers.a3_has401k === 'Yes',
+    skipForProfiles: [1, 2, 3, 4]
   },
-  q7_matchFormula: {
-    id: 'q7_matchFormula',
+  a5_matchFormula: {
+    id: 'a5_matchFormula',
     label: 'What is your employer match formula?',
     type: 'select',
     required: false,
@@ -656,201 +813,266 @@ const QUESTIONNAIRE_FIELDS = {
       { value: '25_6', label: '25% up to 6%' },
       { value: 'other', label: 'Other / Not sure' }
     ],
-    showIf: (answers) => answers.q6_hasMatch === 'Yes'
+    category: 'employer',
+    showIf: (answers) => answers.a3_has401k === 'Yes' && answers.a4_hasMatch === 'Yes',
+    skipForProfiles: [1, 2, 3, 4]
   },
-  q8_hasRoth401k: {
-    id: 'q8_hasRoth401k',
+  a6_hasRoth401k: {
+    id: 'a6_hasRoth401k',
     label: 'Does your plan offer a Roth 401(k) option?',
     type: 'yesno',
     required: false,
-    helpText: 'Some plans offer after-tax Roth contributions',
-    showIf: (answers) => answers.q5_has401k === 'Yes'
+    helpText: 'After-tax contributions that grow tax-free',
+    category: 'employer',
+    showIf: (answers) => answers.a3_has401k === 'Yes',
+    skipForProfiles: [1, 2, 3, 4]
   },
-  q9_hsaEligible: {
-    id: 'q9_hsaEligible',
-    label: 'Are you HSA eligible (enrolled in a High Deductible Health Plan)?',
+
+  // --- HSA Eligibility (All profiles) ---
+  a7_hsaEligible: {
+    id: 'a7_hsaEligible',
+    label: 'Are you enrolled in a High Deductible Health Plan (HDHP)?',
     type: 'yesno',
     required: true,
-    helpText: 'HSA provides triple tax advantages for medical expenses'
+    helpText: 'Required for HSA eligibility - triple tax advantage',
+    category: 'hsa'
   },
 
-  // ROBS Qualifier Questions (Conditional on Q4 = Interested ONLY)
-  // If user already uses ROBS (Yes), they don't need to qualify
-  q10_robsNewBusiness: {
-    id: 'q10_robsNewBusiness',
-    label: 'Is this a new business (or one you could restructure under a new C-corp)?',
-    type: 'yesnoNA',
-    required: false,
-    showIf: (answers) => answers.q4_robsInterest === 'Interested'
-  },
-  q11_robsBalance: {
-    id: 'q11_robsBalance',
-    label: 'Do you have at least $50,000 in a rollover-eligible retirement account?',
-    type: 'yesnoNA',
-    required: false,
-    showIf: (answers) => answers.q4_robsInterest === 'Interested'
-  },
-  q12_robsSetupCost: {
-    id: 'q12_robsSetupCost',
-    label: 'Can you fund the estimated $5,000-$10,000 setup cost?',
-    type: 'yesnoNA',
-    required: false,
-    showIf: (answers) => answers.q4_robsInterest === 'Interested'
-  },
-
-  // Ambition Quotient Questions
-  q13_hasChildren: {
-    id: 'q13_hasChildren',
+  // --- Education Domain (Ambition Quotient) ---
+  a8_hasChildren: {
+    id: 'a8_hasChildren',
     label: 'Do you have children or plan to save for education?',
     type: 'yesno',
     required: true,
-    helpText: 'Affects allocation between retirement and education savings'
+    helpText: 'Affects allocation between retirement and education',
+    category: 'education'
   },
-  q14_numChildren: {
-    id: 'q14_numChildren',
+  a9_numChildren: {
+    id: 'a9_numChildren',
     label: 'How many children/dependents are you saving for?',
     type: 'number',
     required: false,
     min: 1,
     max: 10,
     placeholder: 'e.g., 2',
-    showIf: (answers) => answers.q13_hasChildren === 'Yes',
+    category: 'education',
+    showIf: (answers) => answers.a8_hasChildren === 'Yes',
     defaultWhenHidden: 0
   },
-  q15_yearsToEducation: {
-    id: 'q15_yearsToEducation',
+  a10_yearsToEducation: {
+    id: 'a10_yearsToEducation',
     label: 'Years until first child needs education funds',
     type: 'number',
     required: false,
     min: 0,
     max: 25,
     placeholder: 'e.g., 10',
-    helpText: 'Years until your oldest child starts college/education',
-    showIf: (answers) => answers.q13_hasChildren === 'Yes',
-    defaultWhenHidden: 99  // Effectively disables Education domain
+    helpText: 'Years until oldest child starts college',
+    category: 'education',
+    showIf: (answers) => answers.a8_hasChildren === 'Yes',
+    defaultWhenHidden: 99
   },
-  q16_priorityRanking: {
-    id: 'q16_priorityRanking',
-    label: 'Rank your savings priorities (1 = highest priority)',
+
+  // --- Priority Ranking (Ambition Quotient) ---
+  a11_priorityRanking: {
+    id: 'a11_priorityRanking',
+    label: 'Rank your savings priorities (1 = highest)',
     type: 'ranking',
     required: true,
     options: [
       { value: 'retirement', label: 'Retirement security' },
-      { value: 'education', label: "Children's education" },
+      { value: 'education', label: 'Education savings' },
       { value: 'health', label: 'Health/medical expenses' }
     ],
-    helpText: 'Drag to reorder or click to select ranking'
+    helpText: 'Determines how we weight your allocation domains',
+    category: 'priorities'
   },
 
-  // Current State Questions
-  // NOTE: Removed q16_currentRetirementBalance - redundant with sum of Q17+Q18+Q19
-  q17_current401kBalance: {
-    id: 'q17_current401kBalance',
-    label: 'Current 401(k) balance',
+  // --- Current Balances (For projections) ---
+  a12_current401kBalance: {
+    id: 'a12_current401kBalance',
+    label: 'Current 401(k)/403(b) balance',
     type: 'currency',
     required: false,
     placeholder: 'e.g., 75000',
-    showIf: (answers) => answers.q5_has401k === 'Yes',
+    category: 'balances',
+    showIf: (answers) => answers.a3_has401k === 'Yes',
     defaultWhenHidden: 0
   },
-  q18_currentIRABalance: {
-    id: 'q18_currentIRABalance',
+  a13_currentIRABalance: {
+    id: 'a13_currentIRABalance',
     label: 'Current IRA balance (Traditional + Roth combined)',
     type: 'currency',
     required: true,
-    placeholder: 'e.g., 25000'
+    placeholder: 'e.g., 25000',
+    category: 'balances'
   },
-  q19_currentHSABalance: {
-    id: 'q19_currentHSABalance',
+  a14_currentHSABalance: {
+    id: 'a14_currentHSABalance',
     label: 'Current HSA balance',
     type: 'currency',
     required: false,
     placeholder: 'e.g., 5000',
-    showIf: (answers) => answers.q9_hsaEligible === 'Yes',
+    category: 'balances',
+    showIf: (answers) => answers.a7_hsaEligible === 'Yes',
     defaultWhenHidden: 0
   },
-  // Education savings (combined across all children - 529, CESA, UTMA)
-  q20_currentEducationBalance: {
-    id: 'q20_currentEducationBalance',
-    label: 'Current education savings balance (all children combined)',
+  a15_currentEducationBalance: {
+    id: 'a15_currentEducationBalance',
+    label: 'Current education savings (all children combined)',
     type: 'currency',
     required: false,
     placeholder: 'e.g., 25000',
-    helpText: 'Total across 529 plans, Coverdell ESAs, UTMA accounts',
-    showIf: (answers) => answers.q13_hasChildren === 'Yes',
+    helpText: 'Total across 529, Coverdell ESA, UTMA',
+    category: 'balances',
+    showIf: (answers) => answers.a8_hasChildren === 'Yes',
     defaultWhenHidden: 0
   },
 
-  // Monthly contributions
-  q21_monthly401kContribution: {
-    id: 'q21_monthly401kContribution',
+  // --- Current Monthly Contributions ---
+  a16_monthly401kContribution: {
+    id: 'a16_monthly401kContribution',
     label: 'Current monthly 401(k) contribution',
     type: 'currency',
     required: false,
     placeholder: 'e.g., 500',
-    showIf: (answers) => answers.q5_has401k === 'Yes',
+    category: 'contributions',
+    showIf: (answers) => answers.a3_has401k === 'Yes',
     defaultWhenHidden: 0
   },
-  q22_monthlyIRAContribution: {
-    id: 'q22_monthlyIRAContribution',
+  a17_monthlyIRAContribution: {
+    id: 'a17_monthlyIRAContribution',
     label: 'Current monthly IRA contribution',
     type: 'currency',
     required: true,
-    placeholder: 'e.g., 200'
+    placeholder: 'e.g., 200',
+    category: 'contributions'
   },
-  q23_monthlyHSAContribution: {
-    id: 'q23_monthlyHSAContribution',
+  a18_monthlyHSAContribution: {
+    id: 'a18_monthlyHSAContribution',
     label: 'Current monthly HSA contribution',
     type: 'currency',
     required: false,
     placeholder: 'e.g., 100',
-    showIf: (answers) => answers.q9_hsaEligible === 'Yes',
+    category: 'contributions',
+    showIf: (answers) => answers.a7_hsaEligible === 'Yes',
     defaultWhenHidden: 0
   },
-  q24_monthlyEducationContribution: {
-    id: 'q24_monthlyEducationContribution',
-    label: 'Current monthly education contribution (all children)',
+  a19_monthlyEducationContribution: {
+    id: 'a19_monthlyEducationContribution',
+    label: 'Current monthly education contribution',
     type: 'currency',
     required: false,
     placeholder: 'e.g., 200',
-    helpText: 'Combined monthly savings for all children',
-    showIf: (answers) => answers.q13_hasChildren === 'Yes',
+    helpText: 'Combined for all children',
+    category: 'contributions',
+    showIf: (answers) => answers.a8_hasChildren === 'Yes',
     defaultWhenHidden: 0
   }
 };
 
-// Question order for rendering
-const QUESTIONNAIRE_SECTIONS = [
+// Allocation question sections for rendering
+const ALLOCATION_SECTIONS = [
   {
-    id: 'income_retirement',
-    title: 'Income & Retirement Timeline',
-    description: 'These fields are required for accurate projections',
-    fields: ['q1_grossIncome', 'q2_yearsToRetirement']
+    id: 'income',
+    title: 'Income & Timeline',
+    description: 'Required for accurate projections',
+    fields: ['a1_grossIncome', 'a2_yearsToRetirement']
   },
   {
-    id: 'employment',
-    title: 'Employment & Business',
-    description: 'Helps determine which retirement vehicles are available',
-    fields: ['q3_hasW2Employees', 'q4_robsInterest', 'q10_robsNewBusiness', 'q11_robsBalance', 'q12_robsSetupCost']
+    id: 'employer',
+    title: 'Employer Retirement Plan',
+    description: 'Your workplace retirement benefits',
+    fields: ['a3_has401k', 'a4_hasMatch', 'a5_matchFormula', 'a6_hasRoth401k'],
+    skipForProfiles: [1, 2, 3, 4]  // Skip entire section for ROBS/self-employed
   },
   {
-    id: 'employer_plans',
-    title: 'Employer Retirement Plans',
-    description: 'About your current employer benefits',
-    fields: ['q5_has401k', 'q6_hasMatch', 'q7_matchFormula', 'q8_hasRoth401k', 'q9_hsaEligible']
+    id: 'hsa',
+    title: 'Health Savings Account',
+    description: 'Triple tax-advantaged health savings',
+    fields: ['a7_hsaEligible']
+  },
+  {
+    id: 'education',
+    title: 'Education Savings',
+    description: 'Saving for children education',
+    fields: ['a8_hasChildren', 'a9_numChildren', 'a10_yearsToEducation']
   },
   {
     id: 'priorities',
     title: 'Savings Priorities',
-    description: 'How you want to allocate between goals',
-    fields: ['q13_hasChildren', 'q14_numChildren', 'q15_yearsToEducation', 'q16_priorityRanking']
+    description: 'How to weight your allocation goals',
+    fields: ['a11_priorityRanking']
   },
   {
-    id: 'current_state',
-    title: 'Current Balances & Contributions',
-    description: 'Your starting point for projections (total is calculated from individual accounts)',
-    fields: ['q17_current401kBalance', 'q18_currentIRABalance', 'q19_currentHSABalance', 'q20_currentEducationBalance', 'q21_monthly401kContribution', 'q22_monthlyIRAContribution', 'q23_monthlyHSAContribution', 'q24_monthlyEducationContribution']
+    id: 'balances',
+    title: 'Current Balances',
+    description: 'Your starting point for projections',
+    fields: ['a12_current401kBalance', 'a13_currentIRABalance', 'a14_currentHSABalance', 'a15_currentEducationBalance']
+  },
+  {
+    id: 'contributions',
+    title: 'Current Monthly Contributions',
+    description: 'What you are contributing now',
+    fields: ['a16_monthly401kContribution', 'a17_monthlyIRAContribution', 'a18_monthlyHSAContribution', 'a19_monthlyEducationContribution']
   }
+];
+
+// ============================================================================
+// DERIVED VALUES FROM UPSTREAM TOOLS
+// ============================================================================
+// These values can short-circuit classification without asking questions
+
+const DERIVED_CLASSIFICATION_CHECKS = {
+  // Profile 9: Late-Stage Growth
+  // Triggered if age >= 55 OR yearsToRetirement <= 5
+  profile9: {
+    check: (upstream) => {
+      const age = upstream.age || 0;
+      const yearsToRetirement = upstream.yearsToRetirement || 99;
+      return age >= 55 || yearsToRetirement <= 5;
+    },
+    profile: 9,
+    reason: 'Near retirement - focus on catch-up and preservation'
+  },
+
+  // Profile 6: Catch-Up Contributor
+  // Triggered if age >= 50 AND retirementConfidence < 0 (from Tool 2)
+  // retirementConfidence is used as a proxy for "catch-up feeling"
+  profile6: {
+    check: (upstream) => {
+      const age = upstream.age || 0;
+      const retirementConfidence = upstream.retirementConfidence;
+      // Only trigger if we have the data
+      if (age >= 50 && retirementConfidence !== null && retirementConfidence !== undefined) {
+        return retirementConfidence < 0;
+      }
+      return false;
+    },
+    profile: 6,
+    reason: 'Age 50+ and behind on retirement savings'
+  }
+};
+
+// ============================================================================
+// LEGACY COMPATIBILITY - QUESTIONNAIRE_FIELDS (flattened view)
+// ============================================================================
+// For backwards compatibility, combine all questions into flat structure
+
+const QUESTIONNAIRE_FIELDS = {
+  ...CLASSIFICATION_QUESTIONS,
+  ...ALLOCATION_QUESTIONS
+};
+
+// Legacy sections structure (for backwards compatibility)
+const QUESTIONNAIRE_SECTIONS = [
+  {
+    id: 'classification',
+    title: 'Profile Classification',
+    description: 'Determining your investor profile',
+    fields: CLASSIFICATION_ORDER
+  },
+  ...ALLOCATION_SECTIONS
 ];
 
 // ============================================================================
@@ -899,6 +1121,13 @@ const Tool6Constants = {
   TAX_STRATEGY_THRESHOLDS,
   EMPLOYER_MATCH_FORMULAS,
   AMBITION_QUOTIENT_CONFIG,
+  // Two-phase questionnaire exports
+  CLASSIFICATION_QUESTIONS,
+  CLASSIFICATION_ORDER,
+  ALLOCATION_QUESTIONS,
+  ALLOCATION_SECTIONS,
+  DERIVED_CLASSIFICATION_CHECKS,
+  // Legacy compatibility
   QUESTIONNAIRE_FIELDS,
   QUESTIONNAIRE_SECTIONS,
   UI_CONFIG,

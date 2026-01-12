@@ -2,7 +2,7 @@
 
 > **Purpose:** Get any AI coder up to speed quickly for multi-session development
 > **Last Updated:** January 11, 2026
-> **Current Sprint:** Sprint 1.2 Complete (24 questions), Ready for Sprint 2.2
+> **Current Sprint:** Phase 2 Complete - Two-Phase Questionnaire Tested & Working
 
 ---
 
@@ -178,16 +178,15 @@ google.script.run
 - [x] Sprint 0.2: Skeleton Tool & Registration
 - [x] Sprint 0.3: Basic Page Layout
 
-### Phase 1: Data Layer 🔄 IN PROGRESS
+### Phase 1: Data Layer ✅ COMPLETE
 - [x] Sprint 1.1: Upstream Data Pull - ✅ **COMPLETE** (Jan 11, 2026)
 - [x] Sprint 1.2: Fallback/Backup Questions - ✅ **COMPLETE** (Jan 11, 2026)
-- [ ] Sprint 1.3: TOOL6_SCENARIOS Sheet
 
-### Phase 2: Profile Classification
-- [ ] Sprint 2.1: Classification Input Gathering
-- [ ] Sprint 2.2: Decision Tree Implementation
-- [ ] Sprint 2.3: ROBS Qualification Flow
-- [ ] Sprint 2.4: Profile Display UI
+### Phase 2: Profile Classification ✅ COMPLETE
+- [x] Sprint 2.1: Classification Input Gathering - ⏭️ **SKIPPED** (covered by Sprint 1.2)
+- [x] Sprint 2.2: Decision Tree Implementation - ✅ **COMPLETE** (Jan 11, 2026)
+- [x] Sprint 2.3: ROBS Qualification Flow - ⏭️ **SKIPPED** (covered by Sprint 2.2)
+- [x] Sprint 2.4: Profile Display UI - ✅ **COMPLETE** (Jan 11, 2026) - Two-phase questionnaire with profile cards
 
 ### Phase 3: Ambition Quotient
 - [ ] Sprint 3.1: Priority Ranking UI
@@ -214,10 +213,11 @@ google.script.run
 - [ ] Sprint 6.3: Tax Breakdown Display
 
 ### Phase 7: Scenario Management
-- [ ] Sprint 7.1: Save Scenario
-- [ ] Sprint 7.2: Load Scenario
-- [ ] Sprint 7.3: Compare Scenarios
-- [ ] Sprint 7.4: PDF Generation
+- [ ] Sprint 7.1: TOOL6_SCENARIOS Sheet (moved from Phase 1)
+- [ ] Sprint 7.2: Save Scenario
+- [ ] Sprint 7.3: Load Scenario
+- [ ] Sprint 7.4: Compare Scenarios
+- [ ] Sprint 7.5: PDF Generation
 
 ### Phase 8: Trauma Integration
 - [ ] Sprint 8.1: Trauma Insights Display
@@ -412,21 +412,41 @@ When ending a session, update this section:
 ### Last Session Summary
 - **Date:** January 11, 2026
 - **What was done:**
-  - ✅ **COMPLETED Sprint 1.2: Fallback/Backup Questions UI (24 questions total)**
-  - ✅ **Added Education Domain Questions** (following legacy "Combined CESA" approach):
-    - Q14: numChildren (how many children/dependents)
-    - Q15: yearsToEducation (was Q14, renumbered)
-    - Q16: priorityRanking (was Q15, renumbered)
-    - Q20: currentEducationBalance (combined across all 529/CESA/UTMA)
-    - Q24: monthlyEducationContribution (combined across all children)
-  - ✅ **Fixed ROBS qualifier visibility** - Q10-12 now only show for "Interested" (not "Yes - already using")
-  - ✅ **Removed redundant total retirement balance** - Q16 removed, total calculated from Q17+Q18+Q19
-  - Updated Tool6Constants.js with new questions and sections
-  - Updated Tool6.js with visibility rules and validation
-  - Updated spec document to v1.6 with all question changes
-- **Current state:** Sprint 1.2 COMPLETE with 24 questions - ready for Sprint 2.2 (Profile Classification)
-- **Next task:** Sprint 2.2 (Decision Tree Implementation) - Sprint 2.1 skipped since questionnaire already collects all inputs
+  - ✅ **COMPLETED & TESTED: Two-Phase Questionnaire Redesign**
+  - Refactored Tool6Constants.js with new question structure:
+    - `CLASSIFICATION_QUESTIONS` (7 questions with short-circuit logic)
+    - `ALLOCATION_QUESTIONS` (19 questions, profile-specific)
+    - `CLASSIFICATION_ORDER` for progressive flow
+    - `ALLOCATION_SECTIONS` for organized rendering
+    - `DERIVED_CLASSIFICATION_CHECKS` for age-based auto-classification
+  - Updated `classifyProfile()` to support both old (q6_, q7_) and new (c1_, c2_) field names
+  - Rewrote `buildQuestionnaireHtml()` for two-phase flow:
+    - Phase A: Progressive classification (shows one question at a time, short-circuits on match)
+    - Phase B: Profile-specific allocation inputs (skips irrelevant questions)
+  - Added comprehensive client-side JavaScript:
+    - Classification flow handlers with short-circuit logic
+    - Profile result card display
+    - Phase B visibility management
+    - Form validation for new field structure
+  - Added CSS styles for two-phase UI (profile cards, phase transitions, animations)
+  - Updated test function with 7 new test cases for new field format (20 total)
+  - ✅ **Pushed to GAS and tested - all features working**
+- **Current state:** Phase 2 COMPLETE. Two-phase questionnaire tested and working in production.
+- **Next task:** Sprint 3.1 (Priority Ranking UI) - Ambition Quotient implementation
 - **Blockers:** None
+
+### Decision Tree Order (Legacy Aligned)
+```
+Profile 1 (ROBS in use)
+  → Profile 2 (ROBS interested + qualifies)
+    → Profile 3 (Business owner + employees)
+      → Profile 4 (Self-employed/Both, no employees)
+        → Profile 5 (Has Traditional IRA)
+          → Profile 9 (age >= 55 OR nearRetirement)
+            → Profile 6 (age >= 50 AND catchUpFeeling)
+              → Profile 8 (taxFocus = Now/Both)
+                → Profile 7 (default)
+```
 
 ### ✅ RESOLVED: Data Not Mapping from Tools 1-5 (Jan 11, 2026)
 
@@ -466,47 +486,117 @@ The `docs/Middleware/middleware-mapping.md` document is the **canonical referenc
 | Connection Insights | ✅ Green | subdomainQuotients mapped |
 
 ### Files Modified This Session
-- `tools/tool6/Tool6.js` - Major updates for Sprint 1.2:
-  - Added `buildQuestionnaireHtml()` method (**24 questions** across 5 sections)
-  - Added questionnaire-specific CSS styles
-  - Added client-side JavaScript for conditional visibility, validation, form submission
-  - Added `savePreSurveyTool6()` global wrapper function
-  - Added education domain visibility rules (Q14, Q15, Q20, Q24)
-  - Fixed ROBS qualifier visibility (Q10-12 only for "Interested")
-- `tools/tool6/Tool6Constants.js` - Added questionnaire configuration:
-  - `QUESTIONNAIRE_FIELDS` - **24 question definitions** with types, validation, conditional visibility
-  - `QUESTIONNAIRE_SECTIONS` - 5 logical groupings for UI organization
-  - Education questions: numChildren, yearsToEducation, currentEducationBalance, monthlyEducationContribution
-- `docs/Tool6/Tool6-Consolidated-Specification.md` - Updated to v1.6:
-  - Added education fields to Data Sources table
-  - Updated Ambition Quotient Questions section (Q13-Q16)
-  - Updated Current State Questions section (Q17-Q24, 8 total)
-  - Rewrote Question Conditional Logic section with all 24 questions
-  - Updated Default Values When Hidden table
-- `docs/Tool6/TOOL6-DEV-STARTUP.md` - Updated status and session notes
+- `tools/tool6/Tool6Constants.js` - Two-phase questionnaire structure:
+  - Added `CLASSIFICATION_QUESTIONS` (7 questions with termination rules)
+  - Added `CLASSIFICATION_ORDER` array
+  - Added `ALLOCATION_QUESTIONS` (19 questions with profile-skip rules)
+  - Added `ALLOCATION_SECTIONS` for rendering
+  - Added `DERIVED_CLASSIFICATION_CHECKS` for age-based profiles
+  - Maintained `QUESTIONNAIRE_FIELDS` and `QUESTIONNAIRE_SECTIONS` for backwards compatibility
+- `tools/tool6/Tool6.js` - Two-phase UI implementation:
+  - Updated `classifyProfile()` to support both old and new field names (lines 385-545)
+  - Rewrote `buildQuestionnaireHtml()` for two-phase flow (lines 1496-1720)
+  - Added comprehensive client-side JS for progressive classification flow
+  - Added CSS styles for profile cards, phase transitions, animations
+  - Updated `testTool6Classification()` with 7 new test cases (20 total)
+- `docs/Tool6/TOOL6-DEV-STARTUP.md` - Updated session notes
 
-### Notes for Next Session (Sprint 2.2)
+### Notes for Next Session
 
-**Recommended: Sprint 2.2 - Decision Tree Implementation**
-- The questionnaire already collects all 24 inputs needed for profile classification
-- Skip Sprint 2.1 (Classification Input Gathering) - already done in Sprint 1.2
-- Skip Sprint 1.3 (TOOL6_SCENARIOS Sheet) - scenarios not needed until after allocation works
+**Two-Phase Questionnaire Implementation Complete**
 
-**Sprint 2.2 Tasks:**
-1. Implement `classifyProfile()` method using decision tree from spec
-2. Decision tree: First match wins (Profile 1-9)
-3. Use Q4 (ROBS interest) + Q10-12 (ROBS qualifiers) for Profiles 1-3
-4. Use Q3 (W-2 employees) + Q5 (401k) for Profiles 4-6
-5. Profile 7 (Foundation Builder) is the catch-all default
-6. Age + retirement years for Profile 8-9
+The questionnaire now works in two phases:
 
-**Test Cases:**
-- ROBS Yes → Profile 1
-- ROBS Interested + all qualifiers Yes → Profile 2
-- Has employees + no 401k → Profile 4
-- Standard W-2 with 401k → Profile 7
-- Aggressive investor (score 6-7) + sufficient capital → Profile 8
-- Age 55+ or <5 years to retire → Profile 9
+## Phase A: Classification (Short-Circuit Decision Tree)
+
+Ask questions in decision tree order. **Stop as soon as profile is determined.**
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│ Q1: ROBS Status                                                         │
+│     "Are you using or interested in ROBS?"                              │
+│     - Yes, currently using → PROFILE 1 ✓ (skip to Phase B)              │
+│     - Interested → Ask Q2-Q4 qualifiers                                 │
+│     - No → Continue to Q5                                               │
+├─────────────────────────────────────────────────────────────────────────┤
+│ Q2-Q4: ROBS Qualifiers (only if "Interested")                           │
+│     - New business eligible? / $50k+ rollover? / Can fund setup?        │
+│     - All Yes → PROFILE 2 ✓ (skip to Phase B)                           │
+│     - Any No → Continue to Q5                                           │
+├─────────────────────────────────────────────────────────────────────────┤
+│ Q5: Work/Business Situation (COMBINED question)                         │
+│     - W-2 employee only → Continue to Q6                                │
+│     - Self-employed (no employees) → PROFILE 4 ✓                        │
+│     - Business owner WITH W-2 employees → PROFILE 3 ✓                   │
+│     - Both W-2 + self-employment → PROFILE 4 ✓                          │
+├─────────────────────────────────────────────────────────────────────────┤
+│ Q6: Traditional IRA                                                     │
+│     "Do you have a Traditional IRA?"                                    │
+│     - Yes → PROFILE 5 ✓                                                 │
+│     - No → Check derived values                                         │
+├─────────────────────────────────────────────────────────────────────────┤
+│ DERIVED CHECK: Near Retirement?                                         │
+│     (age >= 55 from Tool 2) OR (yearsToRetirement <= 5)                 │
+│     - Yes → PROFILE 9 ✓                                                 │
+├─────────────────────────────────────────────────────────────────────────┤
+│ DERIVED CHECK: Catch-Up Eligible?                                       │
+│     (age >= 50 from Tool 2) AND (retirementConfidence < 0 from Tool 2)  │
+│     - Yes → PROFILE 6 ✓                                                 │
+├─────────────────────────────────────────────────────────────────────────┤
+│ Q7: Tax Focus                                                           │
+│     "When would you prefer to minimize taxes?"                          │
+│     - Now / Both → PROFILE 8 ✓                                          │
+│     - Later → PROFILE 7 ✓ (default)                                     │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+**Max classification questions: 4** (most users answer 2-3)
+
+## Phase B: Allocation Inputs (Profile-Specific)
+
+After profile is assigned, ask ONLY relevant questions for their situation:
+
+| Profile | Skip These Questions |
+|---------|---------------------|
+| 1, 2 (ROBS) | Employer 401k, match formula |
+| 3 (Biz w/ Employees) | Employer 401k (show SEP/SIMPLE instead) |
+| 4 (Solo 401k) | Employer 401k, match formula |
+| 5-9 (W-2) | Ask all standard 401k questions |
+
+**Allocation questions by category:**
+- Income & Timeline: grossIncome, yearsToRetirement
+- Employer Plans: has401k, hasMatch, matchFormula, hasRoth401k (conditional)
+- HSA: hsaEligible, currentHSABalance, monthlyHSA
+- Education: hasChildren, numChildren, yearsToEducation (conditional)
+- Priority: ranking
+- Current Balances: 401k, IRA, HSA, education (conditional)
+- Current Contributions: 401k, IRA, HSA, education (conditional)
+
+## Question Count Comparison
+
+| Scenario | Old Approach | New Approach |
+|----------|--------------|--------------|
+| ROBS In Use | 31 questions | ~9 questions |
+| Solo 401k | 31 questions | ~12 questions |
+| Standard W-2 | 31 questions | ~16 questions |
+
+## Derived Values (Pull from Tools 1-5)
+
+| Value | Source | Used For |
+|-------|--------|----------|
+| age | Tool 2 `formData.age` | Profile 6, 9 checks |
+| retirementConfidence | Tool 2 `formData.retirementConfidence` | catchUpFeeling proxy |
+| nearRetirement | Derived from `yearsToRetirement <= 5` | Profile 9 check |
+
+## Implementation Tasks
+
+1. **Refactor `QUESTIONNAIRE_FIELDS`** - Split into classification vs allocation sections
+2. **Update `classifyProfile()`** - Use derived values from upstream tools
+3. **Build progressive UI** - Show one question at a time, short-circuit on match
+4. **Profile-specific allocation forms** - Only show relevant questions per profile
+
+**Test Function Available:**
+Run `testTool6Classification()` in Apps Script editor to verify all 20 test cases pass (13 legacy + 7 new format).
 
 ---
 

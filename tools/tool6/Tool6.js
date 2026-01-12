@@ -354,16 +354,194 @@ const Tool6 = {
   },
 
   /**
+   * Check ROBS eligibility based on qualifier questions
+   * All three must be 'Yes' to qualify
+   * Legacy: code.js lines 3131-3136
+   *
+   * Supports both old (q8_, q9_, q10_) and new (c2_, c3_, c4_) field names
+   */
+  checkROBSEligibility(preSurveyData) {
+    // Support both old and new field names
+    const newBiz = preSurveyData.c2_robsQualifier1 || preSurveyData.q8_robsNewBusiness;
+    const balance = preSurveyData.c3_robsQualifier2 || preSurveyData.q9_robsBalance;
+    const setup = preSurveyData.c4_robsQualifier3 || preSurveyData.q10_robsSetupCost;
+
+    const qualifies = newBiz === 'Yes' && balance === 'Yes' && setup === 'Yes';
+
+    const reasons = [];
+    if (newBiz !== 'Yes') {
+      reasons.push('Business structure not eligible for ROBS');
+    }
+    if (balance !== 'Yes') {
+      reasons.push('Insufficient rollover balance (need $50k+)');
+    }
+    if (setup !== 'Yes') {
+      reasons.push('Cannot fund setup costs ($5-10k)');
+    }
+
+    return { qualifies, reasons };
+  },
+
+  /**
    * Classify client into one of 9 investor profiles
-   * Decision tree from spec section "Profile Classification System"
+   *
+   * TWO-PHASE APPROACH:
+   * 1. Check DERIVED values from upstream tools (can short-circuit without questions)
+   * 2. Use questionnaire answers for remaining classification
+   *
+   * LEGACY ALIGNMENT: Decision tree matches code.js lines 3127-3152.
+   * First match wins - order matters!
+   *
+   * Profile Order:
+   * 1. ROBS-In-Use Strategist
+   * 2. ROBS-Curious Candidate (qualifies)
+   * 3. Business Owner with Employees
+   * 4. Solo 401(k) Optimizer
+   * 5. Bracket Strategist (has Trad IRA)
+   * 9. Late-Stage Growth (age >= 55 OR near retirement) - DERIVED
+   * 6. Catch-Up Contributor (age >= 50 AND catch-up feeling) - DERIVED
+   * 8. Roth Maximizer (tax focus = Now/Both)
+   * 7. Foundation Builder (default)
    */
   classifyProfile(clientId, preSurveyData, toolStatus) {
-    // TODO: Implement profile classification decision tree (Sprint 2.1-2.4)
-    // For now, return default profile (Foundation Builder)
+    const profiles = PROFILE_DEFINITIONS;
+
+    // ========================================================================
+    // EXTRACT UPSTREAM DATA (for derived checks)
+    // ========================================================================
+    const age = parseInt(preSurveyData.age) ||
+                parseInt(preSurveyData.a2_yearsToRetirement ? 65 - preSurveyData.a2_yearsToRetirement : 0) ||
+                toolStatus.age || 35;
+    const yearsToRetirement = parseInt(preSurveyData.a2_yearsToRetirement) ||
+                              toolStatus.yearsToRetirement || 30;
+
+    // ========================================================================
+    // EXTRACT QUESTIONNAIRE ANSWERS (support both old and new field names)
+    // ========================================================================
+
+    // ROBS Status (new: c1_robsStatus, old: q6_robsInUse + q7_robsInterest)
+    let robsInUse = false;
+    let robsInterested = false;
+
+    if (preSurveyData.c1_robsStatus) {
+      // New two-phase format
+      robsInUse = preSurveyData.c1_robsStatus === 'using';
+      robsInterested = preSurveyData.c1_robsStatus === 'interested';
+    } else {
+      // Legacy format
+      robsInUse = preSurveyData.q6_robsInUse === 'Yes';
+      robsInterested = preSurveyData.q7_robsInterest === 'Yes';
+    }
+
+    // Work Situation (new: c5_workSituation, old: q3_workSituation + q4_ownsBusiness + q5_hasW2Employees)
+    let workSituation = 'W-2';
+    let hasEmployees = false;
+
+    if (preSurveyData.c5_workSituation) {
+      // New two-phase format - combined question
+      workSituation = preSurveyData.c5_workSituation;
+      hasEmployees = workSituation === 'BizWithEmployees';
+      // Normalize for downstream logic
+      if (workSituation === 'BizWithEmployees') {
+        workSituation = 'Self-employed';
+      }
+    } else {
+      // Legacy format
+      workSituation = preSurveyData.q3_workSituation || 'W-2';
+      hasEmployees = preSurveyData.q5_hasW2Employees === 'Yes';
+    }
+
+    // Traditional IRA (new: c6_hasTradIRA, old: q14_hasTradIRA)
+    const hasTradIRA = preSurveyData.c6_hasTradIRA === 'Yes' ||
+                       preSurveyData.q14_hasTradIRA === 'Yes';
+
+    // Tax Focus (new: c7_taxFocus, old: q16_taxFocus)
+    const taxFocus = preSurveyData.c7_taxFocus || preSurveyData.q16_taxFocus || 'Later';
+
+    // Catch-up feeling (old format only - new format uses derived check)
+    const catchUpFeeling = preSurveyData.q17_catchUpFeeling === 'Yes';
+
+    // Near retirement (can be derived from yearsToRetirement)
+    const nearRetire = preSurveyData.q18_nearRetirement === 'Yes' || yearsToRetirement <= 5;
+
+    // ========================================================================
+    // DECISION TREE - First Match Wins (Legacy code.js lines 3127-3152)
+    // ========================================================================
+
+    // Profile 1: ROBS-In-Use Strategist
+    if (robsInUse) {
+      return {
+        ...profiles[1],
+        matchReason: 'You are currently using a ROBS structure'
+      };
+    }
+
+    // Profile 2: ROBS-Curious Candidate
+    if (robsInterested) {
+      const robsEligibility = this.checkROBSEligibility(preSurveyData);
+      if (robsEligibility.qualifies) {
+        return {
+          ...profiles[2],
+          matchReason: 'You are interested in ROBS and meet all eligibility requirements'
+        };
+      }
+      // If interested but does not qualify, fall through
+    }
+
+    // Profile 3: Business Owner with Employees
+    if (hasEmployees || preSurveyData.c5_workSituation === 'BizWithEmployees') {
+      return {
+        ...profiles[3],
+        matchReason: 'Business owner with employees - SEP-IRA, SIMPLE, or 401(k) options available'
+      };
+    }
+
+    // Profile 4: Solo 401(k) Optimizer
+    if ((workSituation === 'Self-employed' || workSituation === 'Both') && !hasEmployees) {
+      return {
+        ...profiles[4],
+        matchReason: 'Self-employed without employees - Solo 401(k) offers high contribution limits'
+      };
+    }
+
+    // Profile 5: Bracket Strategist (has Traditional IRA)
+    if (hasTradIRA) {
+      return {
+        ...profiles[5],
+        matchReason: 'You have a Traditional IRA - backdoor Roth and conversion strategies available'
+      };
+    }
+
+    // Profile 9: Late-Stage Growth (DERIVED CHECK)
+    // age >= 55 OR yearsToRetirement <= 5
+    if (age >= 55 || nearRetire) {
+      return {
+        ...profiles[9],
+        matchReason: 'Near retirement - focus on catch-up contributions and preservation'
+      };
+    }
+
+    // Profile 6: Catch-Up Contributor (DERIVED CHECK)
+    // age >= 50 AND (catchUpFeeling OR retirementConfidence < 0)
+    if (age >= 50 && catchUpFeeling) {
+      return {
+        ...profiles[6],
+        matchReason: 'Age 50+ and ready to accelerate - maximize catch-up contributions'
+      };
+    }
+
+    // Profile 8: Roth Maximizer (Traditional tax focus)
+    if (taxFocus === 'Now' || taxFocus === 'Both') {
+      return {
+        ...profiles[8],
+        matchReason: 'Prioritizing current tax reduction with Traditional/pre-tax contributions'
+      };
+    }
+
+    // Profile 7: Foundation Builder (DEFAULT)
     return {
-      id: 7,
-      name: 'Foundation Builder',
-      description: 'Default profile - full classification coming in Sprint 2'
+      ...profiles[7],
+      matchReason: 'Building your retirement foundation with a balanced approach'
     };
   },
 
@@ -919,6 +1097,120 @@ const Tool6 = {
       font-size: 14px;
       margin-top: 8px;
     }
+
+    /* ================================================================
+       TWO-PHASE QUESTIONNAIRE STYLES
+       ================================================================ */
+
+    .questionnaire-phase {
+      margin-bottom: 24px;
+    }
+
+    .questionnaire-phase.hidden {
+      display: none;
+    }
+
+    .phase-header {
+      margin-bottom: 20px;
+    }
+
+    /* Classification container - progressive questions */
+    .classification-container {
+      min-height: 150px;
+    }
+
+    .classification-question {
+      padding: 20px;
+      background: rgba(79, 70, 229, 0.05);
+      border-radius: 12px;
+      margin-bottom: 16px;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .classification-question.hidden {
+      display: none;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Profile result card */
+    .profile-result {
+      text-align: center;
+      padding: 24px;
+      animation: fadeIn 0.4s ease;
+    }
+
+    .profile-result.hidden {
+      display: none;
+    }
+
+    .profile-card {
+      display: inline-flex;
+      align-items: center;
+      gap: 16px;
+      background: linear-gradient(135deg, rgba(79, 70, 229, 0.15), rgba(79, 70, 229, 0.05));
+      border: 1px solid rgba(79, 70, 229, 0.3);
+      border-radius: 16px;
+      padding: 24px 32px;
+      margin-bottom: 20px;
+    }
+
+    .profile-icon {
+      font-size: 3rem;
+    }
+
+    .profile-info {
+      text-align: left;
+    }
+
+    .profile-info h3 {
+      color: var(--color-text-primary);
+      font-size: 1.3rem;
+      margin: 0 0 4px 0;
+    }
+
+    .profile-info p {
+      color: var(--color-text-secondary);
+      margin: 0;
+      font-size: 0.95rem;
+    }
+
+    /* Compact profile badge for Phase B */
+    .profile-result-compact {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 20px;
+      background: rgba(79, 70, 229, 0.1);
+      border-radius: 8px;
+      margin-bottom: 24px;
+    }
+
+    .btn-link {
+      background: none;
+      border: none;
+      color: var(--color-primary);
+      cursor: pointer;
+      font-size: 0.9rem;
+      text-decoration: underline;
+    }
+
+    .btn-link:hover {
+      color: var(--color-primary-dark);
+    }
+
+    /* Conditional field wrapper */
+    .conditional-field.hidden {
+      display: none;
+    }
+
+    /* Hidden utility class */
+    .hidden {
+      display: none !important;
+    }
   </style>
 </head>
 <body>
@@ -1010,7 +1302,7 @@ const Tool6 = {
         </div>
 
         <!-- Questionnaire Form -->
-        ${this.buildQuestionnaireHtml(preSurveyData, prefillData)}
+        ${this.buildQuestionnaireHtml(preSurveyData, prefillData, profile)}
       </div>
     </div>
 
@@ -1076,27 +1368,61 @@ const Tool6 = {
   <script>
     var clientId = '${clientId}';
     var formData = ${JSON.stringify(preSurveyData || {})};
+    var classifiedProfile = ${profile ? JSON.stringify(profile) : 'null'};
+    var upstreamAge = ${toolStatus.age || 'null'};
+    var upstreamYearsToRetirement = ${toolStatus.yearsToRetirement || 'null'};
 
-    // Conditional visibility rules (must match QUESTIONNAIRE_FIELDS.showIf)
-    var visibilityRules = {
-      q7_matchFormula: function() { return formData.q6_hasMatch === 'Yes'; },
-      q8_hasRoth401k: function() { return formData.q5_has401k === 'Yes'; },
-      // ROBS qualifiers only show for "Interested" - if already using ROBS, no need to qualify
-      q10_robsNewBusiness: function() { return formData.q4_robsInterest === 'Interested'; },
-      q11_robsBalance: function() { return formData.q4_robsInterest === 'Interested'; },
-      q12_robsSetupCost: function() { return formData.q4_robsInterest === 'Interested'; },
-      // Education-related questions only show if has children
-      q14_numChildren: function() { return formData.q13_hasChildren === 'Yes'; },
-      q15_yearsToEducation: function() { return formData.q13_hasChildren === 'Yes'; },
-      q20_currentEducationBalance: function() { return formData.q13_hasChildren === 'Yes'; },
-      q24_monthlyEducationContribution: function() { return formData.q13_hasChildren === 'Yes'; },
-      // Retirement account questions
-      q17_current401kBalance: function() { return formData.q5_has401k === 'Yes'; },
-      q21_monthly401kContribution: function() { return formData.q5_has401k === 'Yes'; },
-      // HSA questions
-      q19_currentHSABalance: function() { return formData.q9_hsaEligible === 'Yes'; },
-      q23_monthlyHSAContribution: function() { return formData.q9_hsaEligible === 'Yes'; }
+    // ========================================================================
+    // CLASSIFICATION FLOW CONFIGURATION
+    // ========================================================================
+
+    // Classification question order and termination rules
+    var classificationOrder = ['c1_robsStatus', 'c2_robsQualifier1', 'c3_robsQualifier2', 'c4_robsQualifier3', 'c5_workSituation', 'c6_hasTradIRA', 'c7_taxFocus'];
+
+    // Profile definitions for display
+    var profileDefinitions = ${JSON.stringify(PROFILE_DEFINITIONS)};
+
+    // Termination rules: { questionId: { answerValue: profileId } }
+    var terminatesAt = {
+      c1_robsStatus: { 'using': 1 },
+      c4_robsQualifier3: { 'Yes': 2 },
+      c5_workSituation: { 'Self-employed': 4, 'Both': 4, 'BizWithEmployees': 3 },
+      c6_hasTradIRA: { 'Yes': 5 },
+      c7_taxFocus: { 'Now': 8, 'Both': 8, 'Later': 7 }
     };
+
+    // Next question rules: { questionId: { answerValue: nextQuestionId } }
+    var nextQuestionRules = {
+      c1_robsStatus: { 'using': null, 'interested': 'c2_robsQualifier1', 'no': 'c5_workSituation' },
+      c2_robsQualifier1: { 'Yes': 'c3_robsQualifier2', 'No': 'c5_workSituation' },
+      c3_robsQualifier2: { 'Yes': 'c4_robsQualifier3', 'No': 'c5_workSituation' },
+      c4_robsQualifier3: { 'Yes': null, 'No': 'c5_workSituation' },
+      c5_workSituation: { 'W-2': 'c6_hasTradIRA', 'Self-employed': null, 'Both': null, 'BizWithEmployees': null },
+      c6_hasTradIRA: { 'Yes': null, 'No': 'c7_taxFocus' },
+      c7_taxFocus: { 'Now': null, 'Both': null, 'Later': null }
+    };
+
+    // ========================================================================
+    // PHASE B VISIBILITY RULES (Allocation questions)
+    // ========================================================================
+
+    var allocationVisibilityRules = {
+      a4_hasMatch: function() { return formData.a3_has401k === 'Yes'; },
+      a5_matchFormula: function() { return formData.a3_has401k === 'Yes' && formData.a4_hasMatch === 'Yes'; },
+      a6_hasRoth401k: function() { return formData.a3_has401k === 'Yes'; },
+      a9_numChildren: function() { return formData.a8_hasChildren === 'Yes'; },
+      a10_yearsToEducation: function() { return formData.a8_hasChildren === 'Yes'; },
+      a12_current401kBalance: function() { return formData.a3_has401k === 'Yes'; },
+      a14_currentHSABalance: function() { return formData.a7_hsaEligible === 'Yes'; },
+      a15_currentEducationBalance: function() { return formData.a8_hasChildren === 'Yes'; },
+      a16_monthly401kContribution: function() { return formData.a3_has401k === 'Yes'; },
+      a18_monthlyHSAContribution: function() { return formData.a7_hsaEligible === 'Yes'; },
+      a19_monthlyEducationContribution: function() { return formData.a8_hasChildren === 'Yes'; }
+    };
+
+    // ========================================================================
+    // SECTION TOGGLE
+    // ========================================================================
 
     function toggleSection(sectionId) {
       var body = document.getElementById(sectionId + 'Body');
@@ -1108,13 +1434,185 @@ const Tool6 = {
       if (summary) summary.classList.toggle('show');
     }
 
-    // Handle field value changes
-    function handleFieldChange(fieldId, value) {
+    // ========================================================================
+    // CLASSIFICATION FLOW HANDLERS
+    // ========================================================================
+
+    // Handle classification question answer
+    function handleClassificationAnswer(fieldId, value) {
       formData[fieldId] = value;
-      updateVisibility();
+
+      // Check if this answer terminates classification (assigns a profile)
+      if (terminatesAt[fieldId] && terminatesAt[fieldId][value]) {
+        var profileId = terminatesAt[fieldId][value];
+
+        // Check for derived overrides (age-based profiles 6 and 9)
+        profileId = checkDerivedOverrides(profileId);
+
+        showProfileResult(profileId);
+        return;
+      }
+
+      // Get next question
+      var nextQ = nextQuestionRules[fieldId] ? nextQuestionRules[fieldId][value] : null;
+
+      if (nextQ) {
+        // Before showing next question, check derived values for profiles 6 and 9
+        // These are checked after c6_hasTradIRA = No but before c7_taxFocus
+        if (nextQ === 'c7_taxFocus') {
+          var derivedProfile = checkDerivedProfiles();
+          if (derivedProfile) {
+            showProfileResult(derivedProfile);
+            return;
+          }
+        }
+
+        showClassificationQuestion(nextQ);
+      } else {
+        // No next question and no termination - should not happen, default to Profile 7
+        showProfileResult(7);
+      }
     }
 
-    // Handle Yes/No button clicks
+    // Check if derived values should override to Profile 6 or 9
+    function checkDerivedOverrides(profileId) {
+      // Profiles 6 and 9 are only for W-2 employees who would otherwise be 7 or 8
+      if (profileId === 7 || profileId === 8) {
+        var derivedProfile = checkDerivedProfiles();
+        if (derivedProfile) return derivedProfile;
+      }
+      return profileId;
+    }
+
+    // Check derived profiles based on age/years to retirement
+    function checkDerivedProfiles() {
+      var age = upstreamAge || 35;
+      var yearsToRetirement = upstreamYearsToRetirement || 30;
+
+      // Profile 9: Late-Stage Growth (age >= 55 OR yearsToRetirement <= 5)
+      if (age >= 55 || yearsToRetirement <= 5) {
+        return 9;
+      }
+
+      // Profile 6: Catch-Up Contributor (age >= 50 AND needs to catch up)
+      // Note: In two-phase flow, we do not have catchUpFeeling yet
+      // So Profile 6 only triggers if we have age >= 50 from upstream
+      // User will need to indicate catch-up feeling if not derived
+      if (age >= 50) {
+        // For now, do not auto-assign Profile 6 without explicit input
+        // The catch-up feeling question was removed in two-phase design
+        // Profile 6 is handled via taxFocus questions
+      }
+
+      return null;
+    }
+
+    // Show a specific classification question
+    function showClassificationQuestion(fieldId) {
+      // Hide all classification questions
+      classificationOrder.forEach(function(qId) {
+        var el = document.getElementById('cq_' + qId);
+        if (el) el.classList.add('hidden');
+      });
+
+      // Show the target question
+      var targetEl = document.getElementById('cq_' + fieldId);
+      if (targetEl) {
+        targetEl.classList.remove('hidden');
+        // Scroll into view
+        targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+
+    // Show the profile result card
+    function showProfileResult(profileId) {
+      classifiedProfile = profileDefinitions[profileId];
+      formData.classifiedProfile = profileId;
+
+      // Update hidden field
+      var profileInput = document.getElementById('classifiedProfile');
+      if (profileInput) profileInput.value = profileId;
+
+      // Hide classification container
+      var container = document.getElementById('classificationContainer');
+      if (container) container.classList.add('hidden');
+
+      // Show profile result
+      var result = document.getElementById('profileResult');
+      if (result) {
+        document.getElementById('profileIcon').textContent = classifiedProfile.icon || '';
+        document.getElementById('profileName').textContent = classifiedProfile.name;
+        document.getElementById('profileReason').textContent = classifiedProfile.matchReason || classifiedProfile.description;
+        result.classList.remove('hidden');
+      }
+    }
+
+    // Continue to Phase B (allocation inputs)
+    function continueToPhaseB() {
+      // Hide Phase A
+      var phaseA = document.getElementById('phaseA');
+      if (phaseA) phaseA.classList.add('hidden');
+
+      // Show Phase B
+      var phaseB = document.getElementById('phaseB');
+      if (phaseB) {
+        phaseB.classList.remove('hidden');
+        phaseB.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+
+      // Initialize Phase B visibility
+      updateAllocationVisibility();
+    }
+
+    // Restart classification (change profile)
+    function restartClassification() {
+      // Clear classification answers
+      classificationOrder.forEach(function(qId) {
+        formData[qId] = null;
+        var input = document.getElementById(qId);
+        if (input) input.value = '';
+        // Clear selected buttons
+        var buttons = document.querySelectorAll('#group_' + qId + ' .yesno-btn');
+        buttons.forEach(function(btn) { btn.classList.remove('selected'); });
+      });
+
+      classifiedProfile = null;
+
+      // Show Phase A
+      var phaseA = document.getElementById('phaseA');
+      if (phaseA) phaseA.classList.remove('hidden');
+
+      // Hide profile result, show classification container
+      var result = document.getElementById('profileResult');
+      if (result) result.classList.add('hidden');
+
+      var container = document.getElementById('classificationContainer');
+      if (container) container.classList.remove('hidden');
+
+      // Show first question
+      showClassificationQuestion(classificationOrder[0]);
+
+      // Hide Phase B
+      var phaseB = document.getElementById('phaseB');
+      if (phaseB) phaseB.classList.add('hidden');
+    }
+
+    // ========================================================================
+    // FIELD CHANGE HANDLERS
+    // ========================================================================
+
+    function handleFieldChange(fieldId, value) {
+      formData[fieldId] = value;
+
+      // Check if this is a classification question
+      if (classificationOrder.indexOf(fieldId) >= 0) {
+        handleClassificationAnswer(fieldId, value);
+      } else {
+        // Allocation question - update visibility
+        updateAllocationVisibility();
+      }
+    }
+
     function selectYesNo(fieldId, value) {
       var buttons = document.querySelectorAll('#group_' + fieldId + ' .yesno-btn');
       buttons.forEach(function(btn) {
@@ -1124,11 +1622,9 @@ const Tool6 = {
         }
       });
       document.getElementById(fieldId).value = value;
-      formData[fieldId] = value;
-      updateVisibility();
+      handleFieldChange(fieldId, value);
     }
 
-    // Handle ranking updates
     function updateRanking(fieldId) {
       var ranks = {
         retirement: parseInt(document.getElementById(fieldId + '_retirement').value),
@@ -1139,17 +1635,22 @@ const Tool6 = {
       formData[fieldId] = ranks;
     }
 
-    // Update conditional field visibility
-    function updateVisibility() {
-      for (var fieldId in visibilityRules) {
+    // ========================================================================
+    // VISIBILITY MANAGEMENT
+    // ========================================================================
+
+    function updateAllocationVisibility() {
+      for (var fieldId in allocationVisibilityRules) {
         var group = document.getElementById('group_' + fieldId);
         if (group) {
-          var shouldShow = visibilityRules[fieldId]();
+          var shouldShow = allocationVisibilityRules[fieldId]();
+          var wrapper = group.closest('.conditional-field');
+          var target = wrapper || group;
+
           if (shouldShow) {
-            group.classList.remove('hidden');
+            target.classList.remove('hidden');
           } else {
-            group.classList.add('hidden');
-            // Clear value when hidden
+            target.classList.add('hidden');
             var input = document.getElementById(fieldId);
             if (input) input.value = '';
             formData[fieldId] = null;
@@ -1158,29 +1659,39 @@ const Tool6 = {
       }
     }
 
-    // Validate form before submission
+    // ========================================================================
+    // FORM VALIDATION
+    // ========================================================================
+
     function validateForm() {
       var errors = [];
+
+      // Phase B required fields (allocation questions)
       var requiredFields = [
-        { id: 'q1_grossIncome', label: 'Gross annual income' },
-        { id: 'q2_yearsToRetirement', label: 'Years to retirement' },
-        { id: 'q3_hasW2Employees', label: 'W-2 employees question' },
-        { id: 'q4_robsInterest', label: 'ROBS interest' },
-        { id: 'q5_has401k', label: '401(k) availability' },
-        { id: 'q6_hasMatch', label: 'Employer match' },
-        { id: 'q9_hsaEligible', label: 'HSA eligibility' },
-        { id: 'q13_hasChildren', label: 'Children/education question' },
-        { id: 'q16_priorityRanking', label: 'Priority ranking' },
-        { id: 'q18_currentIRABalance', label: 'Current IRA balance' },
-        { id: 'q22_monthlyIRAContribution', label: 'Monthly IRA contribution' }
+        { id: 'a1_grossIncome', label: 'Gross annual income' },
+        { id: 'a2_yearsToRetirement', label: 'Years to retirement' },
+        { id: 'a7_hsaEligible', label: 'HSA eligibility' },
+        { id: 'a8_hasChildren', label: 'Education savings question' },
+        { id: 'a11_priorityRanking', label: 'Priority ranking' },
+        { id: 'a13_currentIRABalance', label: 'Current IRA balance' },
+        { id: 'a17_monthlyIRAContribution', label: 'Monthly IRA contribution' }
       ];
+
+      // Add employer questions if not skipped for profile
+      var skipProfiles = [1, 2, 3, 4];
+      var profileId = parseInt(document.getElementById('classifiedProfile').value) || 7;
+      if (skipProfiles.indexOf(profileId) === -1) {
+        requiredFields.push({ id: 'a3_has401k', label: '401(k) access' });
+      }
 
       requiredFields.forEach(function(field) {
         var input = document.getElementById(field.id);
         var group = document.getElementById('group_' + field.id);
+        var wrapper = group ? group.closest('.conditional-field') : null;
 
-        // Skip validation if field is hidden
+        // Skip if field or its wrapper is hidden
         if (group && group.classList.contains('hidden')) return;
+        if (wrapper && wrapper.classList.contains('hidden')) return;
 
         if (!input || !input.value || input.value === '') {
           errors.push(field.label + ' is required');
@@ -1188,21 +1699,30 @@ const Tool6 = {
       });
 
       // Validate grossIncome is positive
-      var grossIncome = parseFloat(document.getElementById('q1_grossIncome').value);
-      if (grossIncome <= 0) {
-        errors.push('Gross income must be greater than 0');
+      var grossIncomeEl = document.getElementById('a1_grossIncome');
+      if (grossIncomeEl) {
+        var grossIncome = parseFloat(grossIncomeEl.value);
+        if (grossIncome <= 0) {
+          errors.push('Gross income must be greater than 0');
+        }
       }
 
       // Validate yearsToRetirement is reasonable
-      var years = parseInt(document.getElementById('q2_yearsToRetirement').value);
-      if (years < 1 || years > 50) {
-        errors.push('Years to retirement must be between 1 and 50');
+      var yearsEl = document.getElementById('a2_yearsToRetirement');
+      if (yearsEl) {
+        var years = parseInt(yearsEl.value);
+        if (years < 1 || years > 50) {
+          errors.push('Years to retirement must be between 1 and 50');
+        }
       }
 
       return errors;
     }
 
-    // Submit questionnaire - matches Tool 4 pattern
+    // ========================================================================
+    // FORM SUBMISSION
+    // ========================================================================
+
     function submitQuestionnaire() {
       var errors = validateForm();
       var errorDiv = document.getElementById('errorMessage');
@@ -1222,10 +1742,9 @@ const Tool6 = {
 
       inputs.forEach(function(input) {
         if (input.name && input.value) {
-          // Parse numbers for currency/number fields
           if (input.type === 'number') {
             submitData[input.name] = parseFloat(input.value) || 0;
-          } else if (input.name === 'q15_priorityRanking') {
+          } else if (input.name === 'a11_priorityRanking') {
             try {
               submitData[input.name] = JSON.parse(input.value);
             } catch (e) {
@@ -1237,10 +1756,10 @@ const Tool6 = {
         }
       });
 
-      // Add monthlyBudget from Tool 4 (already available in toolStatus)
+      // Add monthlyBudget from Tool 4
       submitData.monthlyBudget = ${toolStatus.monthlyBudget || 0};
 
-      // Show loading overlay (matches Tool 4 pattern)
+      // Show loading overlay
       var loadingOverlay = document.getElementById('loadingOverlay');
       var loadingText = document.getElementById('loadingText');
       var loadingSubtext = document.getElementById('loadingSubtext');
@@ -1251,18 +1770,15 @@ const Tool6 = {
         loadingOverlay.classList.add('show');
       }
 
-      // Disable submit button
       var submitBtn = document.getElementById('submitBtn');
       if (submitBtn) {
         submitBtn.disabled = true;
         submitBtn.style.opacity = '0.5';
       }
 
-      // Submit to server using document.write() pattern (GAS iframe navigation)
       google.script.run
         .withSuccessHandler(function(result) {
           if (result && result.success === false) {
-            // Hide loading and show error
             if (loadingOverlay) loadingOverlay.classList.remove('show');
             if (submitBtn) {
               submitBtn.disabled = false;
@@ -1273,7 +1789,6 @@ const Tool6 = {
             return;
           }
 
-          // Use document.write() pattern (GAS iframe navigation)
           if (result && result.nextPageHtml) {
             document.open();
             document.write(result.nextPageHtml);
@@ -1282,7 +1797,6 @@ const Tool6 = {
           }
         })
         .withFailureHandler(function(error) {
-          // Hide loading and show error
           if (loadingOverlay) loadingOverlay.classList.remove('show');
           if (submitBtn) {
             submitBtn.disabled = false;
@@ -1294,13 +1808,21 @@ const Tool6 = {
         .savePreSurveyTool6(clientId, submitData);
     }
 
-    // Initialize visibility on page load
+    // ========================================================================
+    // INITIALIZATION
+    // ========================================================================
+
     document.addEventListener('DOMContentLoaded', function() {
-      updateVisibility();
+      // If profile already determined, show Phase B
+      if (classifiedProfile) {
+        updateAllocationVisibility();
+      }
     });
 
-    // Also run immediately in case DOMContentLoaded already fired
-    updateVisibility();
+    // Run immediately in case DOMContentLoaded already fired
+    if (classifiedProfile) {
+      updateAllocationVisibility();
+    }
   </script>
 </body>
 </html>
@@ -1308,11 +1830,16 @@ const Tool6 = {
   },
 
   /**
-   * Build questionnaire form HTML
-   * Renders all questions with conditional visibility handled client-side
+   * Build questionnaire form HTML - TWO-PHASE APPROACH
+   *
+   * Phase A: Classification - Progressive questions, short-circuit on profile match
+   * Phase B: Allocation - Profile-specific inputs after classification
+   *
+   * If profile is already determined (from preSurveyData), skip to Phase B
    */
-  buildQuestionnaireHtml(preSurveyData, prefillData) {
+  buildQuestionnaireHtml(preSurveyData, prefillData, profile = null) {
     const savedAnswers = preSurveyData || {};
+    const hasProfile = !!profile;
 
     // Helper to get value (saved > prefill > empty)
     const getValue = (fieldId, prefillKey) => {
@@ -1325,10 +1852,204 @@ const Tool6 = {
       return '';
     };
 
-    // Build HTML for each section
+    // Helper to render a single field
+    const renderField = (fieldId, field, value) => {
+      const isRequired = field.required ? 'required' : '';
+      let fieldHtml = `
+        <div class="form-group" id="group_${fieldId}">
+          <label class="form-label" for="${fieldId}">
+            ${field.label}
+            ${field.required ? '<span class="required-star">*</span>' : ''}
+          </label>
+      `;
+
+      switch (field.type) {
+        case 'currency':
+          fieldHtml += `
+            <div class="currency-input-wrapper">
+              <span class="currency-symbol">$</span>
+              <input type="number"
+                     id="${fieldId}"
+                     name="${fieldId}"
+                     class="form-input currency-input"
+                     value="${value}"
+                     placeholder="${field.placeholder || ''}"
+                     min="0"
+                     step="1"
+                     ${isRequired}
+                     onchange="handleFieldChange('${fieldId}', this.value)">
+            </div>
+          `;
+          break;
+
+        case 'number':
+          fieldHtml += `
+            <input type="number"
+                   id="${fieldId}"
+                   name="${fieldId}"
+                   class="form-input"
+                   value="${value}"
+                   placeholder="${field.placeholder || ''}"
+                   min="${field.min || 0}"
+                   max="${field.max || 999}"
+                   ${isRequired}
+                   onchange="handleFieldChange('${fieldId}', this.value)">
+          `;
+          break;
+
+        case 'yesno':
+          fieldHtml += `
+            <div class="yesno-buttons">
+              <button type="button"
+                      class="yesno-btn ${value === 'Yes' ? 'selected' : ''}"
+                      onclick="selectYesNo('${fieldId}', 'Yes')">Yes</button>
+              <button type="button"
+                      class="yesno-btn ${value === 'No' ? 'selected' : ''}"
+                      onclick="selectYesNo('${fieldId}', 'No')">No</button>
+              <input type="hidden" id="${fieldId}" name="${fieldId}" value="${value}">
+            </div>
+          `;
+          break;
+
+        case 'select':
+          fieldHtml += `<select id="${fieldId}" name="${fieldId}" class="form-input" ${isRequired} onchange="handleFieldChange('${fieldId}', this.value)">`;
+          for (const opt of field.options) {
+            const selected = value === opt.value ? 'selected' : '';
+            fieldHtml += `<option value="${opt.value}" ${selected}>${opt.label}</option>`;
+          }
+          fieldHtml += '</select>';
+          break;
+
+        case 'ranking':
+          const ranks = value ? (typeof value === 'string' ? JSON.parse(value) : value) : { retirement: 1, education: 2, health: 3 };
+          fieldHtml += `
+            <div class="ranking-inputs">
+              <div class="ranking-row">
+                <span class="ranking-label">Retirement security</span>
+                <select id="${fieldId}_retirement" class="form-input ranking-select" onchange="updateRanking('${fieldId}')">
+                  <option value="1" ${ranks.retirement === 1 ? 'selected' : ''}>1st</option>
+                  <option value="2" ${ranks.retirement === 2 ? 'selected' : ''}>2nd</option>
+                  <option value="3" ${ranks.retirement === 3 ? 'selected' : ''}>3rd</option>
+                </select>
+              </div>
+              <div class="ranking-row">
+                <span class="ranking-label">Education savings</span>
+                <select id="${fieldId}_education" class="form-input ranking-select" onchange="updateRanking('${fieldId}')">
+                  <option value="1" ${ranks.education === 1 ? 'selected' : ''}>1st</option>
+                  <option value="2" ${ranks.education === 2 ? 'selected' : ''}>2nd</option>
+                  <option value="3" ${ranks.education === 3 ? 'selected' : ''}>3rd</option>
+                </select>
+              </div>
+              <div class="ranking-row">
+                <span class="ranking-label">Health/medical</span>
+                <select id="${fieldId}_health" class="form-input ranking-select" onchange="updateRanking('${fieldId}')">
+                  <option value="1" ${ranks.health === 1 ? 'selected' : ''}>1st</option>
+                  <option value="2" ${ranks.health === 2 ? 'selected' : ''}>2nd</option>
+                  <option value="3" ${ranks.health === 3 ? 'selected' : ''}>3rd</option>
+                </select>
+              </div>
+              <input type="hidden" id="${fieldId}" name="${fieldId}" value='${JSON.stringify(ranks)}'>
+            </div>
+          `;
+          break;
+
+        default:
+          fieldHtml += `
+            <input type="text"
+                   id="${fieldId}"
+                   name="${fieldId}"
+                   class="form-input"
+                   value="${value}"
+                   placeholder="${field.placeholder || ''}"
+                   ${isRequired}
+                   onchange="handleFieldChange('${fieldId}', this.value)">
+          `;
+      }
+
+      if (field.helpText) {
+        fieldHtml += `<div class="form-help">${field.helpText}</div>`;
+      }
+
+      fieldHtml += '</div>';
+      return fieldHtml;
+    };
+
     let html = '<form id="questionnaireForm" onsubmit="return false;">';
 
-    for (const section of QUESTIONNAIRE_SECTIONS) {
+    // ========================================================================
+    // PHASE A: CLASSIFICATION (Progressive short-circuit flow)
+    // ========================================================================
+    if (!hasProfile) {
+      html += `
+        <div class="questionnaire-phase" id="phaseA">
+          <div class="phase-header">
+            <h4 class="section-subtitle">Step 1: Determine Your Investor Profile</h4>
+            <p class="section-description">Answer a few questions to find the best retirement strategy for your situation</p>
+          </div>
+          <div class="classification-container" id="classificationContainer">
+      `;
+
+      // Render classification questions (will be shown/hidden by JS)
+      for (const fieldId of CLASSIFICATION_ORDER) {
+        const field = CLASSIFICATION_QUESTIONS[fieldId];
+        if (!field) continue;
+
+        const value = getValue(fieldId, null);
+        // Initially hide all but first question
+        const isFirst = fieldId === CLASSIFICATION_ORDER[0];
+        const hiddenClass = isFirst ? '' : 'hidden';
+
+        html += `<div class="classification-question ${hiddenClass}" id="cq_${fieldId}">`;
+        html += renderField(fieldId, field, value);
+        html += '</div>';
+      }
+
+      html += `
+          </div>
+          <div class="profile-result hidden" id="profileResult">
+            <div class="profile-card">
+              <div class="profile-icon" id="profileIcon"></div>
+              <div class="profile-info">
+                <h3 id="profileName">Profile Name</h3>
+                <p id="profileReason">Match reason</p>
+              </div>
+            </div>
+            <button type="button" class="btn-secondary" onclick="continueToPhaseB()">
+              Continue to Allocation Details
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    // ========================================================================
+    // PHASE B: ALLOCATION INPUTS (Profile-specific)
+    // ========================================================================
+    const phaseBHidden = hasProfile ? '' : 'hidden';
+    const profileId = profile?.id || 7;
+
+    html += `
+      <div class="questionnaire-phase ${phaseBHidden}" id="phaseB">
+        <input type="hidden" id="classifiedProfile" name="classifiedProfile" value="${profileId}">
+    `;
+
+    // Show profile badge if we have one
+    if (hasProfile) {
+      html += `
+        <div class="profile-result-compact">
+          <span class="profile-badge">${profile.icon || ''} ${profile.name}</span>
+          <button type="button" class="btn-link" onclick="restartClassification()">Change</button>
+        </div>
+      `;
+    }
+
+    // Render allocation sections
+    for (const section of ALLOCATION_SECTIONS) {
+      // Skip sections that don't apply to this profile
+      if (section.skipForProfiles && section.skipForProfiles.includes(profileId)) {
+        continue;
+      }
+
       html += `
         <div class="questionnaire-section" id="section_${section.id}">
           <h4 class="section-subtitle">${section.title}</h4>
@@ -1337,164 +2058,37 @@ const Tool6 = {
       `;
 
       for (const fieldId of section.fields) {
-        const field = QUESTIONNAIRE_FIELDS[fieldId];
+        const field = ALLOCATION_QUESTIONS[fieldId];
         if (!field) continue;
+
+        // Skip fields that don't apply to this profile
+        if (field.skipForProfiles && field.skipForProfiles.includes(profileId)) {
+          continue;
+        }
 
         // Determine prefill key mapping
         let prefillKey = null;
-        if (fieldId === 'q1_grossIncome') prefillKey = 'income';
-        if (fieldId === 'q2_yearsToRetirement') prefillKey = 'yearsToRetirement';
+        if (fieldId === 'a1_grossIncome') prefillKey = 'income';
+        if (fieldId === 'a2_yearsToRetirement') prefillKey = 'yearsToRetirement';
 
         const value = getValue(fieldId, prefillKey);
-        const isRequired = field.required ? 'required' : '';
         const hasShowIf = field.showIf ? 'data-show-if="true"' : '';
 
-        html += `
-          <div class="form-group" id="group_${fieldId}" ${hasShowIf}>
-            <label class="form-label" for="${fieldId}">
-              ${field.label}
-              ${field.required ? '<span class="required-star">*</span>' : ''}
-            </label>
-        `;
-
-        // Render different input types
-        switch (field.type) {
-          case 'currency':
-            html += `
-              <div class="currency-input-wrapper">
-                <span class="currency-symbol">$</span>
-                <input type="number"
-                       id="${fieldId}"
-                       name="${fieldId}"
-                       class="form-input currency-input"
-                       value="${value}"
-                       placeholder="${field.placeholder || ''}"
-                       min="0"
-                       step="1"
-                       ${isRequired}
-                       onchange="handleFieldChange('${fieldId}', this.value)">
-              </div>
-            `;
-            break;
-
-          case 'number':
-            html += `
-              <input type="number"
-                     id="${fieldId}"
-                     name="${fieldId}"
-                     class="form-input"
-                     value="${value}"
-                     placeholder="${field.placeholder || ''}"
-                     min="${field.min || 0}"
-                     max="${field.max || 999}"
-                     ${isRequired}
-                     onchange="handleFieldChange('${fieldId}', this.value)">
-            `;
-            break;
-
-          case 'yesno':
-            html += `
-              <div class="yesno-buttons">
-                <button type="button"
-                        class="yesno-btn ${value === 'Yes' ? 'selected' : ''}"
-                        onclick="selectYesNo('${fieldId}', 'Yes')">Yes</button>
-                <button type="button"
-                        class="yesno-btn ${value === 'No' ? 'selected' : ''}"
-                        onclick="selectYesNo('${fieldId}', 'No')">No</button>
-                <input type="hidden" id="${fieldId}" name="${fieldId}" value="${value}">
-              </div>
-            `;
-            break;
-
-          case 'yesnoNA':
-            html += `
-              <div class="yesno-buttons">
-                <button type="button"
-                        class="yesno-btn ${value === 'Yes' ? 'selected' : ''}"
-                        onclick="selectYesNo('${fieldId}', 'Yes')">Yes</button>
-                <button type="button"
-                        class="yesno-btn ${value === 'No' ? 'selected' : ''}"
-                        onclick="selectYesNo('${fieldId}', 'No')">No</button>
-                <button type="button"
-                        class="yesno-btn ${value === 'N/A' ? 'selected' : ''}"
-                        onclick="selectYesNo('${fieldId}', 'N/A')">N/A</button>
-                <input type="hidden" id="${fieldId}" name="${fieldId}" value="${value}">
-              </div>
-            `;
-            break;
-
-          case 'select':
-            html += `<select id="${fieldId}" name="${fieldId}" class="form-input" ${isRequired} onchange="handleFieldChange('${fieldId}', this.value)">`;
-            for (const opt of field.options) {
-              const selected = value === opt.value ? 'selected' : '';
-              html += `<option value="${opt.value}" ${selected}>${opt.label}</option>`;
-            }
-            html += '</select>';
-            break;
-
-          case 'ranking':
-            // Simplified ranking - just 3 dropdowns for now
-            const ranks = value ? (typeof value === 'string' ? JSON.parse(value) : value) : { retirement: 1, education: 2, health: 3 };
-            html += `
-              <div class="ranking-inputs">
-                <div class="ranking-row">
-                  <span class="ranking-label">Retirement security</span>
-                  <select id="${fieldId}_retirement" class="form-input ranking-select" onchange="updateRanking('${fieldId}')">
-                    <option value="1" ${ranks.retirement === 1 ? 'selected' : ''}>1st</option>
-                    <option value="2" ${ranks.retirement === 2 ? 'selected' : ''}>2nd</option>
-                    <option value="3" ${ranks.retirement === 3 ? 'selected' : ''}>3rd</option>
-                  </select>
-                </div>
-                <div class="ranking-row">
-                  <span class="ranking-label">Children's education</span>
-                  <select id="${fieldId}_education" class="form-input ranking-select" onchange="updateRanking('${fieldId}')">
-                    <option value="1" ${ranks.education === 1 ? 'selected' : ''}>1st</option>
-                    <option value="2" ${ranks.education === 2 ? 'selected' : ''}>2nd</option>
-                    <option value="3" ${ranks.education === 3 ? 'selected' : ''}>3rd</option>
-                  </select>
-                </div>
-                <div class="ranking-row">
-                  <span class="ranking-label">Health/medical expenses</span>
-                  <select id="${fieldId}_health" class="form-input ranking-select" onchange="updateRanking('${fieldId}')">
-                    <option value="1" ${ranks.health === 1 ? 'selected' : ''}>1st</option>
-                    <option value="2" ${ranks.health === 2 ? 'selected' : ''}>2nd</option>
-                    <option value="3" ${ranks.health === 3 ? 'selected' : ''}>3rd</option>
-                  </select>
-                </div>
-                <input type="hidden" id="${fieldId}" name="${fieldId}" value='${JSON.stringify(ranks)}'>
-              </div>
-            `;
-            break;
-
-          default:
-            html += `
-              <input type="text"
-                     id="${fieldId}"
-                     name="${fieldId}"
-                     class="form-input"
-                     value="${value}"
-                     placeholder="${field.placeholder || ''}"
-                     ${isRequired}
-                     onchange="handleFieldChange('${fieldId}', this.value)">
-            `;
-        }
-
-        if (field.helpText) {
-          html += `<div class="form-help">${field.helpText}</div>`;
-        }
-
-        html += '</div>';  // Close form-group
+        html += `<div class="${field.showIf ? 'conditional-field' : ''}" ${hasShowIf}>`;
+        html += renderField(fieldId, field, value);
+        html += '</div>';
       }
 
-      html += '</div></div>';  // Close questions-grid and section
+      html += '</div></div>';
     }
 
     html += `
-      <div class="form-actions">
-        <button type="button" class="submit-btn" onclick="submitQuestionnaire()" id="submitBtn">
-          Calculate My Allocation
-        </button>
-        <div id="errorMessage" class="error-message"></div>
+        <div class="form-actions">
+          <button type="button" class="submit-btn" onclick="submitQuestionnaire()" id="submitBtn">
+            Calculate My Allocation
+          </button>
+          <div id="errorMessage" class="error-message"></div>
+        </div>
       </div>
     </form>`;
 
@@ -1585,4 +2179,242 @@ const Tool6 = {
  */
 function savePreSurveyTool6(clientId, preSurveyData) {
   return Tool6.savePreSurvey(clientId, preSurveyData);
+}
+
+/**
+ * Test function for profile classification
+ * Run from Apps Script editor to verify decision tree logic
+ *
+ * LEGACY ALIGNED: Test cases match legacy code.js classification logic
+ */
+function testTool6Classification() {
+  const testCases = [
+    // ========== ROBS Profiles ==========
+    {
+      name: 'Profile 1: ROBS In Use',
+      input: { q6_robsInUse: 'Yes' },
+      expected: 1
+    },
+    {
+      name: 'Profile 2: ROBS Interested + All Qualifiers Pass',
+      input: {
+        q6_robsInUse: 'No',
+        q7_robsInterest: 'Yes',
+        q8_robsNewBusiness: 'Yes',
+        q9_robsBalance: 'Yes',
+        q10_robsSetupCost: 'Yes'
+      },
+      expected: 2
+    },
+    {
+      name: 'ROBS Interested but missing qualifier (falls through)',
+      input: {
+        q6_robsInUse: 'No',
+        q7_robsInterest: 'Yes',
+        q8_robsNewBusiness: 'Yes',
+        q9_robsBalance: 'No',
+        q10_robsSetupCost: 'Yes',
+        q16_taxFocus: 'Later'  // Will hit Profile 7 default
+      },
+      expected: 7
+    },
+
+    // ========== Business Owner Profiles ==========
+    {
+      name: 'Profile 3: Business Owner with Employees',
+      input: {
+        q6_robsInUse: 'No',
+        q4_ownsBusiness: 'Yes',
+        q5_hasW2Employees: 'Yes'
+      },
+      expected: 3
+    },
+    {
+      name: 'Profile 4: Self-employed Solo 401k',
+      input: {
+        q6_robsInUse: 'No',
+        q3_workSituation: 'Self-employed',
+        q4_ownsBusiness: 'No',
+        q5_hasW2Employees: 'No'
+      },
+      expected: 4
+    },
+    {
+      name: 'Profile 4: Both W-2 and Self-employed (Solo eligible)',
+      input: {
+        q6_robsInUse: 'No',
+        q3_workSituation: 'Both',
+        q5_hasW2Employees: 'No'
+      },
+      expected: 4
+    },
+
+    // ========== IRA/Tax Strategy Profiles ==========
+    {
+      name: 'Profile 5: Has Traditional IRA (Roth Reclaimer)',
+      input: {
+        q6_robsInUse: 'No',
+        q3_workSituation: 'W-2',
+        q14_hasTradIRA: 'Yes'
+      },
+      expected: 5
+    },
+
+    // ========== Age-Based Profiles ==========
+    {
+      name: 'Profile 9: Age 55+ (Late Stage)',
+      input: {
+        q6_robsInUse: 'No',
+        q3_workSituation: 'W-2',
+        q14_hasTradIRA: 'No',
+        age: '55'
+      },
+      expected: 9
+    },
+    {
+      name: 'Profile 9: Near Retirement Flag',
+      input: {
+        q6_robsInUse: 'No',
+        q3_workSituation: 'W-2',
+        q14_hasTradIRA: 'No',
+        age: '52',
+        q18_nearRetirement: 'Yes'
+      },
+      expected: 9
+    },
+    {
+      name: 'Profile 6: Age 50+ and Catch-Up Feeling',
+      input: {
+        q6_robsInUse: 'No',
+        q3_workSituation: 'W-2',
+        q14_hasTradIRA: 'No',
+        age: '50',
+        q17_catchUpFeeling: 'Yes'
+      },
+      expected: 6
+    },
+
+    // ========== Tax Focus Profiles ==========
+    {
+      name: 'Profile 8: Tax Focus = Now (Traditional priority)',
+      input: {
+        q6_robsInUse: 'No',
+        q3_workSituation: 'W-2',
+        q14_hasTradIRA: 'No',
+        age: '40',
+        q16_taxFocus: 'Now'
+      },
+      expected: 8
+    },
+    {
+      name: 'Profile 8: Tax Focus = Both (Balanced)',
+      input: {
+        q6_robsInUse: 'No',
+        q3_workSituation: 'W-2',
+        q14_hasTradIRA: 'No',
+        age: '40',
+        q16_taxFocus: 'Both'
+      },
+      expected: 8
+    },
+
+    // ========== Default Profile ==========
+    {
+      name: 'Profile 7: Foundation Builder (Default - Tax Focus Later)',
+      input: {
+        q6_robsInUse: 'No',
+        q3_workSituation: 'W-2',
+        q14_hasTradIRA: 'No',
+        age: '35',
+        q16_taxFocus: 'Later'
+      },
+      expected: 7
+    },
+
+    // ========== NEW TWO-PHASE FORMAT TESTS ==========
+    {
+      name: 'NEW FORMAT - Profile 1: ROBS In Use',
+      input: { c1_robsStatus: 'using' },
+      expected: 1
+    },
+    {
+      name: 'NEW FORMAT - Profile 2: ROBS Interested + Qualifies',
+      input: {
+        c1_robsStatus: 'interested',
+        c2_robsQualifier1: 'Yes',
+        c3_robsQualifier2: 'Yes',
+        c4_robsQualifier3: 'Yes'
+      },
+      expected: 2
+    },
+    {
+      name: 'NEW FORMAT - Profile 3: Biz with Employees',
+      input: {
+        c1_robsStatus: 'no',
+        c5_workSituation: 'BizWithEmployees'
+      },
+      expected: 3
+    },
+    {
+      name: 'NEW FORMAT - Profile 4: Self-employed',
+      input: {
+        c1_robsStatus: 'no',
+        c5_workSituation: 'Self-employed'
+      },
+      expected: 4
+    },
+    {
+      name: 'NEW FORMAT - Profile 5: Has Trad IRA',
+      input: {
+        c1_robsStatus: 'no',
+        c5_workSituation: 'W-2',
+        c6_hasTradIRA: 'Yes'
+      },
+      expected: 5
+    },
+    {
+      name: 'NEW FORMAT - Profile 8: Tax Focus Now',
+      input: {
+        c1_robsStatus: 'no',
+        c5_workSituation: 'W-2',
+        c6_hasTradIRA: 'No',
+        c7_taxFocus: 'Now',
+        age: '40'
+      },
+      expected: 8
+    },
+    {
+      name: 'NEW FORMAT - Profile 7: Tax Focus Later (Default)',
+      input: {
+        c1_robsStatus: 'no',
+        c5_workSituation: 'W-2',
+        c6_hasTradIRA: 'No',
+        c7_taxFocus: 'Later',
+        age: '35'
+      },
+      expected: 7
+    }
+  ];
+
+  const results = [];
+  const mockToolStatus = { hasTool1: false, hasTool2: false, hasTool3: false, hasTool4: false, hasTool5: false };
+
+  testCases.forEach(tc => {
+    const profile = Tool6.classifyProfile('TEST', tc.input, mockToolStatus);
+    const passed = profile.id === tc.expected;
+    results.push({
+      name: tc.name,
+      expected: tc.expected,
+      actual: profile.id,
+      passed: passed,
+      reason: profile.matchReason
+    });
+    Logger.log((passed ? '✓' : '✗') + ' ' + tc.name + ': Expected ' + tc.expected + ', Got ' + profile.id);
+  });
+
+  const passCount = results.filter(r => r.passed).length;
+  Logger.log('---');
+  Logger.log('Results: ' + passCount + '/' + results.length + ' passed');
+
+  return results;
 }
