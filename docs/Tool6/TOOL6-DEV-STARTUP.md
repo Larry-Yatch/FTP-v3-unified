@@ -1,8 +1,8 @@
 # Tool 6: Development Startup Guide
 
 > **Purpose:** Get any AI coder up to speed quickly for multi-session development
-> **Last Updated:** January 9, 2026
-> **Current Sprint:** Phase 0 Complete, Phase 1 Ready to Start (Sprint 1.1)
+> **Last Updated:** January 11, 2026
+> **Current Sprint:** Sprint 1.1 Complete, Ready for Sprint 1.2
 
 ---
 
@@ -125,10 +125,11 @@ Inferred from filing status (added in v1.4):
 | Priority | File | Why |
 |----------|------|-----|
 | 1 | `docs/Tool6/Tool6-Consolidated-Specification.md` | Complete spec with all algorithms |
-| 2 | `tools/tool6/Tool6Constants.js` | All constants already implemented |
-| 3 | `tools/tool6/Tool6.js` | Current implementation state |
-| 4 | `tools/tool4/Tool4.js` | Reference patterns (same architecture) |
-| 5 | `CLAUDE.md` | GAS navigation rules (CRITICAL) |
+| 2 | `docs/Middleware/middleware-mapping.md` | **Data structure reference for Tools 1-5** |
+| 3 | `tools/tool6/Tool6Constants.js` | All constants already implemented |
+| 4 | `tools/tool6/Tool6.js` | Current implementation state |
+| 5 | `tools/tool4/Tool4.js` | Reference patterns (same architecture) |
+| 6 | `CLAUDE.md` | GAS navigation rules (CRITICAL) |
 
 ---
 
@@ -165,8 +166,8 @@ google.script.run
 - [x] Sprint 0.2: Skeleton Tool & Registration
 - [x] Sprint 0.3: Basic Page Layout
 
-### Phase 1: Data Layer 🚫 BLOCKED
-- [ ] Sprint 1.1: Upstream Data Pull - **BUG: Data not mapping, see Session Handoff**
+### Phase 1: Data Layer 🔄 IN PROGRESS
+- [x] Sprint 1.1: Upstream Data Pull - ✅ **COMPLETE** (Jan 11, 2026)
 - [ ] Sprint 1.2: Fallback/Backup Questions
 - [ ] Sprint 1.3: TOOL6_SCENARIOS Sheet
 
@@ -362,6 +363,8 @@ This startup doc serves as persistent memory across sessions. **Always update th
 | Tool 4 is REQUIRED (no backup) | Monthly budget must come from Tool 4's M bucket allocation | Jan 9, 2026 |
 | Profile 7 is default | Foundation Builder is the catch-all for standard W-2 employees | Jan 9, 2026 |
 | Use spec algorithms, not legacy code | Legacy has known bugs (e.g., Profile 8 classification) | Jan 9, 2026 |
+| **Always consult middleware-mapping.md** | Canonical reference for tool data structures; prevents data path bugs | Jan 11, 2026 |
+| **Gross Income & Years to Retirement must be asked in Tool 6** | Tool 2 only has clarity scores (not dollar amounts); Tool 4 goalTimeline is categorical goal priority, not retirement years | Jan 11, 2026 |
 
 ### Design Patterns Established
 1. **Single-page calculator** - Same as Tool 4, not multi-phase like Tools 1-3
@@ -376,67 +379,75 @@ This startup doc serves as persistent memory across sessions. **Always update th
 When ending a session, update this section:
 
 ### Last Session Summary
-- **Date:** January 9, 2026
+- **Date:** January 11, 2026
 - **What was done:**
-  - Added Tool 6 to dashboard in Router.js (`_buildTool6Card` method)
-  - Implemented `mapUpstreamFields()` to extract data from Tools 1-5
-  - Implemented `getDataStatus()` for UI status badges
-  - Updated `buildUnifiedPage()` with data status bar and data summary grid
-- **Current state:** Sprint 1.1 BLOCKED - data not mapping correctly
-- **Next task:** Fix data mapping bug before continuing to Sprint 1.2
-- **Blockers:** See BUG section below
+  - ✅ **FIXED Sprint 1.1 data mapping bug** - root cause was double-nested data structures
+  - Updated `mapUpstreamFields()` to handle different tool save patterns
+  - Fixed Tool 3/5 subdomain scores path (`scoring.subdomainQuotients` not `results.subdomainScores`)
+  - Deployed version @279 with all fixes
+  - Verified all data categories now display correctly for client 6123LY
+- **Current state:** Sprint 1.1 COMPLETE - ready for Sprint 1.2
+- **Next task:** Sprint 1.2 - Fallback/Backup Questions UI
+- **Blockers:** None
 
-### 🐛 ACTIVE BUG: Data Not Mapping from Tools 1-5
+### ✅ RESOLVED: Data Not Mapping from Tools 1-5 (Jan 11, 2026)
 
-**Symptoms:**
-- Tool 6 UI shows all data fields as "Not available"
-- Status badges: Demographics red, Financial Data yellow, Investment Profile green, Trauma Insights green, Identity Insights red, Connection Insights red
-- Blocker message incorrectly shows "Tool 4 must be completed first"
-- User has completed ALL tools (1-7) for client 6123LY
+**Root Cause Identified:**
+Different tools save data with different nesting structures:
+- **Tool 1** saves: `{ formData, scores, winner }` → access via `.data.winner`, `.data.scores`
+- **Tools 2/3/5** save: `{ data: formData, results, scoring }` → form data at `.data.data` (double-nested)
+- **Tool 4** saves flat: `{ scenarioName, multiply, monthlyIncome }` → access via `.data` directly
+- **Tool 3/5 subdomain scores** are at `scoring.subdomainQuotients`, NOT `results.subdomainScores`
 
-**What we know:**
-1. `DataService.getLatestResponse()` returns `{ data: {...}, status, timestamp, ... }`
-2. The actual form data is nested in the `.data` property
-3. Code in `mapUpstreamFields()` extracts `.data` correctly: `const t2 = (tool2Data && tool2Data.data) || {}`
-4. Tool 4 saves: `{ scenarioName, priority, multiply, essentials, freedom, enjoyment, monthlyIncome }`
-5. Tool 2 saves with field names: `age`, `marital`, `employment`
+**Fix Applied in `mapUpstreamFields()` (lines 138-215):**
+```javascript
+// Extract actual form/result data from each response
+const t1Raw = tool1Data?.data || {};
+const t1Winner = t1Raw.winner || t1Raw.winningPattern || null;
+const t1Scores = t1Raw.scores || {};
 
-**What we tried (all failed):**
-1. Added `Logger.log()` debug statements - logs don't appear in GAS execution logs
-2. Changed to `console.log()` debug statements - still don't appear
-3. Verified code is deployed via `clasp push` and `clasp pull` comparison
-4. The logs show FrameworkCore and InsightsPipeline running, but NO logs from Tool6.render() or mapUpstreamFields()
+const t2 = tool2Data?.data?.data || {};
+const t3 = tool3Data?.data?.data || {};
+const t3Scoring = tool3Data?.data?.scoring || {};  // subdomainQuotients here
+const t4 = tool4Data?.data || {};  // Tool 4 saves flat
+const t5 = tool5Data?.data?.data || {};
+const t5Scoring = tool5Data?.data?.scoring || {};  // subdomainQuotients here
+```
 
-**Likely root cause:**
-The `console.log` and `Logger.log` statements inside Tool6.js are NOT appearing in execution logs, even though the tool renders successfully. This suggests either:
-- Tool6 code is being cached/not refreshed despite clasp push
-- There's a different code path being executed
-- GAS is swallowing the logs somehow
+**Key Discovery:**
+The `docs/Middleware/middleware-mapping.md` document is the **canonical reference** for all tool data structures. Always consult it when pulling cross-tool data.
 
-**Next steps to try:**
-1. Check the actual RESPONSES sheet to see the raw data structure for client 6123LY
-2. Look at how Tool 4 successfully pulls data forward (it works) and copy that pattern exactly
-3. Try adding an intentional error to Tool6.js to verify code is actually being executed
-4. Check if there's a GAS execution cache that needs to be cleared
-
-**Test data:**
-- Client ID: 6123LY
-- Spreadsheet: https://docs.google.com/spreadsheets/d/1dEcTk-ODdp4mmYqPl4Du8jgmoUjhpnEjOgFfOOdEznc/edit?gid=2673055#gid=2673055
+**Test Results (Client 6123LY):**
+| Category | Status | Data Showing |
+|----------|--------|--------------|
+| Demographics | ✅ Yellow | age: 49 |
+| Financial Data | ✅ Yellow | monthlyBudget: $1,950 |
+| Investment Profile | ✅ Green | investmentScore: 4 |
+| Trauma Insights | ✅ Green | traumaPattern present |
+| Identity Insights | ✅ Green | subdomainQuotients mapped |
+| Connection Insights | ✅ Green | subdomainQuotients mapped |
 
 ### Files Modified This Session
-- `core/Router.js` - Added `_buildTool6Card` method (lines 1038-1093), Tool 6 status checks
-- `tools/tool6/Tool6.js` - Major updates:
-  - `checkToolCompletion()` with field mapping
-  - `mapUpstreamFields()` method (lines 133-212)
-  - `getDataStatus()` method (lines 218-304)
-  - Added debug logging (console.log) - NOT APPEARING IN LOGS
+- `tools/tool6/Tool6.js` - Fixed `mapUpstreamFields()` method (lines 138-215)
+  - Added proper nesting handling for each tool
+  - Fixed Tool 3/5 subdomain scores path
+  - Added detailed comments documenting each tool's save structure
+- `docs/Tool6/Tool6-Consolidated-Specification.md` - Updated Data Sources table
+  - Corrected subdomain scores path to `scoring.subdomainQuotients`
+  - Added reference to middleware-mapping.md
 
-### Notes for Next Session
-1. **FIRST**: Verify Tool6.js code is actually executing by adding an intentional syntax error or throw statement
-2. Check RESPONSES sheet directly for 6123LY to see actual data structure
-3. Compare with Tool 4's data pull pattern (Tool4.js) - it successfully shows data
-4. Consider if FrameworkCore/InsightsPipeline is interfering with Tool6.render()
-5. May need to examine how ToolRegistry.findByRoute() returns the tool module
+### Notes for Next Session (Sprint 1.2: Fallback/Backup Questions)
+
+**Goal:** Build UI for backup questions when upstream data is missing
+
+**Tasks:**
+1. Create fallback question components for each data category
+2. Implement conditional rendering based on data availability
+3. Add form validation for fallback inputs
+4. Save fallback answers to client record
+5. Update `mapUpstreamFields()` to use fallback values
+
+**Reference:** Spec section "New Questions Required" (lines 132-178)
 
 ---
 
@@ -445,6 +456,7 @@ The `console.log` and `Logger.log` statements inside Tool6.js are NOT appearing 
 | Resource | Location |
 |----------|----------|
 | Main Spec | `docs/Tool6/Tool6-Consolidated-Specification.md` |
+| **Data Structures** | `docs/Middleware/middleware-mapping.md` |
 | Constants | `tools/tool6/Tool6Constants.js` |
 | Main Tool | `tools/tool6/Tool6.js` |
 | Tool 4 Reference | `tools/tool4/Tool4.js` |

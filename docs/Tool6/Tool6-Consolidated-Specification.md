@@ -99,16 +99,18 @@ Following the proven Tool 4 and Tool 8 patterns:
 |-------|--------|------|------|
 | Age | Tool 2 | `tool2` | `data.age` |
 | Employment Type | Tool 2 | `tool2` | `data.employmentType` |
-| Gross Annual Income | Tool 2 | `tool2` | `data.income` |
+| **Gross Annual Income** | **Tool 6 Question** | `tool6` | **NOT in Tools 1-5** (Tool 2 only has clarity scores, not amounts) |
 | Business Owner | Tool 2 | `tool2` | `data.businessOwner` |
 | Filing Status | Tool 2 | `tool2` | `data.maritalStatus` → infer (Married = MFJ) |
 | Monthly Take-Home | Tool 4 | `tool4` | `data.monthlyIncome` |
-| Years to Retirement | Tool 4 | `tool4` | `data.goalTimeline` |
+| **Years to Retirement** | **Tool 6 Question** | `tool6` | **NOT in Tools 1-5** (Tool 4 goalTimeline is categorical goal timeline, not retirement years) |
 | Monthly Retirement Budget | Tool 4 | `tool4` | `data.multiply` (M bucket $ amount) |
 | Investment Score | Tool 4 | `tool4` | `data.investmentScore` (1-7) |
 | Trauma Pattern | Tool 1 | `tool1` | `data.winningPattern` |
-| Identity Subdomain Scores | Tool 3 | `tool3` | `data.subdomainScores` |
-| Connection Subdomain Scores | Tool 5 | `tool5` | `data.subdomainScores` |
+| Identity Subdomain Scores | Tool 3 | `tool3` | `scoring.subdomainQuotients` |
+| Connection Subdomain Scores | Tool 5 | `tool5` | `scoring.subdomainQuotients` |
+
+> **Important:** For detailed data structure documentation for all tools, see `docs/Middleware/middleware-mapping.md`. This document defines the canonical save formats and response schemas for Tools 1-5.
 
 ### Monthly Budget Calculation
 
@@ -131,35 +133,39 @@ function getMonthlyBudget(toolStatus) {
 
 ### New Questions Required
 
-#### Core Questions (7 - Always Asked)
+#### Core Questions (9 - Always Asked)
 
 | # | Question | Type | Purpose |
 |---|----------|------|---------|
-| 1 | Do you have W-2 employees (excluding yourself/spouse)? | Y/N | Profile classification |
-| 2 | Are you currently using or interested in ROBS? | Y/N/Interested | Profile 1-3 detection |
-| 3 | Does your employer offer a 401(k) plan? | Y/N | Vehicle eligibility |
-| 4 | Does your employer offer matching contributions? | Y/N | Non-discretionary calc |
-| 5 | What is your employer match formula? | Select | e.g., "50% up to 6%" |
-| 6 | Does your plan offer a Roth 401(k) option? | Y/N | Vehicle eligibility |
-| 7 | Are you HSA eligible (HDHP enrolled)? | Y/N | Vehicle eligibility |
+| 1 | What is your gross annual income (before taxes)? | Currency | Roth phase-out, tax strategy, employer match calc |
+| 2 | How many years until you plan to retire? | Number (1-50) | Projections, catch-up eligibility, Profile 9 detection |
+| 3 | Do you have W-2 employees (excluding yourself/spouse)? | Y/N | Profile classification |
+| 4 | Are you currently using or interested in ROBS? | Y/N/Interested | Profile 1-3 detection |
+| 5 | Does your employer offer a 401(k) plan? | Y/N | Vehicle eligibility |
+| 6 | Does your employer offer matching contributions? | Y/N | Non-discretionary calc |
+| 7 | What is your employer match formula? | Select | e.g., "50% up to 6%" |
+| 8 | Does your plan offer a Roth 401(k) option? | Y/N | Vehicle eligibility |
+| 9 | Are you HSA eligible (HDHP enrolled)? | Y/N | Vehicle eligibility |
 
-#### ROBS Qualifier Questions (3 - Conditional on Q2 = Yes/Interested)
+> **Note:** Questions 1-2 (Gross Income and Years to Retirement) are NOT available from Tools 1-5. Tool 2 only captures income clarity/stress scores, not actual dollar amounts. Tool 4's goalTimeline is a categorical field for the selected financial priority, not years until retirement.
+
+#### ROBS Qualifier Questions (3 - Conditional on Q4 = Yes/Interested)
 
 | # | Question | Type | Purpose |
 |---|----------|------|---------|
-| 8 | Is this a new business (or one you could restructure under a new C-corp)? | Y/N/N/A | ROBS eligibility |
-| 9 | Do you have at least $50,000 in a rollover-eligible retirement account? | Y/N/N/A | ROBS eligibility |
-| 10 | Can you fund the estimated $5,000-$10,000 setup cost? | Y/N/N/A | ROBS eligibility |
+| 10 | Is this a new business (or one you could restructure under a new C-corp)? | Y/N/N/A | ROBS eligibility |
+| 11 | Do you have at least $50,000 in a rollover-eligible retirement account? | Y/N/N/A | ROBS eligibility |
+| 12 | Can you fund the estimated $5,000-$10,000 setup cost? | Y/N/N/A | ROBS eligibility |
 
 #### Ambition Quotient Questions (2-3)
 
 | # | Question | Type | Purpose |
 |---|----------|------|---------|
-| 11 | Do you have children or plan to save for education? | Y/N | Education domain activation |
-| 12 | Years until first child needs education funds | Number | Education urgency (if Q11=Y) |
-| 13 | Rank your savings priorities (drag to reorder) | Ranking | Relative importance |
+| 13 | Do you have children or plan to save for education? | Y/N | Education domain activation |
+| 14 | Years until first child needs education funds | Number | Education urgency (if Q13=Y) |
+| 15 | Rank your savings priorities (drag to reorder) | Ranking | Relative importance |
 
-Options for Q13:
+Options for Q15:
 - Retirement security
 - Children's education
 - Health/medical expenses
@@ -168,13 +174,13 @@ Options for Q13:
 
 | # | Question | Type | Purpose |
 |---|----------|------|---------|
-| 14 | Current retirement account balance (total) | Currency | Starting point for projections |
-| 15 | Current 401(k) balance | Currency | Vehicle-specific |
-| 16 | Current IRA balance (Traditional + Roth) | Currency | Vehicle-specific |
-| 17 | Current HSA balance | Currency | Vehicle-specific |
-| 18 | Current monthly 401(k) contribution | Currency | Baseline for improvement |
-| 19 | Current monthly IRA contribution | Currency | Baseline for improvement |
-| 20 | Current monthly HSA contribution | Currency | Baseline for improvement |
+| 16 | Current retirement account balance (total) | Currency | Starting point for projections |
+| 17 | Current 401(k) balance | Currency | Vehicle-specific |
+| 18 | Current IRA balance (Traditional + Roth) | Currency | Vehicle-specific |
+| 19 | Current HSA balance | Currency | Vehicle-specific |
+| 20 | Current monthly 401(k) contribution | Currency | Baseline for improvement |
+| 21 | Current monthly IRA contribution | Currency | Baseline for improvement |
+| 22 | Current monthly HSA contribution | Currency | Baseline for improvement |
 
 ---
 
@@ -184,29 +190,32 @@ Options for Q13:
 
 ```javascript
 const QUESTION_VISIBILITY = {
-  // Q5: Match formula - only show if Q4 = Yes
-  q5_matchFormula: (answers) => answers.q4_hasMatch === 'Yes',
+  // Q1-2: Always shown (gross income, years to retirement)
+  // These are REQUIRED and cannot be pre-filled from other tools
 
-  // Q6: Roth 401k option - only show if Q3 = Yes
-  q6_roth401kOption: (answers) => answers.q3_has401k === 'Yes',
+  // Q7: Match formula - only show if Q6 = Yes
+  q7_matchFormula: (answers) => answers.q6_hasMatch === 'Yes',
 
-  // Q8-10: ROBS qualifiers - only show if Q2 = Yes or Interested
-  q8_robsNewBusiness: (answers) => ['Yes', 'Interested'].includes(answers.q2_robsInterest),
-  q9_robsBalance: (answers) => ['Yes', 'Interested'].includes(answers.q2_robsInterest),
-  q10_robsSetupCost: (answers) => ['Yes', 'Interested'].includes(answers.q2_robsInterest),
+  // Q8: Roth 401k option - only show if Q5 = Yes
+  q8_roth401kOption: (answers) => answers.q5_has401k === 'Yes',
 
-  // Q12: Years to education - only show if Q11 = Yes
-  q12_yearsToEducation: (answers) => answers.q11_hasChildren === 'Yes',
+  // Q10-12: ROBS qualifiers - only show if Q4 = Yes or Interested
+  q10_robsNewBusiness: (answers) => ['Yes', 'Interested'].includes(answers.q4_robsInterest),
+  q11_robsBalance: (answers) => ['Yes', 'Interested'].includes(answers.q4_robsInterest),
+  q12_robsSetupCost: (answers) => ['Yes', 'Interested'].includes(answers.q4_robsInterest),
 
-  // Q15-17: Vehicle balances - show based on eligibility
-  q15_401kBalance: (answers) => answers.q3_has401k === 'Yes',
-  q16_iraBalance: () => true, // Always show
-  q17_hsaBalance: (answers) => answers.q7_hsaEligible === 'Yes',
+  // Q14: Years to education - only show if Q13 = Yes
+  q14_yearsToEducation: (answers) => answers.q13_hasChildren === 'Yes',
 
-  // Q18-20: Vehicle contributions - show based on eligibility
-  q18_401kContribution: (answers) => answers.q3_has401k === 'Yes',
-  q19_iraContribution: () => true, // Always show
-  q20_hsaContribution: (answers) => answers.q7_hsaEligible === 'Yes'
+  // Q17-19: Vehicle balances - show based on eligibility
+  q17_401kBalance: (answers) => answers.q5_has401k === 'Yes',
+  q18_iraBalance: () => true, // Always show
+  q19_hsaBalance: (answers) => answers.q9_hsaEligible === 'Yes',
+
+  // Q20-22: Vehicle contributions - show based on eligibility
+  q20_401kContribution: (answers) => answers.q5_has401k === 'Yes',
+  q21_iraContribution: () => true, // Always show
+  q22_hsaContribution: (answers) => answers.q9_hsaEligible === 'Yes'
 };
 ```
 
@@ -214,12 +223,12 @@ const QUESTION_VISIBILITY = {
 
 | Question | Default When Hidden |
 |----------|---------------------|
-| Q5 (match formula) | null (no match) |
-| Q6 (Roth 401k) | false |
-| Q8-10 (ROBS qualifiers) | 'N/A' |
-| Q12 (years to education) | 99 (effectively disables Education domain) |
-| Q15, Q18 (401k) | 0 |
-| Q17, Q20 (HSA) | 0 |
+| Q7 (match formula) | null (no match) |
+| Q8 (Roth 401k) | false |
+| Q10-12 (ROBS qualifiers) | 'N/A' |
+| Q14 (years to education) | 99 (effectively disables Education domain) |
+| Q17, Q20 (401k) | 0 |
+| Q19, Q22 (HSA) | 0 |
 
 ---
 
