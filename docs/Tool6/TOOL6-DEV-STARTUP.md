@@ -372,6 +372,22 @@ This startup doc serves as persistent memory across sessions. **Always update th
 3. **Server-side classification, client-side recalc** - Heavy lifting on server, sliders are instant JS
 4. **Scenario persistence** - Save to TOOL6_SCENARIOS sheet, load/compare later
 
+### UI Style Alignment with Tool 4
+
+**CRITICAL:** All UI components must match Tool 4 patterns for consistency. See spec section "UI Style Requirements (Tool 4 Alignment)" for full details.
+
+| Pattern | Tool 4 Way | NOT This |
+|---------|------------|----------|
+| Submit button | `.submit-btn` (gold, pill shape) | `.btn-primary` (purple, square) |
+| Form input background | `rgba(0, 0, 0, 0.3)` | `rgba(255, 255, 255, 0.05)` |
+| Loading overlay | Static HTML + `.show` class toggle | Dynamically created element |
+| Error messages | `.error-message` + `.show` class | Inline `style.display` |
+| Button disable | `disabled = true` + `opacity = 0.5` | Just `disabled` |
+
+**Reference files:**
+- `tools/tool4/Tool4.js` - Lines 1393-1479 (CSS), Lines 4483-4534 (JS patterns)
+- `docs/Tool6/Tool6-Consolidated-Specification.md` - Section "UI Style Requirements"
+
 ---
 
 ## Session Handoff Protocol

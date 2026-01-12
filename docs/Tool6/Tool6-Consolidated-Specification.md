@@ -1,7 +1,7 @@
 # Tool 6: Retirement Blueprint Calculator - Consolidated Specification
 
-> **Version:** 1.4
-> **Date:** January 9, 2026
+> **Version:** 1.5
+> **Date:** January 11, 2026
 > **Status:** Approved for Implementation
 > **Consolidates:** Tool-6-Design-Spec.md + Tool6-Technical-Specification.md + Legacy Tool 6
 
@@ -9,6 +9,7 @@
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 1.5 | Jan 11, 2026 | Added UI Style Requirements section (Tool 4 alignment), added Q1/Q2 as required Tool 6 questions (gross income, years to retirement), renumbered questions to 22 total |
 | 1.4 | Jan 9, 2026 | Added HSA coverage type inference from filing status (Section 7 under Advanced Allocation Logic) - MFJ infers Family coverage, Single/MFS infers Individual coverage |
 | 1.3 | Jan 9, 2026 | **Agentic coding optimizations:** Added explicit monthly budget calculation formula, shared 401(k)/IRA limit algorithm with slider coupling, employer match seeding implementation, scenario comparison metrics table, GPT prompt template with API call pattern, fixed Profile 7 mapping in Appendix A, added implementation order note for Phase 4 |
 | 1.2 | Jan 8, 2026 | Fixed investment score return rates (8%-20%), updated IRS limits to 2025 ($23,500), added cross-references between allocation sections, updated profile IDs in non-discretionary seeds, expanded Sprint 4.3-4.5 with advanced allocation test cases, fixed calculateProjections to use safeguarded futureValue() |
@@ -88,6 +89,60 @@ Following the proven Tool 4 and Tool 8 patterns:
 1. **Button Click** → Initial calculation (pulls Tool 1-5 data, runs classification, Ambition Quotient, allocation)
 2. **Slider Adjustments** → Real-time recalculation (client-side JS)
 3. **Scenario Save** → Persists to TOOL6_SCENARIOS sheet
+
+### UI Style Requirements (Tool 4 Alignment)
+
+**IMPORTANT:** Tool 6 must follow Tool 4's established UI patterns for consistency across the application. Reference `tools/tool4/Tool4.js` for implementation details.
+
+#### CSS Classes (Must Match Tool 4)
+
+| Element | Class | Key Styles |
+|---------|-------|------------|
+| Submit Button | `.submit-btn` | Gold background (`var(--gold, #ffc107)`), dark text, 50px border-radius, hover transform |
+| Form Inputs | `.form-input` | `background: rgba(0, 0, 0, 0.3)`, white text, 8px border-radius |
+| Loading Overlay | `.loading-overlay` | Fixed position, `rgba(0,0,0,0.8)` background, uses `.show` class toggle |
+| Error Message | `.error-message` | Red border/background, uses `.show` class toggle (not inline style) |
+| Spinner | `.spinner` | 50px circle, purple border-top, spin animation |
+
+#### JavaScript Patterns (Must Match Tool 4)
+
+```javascript
+// Loading overlay - use existing element, toggle .show class
+var loadingOverlay = document.getElementById('loadingOverlay');
+loadingOverlay.classList.add('show');    // Show
+loadingOverlay.classList.remove('show'); // Hide
+
+// Error messages - use .show class, not inline display
+var errorDiv = document.getElementById('errorMessage');
+errorDiv.classList.add('show');          // Show
+errorDiv.classList.remove('show');       // Hide
+
+// Button disable pattern
+submitBtn.disabled = true;
+submitBtn.style.opacity = '0.5';
+
+// Navigation - use document.write() pattern (GAS requirement)
+if (result && result.nextPageHtml) {
+  document.open();
+  document.write(result.nextPageHtml);
+  document.close();
+  window.scrollTo(0, 0);
+}
+```
+
+#### HTML Structure (Must Match Tool 4)
+
+Loading overlay must be a static element in the body (not dynamically created):
+
+```html
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-content">
+    <div class="spinner"></div>
+    <div class="loading-text" id="loadingText">Loading...</div>
+    <div class="loading-subtext" id="loadingSubtext"></div>
+  </div>
+</div>
+```
 
 ---
 
