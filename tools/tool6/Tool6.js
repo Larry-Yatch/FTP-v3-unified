@@ -28,10 +28,13 @@ const Tool6 = {
    */
   render(params) {
     const clientId = params.clientId;
+    console.log('=== Tool6.render START for client: ' + clientId + ' ===');
 
     try {
       // Check Tools 1-5 completion status
+      console.log('Calling checkToolCompletion...');
       const toolStatus = this.checkToolCompletion(clientId);
+      console.log('checkToolCompletion returned. hasTool4: ' + toolStatus.hasTool4);
 
       // Check if pre-survey completed (questionnaire answers)
       const preSurveyData = this.getPreSurvey(clientId);
@@ -74,8 +77,11 @@ const Tool6 = {
    * Maps fields per spec Data Sources table (Tool6-Consolidated-Specification.md)
    */
   checkToolCompletion(clientId) {
+    console.log('=== checkToolCompletion START ===');
     try {
+      console.log('Getting tool1Data...');
       const tool1Data = DataService.getLatestResponse(clientId, 'tool1');
+      console.log('tool1Data: ' + (tool1Data ? 'found' : 'null'));
       const tool2Data = DataService.getLatestResponse(clientId, 'tool2');
       const tool3Data = DataService.getLatestResponse(clientId, 'tool3');
       const tool4Data = DataService.getLatestResponse(clientId, 'tool4');
@@ -104,7 +110,7 @@ const Tool6 = {
 
         // Summary stats
         missingCount: [tool1Data, tool2Data, tool3Data, tool4Data, tool5Data].filter(d => !d).length,
-        hasCriticalData: !!tool4Data && (tool4Data.multiply > 0 || tool4Data.multiplyAmount > 0)
+        hasCriticalData: !!tool4Data && (tool4Data.data?.multiply > 0 || tool4Data.data?.multiplyAmount > 0)
       };
     } catch (error) {
       Logger.log(`Error checking tool completion: ${error}`);
@@ -124,34 +130,34 @@ const Tool6 = {
    * Map upstream tool fields to Tool 6 field names
    * Per spec Data Sources table (lines 96-111)
    *
-   * NOTE: getLatestResponse returns { data: {...}, status, timestamp, ... }
-   * The actual form data is nested in .data property
+   * DATA STRUCTURE NOTES:
+   * - getLatestResponse() returns { data: {...}, status, timestamp, ... }
+   * - Tools 1/2/3/5 save: { data: formData, results: {...}, ... } -> so form data is at .data.data
+   * - Tool 4 saves flat: { scenarioName, multiply, monthlyIncome, ... } -> so data is at .data directly
    */
   mapUpstreamFields(tool1Data, tool2Data, tool3Data, tool4Data, tool5Data) {
-    // DEBUG: Log raw response structure
-    Logger.log('=== Tool6 mapUpstreamFields DEBUG ===');
-    Logger.log('tool1Data keys: ' + (tool1Data ? JSON.stringify(Object.keys(tool1Data)) : 'null'));
-    Logger.log('tool2Data keys: ' + (tool2Data ? JSON.stringify(Object.keys(tool2Data)) : 'null'));
-    Logger.log('tool4Data keys: ' + (tool4Data ? JSON.stringify(Object.keys(tool4Data)) : 'null'));
+    // Extract actual form/result data from each response
+    // Each tool has a different save structure:
+    //
+    // Tool 1 saves: { formData: {...}, scores: {...}, winner: '...' }
+    //   -> form data at .data.formData, winner at .data.winner
+    //
+    // Tools 2/3/5 save: { data: formData, results: {...}, gptInsights: {...} }
+    //   -> form data at .data.data, results at .data.results
+    //
+    // Tool 4 saves flat: { scenarioName, multiply, monthlyIncome, ... }
+    //   -> data directly at .data
+    //
+    const t1Raw = tool1Data?.data || {};
+    const t1Winner = t1Raw.winner || t1Raw.winningPattern || null;  // Tool 1's winner
+    const t1Scores = t1Raw.scores || {};  // Tool 1's scores
 
-    if (tool2Data && tool2Data.data) {
-      Logger.log('tool2Data.data keys: ' + JSON.stringify(Object.keys(tool2Data.data)));
-      Logger.log('tool2Data.data.age: ' + tool2Data.data.age);
-      Logger.log('tool2Data.data.marital: ' + tool2Data.data.marital);
-    }
-    if (tool4Data && tool4Data.data) {
-      Logger.log('tool4Data.data keys: ' + JSON.stringify(Object.keys(tool4Data.data)));
-      Logger.log('tool4Data.data.monthlyIncome: ' + tool4Data.data.monthlyIncome);
-      Logger.log('tool4Data.data.multiply: ' + tool4Data.data.multiply);
-    }
-    Logger.log('=== END DEBUG ===');
-
-    // Extract the .data property from each response (where actual form data lives)
-    const t1 = (tool1Data && tool1Data.data) || {};
-    const t2 = (tool2Data && tool2Data.data) || {};
-    const t3 = (tool3Data && tool3Data.data) || {};
-    const t4 = (tool4Data && tool4Data.data) || {};
-    const t5 = (tool5Data && tool5Data.data) || {};
+    const t2 = tool2Data?.data?.data || {};
+    const t3 = tool3Data?.data?.data || {};
+    const t3Scoring = tool3Data?.data?.scoring || {};  // Tool 3 scoring has subdomainQuotients
+    const t4 = tool4Data?.data || {};  // Tool 4 saves flat structure
+    const t5 = tool5Data?.data?.data || {};
+    const t5Scoring = tool5Data?.data?.scoring || {};  // Tool 5 scoring has subdomainQuotients
 
     // Infer filing status from marital status
     const inferFilingStatus = (maritalStatus) => {
@@ -179,9 +185,9 @@ const Tool6 = {
       : 0;
 
     return {
-      // From Tool 1: Trauma patterns
-      traumaPattern: t1.winningPattern || t1.primaryPattern || t1.winner || null,
-      traumaScores: t1.patternScores || t1.scores || null,
+      // From Tool 1: Trauma patterns (winner and scores are at top level of saved data)
+      traumaPattern: t1Winner,
+      traumaScores: t1Scores,
 
       // From Tool 2: Demographics and employment (field names: age, marital, employment)
       age: t2.age || t2.currentAge || null,
@@ -191,8 +197,8 @@ const Tool6 = {
       filingStatus: filingStatus,
       hsaCoverageType: inferHSACoverageType(filingStatus),
 
-      // From Tool 3: Identity subdomain scores
-      identitySubdomainScores: t3.subdomainScores || t3.scores || null,
+      // From Tool 3: Identity subdomain scores (in scoring.subdomainQuotients per middleware-mapping.md)
+      identitySubdomainScores: t3Scoring.subdomainQuotients || t3.subdomainScores || null,
 
       // From Tool 4: Financial data (CRITICAL - required for Tool 6)
       // Tool 4 saves: monthlyIncome, goalTimeline, allocations.Multiply (percentage)
@@ -203,8 +209,8 @@ const Tool6 = {
       investmentScore: t4.investmentScore || 4, // Default to Moderate (4)
       tool4Allocation: t4.allocations || t4.allocation || null,
 
-      // From Tool 5: Connection subdomain scores
-      connectionSubdomainScores: t5.subdomainScores || t5.scores || null
+      // From Tool 5: Connection subdomain scores (in scoring.subdomainQuotients per middleware-mapping.md)
+      connectionSubdomainScores: t5Scoring.subdomainQuotients || t5.subdomainScores || null
     };
   },
 
