@@ -574,6 +574,257 @@ const AMBITION_QUOTIENT_CONFIG = {
 };
 
 // ============================================================================
+// QUESTIONNAIRE CONFIGURATION
+// ============================================================================
+
+/**
+ * Question definitions for Sprint 1.2 questionnaire
+ * Per spec "New Questions Required" (lines 136-183)
+ *
+ * Questions 1-2 are ALWAYS required (not available from Tools 1-5)
+ * Questions 3-22 have conditional visibility rules
+ */
+const QUESTIONNAIRE_FIELDS = {
+  // Core Questions (Always Asked)
+  q1_grossIncome: {
+    id: 'q1_grossIncome',
+    label: 'What is your gross annual income (before taxes)?',
+    type: 'currency',
+    required: true,
+    placeholder: 'e.g., 85000',
+    helpText: 'Your total annual income before any deductions',
+    alwaysShow: true  // Not available from Tools 1-5
+  },
+  q2_yearsToRetirement: {
+    id: 'q2_yearsToRetirement',
+    label: 'How many years until you plan to retire?',
+    type: 'number',
+    required: true,
+    min: 1,
+    max: 50,
+    placeholder: 'e.g., 20',
+    helpText: 'Approximate years until your planned retirement',
+    alwaysShow: true  // Not available from Tools 1-5
+  },
+  q3_hasW2Employees: {
+    id: 'q3_hasW2Employees',
+    label: 'Do you have W-2 employees (excluding yourself/spouse)?',
+    type: 'yesno',
+    required: true,
+    helpText: 'This affects which retirement plans you can use'
+  },
+  q4_robsInterest: {
+    id: 'q4_robsInterest',
+    label: 'Are you currently using or interested in ROBS?',
+    type: 'select',
+    required: true,
+    options: [
+      { value: '', label: '-- Select --' },
+      { value: 'Yes', label: 'Yes - I currently use ROBS' },
+      { value: 'Interested', label: 'Interested - I want to learn more' },
+      { value: 'No', label: 'No - Not applicable to me' }
+    ],
+    helpText: 'Rollover for Business Startups - using retirement funds to start a business'
+  },
+  q5_has401k: {
+    id: 'q5_has401k',
+    label: 'Does your employer offer a 401(k) plan?',
+    type: 'yesno',
+    required: true,
+    helpText: 'Or similar employer-sponsored retirement plan'
+  },
+  q6_hasMatch: {
+    id: 'q6_hasMatch',
+    label: 'Does your employer offer matching contributions?',
+    type: 'yesno',
+    required: true,
+    helpText: 'Employer matches a portion of your contributions'
+  },
+  q7_matchFormula: {
+    id: 'q7_matchFormula',
+    label: 'What is your employer match formula?',
+    type: 'select',
+    required: false,
+    options: [
+      { value: '', label: '-- Select match formula --' },
+      { value: '100_3', label: '100% up to 3%' },
+      { value: '100_4', label: '100% up to 4%' },
+      { value: '100_5', label: '100% up to 5%' },
+      { value: '100_6', label: '100% up to 6%' },
+      { value: '50_6', label: '50% up to 6%' },
+      { value: '50_4', label: '50% up to 4%' },
+      { value: '25_6', label: '25% up to 6%' },
+      { value: 'other', label: 'Other / Not sure' }
+    ],
+    showIf: (answers) => answers.q6_hasMatch === 'Yes'
+  },
+  q8_hasRoth401k: {
+    id: 'q8_hasRoth401k',
+    label: 'Does your plan offer a Roth 401(k) option?',
+    type: 'yesno',
+    required: false,
+    helpText: 'Some plans offer after-tax Roth contributions',
+    showIf: (answers) => answers.q5_has401k === 'Yes'
+  },
+  q9_hsaEligible: {
+    id: 'q9_hsaEligible',
+    label: 'Are you HSA eligible (enrolled in a High Deductible Health Plan)?',
+    type: 'yesno',
+    required: true,
+    helpText: 'HSA provides triple tax advantages for medical expenses'
+  },
+
+  // ROBS Qualifier Questions (Conditional on Q4 = Yes/Interested)
+  q10_robsNewBusiness: {
+    id: 'q10_robsNewBusiness',
+    label: 'Is this a new business (or one you could restructure under a new C-corp)?',
+    type: 'yesnoNA',
+    required: false,
+    showIf: (answers) => ['Yes', 'Interested'].includes(answers.q4_robsInterest)
+  },
+  q11_robsBalance: {
+    id: 'q11_robsBalance',
+    label: 'Do you have at least $50,000 in a rollover-eligible retirement account?',
+    type: 'yesnoNA',
+    required: false,
+    showIf: (answers) => ['Yes', 'Interested'].includes(answers.q4_robsInterest)
+  },
+  q12_robsSetupCost: {
+    id: 'q12_robsSetupCost',
+    label: 'Can you fund the estimated $5,000-$10,000 setup cost?',
+    type: 'yesnoNA',
+    required: false,
+    showIf: (answers) => ['Yes', 'Interested'].includes(answers.q4_robsInterest)
+  },
+
+  // Ambition Quotient Questions
+  q13_hasChildren: {
+    id: 'q13_hasChildren',
+    label: 'Do you have children or plan to save for education?',
+    type: 'yesno',
+    required: true,
+    helpText: 'Affects allocation between retirement and education savings'
+  },
+  q14_yearsToEducation: {
+    id: 'q14_yearsToEducation',
+    label: 'Years until first child needs education funds',
+    type: 'number',
+    required: false,
+    min: 0,
+    max: 25,
+    placeholder: 'e.g., 10',
+    showIf: (answers) => answers.q13_hasChildren === 'Yes',
+    defaultWhenHidden: 99  // Effectively disables Education domain
+  },
+  q15_priorityRanking: {
+    id: 'q15_priorityRanking',
+    label: 'Rank your savings priorities (1 = highest priority)',
+    type: 'ranking',
+    required: true,
+    options: [
+      { value: 'retirement', label: 'Retirement security' },
+      { value: 'education', label: "Children's education" },
+      { value: 'health', label: 'Health/medical expenses' }
+    ],
+    helpText: 'Drag to reorder or click to select ranking'
+  },
+
+  // Current State Questions
+  q16_currentRetirementBalance: {
+    id: 'q16_currentRetirementBalance',
+    label: 'Current retirement account balance (total)',
+    type: 'currency',
+    required: true,
+    placeholder: 'e.g., 150000',
+    helpText: 'Combined balance of all retirement accounts'
+  },
+  q17_current401kBalance: {
+    id: 'q17_current401kBalance',
+    label: 'Current 401(k) balance',
+    type: 'currency',
+    required: false,
+    placeholder: 'e.g., 75000',
+    showIf: (answers) => answers.q5_has401k === 'Yes',
+    defaultWhenHidden: 0
+  },
+  q18_currentIRABalance: {
+    id: 'q18_currentIRABalance',
+    label: 'Current IRA balance (Traditional + Roth combined)',
+    type: 'currency',
+    required: true,
+    placeholder: 'e.g., 25000'
+  },
+  q19_currentHSABalance: {
+    id: 'q19_currentHSABalance',
+    label: 'Current HSA balance',
+    type: 'currency',
+    required: false,
+    placeholder: 'e.g., 5000',
+    showIf: (answers) => answers.q9_hsaEligible === 'Yes',
+    defaultWhenHidden: 0
+  },
+  q20_monthly401kContribution: {
+    id: 'q20_monthly401kContribution',
+    label: 'Current monthly 401(k) contribution',
+    type: 'currency',
+    required: false,
+    placeholder: 'e.g., 500',
+    showIf: (answers) => answers.q5_has401k === 'Yes',
+    defaultWhenHidden: 0
+  },
+  q21_monthlyIRAContribution: {
+    id: 'q21_monthlyIRAContribution',
+    label: 'Current monthly IRA contribution',
+    type: 'currency',
+    required: true,
+    placeholder: 'e.g., 200'
+  },
+  q22_monthlyHSAContribution: {
+    id: 'q22_monthlyHSAContribution',
+    label: 'Current monthly HSA contribution',
+    type: 'currency',
+    required: false,
+    placeholder: 'e.g., 100',
+    showIf: (answers) => answers.q9_hsaEligible === 'Yes',
+    defaultWhenHidden: 0
+  }
+};
+
+// Question order for rendering
+const QUESTIONNAIRE_SECTIONS = [
+  {
+    id: 'income_retirement',
+    title: 'Income & Retirement Timeline',
+    description: 'These fields are required for accurate projections',
+    fields: ['q1_grossIncome', 'q2_yearsToRetirement']
+  },
+  {
+    id: 'employment',
+    title: 'Employment & Business',
+    description: 'Helps determine which retirement vehicles are available',
+    fields: ['q3_hasW2Employees', 'q4_robsInterest', 'q10_robsNewBusiness', 'q11_robsBalance', 'q12_robsSetupCost']
+  },
+  {
+    id: 'employer_plans',
+    title: 'Employer Retirement Plans',
+    description: 'About your current employer benefits',
+    fields: ['q5_has401k', 'q6_hasMatch', 'q7_matchFormula', 'q8_hasRoth401k', 'q9_hsaEligible']
+  },
+  {
+    id: 'priorities',
+    title: 'Savings Priorities',
+    description: 'How you want to allocate between goals',
+    fields: ['q13_hasChildren', 'q14_yearsToEducation', 'q15_priorityRanking']
+  },
+  {
+    id: 'current_state',
+    title: 'Current Balances & Contributions',
+    description: 'Your starting point for projections',
+    fields: ['q16_currentRetirementBalance', 'q17_current401kBalance', 'q18_currentIRABalance', 'q19_currentHSABalance', 'q20_monthly401kContribution', 'q21_monthlyIRAContribution', 'q22_monthlyHSAContribution']
+  }
+];
+
+// ============================================================================
 // UI CONFIGURATION
 // ============================================================================
 
@@ -619,6 +870,8 @@ const Tool6Constants = {
   TAX_STRATEGY_THRESHOLDS,
   EMPLOYER_MATCH_FORMULAS,
   AMBITION_QUOTIENT_CONFIG,
+  QUESTIONNAIRE_FIELDS,
+  QUESTIONNAIRE_SECTIONS,
   UI_CONFIG,
   STORAGE_KEYS
 };

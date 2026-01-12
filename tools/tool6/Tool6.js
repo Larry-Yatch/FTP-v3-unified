@@ -666,9 +666,13 @@ const Tool6 = {
       padding: 12px;
       border: 1px solid rgba(255, 255, 255, 0.2);
       border-radius: 8px;
-      background: rgba(255, 255, 255, 0.05);
+      background: rgba(0, 0, 0, 0.3);
       color: var(--color-text-primary);
       font-size: 1rem;
+    }
+
+    .form-input[type="number"] {
+      max-width: 300px;
     }
 
     .form-input:focus {
@@ -692,9 +696,241 @@ const Tool6 = {
       color: var(--color-text-secondary);
       margin-bottom: 12px;
     }
+
+    /* Questionnaire Styles */
+    .questionnaire-section {
+      margin-bottom: 32px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .questionnaire-section:last-child {
+      border-bottom: none;
+    }
+
+    .section-subtitle {
+      color: var(--color-primary);
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .section-description {
+      color: var(--color-text-muted);
+      font-size: 0.9rem;
+      margin-bottom: 20px;
+    }
+
+    .questions-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+    }
+
+    .form-group {
+      margin-bottom: 0;
+    }
+
+    .form-group.hidden {
+      display: none;
+    }
+
+    .required-star {
+      color: #ef4444;
+      margin-left: 2px;
+    }
+
+    .form-help {
+      font-size: 0.8rem;
+      color: var(--color-text-muted);
+      margin-top: 6px;
+    }
+
+    .currency-input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .currency-symbol {
+      position: absolute;
+      left: 12px;
+      color: var(--color-text-muted);
+      font-weight: 500;
+    }
+
+    .currency-input {
+      padding-left: 28px !important;
+    }
+
+    .yesno-buttons {
+      display: flex;
+      gap: 8px;
+    }
+
+    .yesno-btn {
+      flex: 1;
+      padding: 10px 16px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--color-text-secondary);
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .yesno-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.3);
+    }
+
+    .yesno-btn.selected {
+      background: rgba(79, 70, 229, 0.3);
+      border-color: var(--color-primary);
+      color: var(--color-text-primary);
+    }
+
+    .ranking-inputs {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .ranking-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .ranking-label {
+      flex: 1;
+      color: var(--color-text-secondary);
+    }
+
+    .ranking-select {
+      width: 80px;
+    }
+
+    .form-actions {
+      margin-top: 32px;
+      padding-top: 24px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .form-input:invalid {
+      border-color: #ef4444;
+    }
+
+    /* Submit Button - matches Tool 4 style */
+    .submit-btn {
+      background: var(--gold, #ffc107);
+      color: #140f23;
+      border: none;
+      padding: 15px 40px;
+      border-radius: 50px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      width: 100%;
+      max-width: 400px;
+      transition: transform 0.2s, box-shadow 0.2s;
+      margin-top: 20px;
+    }
+
+    .submit-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(255, 193, 7, 0.3);
+    }
+
+    .submit-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* Error Message - matches Tool 4 style */
+    .error-message {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #fca5a5;
+      padding: 12px 20px;
+      border-radius: 8px;
+      margin-top: 16px;
+      display: none;
+      max-width: 400px;
+      text-align: center;
+    }
+
+    .error-message.show {
+      display: block;
+    }
+
+    /* Loading overlay - matches Tool 4 style */
+    .loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+
+    .loading-overlay.show {
+      display: flex;
+    }
+
+    .loading-content {
+      text-align: center;
+    }
+
+    .spinner {
+      border: 4px solid rgba(255, 255, 255, 0.1);
+      border-top: 4px solid #4f46e5;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 20px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .loading-text {
+      color: white;
+      font-size: 18px;
+      font-weight: 500;
+    }
+
+    .loading-subtext {
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 14px;
+      margin-top: 8px;
+    }
   </style>
 </head>
 <body>
+  <!-- Loading Overlay - matches Tool 4 structure -->
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-content">
+      <div class="spinner"></div>
+      <div class="loading-text" id="loadingText">Calculating Your Allocation...</div>
+      <div class="loading-subtext" id="loadingSubtext">Analyzing your retirement profile</div>
+    </div>
+  </div>
+
   <div class="tool6-container">
     <!-- Header -->
     <div style="text-align: center; margin-bottom: 32px;">
@@ -773,10 +1009,8 @@ const Tool6 = {
           </div>
         </div>
 
-        <div class="placeholder-message" style="padding: 20px;">
-          <h3>Questionnaire Coming: Sprint 1.2-3</h3>
-          <p>Additional questions for profile classification and vehicle eligibility.</p>
-        </div>
+        <!-- Questionnaire Form -->
+        ${this.buildQuestionnaireHtml(preSurveyData, prefillData)}
       </div>
     </div>
 
@@ -841,6 +1075,21 @@ const Tool6 = {
 
   <script>
     var clientId = '${clientId}';
+    var formData = ${JSON.stringify(preSurveyData || {})};
+
+    // Conditional visibility rules (must match QUESTIONNAIRE_FIELDS.showIf)
+    var visibilityRules = {
+      q7_matchFormula: function() { return formData.q6_hasMatch === 'Yes'; },
+      q8_hasRoth401k: function() { return formData.q5_has401k === 'Yes'; },
+      q10_robsNewBusiness: function() { return ['Yes', 'Interested'].includes(formData.q4_robsInterest); },
+      q11_robsBalance: function() { return ['Yes', 'Interested'].includes(formData.q4_robsInterest); },
+      q12_robsSetupCost: function() { return ['Yes', 'Interested'].includes(formData.q4_robsInterest); },
+      q14_yearsToEducation: function() { return formData.q13_hasChildren === 'Yes'; },
+      q17_current401kBalance: function() { return formData.q5_has401k === 'Yes'; },
+      q19_currentHSABalance: function() { return formData.q9_hsaEligible === 'Yes'; },
+      q20_monthly401kContribution: function() { return formData.q5_has401k === 'Yes'; },
+      q22_monthlyHSAContribution: function() { return formData.q9_hsaEligible === 'Yes'; }
+    };
 
     function toggleSection(sectionId) {
       var body = document.getElementById(sectionId + 'Body');
@@ -852,11 +1101,398 @@ const Tool6 = {
       if (summary) summary.classList.toggle('show');
     }
 
-    // Future: Add form submission, slider handling, etc.
+    // Handle field value changes
+    function handleFieldChange(fieldId, value) {
+      formData[fieldId] = value;
+      updateVisibility();
+    }
+
+    // Handle Yes/No button clicks
+    function selectYesNo(fieldId, value) {
+      var buttons = document.querySelectorAll('#group_' + fieldId + ' .yesno-btn');
+      buttons.forEach(function(btn) {
+        btn.classList.remove('selected');
+        if (btn.textContent === value) {
+          btn.classList.add('selected');
+        }
+      });
+      document.getElementById(fieldId).value = value;
+      formData[fieldId] = value;
+      updateVisibility();
+    }
+
+    // Handle ranking updates
+    function updateRanking(fieldId) {
+      var ranks = {
+        retirement: parseInt(document.getElementById(fieldId + '_retirement').value),
+        education: parseInt(document.getElementById(fieldId + '_education').value),
+        health: parseInt(document.getElementById(fieldId + '_health').value)
+      };
+      document.getElementById(fieldId).value = JSON.stringify(ranks);
+      formData[fieldId] = ranks;
+    }
+
+    // Update conditional field visibility
+    function updateVisibility() {
+      for (var fieldId in visibilityRules) {
+        var group = document.getElementById('group_' + fieldId);
+        if (group) {
+          var shouldShow = visibilityRules[fieldId]();
+          if (shouldShow) {
+            group.classList.remove('hidden');
+          } else {
+            group.classList.add('hidden');
+            // Clear value when hidden
+            var input = document.getElementById(fieldId);
+            if (input) input.value = '';
+            formData[fieldId] = null;
+          }
+        }
+      }
+    }
+
+    // Validate form before submission
+    function validateForm() {
+      var errors = [];
+      var requiredFields = [
+        { id: 'q1_grossIncome', label: 'Gross annual income' },
+        { id: 'q2_yearsToRetirement', label: 'Years to retirement' },
+        { id: 'q3_hasW2Employees', label: 'W-2 employees question' },
+        { id: 'q4_robsInterest', label: 'ROBS interest' },
+        { id: 'q5_has401k', label: '401(k) availability' },
+        { id: 'q6_hasMatch', label: 'Employer match' },
+        { id: 'q9_hsaEligible', label: 'HSA eligibility' },
+        { id: 'q13_hasChildren', label: 'Children/education question' },
+        { id: 'q15_priorityRanking', label: 'Priority ranking' },
+        { id: 'q16_currentRetirementBalance', label: 'Current retirement balance' },
+        { id: 'q18_currentIRABalance', label: 'Current IRA balance' },
+        { id: 'q21_monthlyIRAContribution', label: 'Monthly IRA contribution' }
+      ];
+
+      requiredFields.forEach(function(field) {
+        var input = document.getElementById(field.id);
+        var group = document.getElementById('group_' + field.id);
+
+        // Skip validation if field is hidden
+        if (group && group.classList.contains('hidden')) return;
+
+        if (!input || !input.value || input.value === '') {
+          errors.push(field.label + ' is required');
+        }
+      });
+
+      // Validate grossIncome is positive
+      var grossIncome = parseFloat(document.getElementById('q1_grossIncome').value);
+      if (grossIncome <= 0) {
+        errors.push('Gross income must be greater than 0');
+      }
+
+      // Validate yearsToRetirement is reasonable
+      var years = parseInt(document.getElementById('q2_yearsToRetirement').value);
+      if (years < 1 || years > 50) {
+        errors.push('Years to retirement must be between 1 and 50');
+      }
+
+      return errors;
+    }
+
+    // Submit questionnaire - matches Tool 4 pattern
+    function submitQuestionnaire() {
+      var errors = validateForm();
+      var errorDiv = document.getElementById('errorMessage');
+
+      if (errors.length > 0) {
+        errorDiv.innerHTML = errors.join('<br>');
+        errorDiv.classList.add('show');
+        return;
+      }
+
+      errorDiv.classList.remove('show');
+
+      // Collect all form data
+      var form = document.getElementById('questionnaireForm');
+      var inputs = form.querySelectorAll('input, select');
+      var submitData = {};
+
+      inputs.forEach(function(input) {
+        if (input.name && input.value) {
+          // Parse numbers for currency/number fields
+          if (input.type === 'number') {
+            submitData[input.name] = parseFloat(input.value) || 0;
+          } else if (input.name === 'q15_priorityRanking') {
+            try {
+              submitData[input.name] = JSON.parse(input.value);
+            } catch (e) {
+              submitData[input.name] = { retirement: 1, education: 2, health: 3 };
+            }
+          } else {
+            submitData[input.name] = input.value;
+          }
+        }
+      });
+
+      // Add monthlyBudget from Tool 4 (already available in toolStatus)
+      submitData.monthlyBudget = ${toolStatus.monthlyBudget || 0};
+
+      // Show loading overlay (matches Tool 4 pattern)
+      var loadingOverlay = document.getElementById('loadingOverlay');
+      var loadingText = document.getElementById('loadingText');
+      var loadingSubtext = document.getElementById('loadingSubtext');
+
+      if (loadingOverlay) {
+        if (loadingText) loadingText.textContent = 'Calculating Your Allocation...';
+        if (loadingSubtext) loadingSubtext.textContent = 'Analyzing your retirement profile';
+        loadingOverlay.classList.add('show');
+      }
+
+      // Disable submit button
+      var submitBtn = document.getElementById('submitBtn');
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.style.opacity = '0.5';
+      }
+
+      // Submit to server using document.write() pattern (GAS iframe navigation)
+      google.script.run
+        .withSuccessHandler(function(result) {
+          if (result && result.success === false) {
+            // Hide loading and show error
+            if (loadingOverlay) loadingOverlay.classList.remove('show');
+            if (submitBtn) {
+              submitBtn.disabled = false;
+              submitBtn.style.opacity = '1';
+            }
+            errorDiv.innerHTML = result.error || 'An error occurred. Please try again.';
+            errorDiv.classList.add('show');
+            return;
+          }
+
+          // Use document.write() pattern (GAS iframe navigation)
+          if (result && result.nextPageHtml) {
+            document.open();
+            document.write(result.nextPageHtml);
+            document.close();
+            window.scrollTo(0, 0);
+          }
+        })
+        .withFailureHandler(function(error) {
+          // Hide loading and show error
+          if (loadingOverlay) loadingOverlay.classList.remove('show');
+          if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.style.opacity = '1';
+          }
+          errorDiv.innerHTML = 'Server error: ' + error.message;
+          errorDiv.classList.add('show');
+        })
+        .savePreSurveyTool6(clientId, submitData);
+    }
+
+    // Initialize visibility on page load
+    document.addEventListener('DOMContentLoaded', function() {
+      updateVisibility();
+    });
+
+    // Also run immediately in case DOMContentLoaded already fired
+    updateVisibility();
   </script>
 </body>
 </html>
     `;
+  },
+
+  /**
+   * Build questionnaire form HTML
+   * Renders all questions with conditional visibility handled client-side
+   */
+  buildQuestionnaireHtml(preSurveyData, prefillData) {
+    const savedAnswers = preSurveyData || {};
+
+    // Helper to get value (saved > prefill > empty)
+    const getValue = (fieldId, prefillKey) => {
+      if (savedAnswers[fieldId] !== undefined && savedAnswers[fieldId] !== null) {
+        return savedAnswers[fieldId];
+      }
+      if (prefillKey && prefillData[prefillKey] !== undefined && prefillData[prefillKey] !== null) {
+        return prefillData[prefillKey];
+      }
+      return '';
+    };
+
+    // Build HTML for each section
+    let html = '<form id="questionnaireForm" onsubmit="return false;">';
+
+    for (const section of QUESTIONNAIRE_SECTIONS) {
+      html += `
+        <div class="questionnaire-section" id="section_${section.id}">
+          <h4 class="section-subtitle">${section.title}</h4>
+          <p class="section-description">${section.description}</p>
+          <div class="questions-grid">
+      `;
+
+      for (const fieldId of section.fields) {
+        const field = QUESTIONNAIRE_FIELDS[fieldId];
+        if (!field) continue;
+
+        // Determine prefill key mapping
+        let prefillKey = null;
+        if (fieldId === 'q1_grossIncome') prefillKey = 'income';
+        if (fieldId === 'q2_yearsToRetirement') prefillKey = 'yearsToRetirement';
+
+        const value = getValue(fieldId, prefillKey);
+        const isRequired = field.required ? 'required' : '';
+        const hasShowIf = field.showIf ? 'data-show-if="true"' : '';
+
+        html += `
+          <div class="form-group" id="group_${fieldId}" ${hasShowIf}>
+            <label class="form-label" for="${fieldId}">
+              ${field.label}
+              ${field.required ? '<span class="required-star">*</span>' : ''}
+            </label>
+        `;
+
+        // Render different input types
+        switch (field.type) {
+          case 'currency':
+            html += `
+              <div class="currency-input-wrapper">
+                <span class="currency-symbol">$</span>
+                <input type="number"
+                       id="${fieldId}"
+                       name="${fieldId}"
+                       class="form-input currency-input"
+                       value="${value}"
+                       placeholder="${field.placeholder || ''}"
+                       min="0"
+                       step="1"
+                       ${isRequired}
+                       onchange="handleFieldChange('${fieldId}', this.value)">
+              </div>
+            `;
+            break;
+
+          case 'number':
+            html += `
+              <input type="number"
+                     id="${fieldId}"
+                     name="${fieldId}"
+                     class="form-input"
+                     value="${value}"
+                     placeholder="${field.placeholder || ''}"
+                     min="${field.min || 0}"
+                     max="${field.max || 999}"
+                     ${isRequired}
+                     onchange="handleFieldChange('${fieldId}', this.value)">
+            `;
+            break;
+
+          case 'yesno':
+            html += `
+              <div class="yesno-buttons">
+                <button type="button"
+                        class="yesno-btn ${value === 'Yes' ? 'selected' : ''}"
+                        onclick="selectYesNo('${fieldId}', 'Yes')">Yes</button>
+                <button type="button"
+                        class="yesno-btn ${value === 'No' ? 'selected' : ''}"
+                        onclick="selectYesNo('${fieldId}', 'No')">No</button>
+                <input type="hidden" id="${fieldId}" name="${fieldId}" value="${value}">
+              </div>
+            `;
+            break;
+
+          case 'yesnoNA':
+            html += `
+              <div class="yesno-buttons">
+                <button type="button"
+                        class="yesno-btn ${value === 'Yes' ? 'selected' : ''}"
+                        onclick="selectYesNo('${fieldId}', 'Yes')">Yes</button>
+                <button type="button"
+                        class="yesno-btn ${value === 'No' ? 'selected' : ''}"
+                        onclick="selectYesNo('${fieldId}', 'No')">No</button>
+                <button type="button"
+                        class="yesno-btn ${value === 'N/A' ? 'selected' : ''}"
+                        onclick="selectYesNo('${fieldId}', 'N/A')">N/A</button>
+                <input type="hidden" id="${fieldId}" name="${fieldId}" value="${value}">
+              </div>
+            `;
+            break;
+
+          case 'select':
+            html += `<select id="${fieldId}" name="${fieldId}" class="form-input" ${isRequired} onchange="handleFieldChange('${fieldId}', this.value)">`;
+            for (const opt of field.options) {
+              const selected = value === opt.value ? 'selected' : '';
+              html += `<option value="${opt.value}" ${selected}>${opt.label}</option>`;
+            }
+            html += '</select>';
+            break;
+
+          case 'ranking':
+            // Simplified ranking - just 3 dropdowns for now
+            const ranks = value ? (typeof value === 'string' ? JSON.parse(value) : value) : { retirement: 1, education: 2, health: 3 };
+            html += `
+              <div class="ranking-inputs">
+                <div class="ranking-row">
+                  <span class="ranking-label">Retirement security</span>
+                  <select id="${fieldId}_retirement" class="form-input ranking-select" onchange="updateRanking('${fieldId}')">
+                    <option value="1" ${ranks.retirement === 1 ? 'selected' : ''}>1st</option>
+                    <option value="2" ${ranks.retirement === 2 ? 'selected' : ''}>2nd</option>
+                    <option value="3" ${ranks.retirement === 3 ? 'selected' : ''}>3rd</option>
+                  </select>
+                </div>
+                <div class="ranking-row">
+                  <span class="ranking-label">Children's education</span>
+                  <select id="${fieldId}_education" class="form-input ranking-select" onchange="updateRanking('${fieldId}')">
+                    <option value="1" ${ranks.education === 1 ? 'selected' : ''}>1st</option>
+                    <option value="2" ${ranks.education === 2 ? 'selected' : ''}>2nd</option>
+                    <option value="3" ${ranks.education === 3 ? 'selected' : ''}>3rd</option>
+                  </select>
+                </div>
+                <div class="ranking-row">
+                  <span class="ranking-label">Health/medical expenses</span>
+                  <select id="${fieldId}_health" class="form-input ranking-select" onchange="updateRanking('${fieldId}')">
+                    <option value="1" ${ranks.health === 1 ? 'selected' : ''}>1st</option>
+                    <option value="2" ${ranks.health === 2 ? 'selected' : ''}>2nd</option>
+                    <option value="3" ${ranks.health === 3 ? 'selected' : ''}>3rd</option>
+                  </select>
+                </div>
+                <input type="hidden" id="${fieldId}" name="${fieldId}" value='${JSON.stringify(ranks)}'>
+              </div>
+            `;
+            break;
+
+          default:
+            html += `
+              <input type="text"
+                     id="${fieldId}"
+                     name="${fieldId}"
+                     class="form-input"
+                     value="${value}"
+                     placeholder="${field.placeholder || ''}"
+                     ${isRequired}
+                     onchange="handleFieldChange('${fieldId}', this.value)">
+            `;
+        }
+
+        if (field.helpText) {
+          html += `<div class="form-help">${field.helpText}</div>`;
+        }
+
+        html += '</div>';  // Close form-group
+      }
+
+      html += '</div></div>';  // Close questions-grid and section
+    }
+
+    html += `
+      <div class="form-actions">
+        <button type="button" class="submit-btn" onclick="submitQuestionnaire()" id="submitBtn">
+          Calculate My Allocation
+        </button>
+        <div id="errorMessage" class="error-message"></div>
+      </div>
+    </form>`;
+
+    return html;
   },
 
   /**
@@ -932,3 +1568,15 @@ const Tool6 = {
     return { success: false, error: 'Not yet implemented' };
   }
 };
+
+// ============================================================================
+// GLOBAL FUNCTION WRAPPERS (for google.script.run calls)
+// ============================================================================
+
+/**
+ * Global wrapper for saving Tool 6 pre-survey data
+ * Called from client-side JavaScript via google.script.run
+ */
+function savePreSurveyTool6(clientId, preSurveyData) {
+  return Tool6.savePreSurvey(clientId, preSurveyData);
+}

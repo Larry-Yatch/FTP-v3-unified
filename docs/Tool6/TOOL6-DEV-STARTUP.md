@@ -168,7 +168,7 @@ google.script.run
 
 ### Phase 1: Data Layer 🔄 IN PROGRESS
 - [x] Sprint 1.1: Upstream Data Pull - ✅ **COMPLETE** (Jan 11, 2026)
-- [ ] Sprint 1.2: Fallback/Backup Questions
+- [x] Sprint 1.2: Fallback/Backup Questions - ✅ **COMPLETE** (Jan 11, 2026)
 - [ ] Sprint 1.3: TOOL6_SCENARIOS Sheet
 
 ### Phase 2: Profile Classification
@@ -381,13 +381,17 @@ When ending a session, update this section:
 ### Last Session Summary
 - **Date:** January 11, 2026
 - **What was done:**
-  - ✅ **FIXED Sprint 1.1 data mapping bug** - root cause was double-nested data structures
-  - Updated `mapUpstreamFields()` to handle different tool save patterns
-  - Fixed Tool 3/5 subdomain scores path (`scoring.subdomainQuotients` not `results.subdomainScores`)
-  - Deployed version @279 with all fixes
-  - Verified all data categories now display correctly for client 6123LY
-- **Current state:** Sprint 1.1 COMPLETE - ready for Sprint 1.2
-- **Next task:** Sprint 1.2 - Fallback/Backup Questions UI
+  - ✅ **COMPLETED Sprint 1.2: Fallback/Backup Questions UI**
+  - Added QUESTIONNAIRE_FIELDS config (22 questions) to Tool6Constants.js
+  - Added QUESTIONNAIRE_SECTIONS for logical grouping
+  - Built `buildQuestionnaireHtml()` method with all input types (currency, number, yesno, select, ranking)
+  - Added conditional visibility logic (client-side JavaScript)
+  - Added form validation before submission
+  - Added `savePreSurveyTool6()` global wrapper for GAS
+  - Added questionnaire-specific CSS styles
+  - Updated spec to add Q1 (gross income) and Q2 (years to retirement) as required questions
+- **Current state:** Sprint 1.2 COMPLETE - ready for Sprint 1.3 (TOOL6_SCENARIOS Sheet) or Sprint 2 (Profile Classification)
+- **Next task:** Sprint 1.3 or Sprint 2.1
 - **Blockers:** None
 
 ### ✅ RESOLVED: Data Not Mapping from Tools 1-5 (Jan 11, 2026)
@@ -428,26 +432,33 @@ The `docs/Middleware/middleware-mapping.md` document is the **canonical referenc
 | Connection Insights | ✅ Green | subdomainQuotients mapped |
 
 ### Files Modified This Session
-- `tools/tool6/Tool6.js` - Fixed `mapUpstreamFields()` method (lines 138-215)
-  - Added proper nesting handling for each tool
-  - Fixed Tool 3/5 subdomain scores path
-  - Added detailed comments documenting each tool's save structure
-- `docs/Tool6/Tool6-Consolidated-Specification.md` - Updated Data Sources table
-  - Corrected subdomain scores path to `scoring.subdomainQuotients`
-  - Added reference to middleware-mapping.md
+- `tools/tool6/Tool6.js` - Major updates for Sprint 1.2:
+  - Added `buildQuestionnaireHtml()` method (22 questions across 5 sections)
+  - Added questionnaire-specific CSS styles
+  - Added client-side JavaScript for conditional visibility, validation, form submission
+  - Added `savePreSurveyTool6()` global wrapper function
+- `tools/tool6/Tool6Constants.js` - Added questionnaire configuration:
+  - `QUESTIONNAIRE_FIELDS` - 22 question definitions with types, validation, conditional visibility
+  - `QUESTIONNAIRE_SECTIONS` - 5 logical groupings for UI organization
+- `docs/Tool6/Tool6-Consolidated-Specification.md` - Updated for Q1/Q2 requirement:
+  - Marked grossIncome and yearsToRetirement as "Tool 6 Question" in Data Sources table
+  - Renumbered all questions (now 22 total vs 20)
+  - Updated Question Conditional Logic section
+- `docs/Tool6/TOOL6-DEV-STARTUP.md` - Updated status and session notes
 
-### Notes for Next Session (Sprint 1.2: Fallback/Backup Questions)
+### Notes for Next Session (Sprint 1.3 or 2.1)
 
-**Goal:** Build UI for backup questions when upstream data is missing
+**Option A: Sprint 1.3 - TOOL6_SCENARIOS Sheet**
+- Create TOOL6_SCENARIOS sheet structure
+- Implement saveScenario() method
+- Implement getScenarios() method
+- Add scenario naming and timestamp
 
-**Tasks:**
-1. Create fallback question components for each data category
-2. Implement conditional rendering based on data availability
-3. Add form validation for fallback inputs
-4. Save fallback answers to client record
-5. Update `mapUpstreamFields()` to use fallback values
+**Option B: Sprint 2.1 - Classification Input Gathering**
+- The questionnaire already collects all inputs needed for profile classification
+- Can skip directly to Sprint 2.2 (Decision Tree Implementation)
 
-**Reference:** Spec section "New Questions Required" (lines 132-178)
+**Recommendation:** Skip 1.3 for now (scenarios not needed until after allocation works), proceed to Sprint 2.2
 
 ---
 
