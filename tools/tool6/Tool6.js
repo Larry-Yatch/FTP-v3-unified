@@ -2790,6 +2790,19 @@ const Tool6 = {
       font-size: 0.9rem;
     }
 
+    .allocation-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      background: rgba(34, 197, 94, 0.1);
+      border: 1px solid rgba(34, 197, 94, 0.3);
+      border-radius: 8px;
+      margin-bottom: 8px;
+      color: #86efac;
+      font-size: 0.9rem;
+    }
+
     .warning-icon {
       font-size: 1.2rem;
     }
@@ -3584,52 +3597,195 @@ const Tool6 = {
       markCalculatorDirty();
     }
 
-    // Sprint 5.5: Update vehicle display (real-time as slider moves)
-    function updateVehicleDisplay(vehicleName, value) {
-      // FIX: Use safe ID for DOM lookups to handle special characters like 401(k)
-      var safeId = vehicleName.replace(/[^a-zA-Z0-9]/g, '_');
-      var amountEl = document.getElementById('amount_' + safeId);
-      // FIX: Use data-vehicle-id attribute instead of data-vehicle to avoid CSS selector issues
-      var sliderRow = document.querySelector('[data-vehicle-id="' + safeId + '"]');
+    // ========================================================================
+    // VEHICLE ALLOCATION STATE (similar to Tool 4 bucket state)
+    // ========================================================================
 
-      if (amountEl) {
-        amountEl.textContent = '$' + parseInt(value).toLocaleString();
+    // Initialize allocation state from rendered sliders
+    var allocationState = {
+      vehicles: {},      // Current allocation amounts by vehicle
+      limits: {},        // Max limits per vehicle
+      locked: {},        // Which vehicles are locked
+      budget: 0          // Total monthly budget
+    };
+
+    // Initialize state from DOM on page load
+    function initAllocationState() {
+      var budgetEl = document.querySelector('.budget-amount');
+      if (budgetEl) {
+        allocationState.budget = parseInt(budgetEl.textContent.replace(/[^0-9]/g, '')) || 0;
       }
 
-      // Update slider fill visual
+      document.querySelectorAll('.vehicle-slider').forEach(function(slider) {
+        var vehicleId = slider.dataset.vehicleId;
+        allocationState.vehicles[vehicleId] = parseFloat(slider.value) || 0;
+        allocationState.limits[vehicleId] = parseFloat(slider.max) || allocationState.budget;
+        allocationState.locked[vehicleId] = false;
+      });
+    }
+
+    // Sprint 5.5: Update single vehicle display
+    function updateSingleVehicleDisplay(vehicleId, value) {
+      var amountEl = document.getElementById('amount_' + vehicleId);
+      var sliderRow = document.querySelector('[data-vehicle-id="' + vehicleId + '"]');
+      var slider = document.getElementById('slider_' + vehicleId);
+
+      if (amountEl) {
+        amountEl.textContent = '$' + Math.round(value).toLocaleString();
+      }
+
+      if (slider) {
+        slider.value = value;
+      }
+
       if (sliderRow) {
-        var slider = sliderRow.querySelector('.vehicle-slider');
         var fill = sliderRow.querySelector('.slider-fill');
-        if (slider && fill) {
-          // FIX: Ensure slider.max is a valid number before calculating percentage
+        if (fill && slider) {
           var maxVal = parseFloat(slider.max) || 1;
           var percentage = (value / maxVal) * 100;
           fill.style.width = Math.min(percentage, 100) + '%';
         }
 
-        // Update percent display based on slider max (not budget)
         var percentEl = sliderRow.querySelector('.amount-percent');
-        if (percentEl && slider) {
+        if (percentEl) {
           var maxVal = parseFloat(slider.max) || 1;
           var percent = Math.round((value / maxVal) * 100);
           percentEl.textContent = percent + '%';
         }
       }
+    }
 
-      // Update total allocated
+    // Sprint 5.5: Coupled slider adjustment (like Tool 4 adjustBucket)
+    function adjustVehicleAllocation(vehicleName, newValue) {
+      var vehicleId = vehicleName.replace(/[^a-zA-Z0-9]/g, '_');
+      newValue = parseFloat(newValue);
+
+      // Clamp to vehicle limit
+      var maxLimit = allocationState.limits[vehicleId] || allocationState.budget;
+      newValue = Math.min(newValue, maxLimit);
+      newValue = Math.max(0, newValue);
+
+      var oldValue = allocationState.vehicles[vehicleId] || 0;
+      var delta = newValue - oldValue;
+
+      // Update the adjusted vehicle
+      allocationState.vehicles[vehicleId] = newValue;
+
+      // Find unlocked vehicles (excluding the one being adjusted)
+      var unlockedVehicles = [];
+      var unlockedTotal = 0;
+
+      for (var id in allocationState.vehicles) {
+        if (id !== vehicleId && !allocationState.locked[id]) {
+          unlockedVehicles.push(id);
+          unlockedTotal += allocationState.vehicles[id];
+        }
+      }
+
+      // Redistribute delta among unlocked vehicles proportionally
+      if (unlockedVehicles.length > 0 && delta !== 0) {
+        if (unlockedTotal > 0) {
+          // Proportional redistribution
+          unlockedVehicles.forEach(function(id) {
+            var proportion = allocationState.vehicles[id] / unlockedTotal;
+            var adjustment = delta * proportion;
+            var newVal = allocationState.vehicles[id] - adjustment;
+            // Clamp to limits
+            var limit = allocationState.limits[id] || allocationState.budget;
+            newVal = Math.max(0, Math.min(limit, newVal));
+            allocationState.vehicles[id] = newVal;
+          });
+        } else {
+          // If all unlocked are at 0, try to take from them evenly
+          var remaining = allocationState.budget - newValue - getLockedTotal(vehicleId);
+          var evenShare = Math.max(0, remaining / unlockedVehicles.length);
+          unlockedVehicles.forEach(function(id) {
+            var limit = allocationState.limits[id] || allocationState.budget;
+            allocationState.vehicles[id] = Math.min(evenShare, limit);
+          });
+        }
+      }
+
+      // Normalize to ensure we do not exceed budget
+      normalizeAllocations(vehicleId);
+
+      // Update all vehicle displays
+      updateAllVehicleDisplays();
+
+      // Store in formData
+      if (!formData.vehicleAllocations) {
+        formData.vehicleAllocations = {};
+      }
+      for (var id in allocationState.vehicles) {
+        formData.vehicleAllocations[id] = allocationState.vehicles[id];
+      }
+    }
+
+    // Get total of locked vehicles
+    function getLockedTotal(excludeId) {
+      var total = 0;
+      for (var id in allocationState.locked) {
+        if (allocationState.locked[id] && id !== excludeId) {
+          total += allocationState.vehicles[id] || 0;
+        }
+      }
+      return total;
+    }
+
+    // Normalize allocations to not exceed budget
+    function normalizeAllocations(priorityId) {
+      var total = 0;
+      for (var id in allocationState.vehicles) {
+        total += allocationState.vehicles[id];
+      }
+
+      // If over budget, reduce unlocked vehicles proportionally
+      if (total > allocationState.budget) {
+        var excess = total - allocationState.budget;
+        var unlockedVehicles = [];
+        var unlockedTotal = 0;
+
+        for (var id in allocationState.vehicles) {
+          if (id !== priorityId && !allocationState.locked[id]) {
+            unlockedVehicles.push(id);
+            unlockedTotal += allocationState.vehicles[id];
+          }
+        }
+
+        if (unlockedTotal > 0) {
+          unlockedVehicles.forEach(function(id) {
+            var proportion = allocationState.vehicles[id] / unlockedTotal;
+            var reduction = excess * proportion;
+            allocationState.vehicles[id] = Math.max(0, allocationState.vehicles[id] - reduction);
+          });
+        }
+      }
+
+      // Round to nearest dollar
+      for (var id in allocationState.vehicles) {
+        allocationState.vehicles[id] = Math.round(allocationState.vehicles[id]);
+      }
+    }
+
+    // Update all vehicle displays
+    function updateAllVehicleDisplays() {
+      for (var vehicleId in allocationState.vehicles) {
+        updateSingleVehicleDisplay(vehicleId, allocationState.vehicles[vehicleId]);
+      }
       updateTotalAllocated();
+    }
+
+    // Legacy function - now calls the coupled adjustment
+    function updateVehicleDisplay(vehicleName, value) {
+      // During drag, just update visual without coupling (for responsiveness)
+      var vehicleId = vehicleName.replace(/[^a-zA-Z0-9]/g, '_');
+      updateSingleVehicleDisplay(vehicleId, parseFloat(value));
     }
 
     // Sprint 5.5: Update vehicle allocation (on slider change complete)
     function updateVehicleAllocation(vehicleName, value) {
-      // Store the new value
-      if (!formData.vehicleAllocations) {
-        formData.vehicleAllocations = {};
-      }
-      formData.vehicleAllocations[vehicleName] = parseFloat(value);
-
-      // Update display
-      updateVehicleDisplay(vehicleName, value);
+      // Use coupled adjustment
+      adjustVehicleAllocation(vehicleName, parseFloat(value));
 
       // Mark calculator as needing recalculation
       markCalculatorDirty();
@@ -3638,27 +3794,26 @@ const Tool6 = {
     // Calculate and update total allocated display
     function updateTotalAllocated() {
       var total = 0;
-      var sliders = document.querySelectorAll('.vehicle-slider');
-      sliders.forEach(function(slider) {
-        total += parseFloat(slider.value) || 0;
-      });
+      for (var id in allocationState.vehicles) {
+        total += allocationState.vehicles[id] || 0;
+      }
 
       var totalEl = document.getElementById('totalAllocated');
       if (totalEl) {
-        totalEl.textContent = '$' + total.toLocaleString();
+        totalEl.textContent = '$' + Math.round(total).toLocaleString();
       }
 
       // Check if over budget and show warning
-      var budgetEl = document.querySelector('.budget-amount');
-      if (budgetEl) {
-        var budget = parseInt(budgetEl.textContent.replace(/[^0-9]/g, '')) || 0;
-        var warningsEl = document.getElementById('allocationWarnings');
-        if (warningsEl) {
-          if (total > budget) {
-            warningsEl.innerHTML = '<div class="allocation-warning"><span class="warning-icon">⚠️</span> Total allocation ($' + total.toLocaleString() + ') exceeds your budget ($' + budget.toLocaleString() + ')</div>';
-          } else {
-            warningsEl.innerHTML = '';
-          }
+      var budget = allocationState.budget;
+      var warningsEl = document.getElementById('allocationWarnings');
+      if (warningsEl) {
+        if (total > budget + 1) {  // +1 for rounding tolerance
+          warningsEl.innerHTML = '<div class="allocation-warning"><span class="warning-icon">⚠️</span> Total allocation ($' + Math.round(total).toLocaleString() + ') exceeds your budget ($' + budget.toLocaleString() + ')</div>';
+        } else if (total < budget - 10) {
+          var remaining = budget - total;
+          warningsEl.innerHTML = '<div class="allocation-info"><span class="info-icon">💡</span> $' + Math.round(remaining).toLocaleString() + ' remaining in your budget</div>';
+        } else {
+          warningsEl.innerHTML = '';
         }
       }
     }
@@ -3758,9 +3913,13 @@ const Tool6 = {
         updateAllocationVisibility();
       }
 
+      // Initialize allocation state for coupled sliders
+      initAllocationState();
+
       // Initialize slider fills on page load
       document.querySelectorAll('.vehicle-slider').forEach(function(slider) {
-        var fill = slider.closest('.slider-container').querySelector('.slider-fill');
+        var container = slider.closest('.slider-container');
+        var fill = container ? container.querySelector('.slider-fill') : null;
         if (fill) {
           var percentage = (slider.value / slider.max) * 100;
           fill.style.width = percentage + '%';
@@ -3771,6 +3930,11 @@ const Tool6 = {
     // Run immediately in case DOMContentLoaded already fired
     if (classifiedProfile) {
       updateAllocationVisibility();
+    }
+
+    // Also init allocation state immediately if sliders exist
+    if (document.querySelectorAll('.vehicle-slider').length > 0) {
+      initAllocationState();
     }
   </script>
 </body>
