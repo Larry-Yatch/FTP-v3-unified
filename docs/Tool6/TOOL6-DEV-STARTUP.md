@@ -1,8 +1,8 @@
 # Tool 6: Development Startup Guide
 
 > **Purpose:** Get any AI coder up to speed quickly for multi-session development
-> **Last Updated:** January 11, 2026
-> **Current Sprint:** Phase 2 Complete - Two-Phase Questionnaire Tested & Working
+> **Last Updated:** January 17, 2026
+> **Current Sprint:** Phase 3 Complete - Three-Phase Questionnaire with Ambition Quotient
 
 ---
 
@@ -97,10 +97,19 @@ const monthlyBudget = toolStatus.tool4Data?.multiply || 0;
 ### 2. Profile Classification (9 Profiles)
 Decision tree - first match wins. See spec section "Profile Classification System".
 
-### 3. Ambition Quotient
+### 3. Ambition Quotient (Phase C)
 Weights allocation across Retirement/Education/Health domains based on:
-- User ranking of priorities
-- Time-discounted urgency
+- **Importance**: 1-7 scale rating per domain
+- **Anxiety**: 1-7 scale rating per domain
+- **Motivation**: 1-7 scale rating per domain
+- **Time-discounted urgency**: Using monthly discount rate formula
+- **Tie-breaker**: Asked only when all 3 domains are active
+
+**Adaptive Logic**: Only asks about active domains:
+- Retirement: Always asked (3 questions)
+- Education: Only if hasChildren = Yes (3 questions)
+- Health: Only if hsaEligible = Yes (3 questions)
+- Tie-breaker: Only if all 3 domains active (1 question)
 
 ### 4. Waterfall Allocation
 1. Non-discretionary seeds first (employer match)
@@ -188,9 +197,9 @@ google.script.run
 - [x] Sprint 2.3: ROBS Qualification Flow - ⏭️ **SKIPPED** (covered by Sprint 2.2)
 - [x] Sprint 2.4: Profile Display UI - ✅ **COMPLETE** (Jan 11, 2026) - Two-phase questionnaire with profile cards
 
-### Phase 3: Ambition Quotient
-- [ ] Sprint 3.1: Priority Ranking UI
-- [ ] Sprint 3.2: Ambition Quotient Algorithm
+### Phase 3: Ambition Quotient ✅ COMPLETE
+- [x] Sprint 3.1: Priority Ranking UI - ✅ **REPLACED** with Ambition Quotient UI (Phase C)
+- [x] Sprint 3.2: Ambition Quotient Algorithm - ✅ **COMPLETE** (Jan 17, 2026) - `computeDomainsAndWeights()`
 
 ### Phase 4: Vehicle Allocation
 - [ ] Sprint 4.1: Vehicle Eligibility
@@ -380,6 +389,9 @@ This startup doc serves as persistent memory across sessions. **Always update th
 | **Education uses "Combined CESA" approach** | Track total education savings across ALL children (529, Coverdell ESA, UTMA), not per-child accounts; matches legacy Tool 6 and simplifies UI | Jan 11, 2026 |
 | **ROBS qualifiers only for "Interested"** | If user already uses ROBS ("Yes"), they don't need qualification questions; qualifiers only show for "Interested" | Jan 11, 2026 |
 | **Combined balances (no Trad/Roth split)** | Keep 401k and IRA balances combined for MVP; Tool 6 allocates FUTURE contributions, not existing funds; same growth rate for projections; can add "Advanced Mode" later if needed | Jan 11, 2026 |
+| **Tax preference asked for ALL profiles** | Required for allocation calculations - determines Roth vs Traditional prioritization. Previously only asked as classification tie-breaker for W-2 employees. | Jan 17, 2026 |
+| **Rich Ambition Quotient over simple ranking** | Legacy algorithm used 9 questions (importance/anxiety/motivation per domain) + 3 tie-breakers. Simple 1-2-3 ranking lacked psychological depth. Adaptive design skips irrelevant domains. | Jan 17, 2026 |
+| **Always render Phase A (hidden when profile exists)** | Fixes bug where "Change" button did nothing. Elements must exist in DOM for JS handlers to work. | Jan 17, 2026 |
 
 ### Design Patterns Established
 1. **Single-page calculator** - Same as Tool 4, not multi-phase like Tools 1-3
@@ -410,29 +422,38 @@ This startup doc serves as persistent memory across sessions. **Always update th
 When ending a session, update this section:
 
 ### Last Session Summary
-- **Date:** January 11, 2026
+- **Date:** January 17, 2026
 - **What was done:**
-  - ✅ **COMPLETED & TESTED: Two-Phase Questionnaire Redesign**
-  - Refactored Tool6Constants.js with new question structure:
-    - `CLASSIFICATION_QUESTIONS` (7 questions with short-circuit logic)
-    - `ALLOCATION_QUESTIONS` (19 questions, profile-specific)
-    - `CLASSIFICATION_ORDER` for progressive flow
-    - `ALLOCATION_SECTIONS` for organized rendering
-    - `DERIVED_CLASSIFICATION_CHECKS` for age-based auto-classification
-  - Updated `classifyProfile()` to support both old (q6_, q7_) and new (c1_, c2_) field names
-  - Rewrote `buildQuestionnaireHtml()` for two-phase flow:
-    - Phase A: Progressive classification (shows one question at a time, short-circuits on match)
-    - Phase B: Profile-specific allocation inputs (skips irrelevant questions)
-  - Added comprehensive client-side JavaScript:
-    - Classification flow handlers with short-circuit logic
-    - Profile result card display
-    - Phase B visibility management
-    - Form validation for new field structure
-  - Added CSS styles for two-phase UI (profile cards, phase transitions, animations)
-  - Updated test function with 7 new test cases for new field format (20 total)
+  - ✅ **COMPLETED & TESTED: Three-Phase Questionnaire with Ambition Quotient**
+  - **Phase C: Ambition Quotient Implementation**
+    - Added `AMBITION_QUESTIONS` to Tool6Constants.js (10 questions total):
+      - 3 Retirement questions (importance, anxiety, motivation on 1-7 scales)
+      - 3 Education questions (conditional on hasChildren = Yes)
+      - 3 Health questions (conditional on hsaEligible = Yes)
+      - 1 Tie-breaker question (conditional on all 3 domains active)
+    - Added `AMBITION_QUESTION_ORDER` for rendering by domain
+    - Removed old `a11_priorityRanking` (simple 1-2-3 ranking) in favor of rich psychological assessment
+  - **Tax Preference Question Added**
+    - Added `a2b_taxPreference` to Phase B for ALL profiles
+    - Options: Now (Roth focus), Later (Traditional focus), Both (balanced)
+    - Required for allocation calculations - affects every profile's vehicle prioritization
+  - **computeDomainsAndWeights() Function**
+    - Implements legacy Ambition Quotient algorithm (code.js lines 3512-3551)
+    - Blends importance scores with time-based urgency using discount factor
+    - Formula: `weight = (importance + urgency) / 2`, then normalize
+    - Adaptive: Only calculates weights for active domains
+  - **Phase C UI Implementation**
+    - Added scale input type (1-7 clickable buttons with labels)
+    - Added domain-based grouping with conditional visibility
+    - Added `continueToPhaseC()`, `updateAmbitionVisibility()`, `selectScale()` handlers
+    - CSS styling for scale inputs and ambition domain cards
+  - **Bug Fix: Phase A Rendering**
+    - Fixed issue where clicking "Change" button did nothing when profile already existed
+    - Root cause: Phase A HTML was not rendered when profile existed (conditional `if (!hasProfile)`)
+    - Fix: Always render Phase A, just hide it with `hidden` class when profile exists
   - ✅ **Pushed to GAS and tested - all features working**
-- **Current state:** Phase 2 COMPLETE. Two-phase questionnaire tested and working in production.
-- **Next task:** Sprint 3.1 (Priority Ranking UI) - Ambition Quotient implementation
+- **Current state:** Phase 3 COMPLETE. Three-phase questionnaire (Classification → Allocation → Ambition) tested and working.
+- **Next task:** Phase 4 (Vehicle Allocation) - Sprint 4.1: Vehicle Eligibility
 - **Blockers:** None
 
 ### Decision Tree Order (Legacy Aligned)
@@ -486,117 +507,86 @@ The `docs/Middleware/middleware-mapping.md` document is the **canonical referenc
 | Connection Insights | ✅ Green | subdomainQuotients mapped |
 
 ### Files Modified This Session
-- `tools/tool6/Tool6Constants.js` - Two-phase questionnaire structure:
-  - Added `CLASSIFICATION_QUESTIONS` (7 questions with termination rules)
-  - Added `CLASSIFICATION_ORDER` array
-  - Added `ALLOCATION_QUESTIONS` (19 questions with profile-skip rules)
-  - Added `ALLOCATION_SECTIONS` for rendering
-  - Added `DERIVED_CLASSIFICATION_CHECKS` for age-based profiles
-  - Maintained `QUESTIONNAIRE_FIELDS` and `QUESTIONNAIRE_SECTIONS` for backwards compatibility
-- `tools/tool6/Tool6.js` - Two-phase UI implementation:
-  - Updated `classifyProfile()` to support both old and new field names (lines 385-545)
-  - Rewrote `buildQuestionnaireHtml()` for two-phase flow (lines 1496-1720)
-  - Added comprehensive client-side JS for progressive classification flow
-  - Added CSS styles for profile cards, phase transitions, animations
-  - Updated `testTool6Classification()` with 7 new test cases (20 total)
+- `tools/tool6/Tool6Constants.js`:
+  - Added `AMBITION_QUESTIONS` (10 questions with conditional showIf logic)
+  - Added `AMBITION_QUESTION_ORDER` for domain-based rendering
+  - Added `a2b_taxPreference` to ALLOCATION_QUESTIONS (all profiles)
+  - Updated `ALLOCATION_SECTIONS` to include tax preference in income section
+  - Removed old `a11_priorityRanking` from ALLOCATION_QUESTIONS and ALLOCATION_SECTIONS
+  - Updated exports to include new constants
+- `tools/tool6/Tool6.js`:
+  - Added `computeDomainsAndWeights()` function (legacy algorithm alignment)
+  - Added `scale` input type to `renderField()` for 1-7 button scales
+  - Added Phase C HTML generation to `buildQuestionnaireHtml()`
+  - Added CSS styles for scale inputs and ambition domain cards
+  - Added JS handlers: `continueToPhaseC()`, `updateAmbitionVisibility()`, `selectScale()`
+  - Updated validation to require ambition fields conditionally
+  - Updated form submission to parse ambition data
+  - Fixed Phase A rendering (always render, hide with class when profile exists)
 - `docs/Tool6/TOOL6-DEV-STARTUP.md` - Updated session notes
+- `docs/Tool6/Tool6-Consolidated-Specification.md` - Updated Ambition Quotient section
 
 ### Notes for Next Session
 
-**Two-Phase Questionnaire Implementation Complete**
+**Three-Phase Questionnaire Implementation Complete**
 
-The questionnaire now works in two phases:
+The questionnaire now works in three phases:
 
 ## Phase A: Classification (Short-Circuit Decision Tree)
-
 Ask questions in decision tree order. **Stop as soon as profile is determined.**
-
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│ Q1: ROBS Status                                                         │
-│     "Are you using or interested in ROBS?"                              │
-│     - Yes, currently using → PROFILE 1 ✓ (skip to Phase B)              │
-│     - Interested → Ask Q2-Q4 qualifiers                                 │
-│     - No → Continue to Q5                                               │
-├─────────────────────────────────────────────────────────────────────────┤
-│ Q2-Q4: ROBS Qualifiers (only if "Interested")                           │
-│     - New business eligible? / $50k+ rollover? / Can fund setup?        │
-│     - All Yes → PROFILE 2 ✓ (skip to Phase B)                           │
-│     - Any No → Continue to Q5                                           │
-├─────────────────────────────────────────────────────────────────────────┤
-│ Q5: Work/Business Situation (COMBINED question)                         │
-│     - W-2 employee only → Continue to Q6                                │
-│     - Self-employed (no employees) → PROFILE 4 ✓                        │
-│     - Business owner WITH W-2 employees → PROFILE 3 ✓                   │
-│     - Both W-2 + self-employment → PROFILE 4 ✓                          │
-├─────────────────────────────────────────────────────────────────────────┤
-│ Q6: Traditional IRA                                                     │
-│     "Do you have a Traditional IRA?"                                    │
-│     - Yes → PROFILE 5 ✓                                                 │
-│     - No → Check derived values                                         │
-├─────────────────────────────────────────────────────────────────────────┤
-│ DERIVED CHECK: Near Retirement?                                         │
-│     (age >= 55 from Tool 2) OR (yearsToRetirement <= 5)                 │
-│     - Yes → PROFILE 9 ✓                                                 │
-├─────────────────────────────────────────────────────────────────────────┤
-│ DERIVED CHECK: Catch-Up Eligible?                                       │
-│     (age >= 50 from Tool 2) AND (retirementConfidence < 0 from Tool 2)  │
-│     - Yes → PROFILE 6 ✓                                                 │
-├─────────────────────────────────────────────────────────────────────────┤
-│ Q7: Tax Focus                                                           │
-│     "When would you prefer to minimize taxes?"                          │
-│     - Now / Both → PROFILE 8 ✓                                          │
-│     - Later → PROFILE 7 ✓ (default)                                     │
-└─────────────────────────────────────────────────────────────────────────┘
-```
-
-**Max classification questions: 4** (most users answer 2-3)
+- Max 4 questions (most users answer 2-3)
+- Profiles 6 and 9 determined by DERIVED values from Tools 1-5
 
 ## Phase B: Allocation Inputs (Profile-Specific)
+After profile is assigned, ask ONLY relevant questions:
+- Income & Timeline: grossIncome, yearsToRetirement, **taxPreference** (all profiles)
+- Employer Plans: conditional on profile (skip for ROBS/Solo)
+- HSA: hsaEligible
+- Education: hasChildren, numChildren, yearsToEducation
+- Current Balances & Contributions: conditional visibility
 
-After profile is assigned, ask ONLY relevant questions for their situation:
+## Phase C: Ambition Quotient (Adaptive)
+Psychological assessment that adapts based on Phase B answers:
 
-| Profile | Skip These Questions |
-|---------|---------------------|
-| 1, 2 (ROBS) | Employer 401k, match formula |
-| 3 (Biz w/ Employees) | Employer 401k (show SEP/SIMPLE instead) |
-| 4 (Solo 401k) | Employer 401k, match formula |
-| 5-9 (W-2) | Ask all standard 401k questions |
+| Domain | Condition | Questions |
+|--------|-----------|-----------|
+| Retirement | Always | importance, anxiety, motivation (1-7 scales) |
+| Education | hasChildren = Yes | importance, anxiety, motivation (1-7 scales) |
+| Health | hsaEligible = Yes | importance, anxiety, motivation (1-7 scales) |
+| Tie-breaker | All 3 domains active | "If you could only fund ONE..." |
 
-**Allocation questions by category:**
-- Income & Timeline: grossIncome, yearsToRetirement
-- Employer Plans: has401k, hasMatch, matchFormula, hasRoth401k (conditional)
-- HSA: hsaEligible, currentHSABalance, monthlyHSA
-- Education: hasChildren, numChildren, yearsToEducation (conditional)
-- Priority: ranking
-- Current Balances: 401k, IRA, HSA, education (conditional)
-- Current Contributions: 401k, IRA, HSA, education (conditional)
+**Algorithm (computeDomainsAndWeights):**
+```javascript
+// For each active domain:
+importance = (score - 1) / 6;  // Normalize 1-7 to 0-1
+urgency = 1 / Math.pow(1 + 0.005, months);  // Time discount
+rawWeight = (importance + urgency) / 2;
+// Then normalize all weights to sum to 1.0
+```
 
 ## Question Count Comparison
 
 | Scenario | Old Approach | New Approach |
 |----------|--------------|--------------|
-| ROBS In Use | 31 questions | ~9 questions |
-| Solo 401k | 31 questions | ~12 questions |
-| Standard W-2 | 31 questions | ~16 questions |
+| ROBS, no kids, no HSA | 31 questions | ~10 questions |
+| Solo 401k, has kids | 31 questions | ~16 questions |
+| Standard W-2, all domains | 31 questions | ~22 questions |
 
-## Derived Values (Pull from Tools 1-5)
+## Key Decisions This Session
 
-| Value | Source | Used For |
-|-------|--------|----------|
-| age | Tool 2 `formData.age` | Profile 6, 9 checks |
-| retirementConfidence | Tool 2 `formData.retirementConfidence` | catchUpFeeling proxy |
-| nearRetirement | Derived from `yearsToRetirement <= 5` | Profile 9 check |
+| Decision | Rationale |
+|----------|-----------|
+| Replace 1-2-3 ranking with 1-7 scales | Legacy algorithm used importance/anxiety/motivation - provides richer insight |
+| Tax preference asked for ALL profiles | Affects every allocation calculation (Roth vs Traditional) |
+| Adaptive Phase C | Skip irrelevant domains entirely - reduces question fatigue |
+| Always render Phase A | Fixes "Change" button bug when profile already saved |
 
-## Implementation Tasks
+## Next Steps: Phase 4 - Vehicle Allocation
 
-1. **Refactor `QUESTIONNAIRE_FIELDS`** - Split into classification vs allocation sections
-2. **Update `classifyProfile()`** - Use derived values from upstream tools
-3. **Build progressive UI** - Show one question at a time, short-circuit on match
-4. **Profile-specific allocation forms** - Only show relevant questions per profile
-
-**Test Function Available:**
-Run `testTool6Classification()` in Apps Script editor to verify all 20 test cases pass (13 legacy + 7 new format).
+**Sprint 4.1: Vehicle Eligibility**
+- Create `getEligibleVehicles(profile, inputs)`
+- Check each vehicle against eligibility criteria
+- Return list with monthly limits
 
 ---
 

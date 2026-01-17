@@ -777,6 +777,22 @@ const ALLOCATION_QUESTIONS = {
     category: 'income'
   },
 
+  // --- Tax Strategy (All profiles - affects Traditional vs Roth allocation) ---
+  a2b_taxPreference: {
+    id: 'a2b_taxPreference',
+    label: 'When would you prefer to pay taxes on your retirement savings?',
+    type: 'select',
+    required: true,
+    options: [
+      { value: '', label: '-- Select --' },
+      { value: 'Now', label: 'Now - Pay taxes now for tax-free retirement (Roth focus)' },
+      { value: 'Later', label: 'Later - Reduce my current tax bill (Traditional focus)' },
+      { value: 'Both', label: 'Both - Balance between current and future tax savings' }
+    ],
+    helpText: 'Affects whether we prioritize Traditional (tax-deferred) or Roth (tax-free) accounts',
+    category: 'income'
+  },
+
   // --- Employer Plans (W-2 employees only, not ROBS/Solo profiles) ---
   a3_has401k: {
     id: 'a3_has401k',
@@ -873,21 +889,6 @@ const ALLOCATION_QUESTIONS = {
     defaultWhenHidden: 99
   },
 
-  // --- Priority Ranking (Ambition Quotient) ---
-  a11_priorityRanking: {
-    id: 'a11_priorityRanking',
-    label: 'Rank your savings priorities (1 = highest)',
-    type: 'ranking',
-    required: true,
-    options: [
-      { value: 'retirement', label: 'Retirement security' },
-      { value: 'education', label: 'Education savings' },
-      { value: 'health', label: 'Health/medical expenses' }
-    ],
-    helpText: 'Determines how we weight your allocation domains',
-    category: 'priorities'
-  },
-
   // --- Current Balances (For projections) ---
   a12_current401kBalance: {
     id: 'a12_current401kBalance',
@@ -977,7 +978,7 @@ const ALLOCATION_SECTIONS = [
     id: 'income',
     title: 'Income & Timeline',
     description: 'Required for accurate projections',
-    fields: ['a1_grossIncome', 'a2_yearsToRetirement']
+    fields: ['a1_grossIncome', 'a2_yearsToRetirement', 'a2b_taxPreference']
   },
   {
     id: 'employer',
@@ -997,12 +998,6 @@ const ALLOCATION_SECTIONS = [
     title: 'Education Savings',
     description: 'Saving for children education',
     fields: ['a8_hasChildren', 'a9_numChildren', 'a10_yearsToEducation']
-  },
-  {
-    id: 'priorities',
-    title: 'Savings Priorities',
-    description: 'How to weight your allocation goals',
-    fields: ['a11_priorityRanking']
   },
   {
     id: 'balances',
@@ -1055,13 +1050,164 @@ const DERIVED_CLASSIFICATION_CHECKS = {
 };
 
 // ============================================================================
+// PHASE C: AMBITION QUOTIENT QUESTIONS
+// ============================================================================
+// Adaptive psychological assessment - only asks about ACTIVE domains
+// Domain is active if: Retirement (always), Education (hasChildren), Health (hsaEligible)
+
+const AMBITION_QUESTIONS = {
+  // ========== RETIREMENT DOMAIN (Always asked) ==========
+  aq_retirement_importance: {
+    id: 'aq_retirement_importance',
+    domain: 'Retirement',
+    dimension: 'importance',
+    label: 'How important is saving for retirement at this point in your life?',
+    type: 'scale',
+    min: 1,
+    max: 7,
+    leftLabel: 'Not at all important',
+    rightLabel: 'Absolutely essential',
+    required: true
+  },
+  aq_retirement_anxiety: {
+    id: 'aq_retirement_anxiety',
+    domain: 'Retirement',
+    dimension: 'anxiety',
+    label: 'How much anxiety do you currently feel about your retirement outlook?',
+    type: 'scale',
+    min: 1,
+    max: 7,
+    leftLabel: 'No anxiety at all',
+    rightLabel: 'Constant anxiety and concern',
+    required: true
+  },
+  aq_retirement_motivation: {
+    id: 'aq_retirement_motivation',
+    domain: 'Retirement',
+    dimension: 'motivation',
+    label: 'How motivated are you to take action toward your retirement goals?',
+    type: 'scale',
+    min: 1,
+    max: 7,
+    leftLabel: 'Not motivated at all',
+    rightLabel: 'Extremely motivated',
+    required: true
+  },
+
+  // ========== EDUCATION DOMAIN (Only if hasChildren === 'Yes') ==========
+  aq_education_importance: {
+    id: 'aq_education_importance',
+    domain: 'Education',
+    dimension: 'importance',
+    label: 'How important is saving for education at this point in your life?',
+    type: 'scale',
+    min: 1,
+    max: 7,
+    leftLabel: 'Not at all important',
+    rightLabel: 'Absolutely essential',
+    required: true,
+    showIf: (answers) => answers.a8_hasChildren === 'Yes'
+  },
+  aq_education_anxiety: {
+    id: 'aq_education_anxiety',
+    domain: 'Education',
+    dimension: 'anxiety',
+    label: 'How much anxiety do you feel about funding education expenses?',
+    type: 'scale',
+    min: 1,
+    max: 7,
+    leftLabel: 'No anxiety at all',
+    rightLabel: 'Constant anxiety and concern',
+    required: true,
+    showIf: (answers) => answers.a8_hasChildren === 'Yes'
+  },
+  aq_education_motivation: {
+    id: 'aq_education_motivation',
+    domain: 'Education',
+    dimension: 'motivation',
+    label: 'How motivated are you to take action toward education savings?',
+    type: 'scale',
+    min: 1,
+    max: 7,
+    leftLabel: 'Not motivated at all',
+    rightLabel: 'Extremely motivated',
+    required: true,
+    showIf: (answers) => answers.a8_hasChildren === 'Yes'
+  },
+
+  // ========== HEALTH DOMAIN (Only if hsaEligible === 'Yes') ==========
+  aq_health_importance: {
+    id: 'aq_health_importance',
+    domain: 'Health',
+    dimension: 'importance',
+    label: 'How important is saving for future healthcare costs at this point in your life?',
+    type: 'scale',
+    min: 1,
+    max: 7,
+    leftLabel: 'Not at all important',
+    rightLabel: 'Absolutely essential',
+    required: true,
+    showIf: (answers) => answers.a7_hsaEligible === 'Yes'
+  },
+  aq_health_anxiety: {
+    id: 'aq_health_anxiety',
+    domain: 'Health',
+    dimension: 'anxiety',
+    label: 'How much anxiety do you feel about affording healthcare expenses?',
+    type: 'scale',
+    min: 1,
+    max: 7,
+    leftLabel: 'No anxiety at all',
+    rightLabel: 'Constant anxiety and concern',
+    required: true,
+    showIf: (answers) => answers.a7_hsaEligible === 'Yes'
+  },
+  aq_health_motivation: {
+    id: 'aq_health_motivation',
+    domain: 'Health',
+    dimension: 'motivation',
+    label: 'How motivated are you to set aside money for health-related expenses?',
+    type: 'scale',
+    min: 1,
+    max: 7,
+    leftLabel: 'Not motivated at all',
+    rightLabel: 'Extremely motivated',
+    required: true,
+    showIf: (answers) => answers.a7_hsaEligible === 'Yes'
+  },
+
+  // ========== TIE-BREAKER (Only if 3 domains active) ==========
+  aq_tiebreaker: {
+    id: 'aq_tiebreaker',
+    label: 'If you could only fully fund ONE area this year, which would you choose?',
+    type: 'select',
+    options: [
+      { value: '', label: '-- Select one --' },
+      { value: 'Retirement', label: 'Retirement security' },
+      { value: 'Education', label: 'Education savings' },
+      { value: 'Health', label: 'Health/medical expenses' }
+    ],
+    required: true,
+    showIf: (answers) => answers.a7_hsaEligible === 'Yes' && answers.a8_hasChildren === 'Yes'
+  }
+};
+
+// Order for rendering ambition questions by domain
+const AMBITION_QUESTION_ORDER = {
+  Retirement: ['aq_retirement_importance', 'aq_retirement_anxiety', 'aq_retirement_motivation'],
+  Education: ['aq_education_importance', 'aq_education_anxiety', 'aq_education_motivation'],
+  Health: ['aq_health_importance', 'aq_health_anxiety', 'aq_health_motivation']
+};
+
+// ============================================================================
 // LEGACY COMPATIBILITY - QUESTIONNAIRE_FIELDS (flattened view)
 // ============================================================================
 // For backwards compatibility, combine all questions into flat structure
 
 const QUESTIONNAIRE_FIELDS = {
   ...CLASSIFICATION_QUESTIONS,
-  ...ALLOCATION_QUESTIONS
+  ...ALLOCATION_QUESTIONS,
+  ...AMBITION_QUESTIONS
 };
 
 // Legacy sections structure (for backwards compatibility)
@@ -1127,6 +1273,9 @@ const Tool6Constants = {
   ALLOCATION_QUESTIONS,
   ALLOCATION_SECTIONS,
   DERIVED_CLASSIFICATION_CHECKS,
+  // Phase C: Ambition Quotient
+  AMBITION_QUESTIONS,
+  AMBITION_QUESTION_ORDER,
   // Legacy compatibility
   QUESTIONNAIRE_FIELDS,
   QUESTIONNAIRE_SECTIONS,

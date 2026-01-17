@@ -546,6 +546,120 @@ const Tool6 = {
   },
 
   /**
+   * Compute domain weights using Ambition Quotient algorithm
+   * Legacy alignment: code.js lines 3512-3551 (computeDomainsAndWeights)
+   *
+   * ADAPTIVE LOGIC:
+   * - Only calculates weights for ACTIVE domains
+   * - Retirement: Always active
+   * - Education: Active if hasChildren === 'Yes'
+   * - Health: Active if hsaEligible === 'Yes'
+   *
+   * FORMULA:
+   * 1. importance = (score - 1) / 6   (normalize 1-7 to 0-1)
+   * 2. urgency = 1 / (1 + r)^months   (discount factor)
+   * 3. raw_weight = (importance + urgency) / 2
+   * 4. final_weight = raw_weight / sum(all_weights)
+   *
+   * @param {Object} preSurveyData - All questionnaire answers including ambition scores
+   * @returns {Object} { Retirement: w1, Education: w2, Health: w3, activeDomains: [...] }
+   */
+  computeDomainsAndWeights(preSurveyData) {
+    const r = AMBITION_QUOTIENT_CONFIG.MONTHLY_DISCOUNT_RATE || 0.005;
+
+    // Determine active domains based on Phase B answers
+    const activeDomains = ['Retirement']; // Always active
+    if (preSurveyData.a8_hasChildren === 'Yes') activeDomains.push('Education');
+    if (preSurveyData.a7_hsaEligible === 'Yes') activeDomains.push('Health');
+
+    // If only retirement is active, return 100% retirement
+    if (activeDomains.length === 1) {
+      return {
+        Retirement: 1.0,
+        Education: 0,
+        Health: 0,
+        activeDomains: activeDomains
+      };
+    }
+
+    // Extract time horizons (in months)
+    const yearsToRetirement = parseInt(preSurveyData.a2_yearsToRetirement) || 30;
+    const yearsToEducation = parseInt(preSurveyData.a10_yearsToEducation) || 18;
+    const yearsToHealth = yearsToRetirement; // Use same timeline as retirement for health
+
+    const timelines = {
+      Retirement: yearsToRetirement * 12,
+      Education: yearsToEducation * 12,
+      Health: yearsToHealth * 12
+    };
+
+    // Calculate importance scores (normalize 1-7 to 0-1)
+    const getImportance = (domain) => {
+      const fieldId = `aq_${domain.toLowerCase()}_importance`;
+      const score = parseInt(preSurveyData[fieldId]) || 4;
+      return (score - 1) / 6;
+    };
+
+    // Calculate weights for each active domain
+    const domains = {};
+    let maxUrgency = 0;
+
+    // First pass: calculate raw urgency values
+    for (const domain of activeDomains) {
+      const t = timelines[domain];
+      const urgencyRaw = 1 / Math.pow(1 + r, t);
+      domains[domain] = {
+        importance: getImportance(domain),
+        urgencyRaw: urgencyRaw,
+        t: t
+      };
+      maxUrgency = Math.max(maxUrgency, urgencyRaw);
+    }
+
+    // Second pass: normalize urgency and calculate weights
+    let sumWeights = 0;
+    for (const domain of activeDomains) {
+      const d = domains[domain];
+      d.urgencyNorm = d.urgencyRaw / maxUrgency;
+      d.weight = (d.importance + d.urgencyNorm) / 2;
+      sumWeights += d.weight;
+    }
+
+    // Third pass: normalize weights to sum to 1
+    const result = {
+      Retirement: 0,
+      Education: 0,
+      Health: 0,
+      activeDomains: activeDomains
+    };
+
+    for (const domain of activeDomains) {
+      result[domain] = domains[domain].weight / sumWeights;
+    }
+
+    // Apply tie-breaker boost if all 3 domains active and tie-breaker selected
+    if (activeDomains.length === 3 && preSurveyData.aq_tiebreaker) {
+      const tieBreakerDomain = preSurveyData.aq_tiebreaker;
+      // Give 10% boost to tie-breaker domain, reduce others proportionally
+      const boost = 0.10;
+      const currentWeight = result[tieBreakerDomain];
+      const newWeight = Math.min(currentWeight + boost, 0.80); // Cap at 80%
+      const actualBoost = newWeight - currentWeight;
+
+      // Reduce other domains proportionally
+      const otherDomains = activeDomains.filter(d => d !== tieBreakerDomain);
+      const otherTotal = otherDomains.reduce((sum, d) => sum + result[d], 0);
+
+      result[tieBreakerDomain] = newWeight;
+      for (const d of otherDomains) {
+        result[d] = result[d] - (actualBoost * (result[d] / otherTotal));
+      }
+    }
+
+    return result;
+  },
+
+  /**
    * Calculate vehicle allocation using waterfall algorithm
    * Core logic from spec section "Vehicle Allocation Engine"
    */
@@ -574,24 +688,6 @@ const Tool6 = {
 
     // Pre-fill form values from Tool 2/4 data if available
     const prefillData = this.getPrefillData(toolStatus);
-
-    // Helper to generate status badge HTML
-    const statusBadgeHtml = (status, label, source) => {
-      const colors = {
-        complete: { bg: 'rgba(34, 197, 94, 0.2)', border: '#22c55e', icon: '&#10003;' },
-        partial: { bg: 'rgba(234, 179, 8, 0.2)', border: '#eab308', icon: '~' },
-        missing: { bg: 'rgba(239, 68, 68, 0.2)', border: '#ef4444', icon: '!' }
-      };
-      const c = colors[status] || colors.missing;
-      return '<span class="status-badge status-' + status + '" title="Source: ' + source + '">' +
-             '<span class="status-icon">' + c.icon + '</span>' + label + '</span>';
-    };
-
-    // Build data status badges HTML
-    const dataStatusBadgesHtml = Object.entries(dataStatus)
-      .filter(([key]) => key !== 'overall')
-      .map(([key, info]) => statusBadgeHtml(info.status, info.label, info.source))
-      .join('');
 
     return `
 <!DOCTYPE html>
@@ -678,64 +774,7 @@ const Tool6 = {
       font-weight: 500;
     }
 
-    /* Data status badges */
-    .data-status-bar {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      padding: 16px 24px;
-      background: rgba(0, 0, 0, 0.2);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    .status-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 6px 12px;
-      border-radius: 16px;
-      font-size: 0.85rem;
-      font-weight: 500;
-    }
-
-    .status-icon {
-      width: 16px;
-      height: 16px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 50%;
-      font-size: 0.75rem;
-      font-weight: bold;
-    }
-
-    .status-complete {
-      background: rgba(34, 197, 94, 0.2);
-      color: #22c55e;
-    }
-    .status-complete .status-icon {
-      background: #22c55e;
-      color: white;
-    }
-
-    .status-partial {
-      background: rgba(234, 179, 8, 0.2);
-      color: #eab308;
-    }
-    .status-partial .status-icon {
-      background: #eab308;
-      color: white;
-    }
-
-    .status-missing {
-      background: rgba(239, 68, 68, 0.2);
-      color: #ef4444;
-    }
-    .status-missing .status-icon {
-      background: #ef4444;
-      color: white;
-    }
-
+    /* Blocker message (when Tool 4 not complete) */
     .blocker-message {
       background: rgba(239, 68, 68, 0.1);
       border: 1px solid rgba(239, 68, 68, 0.3);
@@ -1211,6 +1250,113 @@ const Tool6 = {
     .hidden {
       display: none !important;
     }
+
+    /* ================================================================
+       PHASE C: AMBITION QUOTIENT STYLES
+       ================================================================ */
+
+    .ambition-domain {
+      background: rgba(79, 70, 229, 0.03);
+      border: 1px solid rgba(79, 70, 229, 0.1);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .domain-title {
+      color: var(--color-primary);
+      font-size: 1.1rem;
+      margin: 0 0 16px 0;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(79, 70, 229, 0.2);
+    }
+
+    .conditional-domain.hidden {
+      display: none;
+    }
+
+    /* Scale input styling */
+    .scale-input-wrapper {
+      margin-top: 8px;
+    }
+
+    .scale-labels {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-size: 0.85rem;
+      color: var(--color-text-secondary);
+    }
+
+    .scale-label-left {
+      text-align: left;
+      max-width: 45%;
+    }
+
+    .scale-label-right {
+      text-align: right;
+      max-width: 45%;
+    }
+
+    .scale-buttons {
+      display: flex;
+      gap: 8px;
+      justify-content: space-between;
+    }
+
+    .scale-btn {
+      flex: 1;
+      padding: 12px 8px;
+      border: 2px solid rgba(79, 70, 229, 0.3);
+      background: rgba(79, 70, 229, 0.05);
+      border-radius: 8px;
+      color: var(--color-text-primary);
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .scale-btn:hover {
+      border-color: var(--color-primary);
+      background: rgba(79, 70, 229, 0.1);
+    }
+
+    .scale-btn.selected {
+      border-color: var(--color-primary);
+      background: var(--color-primary);
+      color: white;
+    }
+
+    .ambition-tiebreaker {
+      background: rgba(245, 158, 11, 0.1);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      border-radius: 12px;
+      padding: 20px;
+      margin-top: 24px;
+    }
+
+    .ambition-tiebreaker .form-label {
+      color: #f59e0b;
+    }
+
+    /* Phase transition button styling */
+    .btn-secondary {
+      background: transparent;
+      border: 2px solid var(--color-primary);
+      color: var(--color-primary);
+      padding: 12px 32px;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn-secondary:hover {
+      background: var(--color-primary);
+      color: white;
+    }
   </style>
 </head>
 <body>
@@ -1234,18 +1380,14 @@ const Tool6 = {
       </p>
     </div>
 
-    <!-- Data Status Bar -->
+    ${!dataStatus.overall.canProceed ? `
+    <!-- Blocker Message - Tool 4 Required -->
     <div class="section-card" style="margin-bottom: 16px;">
-      <div class="data-status-bar">
-        <span style="color: var(--color-text-muted); margin-right: 8px;">Data from previous tools:</span>
-        ${dataStatusBadgesHtml}
-      </div>
-      ${!dataStatus.overall.canProceed ? `
       <div class="blocker-message">
         <strong>Action Required:</strong> ${dataStatus.overall.blockerMessage}
       </div>
-      ` : ''}
     </div>
+    ` : ''}
 
     <!-- Section 1: Your Profile (Questionnaire) -->
     <div class="section-card">
@@ -1268,36 +1410,24 @@ const Tool6 = {
       <div class="section-body ${hasPreSurvey ? 'collapsed' : ''}" id="profileBody">
         <!-- Data Summary from Tools 1-5 -->
         <div style="margin-bottom: 24px;">
-          <h4 style="color: var(--color-text-secondary); margin-bottom: 12px;">Data Pulled from Previous Tools</h4>
+          <h4 style="color: var(--color-text-secondary); margin-bottom: 12px;">Your Tool 4 Allocation</h4>
           <div class="data-summary">
-            <div class="data-summary-item">
-              <div class="data-summary-label">Age</div>
-              <div class="data-summary-value ${!toolStatus.age ? 'missing' : ''}">${toolStatus.age || 'Not available'}</div>
-            </div>
-            <div class="data-summary-item">
-              <div class="data-summary-label">Gross Income</div>
-              <div class="data-summary-value ${!toolStatus.grossIncome ? 'missing' : ''}">
-                ${toolStatus.grossIncome ? '$' + Number(toolStatus.grossIncome).toLocaleString() : 'Not available'}
-              </div>
-            </div>
-            <div class="data-summary-item">
-              <div class="data-summary-label">Filing Status</div>
-              <div class="data-summary-value ${!toolStatus.filingStatus ? 'missing' : ''}">${toolStatus.filingStatus || 'Not available'}</div>
-            </div>
             <div class="data-summary-item">
               <div class="data-summary-label">Monthly Retirement Budget</div>
               <div class="data-summary-value ${!toolStatus.monthlyBudget ? 'missing' : ''}">
-                ${toolStatus.monthlyBudget ? '$' + Number(toolStatus.monthlyBudget).toLocaleString() : 'Not available'}
+                ${toolStatus.monthlyBudget ? '$' + Number(toolStatus.monthlyBudget).toLocaleString() + '/mo' : 'Not available'}
               </div>
-            </div>
-            <div class="data-summary-item">
-              <div class="data-summary-label">Years to Retirement</div>
-              <div class="data-summary-value ${!toolStatus.yearsToRetirement ? 'missing' : ''}">${toolStatus.yearsToRetirement || 'Not available'}</div>
             </div>
             <div class="data-summary-item">
               <div class="data-summary-label">Investment Score</div>
               <div class="data-summary-value">${toolStatus.investmentScore}/7 (${INVESTMENT_SCORE_LABELS[toolStatus.investmentScore] || 'Moderate'})</div>
             </div>
+            ${toolStatus.age ? `
+            <div class="data-summary-item">
+              <div class="data-summary-label">Age</div>
+              <div class="data-summary-value">${toolStatus.age}</div>
+            </div>
+            ` : ''}
           </div>
         </div>
 
@@ -1595,6 +1725,63 @@ const Tool6 = {
       // Hide Phase B
       var phaseB = document.getElementById('phaseB');
       if (phaseB) phaseB.classList.add('hidden');
+
+      // Hide Phase C
+      var phaseC = document.getElementById('phaseC');
+      if (phaseC) phaseC.classList.add('hidden');
+    }
+
+    // Continue to Phase C (ambition quotient)
+    function continueToPhaseC() {
+      // Hide Phase B
+      var phaseB = document.getElementById('phaseB');
+      if (phaseB) phaseB.classList.add('hidden');
+
+      // Show Phase C
+      var phaseC = document.getElementById('phaseC');
+      if (phaseC) {
+        phaseC.classList.remove('hidden');
+        phaseC.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+
+      // Update Phase C domain visibility based on Phase B answers
+      updateAmbitionVisibility();
+    }
+
+    // Update which ambition domains are visible
+    function updateAmbitionVisibility() {
+      var hasChildren = formData.a8_hasChildren === 'Yes';
+      var hasHSA = formData.a7_hsaEligible === 'Yes';
+
+      // Education domain
+      var eduDomain = document.getElementById('domain_Education');
+      if (eduDomain) {
+        if (hasChildren) {
+          eduDomain.classList.remove('hidden');
+        } else {
+          eduDomain.classList.add('hidden');
+        }
+      }
+
+      // Health domain
+      var healthDomain = document.getElementById('domain_Health');
+      if (healthDomain) {
+        if (hasHSA) {
+          healthDomain.classList.remove('hidden');
+        } else {
+          healthDomain.classList.add('hidden');
+        }
+      }
+
+      // Tie-breaker (only if all 3 domains active)
+      var tiebreaker = document.getElementById('tiebreakerSection');
+      if (tiebreaker) {
+        if (hasChildren && hasHSA) {
+          tiebreaker.classList.remove('hidden');
+        } else {
+          tiebreaker.classList.add('hidden');
+        }
+      }
     }
 
     // ========================================================================
@@ -1623,6 +1810,18 @@ const Tool6 = {
       });
       document.getElementById(fieldId).value = value;
       handleFieldChange(fieldId, value);
+    }
+
+    function selectScale(fieldId, value) {
+      var buttons = document.querySelectorAll('#scale_' + fieldId + ' .scale-btn');
+      buttons.forEach(function(btn) {
+        btn.classList.remove('selected');
+        if (parseInt(btn.getAttribute('data-value')) === value) {
+          btn.classList.add('selected');
+        }
+      });
+      document.getElementById(fieldId).value = value;
+      formData[fieldId] = value;
     }
 
     function updateRanking(fieldId) {
@@ -1672,10 +1871,33 @@ const Tool6 = {
         { id: 'a2_yearsToRetirement', label: 'Years to retirement' },
         { id: 'a7_hsaEligible', label: 'HSA eligibility' },
         { id: 'a8_hasChildren', label: 'Education savings question' },
-        { id: 'a11_priorityRanking', label: 'Priority ranking' },
         { id: 'a13_currentIRABalance', label: 'Current IRA balance' },
         { id: 'a17_monthlyIRAContribution', label: 'Monthly IRA contribution' }
       ];
+
+      // Phase C required fields (ambition quotient - retirement always required)
+      requiredFields.push({ id: 'aq_retirement_importance', label: 'Retirement importance' });
+      requiredFields.push({ id: 'aq_retirement_anxiety', label: 'Retirement anxiety' });
+      requiredFields.push({ id: 'aq_retirement_motivation', label: 'Retirement motivation' });
+
+      // Education ambition questions (if hasChildren)
+      if (formData.a8_hasChildren === 'Yes') {
+        requiredFields.push({ id: 'aq_education_importance', label: 'Education importance' });
+        requiredFields.push({ id: 'aq_education_anxiety', label: 'Education anxiety' });
+        requiredFields.push({ id: 'aq_education_motivation', label: 'Education motivation' });
+      }
+
+      // Health ambition questions (if HSA eligible)
+      if (formData.a7_hsaEligible === 'Yes') {
+        requiredFields.push({ id: 'aq_health_importance', label: 'Healthcare importance' });
+        requiredFields.push({ id: 'aq_health_anxiety', label: 'Healthcare anxiety' });
+        requiredFields.push({ id: 'aq_health_motivation', label: 'Healthcare motivation' });
+      }
+
+      // Tie-breaker (if all 3 domains active)
+      if (formData.a8_hasChildren === 'Yes' && formData.a7_hsaEligible === 'Yes') {
+        requiredFields.push({ id: 'aq_tiebreaker', label: 'Priority tie-breaker' });
+      }
 
       // Add employer questions if not skipped for profile
       var skipProfiles = [1, 2, 3, 4];
@@ -1742,14 +1964,9 @@ const Tool6 = {
 
       inputs.forEach(function(input) {
         if (input.name && input.value) {
-          if (input.type === 'number') {
+          if (input.type === 'number' || input.type === 'hidden' && input.name.startsWith('aq_') && input.name !== 'aq_tiebreaker') {
+            // Parse numbers and ambition scale values
             submitData[input.name] = parseFloat(input.value) || 0;
-          } else if (input.name === 'a11_priorityRanking') {
-            try {
-              submitData[input.name] = JSON.parse(input.value);
-            } catch (e) {
-              submitData[input.name] = { retirement: 1, education: 2, health: 3 };
-            }
           } else {
             submitData[input.name] = input.value;
           }
@@ -1953,6 +2170,29 @@ const Tool6 = {
           `;
           break;
 
+        case 'scale':
+          const scaleMin = field.min || 1;
+          const scaleMax = field.max || 7;
+          const currentVal = parseInt(value) || Math.ceil((scaleMax + scaleMin) / 2);
+          fieldHtml += `
+            <div class="scale-input-wrapper">
+              <div class="scale-labels">
+                <span class="scale-label-left">${field.leftLabel || ''}</span>
+                <span class="scale-label-right">${field.rightLabel || ''}</span>
+              </div>
+              <div class="scale-buttons" id="scale_${fieldId}">
+          `;
+          for (let i = scaleMin; i <= scaleMax; i++) {
+            const selected = i === currentVal ? 'selected' : '';
+            fieldHtml += `<button type="button" class="scale-btn ${selected}" data-value="${i}" onclick="selectScale('${fieldId}', ${i})">${i}</button>`;
+          }
+          fieldHtml += `
+              </div>
+              <input type="hidden" id="${fieldId}" name="${fieldId}" value="${currentVal}">
+            </div>
+          `;
+          break;
+
         default:
           fieldHtml += `
             <input type="text"
@@ -1979,48 +2219,49 @@ const Tool6 = {
     // ========================================================================
     // PHASE A: CLASSIFICATION (Progressive short-circuit flow)
     // ========================================================================
-    if (!hasProfile) {
-      html += `
-        <div class="questionnaire-phase" id="phaseA">
-          <div class="phase-header">
-            <h4 class="section-subtitle">Step 1: Determine Your Investor Profile</h4>
-            <p class="section-description">Answer a few questions to find the best retirement strategy for your situation</p>
-          </div>
-          <div class="classification-container" id="classificationContainer">
-      `;
+    // Always render Phase A (hidden if profile exists) so "Change" button works
+    const phaseAHidden = hasProfile ? 'hidden' : '';
 
-      // Render classification questions (will be shown/hidden by JS)
-      for (const fieldId of CLASSIFICATION_ORDER) {
-        const field = CLASSIFICATION_QUESTIONS[fieldId];
-        if (!field) continue;
-
-        const value = getValue(fieldId, null);
-        // Initially hide all but first question
-        const isFirst = fieldId === CLASSIFICATION_ORDER[0];
-        const hiddenClass = isFirst ? '' : 'hidden';
-
-        html += `<div class="classification-question ${hiddenClass}" id="cq_${fieldId}">`;
-        html += renderField(fieldId, field, value);
-        html += '</div>';
-      }
-
-      html += `
-          </div>
-          <div class="profile-result hidden" id="profileResult">
-            <div class="profile-card">
-              <div class="profile-icon" id="profileIcon"></div>
-              <div class="profile-info">
-                <h3 id="profileName">Profile Name</h3>
-                <p id="profileReason">Match reason</p>
-              </div>
-            </div>
-            <button type="button" class="btn-secondary" onclick="continueToPhaseB()">
-              Continue to Allocation Details
-            </button>
-          </div>
+    html += `
+      <div class="questionnaire-phase ${phaseAHidden}" id="phaseA">
+        <div class="phase-header">
+          <h4 class="section-subtitle">Step 1: Determine Your Investor Profile</h4>
+          <p class="section-description">Answer a few questions to find the best retirement strategy for your situation</p>
         </div>
-      `;
+        <div class="classification-container" id="classificationContainer">
+    `;
+
+    // Render classification questions (will be shown/hidden by JS)
+    for (const fieldId of CLASSIFICATION_ORDER) {
+      const field = CLASSIFICATION_QUESTIONS[fieldId];
+      if (!field) continue;
+
+      const value = getValue(fieldId, null);
+      // Initially hide all but first question
+      const isFirst = fieldId === CLASSIFICATION_ORDER[0];
+      const hiddenClass = isFirst ? '' : 'hidden';
+
+      html += `<div class="classification-question ${hiddenClass}" id="cq_${fieldId}">`;
+      html += renderField(fieldId, field, value);
+      html += '</div>';
     }
+
+    html += `
+        </div>
+        <div class="profile-result hidden" id="profileResult">
+          <div class="profile-card">
+            <div class="profile-icon" id="profileIcon"></div>
+            <div class="profile-info">
+              <h3 id="profileName">Profile Name</h3>
+              <p id="profileReason">Match reason</p>
+            </div>
+          </div>
+          <button type="button" class="btn-secondary" onclick="continueToPhaseB()">
+            Continue to Allocation Details
+          </button>
+        </div>
+      </div>
+    `;
 
     // ========================================================================
     // PHASE B: ALLOCATION INPUTS (Profile-specific)
@@ -2082,7 +2323,88 @@ const Tool6 = {
       html += '</div></div>';
     }
 
+    // Phase B ends with continue button (not submit)
     html += `
+        <div class="form-actions">
+          <button type="button" class="btn-secondary" onclick="continueToPhaseC()" id="phaseBContinue">
+            Continue to Priorities
+          </button>
+        </div>
+      </div>
+    `;
+
+    // ========================================================================
+    // PHASE C: AMBITION QUOTIENT (Adaptive psychological assessment)
+    // ========================================================================
+    html += `
+      <div class="questionnaire-phase hidden" id="phaseC">
+        <div class="phase-header">
+          <h4 class="section-subtitle">Your Savings Priorities</h4>
+          <p class="section-description">Help us understand what matters most to you right now</p>
+        </div>
+
+        <!-- Retirement Domain (Always shown) -->
+        <div class="ambition-domain" id="domain_Retirement">
+          <h5 class="domain-title">Retirement Security</h5>
+    `;
+
+    // Render Retirement questions
+    for (const fieldId of AMBITION_QUESTION_ORDER.Retirement) {
+      const field = AMBITION_QUESTIONS[fieldId];
+      if (!field) continue;
+      const value = getValue(fieldId, null);
+      html += renderField(fieldId, field, value);
+    }
+
+    html += `
+        </div>
+
+        <!-- Education Domain (Conditional) -->
+        <div class="ambition-domain conditional-domain" id="domain_Education">
+          <h5 class="domain-title">Education Savings</h5>
+    `;
+
+    // Render Education questions
+    for (const fieldId of AMBITION_QUESTION_ORDER.Education) {
+      const field = AMBITION_QUESTIONS[fieldId];
+      if (!field) continue;
+      const value = getValue(fieldId, null);
+      html += renderField(fieldId, field, value);
+    }
+
+    html += `
+        </div>
+
+        <!-- Health Domain (Conditional) -->
+        <div class="ambition-domain conditional-domain" id="domain_Health">
+          <h5 class="domain-title">Healthcare Planning</h5>
+    `;
+
+    // Render Health questions
+    for (const fieldId of AMBITION_QUESTION_ORDER.Health) {
+      const field = AMBITION_QUESTIONS[fieldId];
+      if (!field) continue;
+      const value = getValue(fieldId, null);
+      html += renderField(fieldId, field, value);
+    }
+
+    html += `
+        </div>
+
+        <!-- Tie-breaker (Only if all 3 domains active) -->
+        <div class="ambition-tiebreaker conditional-domain hidden" id="tiebreakerSection">
+    `;
+
+    // Render tie-breaker
+    const tiebreakerField = AMBITION_QUESTIONS.aq_tiebreaker;
+    if (tiebreakerField) {
+      const value = getValue('aq_tiebreaker', null);
+      html += renderField('aq_tiebreaker', tiebreakerField, value);
+    }
+
+    html += `
+        </div>
+
         <div class="form-actions">
           <button type="button" class="submit-btn" onclick="submitQuestionnaire()" id="submitBtn">
             Calculate My Allocation

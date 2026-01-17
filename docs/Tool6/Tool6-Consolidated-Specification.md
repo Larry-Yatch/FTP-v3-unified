@@ -1,7 +1,7 @@
 # Tool 6: Retirement Blueprint Calculator - Consolidated Specification
 
-> **Version:** 1.6
-> **Date:** January 11, 2026
+> **Version:** 1.7
+> **Date:** January 17, 2026
 > **Status:** Approved for Implementation
 > **Consolidates:** Tool-6-Design-Spec.md + Tool6-Technical-Specification.md + Legacy Tool 6
 
@@ -9,6 +9,7 @@
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 1.7 | Jan 17, 2026 | **Ambition Quotient Enhancement:** Replaced simple 1-2-3 priority ranking with rich psychological assessment (9 questions: importance/anxiety/motivation on 1-7 scales per domain + tie-breaker). Added Phase C to questionnaire flow. Made tax preference question (`a2b_taxPreference`) required for ALL profiles in Phase B. Added `computeDomainsAndWeights()` function aligned with legacy algorithm. Adaptive design: only asks about active domains (Retirement always, Education if hasChildren, Health if hsaEligible). |
 | 1.6 | Jan 11, 2026 | **Education Domain Enhancement:** Added Q14 (numChildren), Q20 (currentEducationBalance), Q24 (monthlyEducationContribution); uses "Combined CESA" approach (total across all children, not per-child); renumbered questions to **24 total**; fixed ROBS qualifiers to only show for "Interested"; added `calculateEducationProjections()` algorithm; expanded TOOL6_SCENARIOS schema (15 columns A-O); updated Sprints 5.1, 6.1, 6.2, 7.1 with education domain requirements |
 | 1.5 | Jan 11, 2026 | Added UI Style Requirements section (Tool 4 alignment), added Q1/Q2 as required Tool 6 questions (gross income, years to retirement), renumbered questions to 22 total |
 | 1.4 | Jan 9, 2026 | Added HSA coverage type inference from filing status (Section 7 under Advanced Allocation Logic) - MFJ infers Family coverage, Single/MFS infers Individual coverage |
@@ -34,9 +35,17 @@ Tool 8: HOW DO I INVEST IT? → Inside accounts → What investments?
 ### Key Innovation: Ambition Quotient
 
 Tool 6 preserves the legacy system's innovative **Ambition Quotient** algorithm that weights allocations based on:
-- User-stated importance of each domain (Retirement/Education/Health)
-- Time-discounted urgency (closer deadlines = higher weight)
-- Blended formula: `weight = (importance + normalized_urgency) / 2`
+- **Importance**: User-rated importance of each domain on 1-7 scale
+- **Anxiety**: User-rated anxiety about each domain on 1-7 scale
+- **Motivation**: User-rated motivation to take action on 1-7 scale
+- **Time-discounted urgency**: Closer deadlines = higher weight
+- **Blended formula**: `weight = (importance + normalized_urgency) / 2`, then normalize
+
+**Adaptive Design (v1.7):** Only asks about domains relevant to the user:
+- Retirement: Always asked (3 questions)
+- Education: Only if hasChildren = Yes (3 questions)
+- Health: Only if hsaEligible = Yes (3 questions)
+- Tie-breaker: Only if all 3 domains are active (1 question)
 
 ---
 
@@ -502,61 +511,94 @@ const PROFILE_9_PRIORITY = [
 
 ### Purpose
 
-Weights allocation across three domains (Retirement, Education, Health) based on both stated importance and time urgency.
+Weights allocation across three domains (Retirement, Education, Health) based on psychological assessment and time urgency.
 
-### Ranking to Score Conversion
+### Phase C Questions (Adaptive)
+
+Each active domain asks 3 questions on a 1-7 scale:
+- **Importance**: "How important is saving for [domain] at this point in your life?"
+- **Anxiety**: "How much anxiety do you feel about [domain]?"
+- **Motivation**: "How motivated are you to take action toward [domain]?"
+
+**Domain Activation Logic:**
+- Retirement: Always active
+- Education: Active if `hasChildren === 'Yes'`
+- Health: Active if `hsaEligible === 'Yes'`
+- Tie-breaker: Asked only if all 3 domains active
+
+### Scale to Score Conversion
 
 ```javascript
-function rankToScore(rank) {
-  // rank 1 (top priority) = 1.0
-  // rank 2 = 0.5
-  // rank 3 = 0.25
-  const scores = { 1: 1.0, 2: 0.5, 3: 0.25 };
-  return scores[rank] || 0.25;
+// Convert 1-7 scale to 0-1 importance score
+function scaleToImportance(score) {
+  return (score - 1) / 6;  // 1→0.0, 4→0.5, 7→1.0
 }
 ```
 
-### Formula
+### Formula (computeDomainsAndWeights)
 
 ```javascript
-function calculateAmbitionQuotient(ranking, yearsToRetirement, yearsToEducation) {
-  // 1. Get importance scores from ranking
-  const importance = {
-    Retirement: rankToScore(ranking.retirement),
-    Education: rankToScore(ranking.education),
-    Health: rankToScore(ranking.health)
+function computeDomainsAndWeights(preSurveyData) {
+  const r = 0.005; // Monthly discount rate (~6% annual)
+
+  // 1. Determine active domains
+  const activeDomains = ['Retirement']; // Always active
+  if (preSurveyData.a8_hasChildren === 'Yes') activeDomains.push('Education');
+  if (preSurveyData.a7_hsaEligible === 'Yes') activeDomains.push('Health');
+
+  // 2. If only retirement active, return 100% retirement
+  if (activeDomains.length === 1) {
+    return { Retirement: 1.0, Education: 0, Health: 0, activeDomains };
+  }
+
+  // 3. Get time horizons (months)
+  const yearsToRetirement = parseInt(preSurveyData.a2_yearsToRetirement) || 30;
+  const yearsToEducation = parseInt(preSurveyData.a10_yearsToEducation) || 18;
+  const timeHorizons = {
+    Retirement: yearsToRetirement * 12,
+    Education: yearsToEducation * 12,
+    Health: yearsToRetirement * 12  // Health uses retirement timeline
   };
 
-  // 2. Calculate time-discounted urgency
-  const rMonthly = 0.005; // ~6% annual discount rate
-  const urgency = {
-    Retirement: 1 / Math.pow(1 + rMonthly, yearsToRetirement * 12),
-    Education: 1 / Math.pow(1 + rMonthly, yearsToEducation * 12),
-    Health: 1 / Math.pow(1 + rMonthly, yearsToRetirement * 12)
-  };
+  // 4. Calculate weights for each active domain
+  const rawWeights = {};
+  for (const domain of activeDomains) {
+    // Get importance from 1-7 scale question
+    const importanceScore = parseInt(preSurveyData[`aq_${domain.toLowerCase()}_importance`]) || 4;
+    const importance = (importanceScore - 1) / 6;  // Normalize to 0-1
 
-  // 3. Normalize urgency
-  const maxUrgency = Math.max(...Object.values(urgency));
-  const normalizedUrgency = {
-    Retirement: urgency.Retirement / maxUrgency,
-    Education: urgency.Education / maxUrgency,
-    Health: urgency.Health / maxUrgency
-  };
+    // Calculate time-based urgency
+    const months = timeHorizons[domain];
+    const urgency = 1 / Math.pow(1 + r, months);
 
-  // 4. Blend importance + urgency
-  const rawWeights = {
-    Retirement: (importance.Retirement + normalizedUrgency.Retirement) / 2,
-    Education: (importance.Education + normalizedUrgency.Education) / 2,
-    Health: (importance.Health + normalizedUrgency.Health) / 2
-  };
+    // Blend importance and urgency
+    rawWeights[domain] = (importance + urgency) / 2;
+  }
 
   // 5. Normalize to sum = 1
-  const totalWeight = Object.values(rawWeights).reduce((a, b) => a + b, 0);
-  return {
-    Retirement: rawWeights.Retirement / totalWeight,
-    Education: rawWeights.Education / totalWeight,
-    Health: rawWeights.Health / totalWeight
-  };
+  const total = Object.values(rawWeights).reduce((a, b) => a + b, 0);
+  const weights = { Retirement: 0, Education: 0, Health: 0 };
+  for (const domain of activeDomains) {
+    weights[domain] = rawWeights[domain] / total;
+  }
+
+  return { ...weights, activeDomains };
+}
+```
+
+### Tie-Breaker Handling
+
+When all 3 domains are active and weights are close (within 5%), use the tie-breaker answer to boost the chosen domain by 10%:
+
+```javascript
+if (activeDomains.length === 3 && preSurveyData.aq_tiebreaker) {
+  const chosen = preSurveyData.aq_tiebreaker;
+  weights[chosen] += 0.10;
+  // Re-normalize
+  const newTotal = Object.values(weights).reduce((a, b) => a + b, 0);
+  for (const d of activeDomains) {
+    weights[d] = weights[d] / newTotal;
+  }
 }
 ```
 
@@ -1855,51 +1897,52 @@ testClassification({}) // → Profile 7 (default)
 
 ---
 
-### Phase 3: Ambition Quotient
+### Phase 3: Ambition Quotient ✅ COMPLETE
 
-#### Sprint 3.1: Priority Ranking UI
-**Goal:** Drag-to-reorder priority ranking
+#### Sprint 3.1: Priority Ranking UI → Phase C Ambition UI ✅
+**Goal:** ~~Drag-to-reorder priority ranking~~ → Rich psychological assessment
 
-**Tasks:**
-1. Create ranking UI with 3 draggable items
-2. Implement drag-and-drop (or up/down arrow fallback)
-3. Add Q11 (children toggle) and Q12 (years to education)
-4. Store ranking state
+**Implementation (Jan 17, 2026):**
+1. Created `AMBITION_QUESTIONS` in Tool6Constants.js (10 questions total)
+2. Added 1-7 scale input type with clickable buttons
+3. Adaptive visibility based on Phase B answers (hasChildren, hsaEligible)
+4. Domain-based grouping with conditional rendering
 
-**Test:**
-- Drag "Education" to top → ranking updates
-- Q11 = No → Q12 hidden, education years = 99
-- `getRanking()` returns { retirement: 2, education: 1, health: 3 }
+**Questions per Domain:**
+- Importance: "How important is saving for [domain]?"
+- Anxiety: "How much anxiety do you feel about [domain]?"
+- Motivation: "How motivated are you to take action?"
 
-**Deliverable:** Priority input UI
+**Deliverable:** Phase C Ambition UI with adaptive question flow ✅
 
 ---
 
-#### Sprint 3.2: Ambition Quotient Algorithm
+#### Sprint 3.2: Ambition Quotient Algorithm ✅
 **Goal:** Calculate domain weights from inputs
 
-**Tasks:**
-1. Implement `calculateAmbitionQuotient()` per spec in `Tool6Allocation.js`
-2. Return normalized weights that sum to 1
+**Implementation (Jan 17, 2026):**
+1. Added `computeDomainsAndWeights()` to Tool6.js
+2. Algorithm aligned with legacy code.js lines 3512-3551
+3. Returns normalized weights that sum to 1
 
-**Test:**
+**Test Cases:**
 ```javascript
-// Retirement first, 30 years out, no kids
-calculateAmbitionQuotient(
-  { retirement: 1, education: 3, health: 2 },
-  30,
-  99
-) // → { Retirement: ~0.55, Education: ~0.15, Health: ~0.30 }
+// Only retirement active (no kids, no HSA)
+computeDomainsAndWeights({ a8_hasChildren: 'No', a7_hsaEligible: 'No' })
+// → { Retirement: 1.0, Education: 0, Health: 0 }
 
-// Education first, 5 years out
-calculateAmbitionQuotient(
-  { retirement: 2, education: 1, health: 3 },
-  30,
-  5
-) // → Education weight highest due to urgency
+// All 3 domains, high education importance, 5 years out
+computeDomainsAndWeights({
+  a8_hasChildren: 'Yes', a7_hsaEligible: 'Yes',
+  a2_yearsToRetirement: 30, a10_yearsToEducation: 5,
+  aq_retirement_importance: 5,
+  aq_education_importance: 7,
+  aq_health_importance: 4
+})
+// → Education weight highest due to importance + urgency
 ```
 
-**Deliverable:** Working Ambition Quotient
+**Deliverable:** Working Ambition Quotient ✅
 
 ---
 
