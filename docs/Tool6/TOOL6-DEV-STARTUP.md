@@ -2,7 +2,7 @@
 
 > **Purpose:** Get any AI coder up to speed quickly for multi-session development
 > **Last Updated:** January 17, 2026
-> **Current Sprint:** Phase 5 In Progress - Calculator UI with Coupled Sliders
+> **Current Sprint:** Phase 5 COMPLETE - Ready for Phase 6 (Projections)
 
 ---
 
@@ -208,7 +208,7 @@ google.script.run
 - [x] Sprint 4.4: Tax Strategy Reordering & Roth Phase-Out - ✅ **COMPLETE** (Jan 16, 2026)
 - [x] Sprint 4.5: IRS Limit Validation - ✅ **COMPLETE** (Jan 16, 2026)
 
-### Phase 5: Calculator UI ⏳ IN PROGRESS
+### Phase 5: Calculator UI ✅ COMPLETE
 - [x] Sprint 5.1: Current State Inputs - ✅ **COMPLETE** (Jan 17, 2026)
 - [x] Sprint 5.2: Investment Score Display - ✅ **COMPLETE** (Jan 17, 2026)
 - [x] Sprint 5.3: Tax Strategy Toggle - ✅ **COMPLETE** (Jan 17, 2026)
@@ -398,6 +398,7 @@ This startup doc serves as persistent memory across sessions. **Always update th
 | **Locked vehicles excluded from redistribution** | Locked sliders don't participate in coupled adjustment. Remaining unlocked vehicles' proportions are renormalized. | Jan 17, 2026 |
 | **Store IRS limits separately from effective limits** | IRS limits are static per vehicle. Effective limits = min(IRS limit, budget). When budget changes, recalculate effective limits and update slider max values. | Jan 17, 2026 |
 | **Education vehicle choice (529 vs Coverdell)** | User selects preferred vehicle: 529 (no income limit, college), Coverdell ($2k/child, K-12+college), or Both. Dynamic Coverdell limit = $2,000 × numChildren. | Jan 17, 2026 |
+| **Family Bank is overflow (lowest priority)** | When increasing a vehicle, pull from Family Bank first. When decreasing, redistribute to other vehicles first (up to their limits), only overflow goes to Family Bank. | Jan 17, 2026 |
 
 ### Design Patterns Established
 1. **Single-page calculator** - Same as Tool 4, not multi-phase like Tools 1-3
@@ -470,9 +471,17 @@ When ending a session, update this section:
     - Added proper escaping for vehicle names in JS handlers
     - Fixed slider fill not tracking slider position (selector was matching input not row)
     - Fixed budget change not updating slider limits (store IRS limits separately)
+    - Fixed slider fill alignment with thumb (account for 18px thumb width)
+    - Fixed budget remainder not being allocated (normalizeAllocations adds to Family Bank)
+    - Fixed Family Bank not showing in UI (always include in allocation result)
+    - Fixed Family Bank overflow logic (pull from FB when increasing, redistribute to others when decreasing)
+  - **Education Vehicle Choice Feature:**
+    - Added Q16 `a11_educationVehicle` dropdown (529, Coverdell, or Both)
+    - Dynamic Coverdell limit = $2,000 × numChildren
+    - Priority order: Coverdell fills first when "Both" selected
 - **Current state:** Phase 5 COMPLETE. Full Calculator UI with coupled sliders working.
 - **Next task:** Phase 6 (Projections) - Sprint 6.1: Projections Calculation
-- **Blockers:** None - testing in progress
+- **Blockers:** None
 
 ### Previous Session (January 16, 2026)
 - ✅ Phase 4 Complete - Vehicle Allocation Engine
@@ -556,71 +565,65 @@ The `docs/Middleware/middleware-mapping.md` document is the **canonical referenc
 
 ### Notes for Next Session
 
-**Phase 5: Calculator UI Complete with Coupled Sliders**
+## Ready for Phase 6: Projections
 
-## Coupled Slider Architecture
-
-The sliders in "Your Recommended Allocation" section behave like Tool 4's bucket sliders - they're coupled so adjusting one redistributes among others.
-
-### State Object
-```javascript
-var allocationState = {
-  vehicles: {},           // Current allocation amounts by vehicle
-  originalAllocation: {}, // Original algorithm output (for proportions)
-  limits: {},             // Effective max limits (min of IRS and budget)
-  irsLimits: {},          // True IRS limits (never change)
-  locked: {},             // Which vehicles are locked
-  budget: 0,              // Total monthly budget
-  originalBudget: 0       // Original budget from Tool 4
-};
-```
-
-### Key Functions
-
-| Function | Purpose |
-|----------|---------|
-| `initAllocationState()` | Initialize state from DOM on page load |
-| `adjustVehicleAllocation(name, value)` | Coupled adjustment using original proportions |
-| `getOriginalProportions(excludeId)` | Get renormalized proportions for unlocked vehicles |
-| `toggleVehicleLock(id)` | Lock/unlock a vehicle from redistribution |
-| `updateBudget(newBudget)` | Recalculate limits and scale allocations |
-| `resetToRecommended()` | Restore original algorithm output |
-| `updateSliderFills()` | Refresh fill bars after limit changes |
-
-### Redistribution Logic
-
-When slider X changes from `oldValue` to `newValue`:
-1. Calculate `delta = newValue - oldValue`
-2. Get original proportions for unlocked vehicles (excluding X)
-3. Renormalize proportions to sum to 1.0
-4. Distribute `-delta` among other vehicles by proportion
-5. Clamp each vehicle to [0, effective limit]
-6. Update all displays
-
-### HTML Data Attributes
-
-Each slider row has:
-- `data-vehicle-id` - Safe alphanumeric ID
-- `data-vehicle-name` - Original name with special chars
-- `data-irs-limit` - True IRS monthly limit (999999 for unlimited)
-
-Each slider input has:
-- `data-vehicle-id` - Safe ID for JS lookup
-- `data-irs-limit` - True IRS limit
-- `max` - Effective max (min of IRS and budget)
+Phase 5 is complete with all slider functionality working:
+- Coupled sliders with Family Bank as overflow
+- Lock/unlock, budget editing, reset to recommended
+- Education vehicle choice (529 vs Coverdell)
 
 ## Next Steps: Phase 6 - Projections
 
 **Sprint 6.1: Projections Calculation**
-- `calculateProjections(allocation, years, rate)`
-- Future value for each vehicle
-- Tax-free vs taxable breakdown
-- Education domain projections
+- Create `calculateProjections(allocation, years, rate)` function
+- Future value formula: `FV = PV × (1 + r)^n + PMT × ((1 + r)^n - 1) / r`
+- Per-vehicle projections with their respective growth rates
+- Tax-free vs taxable breakdown (Roth vs Traditional vs Taxable)
+- Education domain projections (separate timeline)
 
 **Sprint 6.2: Projections Display**
-- Balance at retirement
-- Tax-advantaged vs taxable comparison
-- Per-vehicle growth chart (optional)
+- Balance at retirement (per vehicle and total)
+- Tax-advantaged vs taxable pie chart or breakdown
+- Comparison: "With this plan vs Current trajectory"
+
+**Sprint 6.3: Tax Breakdown Display**
+- Show projected tax-free withdrawals (Roth, HSA)
+- Show projected taxable withdrawals (Traditional, Taxable)
+- Estimated tax savings from Roth conversion strategy
+
+## Key Reference: Projection Config
+
+From `Tool6Constants.js`:
+```javascript
+PROJECTION_CONFIG: {
+  DEFAULT_RETURN_RATE: 0.10,     // 10% default
+  SCORE_TO_RATE: {               // Investment score mapping
+    1: 0.04, 2: 0.06, 3: 0.08, 4: 0.10,
+    5: 0.12, 6: 0.14, 7: 0.16
+  },
+  FAMILY_BANK_RATE: 0.05,        // 5% for overflow/taxable
+  EDUCATION_RATE: 0.07           // 7% for education vehicles
+}
+```
+
+## Coupled Slider Reference (for maintenance)
+
+### Redistribution Logic (Family Bank aware)
+- **INCREASE vehicle**: Pull from Family Bank first (lowest priority), then other vehicles
+- **DECREASE vehicle**: Redistribute to other vehicles first (up to limits), overflow to Family Bank
+
+### State Object
+```javascript
+var allocationState = {
+  vehicles: {},           // Current amounts
+  originalAllocation: {}, // Algorithm output (for proportions)
+  limits: {},             // Effective max (min of IRS and budget)
+  irsLimits: {},          // True IRS limits
+  locked: {},             // Lock status
+  budget: 0,
+  originalBudget: 0
+};
+```
 
 ---
 
