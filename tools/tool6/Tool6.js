@@ -4047,56 +4047,73 @@ const Tool6 = {
       // Update the adjusted vehicle
       allocationState.vehicles[vehicleId] = newValue;
 
-      // Redistribute delta - Family Bank is special (overflow bucket)
-      // When INCREASING a vehicle: pull from Family Bank first, then others
-      // When DECREASING a vehicle: push to Family Bank first, then others
+      // Redistribute delta - Family Bank is the OVERFLOW bucket (lowest priority)
+      // When INCREASING a vehicle: pull from Family Bank FIRST (it's overflow)
+      // When DECREASING a vehicle: redistribute to other vehicles FIRST, overflow to Family Bank
       if (delta !== 0) {
         var familyBankId = 'Family_Bank';
         var familyBankValue = allocationState.vehicles[familyBankId] || 0;
         var familyBankLocked = allocationState.locked[familyBankId];
-        var remainingDelta = delta;
 
-        // Try Family Bank first (if unlocked and not the vehicle being adjusted)
-        if (!familyBankLocked && vehicleId !== familyBankId) {
-          if (delta > 0) {
-            // Increasing another vehicle - pull from Family Bank
+        if (delta > 0) {
+          // INCREASING a vehicle - pull from Family Bank first (lowest priority)
+          var remainingDelta = delta;
+
+          if (!familyBankLocked && vehicleId !== familyBankId) {
             var pullFromFamilyBank = Math.min(delta, familyBankValue);
             allocationState.vehicles[familyBankId] = familyBankValue - pullFromFamilyBank;
             remainingDelta = delta - pullFromFamilyBank;
-          } else {
-            // Decreasing another vehicle - push to Family Bank (unlimited capacity)
-            allocationState.vehicles[familyBankId] = familyBankValue - delta; // delta is negative, so this adds
-            remainingDelta = 0;
           }
-        }
 
-        // If there's still delta to redistribute, use original proportions for other vehicles
-        if (remainingDelta !== 0) {
-          var originalProportions = getOriginalProportions(vehicleId);
-          // Also exclude Family Bank from proportional redistribution
-          delete originalProportions[familyBankId];
+          // If Family Bank didn't have enough, pull from other vehicles proportionally
+          if (remainingDelta > 0) {
+            var originalProportions = getOriginalProportions(vehicleId);
+            delete originalProportions[familyBankId]; // Exclude Family Bank
 
-          // Renormalize proportions after removing Family Bank
-          var totalProp = 0;
-          for (var id in originalProportions) {
-            totalProp += originalProportions[id];
-          }
-          if (totalProp > 0) {
-            for (var id in originalProportions) {
-              originalProportions[id] = originalProportions[id] / totalProp;
+            // Renormalize
+            var totalProp = 0;
+            for (var id in originalProportions) totalProp += originalProportions[id];
+            if (totalProp > 0) {
+              for (var id in originalProportions) originalProportions[id] /= totalProp;
             }
-          }
 
-          if (Object.keys(originalProportions).length > 0) {
             for (var id in originalProportions) {
               var proportion = originalProportions[id];
-              var adjustment = remainingDelta * proportion;
-              var newVal = allocationState.vehicles[id] - adjustment;
-              // Clamp to limits
-              var limit = allocationState.limits[id] || allocationState.budget;
-              newVal = Math.max(0, Math.min(limit, newVal));
+              var reduction = remainingDelta * proportion;
+              var newVal = Math.max(0, allocationState.vehicles[id] - reduction);
               allocationState.vehicles[id] = newVal;
             }
+          }
+        } else {
+          // DECREASING a vehicle - redistribute to other vehicles first, overflow to Family Bank
+          var freedAmount = -delta; // Make positive
+          var originalProportions = getOriginalProportions(vehicleId);
+          delete originalProportions[familyBankId]; // Exclude Family Bank from initial distribution
+
+          // Renormalize
+          var totalProp = 0;
+          for (var id in originalProportions) totalProp += originalProportions[id];
+          if (totalProp > 0) {
+            for (var id in originalProportions) originalProportions[id] /= totalProp;
+          }
+
+          // Distribute to other vehicles (up to their limits)
+          var distributed = 0;
+          for (var id in originalProportions) {
+            var proportion = originalProportions[id];
+            var share = freedAmount * proportion;
+            var currentVal = allocationState.vehicles[id] || 0;
+            var limit = allocationState.limits[id] || allocationState.budget;
+            var room = limit - currentVal;
+            var actualAdd = Math.min(share, room);
+            allocationState.vehicles[id] = currentVal + actualAdd;
+            distributed += actualAdd;
+          }
+
+          // Any remaining goes to Family Bank (overflow)
+          var overflow = freedAmount - distributed;
+          if (overflow > 0 && !familyBankLocked) {
+            allocationState.vehicles[familyBankId] = (allocationState.vehicles[familyBankId] || 0) + overflow;
           }
         }
       }
