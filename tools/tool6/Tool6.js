@@ -4047,42 +4047,55 @@ const Tool6 = {
       // Update the adjusted vehicle
       allocationState.vehicles[vehicleId] = newValue;
 
-      // Get ORIGINAL proportions for redistribution (renormalized for locked vehicles)
-      var originalProportions = getOriginalProportions(vehicleId);
+      // Redistribute delta - Family Bank is special (overflow bucket)
+      // When INCREASING a vehicle: pull from Family Bank first, then others
+      // When DECREASING a vehicle: push to Family Bank first, then others
+      if (delta !== 0) {
+        var familyBankId = 'Family_Bank';
+        var familyBankValue = allocationState.vehicles[familyBankId] || 0;
+        var familyBankLocked = allocationState.locked[familyBankId];
+        var remainingDelta = delta;
 
-      // Redistribute delta among unlocked vehicles using ORIGINAL proportions
-      if (Object.keys(originalProportions).length > 0 && delta !== 0) {
-        // Check if any unlocked vehicles have current value > 0 or we are decreasing
-        var hasCapacity = delta < 0; // If decreasing, others will increase
-        if (!hasCapacity) {
-          for (var id in originalProportions) {
-            if (allocationState.vehicles[id] > 0) {
-              hasCapacity = true;
-              break;
-            }
+        // Try Family Bank first (if unlocked and not the vehicle being adjusted)
+        if (!familyBankLocked && vehicleId !== familyBankId) {
+          if (delta > 0) {
+            // Increasing another vehicle - pull from Family Bank
+            var pullFromFamilyBank = Math.min(delta, familyBankValue);
+            allocationState.vehicles[familyBankId] = familyBankValue - pullFromFamilyBank;
+            remainingDelta = delta - pullFromFamilyBank;
+          } else {
+            // Decreasing another vehicle - push to Family Bank (unlimited capacity)
+            allocationState.vehicles[familyBankId] = familyBankValue - delta; // delta is negative, so this adds
+            remainingDelta = 0;
           }
         }
 
-        if (hasCapacity) {
-          // Use original proportions for redistribution
+        // If there's still delta to redistribute, use original proportions for other vehicles
+        if (remainingDelta !== 0) {
+          var originalProportions = getOriginalProportions(vehicleId);
+          // Also exclude Family Bank from proportional redistribution
+          delete originalProportions[familyBankId];
+
+          // Renormalize proportions after removing Family Bank
+          var totalProp = 0;
           for (var id in originalProportions) {
-            var proportion = originalProportions[id];
-            var adjustment = delta * proportion;
-            var newVal = allocationState.vehicles[id] - adjustment;
-            // Clamp to limits
-            var limit = allocationState.limits[id] || allocationState.budget;
-            newVal = Math.max(0, Math.min(limit, newVal));
-            allocationState.vehicles[id] = newVal;
+            totalProp += originalProportions[id];
           }
-        } else {
-          // All unlocked vehicles are at 0 and we are increasing - distribute using original proportions
-          var remaining = allocationState.budget - newValue - getLockedTotal(vehicleId);
-          if (remaining > 0) {
+          if (totalProp > 0) {
+            for (var id in originalProportions) {
+              originalProportions[id] = originalProportions[id] / totalProp;
+            }
+          }
+
+          if (Object.keys(originalProportions).length > 0) {
             for (var id in originalProportions) {
               var proportion = originalProportions[id];
-              var share = remaining * proportion;
+              var adjustment = remainingDelta * proportion;
+              var newVal = allocationState.vehicles[id] - adjustment;
+              // Clamp to limits
               var limit = allocationState.limits[id] || allocationState.budget;
-              allocationState.vehicles[id] = Math.min(share, limit);
+              newVal = Math.max(0, Math.min(limit, newVal));
+              allocationState.vehicles[id] = newVal;
             }
           }
         }
