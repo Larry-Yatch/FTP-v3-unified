@@ -1551,9 +1551,22 @@ const Tool6 = {
         <h4 class="calc-subsection-title">Your Recommended Allocation</h4>
         <div class="allocation-summary">
           <span class="budget-label">Monthly Budget:</span>
-          <span class="budget-amount">$${monthlyBudget.toLocaleString()}</span>
+          <div class="budget-editor">
+            <span class="budget-currency">$</span>
+            <input type="number"
+                   id="budgetInput"
+                   class="budget-input"
+                   value="${monthlyBudget}"
+                   min="100"
+                   step="50"
+                   onchange="updateBudget(this.value)">
+            <span class="budget-display">/ month</span>
+          </div>
           <span class="allocated-label">Allocated:</span>
           <span class="allocated-amount" id="totalAllocated">$${(allocation.totalAllocated || 0).toLocaleString()}</span>
+          <button type="button" class="btn-reset" onclick="resetToRecommended()" title="Reset to algorithm recommendation">
+            ↻ Reset
+          </button>
         </div>
 
         <div class="vehicle-sliders" id="vehicleSliders">
@@ -1621,6 +1634,11 @@ const Tool6 = {
             <span class="amount-value" id="amount_${safeId}">$${amount.toLocaleString()}</span>
             <span class="amount-percent">${percentage}%</span>
           </div>
+          <button type="button"
+                  class="lock-btn"
+                  id="lock_${safeId}"
+                  onclick="toggleVehicleLock('${safeId}')"
+                  title="Lock this vehicle">🔓</button>
         </div>
       `;
     }
@@ -2622,6 +2640,91 @@ const Tool6 = {
       color: var(--color-text-primary);
     }
 
+    /* Budget Editor */
+    .budget-editor {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .budget-currency {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--color-text-primary);
+    }
+
+    .budget-input {
+      width: 100px;
+      padding: 6px 10px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--color-text-primary);
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 6px;
+      text-align: right;
+    }
+
+    .budget-input:focus {
+      outline: none;
+      border-color: var(--color-primary);
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    .budget-input::-webkit-inner-spin-button,
+    .budget-input::-webkit-outer-spin-button {
+      opacity: 1;
+    }
+
+    .budget-display {
+      font-size: 0.9rem;
+      color: var(--color-text-muted);
+    }
+
+    /* Reset Button */
+    .btn-reset {
+      padding: 6px 12px;
+      font-size: 0.85rem;
+      color: var(--color-text-secondary);
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      margin-left: auto;
+    }
+
+    .btn-reset:hover {
+      background: rgba(255, 255, 255, 0.2);
+      color: var(--color-text-primary);
+    }
+
+    /* Lock Button */
+    .lock-btn {
+      width: 36px;
+      height: 36px;
+      padding: 0;
+      font-size: 1.1rem;
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .lock-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.3);
+    }
+
+    .lock-btn.locked {
+      background: rgba(239, 68, 68, 0.2);
+      border-color: rgba(239, 68, 68, 0.5);
+    }
+
     .vehicle-sliders {
       display: flex;
       flex-direction: column;
@@ -2630,13 +2733,13 @@ const Tool6 = {
 
     .vehicle-slider-row {
       display: grid;
-      grid-template-columns: 220px 1fr 120px;
+      grid-template-columns: 220px 1fr 120px 40px;
       gap: 16px;
       align-items: center;
       padding: 14px 16px;
       background: rgba(255, 255, 255, 0.02);
       border-radius: 8px;
-      transition: background 0.2s ease;
+      transition: background 0.2s ease, opacity 0.2s ease;
     }
 
     .vehicle-slider-row:hover {
@@ -2649,6 +2752,15 @@ const Tool6 = {
 
     .vehicle-slider-row.trad-vehicle {
       border-left: 3px solid #3b82f6;
+    }
+
+    .vehicle-slider-row.locked {
+      opacity: 0.7;
+      background: rgba(255, 255, 255, 0.01);
+    }
+
+    .vehicle-slider-row.locked .vehicle-slider {
+      cursor: not-allowed;
     }
 
     .vehicle-info {
@@ -3603,10 +3715,12 @@ const Tool6 = {
 
     // Initialize allocation state from rendered sliders
     var allocationState = {
-      vehicles: {},      // Current allocation amounts by vehicle
-      limits: {},        // Max limits per vehicle
-      locked: {},        // Which vehicles are locked
-      budget: 0          // Total monthly budget
+      vehicles: {},           // Current allocation amounts by vehicle
+      originalAllocation: {}, // Original algorithm output (for proportions)
+      limits: {},             // Max limits per vehicle
+      locked: {},             // Which vehicles are locked
+      budget: 0,              // Total monthly budget
+      originalBudget: 0       // Original budget from Tool 4
     };
 
     // Initialize state from DOM on page load
@@ -3614,14 +3728,148 @@ const Tool6 = {
       var budgetEl = document.querySelector('.budget-amount');
       if (budgetEl) {
         allocationState.budget = parseInt(budgetEl.textContent.replace(/[^0-9]/g, '')) || 0;
+        allocationState.originalBudget = allocationState.budget;
       }
 
       document.querySelectorAll('.vehicle-slider').forEach(function(slider) {
         var vehicleId = slider.dataset.vehicleId;
-        allocationState.vehicles[vehicleId] = parseFloat(slider.value) || 0;
+        var value = parseFloat(slider.value) || 0;
+        allocationState.vehicles[vehicleId] = value;
+        allocationState.originalAllocation[vehicleId] = value; // Store original
         allocationState.limits[vehicleId] = parseFloat(slider.max) || allocationState.budget;
         allocationState.locked[vehicleId] = false;
       });
+    }
+
+    // Get original proportions for unlocked vehicles (renormalized)
+    function getOriginalProportions(excludeVehicleId) {
+      var proportions = {};
+      var totalOriginal = 0;
+
+      // Sum original allocations for unlocked vehicles (excluding the one being adjusted)
+      for (var id in allocationState.originalAllocation) {
+        if (id !== excludeVehicleId && !allocationState.locked[id]) {
+          totalOriginal += allocationState.originalAllocation[id] || 0;
+        }
+      }
+
+      // Calculate renormalized proportions
+      if (totalOriginal > 0) {
+        for (var id in allocationState.originalAllocation) {
+          if (id !== excludeVehicleId && !allocationState.locked[id]) {
+            proportions[id] = (allocationState.originalAllocation[id] || 0) / totalOriginal;
+          }
+        }
+      }
+
+      return proportions;
+    }
+
+    // Reset to original algorithm recommendation
+    function resetToRecommended() {
+      // Restore original values
+      for (var id in allocationState.originalAllocation) {
+        allocationState.vehicles[id] = allocationState.originalAllocation[id];
+        allocationState.locked[id] = false;
+      }
+      allocationState.budget = allocationState.originalBudget;
+
+      // Update budget input if it exists
+      var budgetInput = document.getElementById('budgetInput');
+      if (budgetInput) {
+        budgetInput.value = allocationState.originalBudget;
+      }
+
+      // Update UI
+      updateAllVehicleDisplays();
+      updateAllLockButtons();
+
+      // Clear dirty state
+      var recalcBtn = document.querySelector('.btn-recalc');
+      if (recalcBtn) {
+        recalcBtn.style.animation = '';
+      }
+    }
+
+    // Toggle lock state for a vehicle
+    function toggleVehicleLock(vehicleId) {
+      allocationState.locked[vehicleId] = !allocationState.locked[vehicleId];
+      updateLockButton(vehicleId);
+      updateSliderState(vehicleId);
+    }
+
+    // Update lock button display
+    function updateLockButton(vehicleId) {
+      var btn = document.getElementById('lock_' + vehicleId);
+      if (btn) {
+        if (allocationState.locked[vehicleId]) {
+          btn.textContent = '🔒';
+          btn.title = 'Unlock this vehicle';
+          btn.classList.add('locked');
+        } else {
+          btn.textContent = '🔓';
+          btn.title = 'Lock this vehicle';
+          btn.classList.remove('locked');
+        }
+      }
+    }
+
+    // Update all lock buttons
+    function updateAllLockButtons() {
+      for (var id in allocationState.locked) {
+        updateLockButton(id);
+        updateSliderState(id);
+      }
+    }
+
+    // Update slider enabled/disabled state based on lock
+    function updateSliderState(vehicleId) {
+      var slider = document.getElementById('slider_' + vehicleId);
+      var row = document.querySelector('[data-vehicle-id="' + vehicleId + '"]');
+      if (slider) {
+        slider.disabled = allocationState.locked[vehicleId];
+      }
+      if (row) {
+        if (allocationState.locked[vehicleId]) {
+          row.classList.add('locked');
+        } else {
+          row.classList.remove('locked');
+        }
+      }
+    }
+
+    // Handle budget change
+    function updateBudget(newBudget) {
+      newBudget = parseFloat(newBudget) || 0;
+      if (newBudget <= 0) return;
+
+      var oldBudget = allocationState.budget;
+      var ratio = newBudget / oldBudget;
+
+      allocationState.budget = newBudget;
+
+      // Scale all unlocked vehicles proportionally
+      for (var id in allocationState.vehicles) {
+        if (!allocationState.locked[id]) {
+          var newVal = allocationState.vehicles[id] * ratio;
+          var limit = allocationState.limits[id] || newBudget;
+          allocationState.vehicles[id] = Math.min(newVal, limit);
+        }
+      }
+
+      // Normalize and update
+      normalizeAllocations(null);
+      updateAllVehicleDisplays();
+      updateBudgetDisplay();
+      markCalculatorDirty();
+    }
+
+    // Update budget display
+    function updateBudgetDisplay() {
+      var budgetEl = document.querySelector('.budget-amount');
+      if (budgetEl) {
+        budgetEl.textContent = '$' + allocationState.budget.toLocaleString();
+      }
     }
 
     // Sprint 5.5: Update single vehicle display
@@ -3655,7 +3903,7 @@ const Tool6 = {
       }
     }
 
-    // Sprint 5.5: Coupled slider adjustment (like Tool 4 adjustBucket)
+    // Sprint 5.5: Coupled slider adjustment using ORIGINAL proportions
     function adjustVehicleAllocation(vehicleName, newValue) {
       var vehicleId = vehicleName.replace(/[^a-zA-Z0-9]/g, '_');
       newValue = parseFloat(newValue);
@@ -3671,38 +3919,44 @@ const Tool6 = {
       // Update the adjusted vehicle
       allocationState.vehicles[vehicleId] = newValue;
 
-      // Find unlocked vehicles (excluding the one being adjusted)
-      var unlockedVehicles = [];
-      var unlockedTotal = 0;
+      // Get ORIGINAL proportions for redistribution (renormalized for locked vehicles)
+      var originalProportions = getOriginalProportions(vehicleId);
 
-      for (var id in allocationState.vehicles) {
-        if (id !== vehicleId && !allocationState.locked[id]) {
-          unlockedVehicles.push(id);
-          unlockedTotal += allocationState.vehicles[id];
+      // Redistribute delta among unlocked vehicles using ORIGINAL proportions
+      if (Object.keys(originalProportions).length > 0 && delta !== 0) {
+        // Check if any unlocked vehicles have current value > 0 or we are decreasing
+        var hasCapacity = delta < 0; // If decreasing, others will increase
+        if (!hasCapacity) {
+          for (var id in originalProportions) {
+            if (allocationState.vehicles[id] > 0) {
+              hasCapacity = true;
+              break;
+            }
+          }
         }
-      }
 
-      // Redistribute delta among unlocked vehicles proportionally
-      if (unlockedVehicles.length > 0 && delta !== 0) {
-        if (unlockedTotal > 0) {
-          // Proportional redistribution
-          unlockedVehicles.forEach(function(id) {
-            var proportion = allocationState.vehicles[id] / unlockedTotal;
+        if (hasCapacity) {
+          // Use original proportions for redistribution
+          for (var id in originalProportions) {
+            var proportion = originalProportions[id];
             var adjustment = delta * proportion;
             var newVal = allocationState.vehicles[id] - adjustment;
             // Clamp to limits
             var limit = allocationState.limits[id] || allocationState.budget;
             newVal = Math.max(0, Math.min(limit, newVal));
             allocationState.vehicles[id] = newVal;
-          });
+          }
         } else {
-          // If all unlocked are at 0, try to take from them evenly
+          // All unlocked vehicles are at 0 and we are increasing - distribute using original proportions
           var remaining = allocationState.budget - newValue - getLockedTotal(vehicleId);
-          var evenShare = Math.max(0, remaining / unlockedVehicles.length);
-          unlockedVehicles.forEach(function(id) {
-            var limit = allocationState.limits[id] || allocationState.budget;
-            allocationState.vehicles[id] = Math.min(evenShare, limit);
-          });
+          if (remaining > 0) {
+            for (var id in originalProportions) {
+              var proportion = originalProportions[id];
+              var share = remaining * proportion;
+              var limit = allocationState.limits[id] || allocationState.budget;
+              allocationState.vehicles[id] = Math.min(share, limit);
+            }
+          }
         }
       }
 
