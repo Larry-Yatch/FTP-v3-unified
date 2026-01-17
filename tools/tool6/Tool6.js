@@ -5997,7 +5997,8 @@ const Tool6 = {
     }
 
     /**
-     * Load a scenario (Sprint 7.2 - basic implementation)
+     * Load a scenario - restores allocations, budget, and settings
+     * Sprint 7.2 Implementation
      */
     function loadScenario(index) {
       if (!window.savedScenarios || !window.savedScenarios[index]) {
@@ -6006,8 +6007,79 @@ const Tool6 = {
       }
 
       var scenario = window.savedScenarios[index];
-      alert('Loading scenario: ' + scenario.name + '\\n\\nFull load functionality coming in Sprint 7.2');
-      // TODO: Sprint 7.2 - Implement full scenario loading
+
+      // Confirm before loading (will overwrite current allocations)
+      if (!confirm('Load scenario "' + scenario.name + '"?\\n\\nThis will replace your current allocations.')) {
+        return;
+      }
+
+      console.log('Loading scenario:', scenario);
+
+      // 1. Update budget if stored
+      if (scenario.monthlyBudget && scenario.monthlyBudget > 0) {
+        allocationState.budget = scenario.monthlyBudget;
+        var budgetInput = document.getElementById('budgetInput');
+        if (budgetInput) {
+          budgetInput.value = scenario.monthlyBudget;
+        }
+      }
+
+      // 2. Update allocations
+      if (scenario.allocations) {
+        // First, reset all vehicle allocations to 0
+        for (var id in allocationState.vehicles) {
+          allocationState.vehicles[id] = 0;
+        }
+
+        // Then apply saved allocations
+        for (var vehicleId in scenario.allocations) {
+          if (allocationState.vehicles.hasOwnProperty(vehicleId)) {
+            allocationState.vehicles[vehicleId] = scenario.allocations[vehicleId] || 0;
+          }
+        }
+
+        // Also update originalAllocation for proper slider behavior
+        for (var id in allocationState.vehicles) {
+          allocationState.originalAllocation[id] = allocationState.vehicles[id];
+        }
+      }
+
+      // 3. Update tax strategy radio buttons
+      if (scenario.taxStrategy) {
+        var taxRadio = document.querySelector('input[name="taxStrategy"][value="' + scenario.taxStrategy + '"]');
+        if (taxRadio) {
+          taxRadio.checked = true;
+          // Call updateTaxStrategy if it exists
+          if (typeof updateTaxStrategy === 'function') {
+            updateTaxStrategy(scenario.taxStrategy);
+          }
+        }
+      }
+
+      // 4. Clear all locks (start fresh)
+      for (var id in allocationState.locked) {
+        allocationState.locked[id] = false;
+      }
+      updateAllLockButtons();
+
+      // 5. Update all vehicle displays
+      updateAllVehicleDisplays();
+
+      // 6. Clear calculator dirty state
+      calculatorDirty = false;
+      var recalcBtn = document.querySelector('.btn-recalc');
+      if (recalcBtn) {
+        recalcBtn.style.animation = '';
+      }
+
+      // 7. Show success feedback
+      showScenarioFeedback('Scenario "' + scenario.name + '" loaded successfully!', 'success');
+
+      // 8. Scroll to allocation section so user can see the changes
+      var allocationSection = document.querySelector('.section-card:has(.allocation-controls)');
+      if (allocationSection) {
+        allocationSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
     }
 
     /**
