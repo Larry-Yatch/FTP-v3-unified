@@ -1374,6 +1374,300 @@ const Tool6 = {
   },
 
   /**
+   * Sprint 5.1-5.4: Build calculator section HTML
+   * Shows current state inputs, investment score, tax strategy, employer match, and vehicle sliders
+   *
+   * @param {Object} preSurveyData - User's questionnaire answers
+   * @param {Object} profile - Classified investor profile
+   * @param {Object} allocation - Vehicle allocation from calculateAllocation()
+   * @param {Object} toolStatus - Upstream tool data
+   * @returns {string} HTML for calculator section
+   */
+  buildCalculatorSection(preSurveyData, profile, allocation, toolStatus) {
+    if (!allocation || !allocation.vehicles) {
+      return `
+        <div class="calculator-placeholder">
+          <p class="muted">Complete the questionnaire above to see your personalized vehicle allocation.</p>
+        </div>
+      `;
+    }
+
+    const vehicles = allocation.vehicles;
+    const eligibleVehicles = allocation.eligibleVehicles || {};
+    const monthlyBudget = allocation.totalBudget || 0;
+    const employerMatch = allocation.employerMatch || 0;
+    const investmentScore = toolStatus.investmentScore || 4;
+    const age = preSurveyData.age || toolStatus.age || 35;
+    const grossIncome = parseFloat(preSurveyData.a1_grossIncome || toolStatus.grossIncome) || 0;
+
+    // Get current balances and contributions from preSurveyData
+    const current401kBalance = parseFloat(preSurveyData.a12_current401kBalance) || 0;
+    const currentIRABalance = parseFloat(preSurveyData.a13_currentIRABalance) || 0;
+    const currentHSABalance = parseFloat(preSurveyData.a14_currentHSABalance) || 0;
+    const currentEducationBalance = parseFloat(preSurveyData.a15_currentEducationBalance) || 0;
+
+    const monthly401kContribution = parseFloat(preSurveyData.a16_monthly401kContribution) || 0;
+    const monthlyIRAContribution = parseFloat(preSurveyData.a17_monthlyIRAContribution) || 0;
+    const monthlyHSAContribution = parseFloat(preSurveyData.a18_monthlyHSAContribution) || 0;
+    const monthlyEducationContribution = parseFloat(preSurveyData.a19_monthlyEducationContribution) || 0;
+
+    const totalCurrentBalance = current401kBalance + currentIRABalance + currentHSABalance + currentEducationBalance;
+    const totalCurrentContributions = monthly401kContribution + monthlyIRAContribution + monthlyHSAContribution + monthlyEducationContribution;
+
+    // Tax preference
+    const taxPreference = preSurveyData.a2b_taxPreference || allocation.taxPreference || 'Both';
+
+    // Has children/education domain
+    const hasChildren = preSurveyData.a8_hasChildren === 'Yes';
+    const hasHSA = preSurveyData.a7_hsaEligible === 'Yes';
+    const has401k = preSurveyData.a3_has401k === 'Yes';
+
+    // Investment score labels
+    const scoreLabels = {
+      1: 'Ultra-Conservative (4%)',
+      2: 'Conservative (6%)',
+      3: 'Moderately Conservative (8%)',
+      4: 'Moderate (10%)',
+      5: 'Moderately Aggressive (12%)',
+      6: 'Aggressive (14%)',
+      7: 'Ultra-Aggressive (16%)'
+    };
+
+    let html = `
+      <!-- Calculator Controls -->
+      <div class="calculator-controls">
+
+        <!-- Sprint 5.1: Current State Summary -->
+        <div class="calc-subsection">
+          <h4 class="calc-subsection-title">Current State</h4>
+          <div class="current-state-grid">
+            <div class="state-card">
+              <div class="state-label">Total Balance</div>
+              <div class="state-value">$${totalCurrentBalance.toLocaleString()}</div>
+              <div class="state-breakdown">
+                ${has401k ? `<span>401(k): $${current401kBalance.toLocaleString()}</span>` : ''}
+                <span>IRA: $${currentIRABalance.toLocaleString()}</span>
+                ${hasHSA ? `<span>HSA: $${currentHSABalance.toLocaleString()}</span>` : ''}
+                ${hasChildren ? `<span>Education: $${currentEducationBalance.toLocaleString()}</span>` : ''}
+              </div>
+            </div>
+            <div class="state-card">
+              <div class="state-label">Current Monthly Contributions</div>
+              <div class="state-value">$${totalCurrentContributions.toLocaleString()}/mo</div>
+              <div class="state-breakdown">
+                ${has401k ? `<span>401(k): $${monthly401kContribution.toLocaleString()}</span>` : ''}
+                <span>IRA: $${monthlyIRAContribution.toLocaleString()}</span>
+                ${hasHSA ? `<span>HSA: $${monthlyHSAContribution.toLocaleString()}</span>` : ''}
+                ${hasChildren ? `<span>Education: $${monthlyEducationContribution.toLocaleString()}</span>` : ''}
+              </div>
+            </div>
+            <div class="state-card highlight">
+              <div class="state-label">Recommended Monthly Budget</div>
+              <div class="state-value">$${monthlyBudget.toLocaleString()}/mo</div>
+              <div class="state-breakdown">
+                <span>From Tool 4 allocation</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sprint 5.2: Investment Score Display -->
+        <div class="calc-subsection">
+          <h4 class="calc-subsection-title">Investment Risk Profile</h4>
+          <div class="investment-score-display">
+            <div class="score-selector">
+              <label class="score-label">Risk Tolerance (from Tool 4):</label>
+              <div class="score-buttons" id="investmentScoreButtons">
+    `;
+
+    // Render investment score buttons 1-7
+    for (let i = 1; i <= 7; i++) {
+      const selected = i === investmentScore ? 'selected' : '';
+      html += `<button type="button" class="score-btn ${selected}" data-score="${i}" onclick="updateInvestmentScore(${i})" title="${scoreLabels[i]}">${i}</button>`;
+    }
+
+    html += `
+              </div>
+              <div class="score-description" id="scoreDescription">
+                ${scoreLabels[investmentScore] || 'Moderate (10%)'}
+              </div>
+            </div>
+            <input type="hidden" id="investmentScore" name="investmentScore" value="${investmentScore}">
+          </div>
+        </div>
+
+        <!-- Sprint 5.3: Tax Strategy Toggle -->
+        <div class="calc-subsection">
+          <h4 class="calc-subsection-title">Tax Strategy</h4>
+          <div class="tax-strategy-toggle">
+            <div class="tax-options">
+              <label class="tax-option ${taxPreference === 'Later' ? 'selected' : ''}">
+                <input type="radio" name="taxStrategy" value="Later" ${taxPreference === 'Later' ? 'checked' : ''} onchange="updateTaxStrategy('Later')">
+                <span class="tax-option-content">
+                  <span class="tax-option-title">Traditional-Heavy</span>
+                  <span class="tax-option-desc">Lower taxes now, taxable in retirement</span>
+                </span>
+              </label>
+              <label class="tax-option ${taxPreference === 'Both' ? 'selected' : ''}">
+                <input type="radio" name="taxStrategy" value="Both" ${taxPreference === 'Both' ? 'checked' : ''} onchange="updateTaxStrategy('Both')">
+                <span class="tax-option-content">
+                  <span class="tax-option-title">Balanced</span>
+                  <span class="tax-option-desc">Mix of Traditional and Roth accounts</span>
+                </span>
+              </label>
+              <label class="tax-option ${taxPreference === 'Now' ? 'selected' : ''}">
+                <input type="radio" name="taxStrategy" value="Now" ${taxPreference === 'Now' ? 'checked' : ''} onchange="updateTaxStrategy('Now')">
+                <span class="tax-option-content">
+                  <span class="tax-option-title">Roth-Heavy</span>
+                  <span class="tax-option-desc">Pay taxes now, tax-free in retirement</span>
+                </span>
+              </label>
+            </div>
+            <div class="tax-recommendation" id="taxRecommendation">
+              ${this.getTaxRecommendation(grossIncome, age)}
+            </div>
+          </div>
+        </div>
+
+        <!-- Sprint 5.4: Employer Match Display -->
+        ${employerMatch > 0 ? `
+        <div class="calc-subsection employer-match-section">
+          <h4 class="calc-subsection-title">Employer Match</h4>
+          <div class="employer-match-display">
+            <div class="match-icon">🎁</div>
+            <div class="match-info">
+              <div class="match-amount">+$${employerMatch.toLocaleString()}/month</div>
+              <div class="match-label">Free money from your employer (not deducted from your budget)</div>
+            </div>
+            <div class="match-annual">$${(employerMatch * 12).toLocaleString()}/year</div>
+          </div>
+        </div>
+        ` : ''}
+
+      </div>
+
+      <!-- Sprint 5.5: Vehicle Allocation Sliders -->
+      <div class="vehicle-allocation-section">
+        <h4 class="calc-subsection-title">Your Recommended Allocation</h4>
+        <div class="allocation-summary">
+          <span class="budget-label">Monthly Budget:</span>
+          <span class="budget-amount">$${monthlyBudget.toLocaleString()}</span>
+          <span class="allocated-label">Allocated:</span>
+          <span class="allocated-amount" id="totalAllocated">$${(allocation.totalAllocated || 0).toLocaleString()}</span>
+        </div>
+
+        <div class="vehicle-sliders" id="vehicleSliders">
+    `;
+
+    // Render vehicle sliders for each allocated vehicle
+    const vehicleOrder = Object.keys(vehicles).sort((a, b) => {
+      // Sort by allocation amount descending
+      return (vehicles[b] || 0) - (vehicles[a] || 0);
+    });
+
+    for (const vehicleName of vehicleOrder) {
+      const amount = vehicles[vehicleName] || 0;
+      if (amount <= 0 && vehicleName !== 'Family Bank') continue; // Skip zero allocations except Family Bank
+
+      const vehicleInfo = eligibleVehicles[vehicleName] || {};
+      const monthlyLimit = vehicleInfo.monthlyLimit || Infinity;
+      const annualLimit = monthlyLimit === Infinity ? 'Unlimited' : '$' + (monthlyLimit * 12).toLocaleString() + '/yr';
+
+      // FIX: Calculate effective max for slider (handle Infinity)
+      const effectiveMax = monthlyLimit === Infinity ? monthlyBudget : Math.min(monthlyLimit, monthlyBudget);
+      // FIX: Calculate percentage based on effective max, not budget
+      const percentage = effectiveMax > 0 ? Math.round((amount / effectiveMax) * 100) : 0;
+
+      const domain = vehicleInfo.domain || 'Retirement';
+
+      // Domain icons
+      const domainIcons = {
+        'Retirement': '🏦',
+        'Health': '🏥',
+        'Education': '🎓'
+      };
+      const domainIcon = domainIcons[domain] || '💰';
+
+      // Determine if this is a Roth or Traditional vehicle for styling
+      const isRoth = vehicleName.includes('Roth');
+      const isTrad = vehicleName.includes('Traditional');
+      const vehicleClass = isRoth ? 'roth-vehicle' : (isTrad ? 'trad-vehicle' : '');
+
+      // FIX: Create safe ID and escaped name for JavaScript
+      const safeId = vehicleName.replace(/[^a-zA-Z0-9]/g, '_');
+      const escapedName = vehicleName.replace(/'/g, "\\'");
+
+      html += `
+        <div class="vehicle-slider-row ${vehicleClass}" data-vehicle-id="${safeId}" data-vehicle-name="${vehicleName}" data-domain="${domain}">
+          <div class="vehicle-info">
+            <span class="vehicle-icon">${domainIcon}</span>
+            <span class="vehicle-name">${vehicleName}</span>
+            <span class="vehicle-limit">${annualLimit}</span>
+          </div>
+          <div class="slider-container">
+            <input type="range"
+                   class="vehicle-slider"
+                   id="slider_${safeId}"
+                   min="0"
+                   max="${effectiveMax}"
+                   value="${amount}"
+                   step="10"
+                   data-vehicle-id="${safeId}"
+                   onchange="updateVehicleAllocation('${escapedName}', this.value)"
+                   oninput="updateVehicleDisplay('${escapedName}', this.value)">
+            <div class="slider-fill" style="width: ${percentage}%"></div>
+          </div>
+          <div class="vehicle-amount-display">
+            <span class="amount-value" id="amount_${safeId}">$${amount.toLocaleString()}</span>
+            <span class="amount-percent">${percentage}%</span>
+          </div>
+        </div>
+      `;
+    }
+
+    html += `
+        </div>
+
+        <!-- Allocation warnings -->
+        <div class="allocation-warnings" id="allocationWarnings"></div>
+
+        <!-- Recalculate button -->
+        <div class="calc-actions">
+          <button type="button" class="btn-recalc" onclick="recalculateAllocation()">
+            <span class="btn-icon">🔄</span> Recalculate Allocation
+          </button>
+        </div>
+      </div>
+    `;
+
+    return html;
+  },
+
+  /**
+   * Get tax strategy recommendation based on income and age
+   */
+  getTaxRecommendation(grossIncome, age) {
+    let recommendation = '';
+    let reason = '';
+
+    if (grossIncome < 50000) {
+      recommendation = 'Roth-Heavy';
+      reason = 'Your income suggests a lower tax bracket now - pay taxes while they are low';
+    } else if (grossIncome > 150000) {
+      recommendation = 'Traditional-Heavy';
+      reason = 'Your income suggests a higher tax bracket - defer taxes to potentially lower retirement bracket';
+    } else if (age >= 50) {
+      recommendation = 'Balanced';
+      reason = 'Diversify tax treatment for flexibility in retirement';
+    } else {
+      recommendation = 'Balanced';
+      reason = 'A mix provides tax diversification and flexibility';
+    }
+
+    return `<span class="recommendation-label">Recommendation:</span> <strong>${recommendation}</strong> - ${reason}`;
+  },
+
+  /**
    * Build unified page with questionnaire + calculator
    */
   buildUnifiedPage(clientId, toolStatus, preSurveyData, profile, allocation) {
@@ -2055,6 +2349,464 @@ const Tool6 = {
       background: var(--color-primary);
       color: white;
     }
+
+    /* ================================================================
+       PHASE 5: CALCULATOR UI STYLES
+       ================================================================ */
+
+    .calculator-controls {
+      margin-bottom: 32px;
+    }
+
+    .calc-subsection {
+      margin-bottom: 28px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .calc-subsection:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+    }
+
+    .calc-subsection-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--color-text-secondary);
+      margin: 0 0 16px 0;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* Sprint 5.1: Current State Grid */
+    .current-state-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+    }
+
+    .state-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 16px;
+    }
+
+    .state-card.highlight {
+      background: rgba(79, 70, 229, 0.1);
+      border-color: rgba(79, 70, 229, 0.3);
+    }
+
+    .state-label {
+      font-size: 0.85rem;
+      color: var(--color-text-muted);
+      margin-bottom: 4px;
+    }
+
+    .state-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--color-text-primary);
+      margin-bottom: 8px;
+    }
+
+    .state-breakdown {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .state-breakdown span {
+      font-size: 0.8rem;
+      color: var(--color-text-muted);
+      background: rgba(255, 255, 255, 0.05);
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+
+    /* Sprint 5.2: Investment Score Display */
+    .investment-score-display {
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    .score-selector {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .score-label {
+      font-size: 0.95rem;
+      color: var(--color-text-secondary);
+    }
+
+    .score-buttons {
+      display: flex;
+      gap: 8px;
+    }
+
+    .score-btn {
+      flex: 1;
+      padding: 12px 8px;
+      border: 2px solid rgba(79, 70, 229, 0.3);
+      background: rgba(79, 70, 229, 0.05);
+      border-radius: 8px;
+      color: var(--color-text-primary);
+      font-size: 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .score-btn:hover {
+      border-color: var(--color-primary);
+      background: rgba(79, 70, 229, 0.15);
+    }
+
+    .score-btn.selected {
+      border-color: var(--color-primary);
+      background: var(--color-primary);
+      color: white;
+    }
+
+    .score-description {
+      font-size: 0.9rem;
+      color: var(--color-text-secondary);
+      padding: 8px 12px;
+      background: rgba(79, 70, 229, 0.1);
+      border-radius: 6px;
+      text-align: center;
+    }
+
+    /* Sprint 5.3: Tax Strategy Toggle */
+    .tax-strategy-toggle {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .tax-options {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    @media (max-width: 768px) {
+      .tax-options {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .tax-option {
+      display: block;
+      padding: 16px;
+      border: 2px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.02);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .tax-option:hover {
+      border-color: rgba(79, 70, 229, 0.5);
+      background: rgba(79, 70, 229, 0.05);
+    }
+
+    .tax-option.selected {
+      border-color: var(--color-primary);
+      background: rgba(79, 70, 229, 0.15);
+    }
+
+    .tax-option input[type="radio"] {
+      display: none;
+    }
+
+    .tax-option-content {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .tax-option-title {
+      font-weight: 600;
+      color: var(--color-text-primary);
+    }
+
+    .tax-option-desc {
+      font-size: 0.85rem;
+      color: var(--color-text-muted);
+    }
+
+    .tax-recommendation {
+      font-size: 0.9rem;
+      padding: 12px 16px;
+      background: rgba(34, 197, 94, 0.1);
+      border: 1px solid rgba(34, 197, 94, 0.3);
+      border-radius: 8px;
+      color: var(--color-text-secondary);
+    }
+
+    .recommendation-label {
+      color: #22c55e;
+      font-weight: 500;
+    }
+
+    /* Sprint 5.4: Employer Match Display */
+    .employer-match-section {
+      background: linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(34, 197, 94, 0.05));
+      border: 1px solid rgba(34, 197, 94, 0.3);
+      border-radius: 12px;
+      padding: 20px;
+      margin-top: 8px;
+    }
+
+    .employer-match-display {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .match-icon {
+      font-size: 2rem;
+    }
+
+    .match-info {
+      flex: 1;
+    }
+
+    .match-amount {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: #22c55e;
+    }
+
+    .match-label {
+      font-size: 0.85rem;
+      color: var(--color-text-muted);
+    }
+
+    .match-annual {
+      font-size: 1rem;
+      color: var(--color-text-secondary);
+      padding: 8px 16px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+    }
+
+    /* Sprint 5.5: Vehicle Sliders */
+    .vehicle-allocation-section {
+      margin-top: 24px;
+    }
+
+    .allocation-summary {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px 20px;
+      background: rgba(79, 70, 229, 0.1);
+      border-radius: 12px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .budget-label, .allocated-label {
+      font-size: 0.9rem;
+      color: var(--color-text-muted);
+    }
+
+    .budget-amount, .allocated-amount {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--color-text-primary);
+    }
+
+    .vehicle-sliders {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .vehicle-slider-row {
+      display: grid;
+      grid-template-columns: 220px 1fr 120px;
+      gap: 16px;
+      align-items: center;
+      padding: 14px 16px;
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 8px;
+      transition: background 0.2s ease;
+    }
+
+    .vehicle-slider-row:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .vehicle-slider-row.roth-vehicle {
+      border-left: 3px solid #22c55e;
+    }
+
+    .vehicle-slider-row.trad-vehicle {
+      border-left: 3px solid #3b82f6;
+    }
+
+    .vehicle-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .vehicle-icon {
+      font-size: 1.2rem;
+    }
+
+    .vehicle-name {
+      font-weight: 500;
+      color: var(--color-text-primary);
+      font-size: 0.95rem;
+    }
+
+    .vehicle-limit {
+      font-size: 0.75rem;
+      color: var(--color-text-muted);
+      background: rgba(255, 255, 255, 0.1);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .slider-container {
+      position: relative;
+      height: 8px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .vehicle-slider {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      cursor: pointer;
+      z-index: 2;
+    }
+
+    .slider-fill {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      background: linear-gradient(90deg, var(--color-primary), #818cf8);
+      border-radius: 4px;
+      transition: width 0.1s ease;
+    }
+
+    .vehicle-amount-display {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 2px;
+    }
+
+    .amount-value {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--color-text-primary);
+      font-family: monospace;
+    }
+
+    .amount-percent {
+      font-size: 0.8rem;
+      color: var(--color-text-muted);
+    }
+
+    /* Allocation Warnings */
+    .allocation-warnings {
+      margin-top: 16px;
+    }
+
+    .allocation-warning {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      border-radius: 8px;
+      margin-bottom: 8px;
+      color: #fca5a5;
+      font-size: 0.9rem;
+    }
+
+    .warning-icon {
+      font-size: 1.2rem;
+    }
+
+    /* Calculate Button */
+    .calc-actions {
+      margin-top: 24px;
+      text-align: center;
+    }
+
+    .btn-recalc {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 32px;
+      background: var(--color-primary);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn-recalc:hover {
+      background: var(--color-primary-dark, #4338ca);
+      transform: translateY(-2px);
+    }
+
+    .btn-icon {
+      font-size: 1.1rem;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      .vehicle-slider-row {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+
+      .vehicle-info {
+        justify-content: space-between;
+      }
+
+      .vehicle-amount-display {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .allocation-summary {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .employer-match-display {
+        flex-wrap: wrap;
+      }
+
+      .match-annual {
+        width: 100%;
+        text-align: center;
+        margin-top: 8px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -2138,17 +2890,13 @@ const Tool6 = {
     <div class="section-card">
       <div class="section-header" onclick="toggleSection('calculator')">
         <div class="section-title">2. Vehicle Allocation</div>
-        <span class="section-toggle" id="calculatorToggle">&#9660;</span>
+        <span class="section-toggle ${hasAllocation ? '' : 'collapsed'}" id="calculatorToggle">&#9660;</span>
       </div>
 
-      <div class="section-body" id="calculatorBody">
-        ${hasAllocation ? `
-        <div class="placeholder-message">
-          <h3>Coming Soon: Sprint 4-5</h3>
-          <p>Vehicle allocation sliders with IRS limit enforcement.</p>
-          <p>Real-time recalculation as you adjust allocations.</p>
-        </div>
-        ` : `
+      <div class="section-body ${hasAllocation ? '' : 'collapsed'}" id="calculatorBody">
+        ${hasAllocation
+          ? this.buildCalculatorSection(preSurveyData, profile, allocation, toolStatus)
+          : `
         <div class="placeholder-message">
           <h3>${dataStatus.overall.canProceed ? 'Complete Your Profile First' : 'Tool 4 Required'}</h3>
           <p>${dataStatus.overall.canProceed
@@ -2724,6 +3472,234 @@ const Tool6 = {
     }
 
     // ========================================================================
+    // PHASE 5: CALCULATOR UI HANDLERS
+    // ========================================================================
+
+    // Investment score labels for display
+    var scoreLabels = {
+      1: 'Ultra-Conservative (4%)',
+      2: 'Conservative (6%)',
+      3: 'Moderately Conservative (8%)',
+      4: 'Moderate (10%)',
+      5: 'Moderately Aggressive (12%)',
+      6: 'Aggressive (14%)',
+      7: 'Ultra-Aggressive (16%)'
+    };
+
+    // Sprint 5.2: Update investment score
+    function updateInvestmentScore(score) {
+      // Update hidden input
+      var input = document.getElementById('investmentScore');
+      if (input) input.value = score;
+
+      // Update button states
+      var buttons = document.querySelectorAll('#investmentScoreButtons .score-btn');
+      buttons.forEach(function(btn) {
+        btn.classList.remove('selected');
+        if (parseInt(btn.dataset.score) === score) {
+          btn.classList.add('selected');
+        }
+      });
+
+      // Update description
+      var desc = document.getElementById('scoreDescription');
+      if (desc) {
+        desc.textContent = scoreLabels[score] || 'Moderate (10%)';
+      }
+
+      // Store in formData for submission
+      formData.investmentScore = score;
+
+      // Trigger recalculation if calculator is active
+      markCalculatorDirty();
+    }
+
+    // Sprint 5.3: Update tax strategy
+    function updateTaxStrategy(strategy) {
+      // Update radio button visual states
+      var options = document.querySelectorAll('.tax-option');
+      options.forEach(function(opt) {
+        var input = opt.querySelector('input[type="radio"]');
+        if (input && input.value === strategy) {
+          opt.classList.add('selected');
+          input.checked = true;
+        } else {
+          opt.classList.remove('selected');
+        }
+      });
+
+      // Store in formData
+      formData.a2b_taxPreference = strategy;
+
+      // Trigger recalculation
+      markCalculatorDirty();
+    }
+
+    // Sprint 5.5: Update vehicle display (real-time as slider moves)
+    function updateVehicleDisplay(vehicleName, value) {
+      // FIX: Use safe ID for DOM lookups to handle special characters like 401(k)
+      var safeId = vehicleName.replace(/[^a-zA-Z0-9]/g, '_');
+      var amountEl = document.getElementById('amount_' + safeId);
+      // FIX: Use data-vehicle-id attribute instead of data-vehicle to avoid CSS selector issues
+      var sliderRow = document.querySelector('[data-vehicle-id="' + safeId + '"]');
+
+      if (amountEl) {
+        amountEl.textContent = '$' + parseInt(value).toLocaleString();
+      }
+
+      // Update slider fill visual
+      if (sliderRow) {
+        var slider = sliderRow.querySelector('.vehicle-slider');
+        var fill = sliderRow.querySelector('.slider-fill');
+        if (slider && fill) {
+          // FIX: Ensure slider.max is a valid number before calculating percentage
+          var maxVal = parseFloat(slider.max) || 1;
+          var percentage = (value / maxVal) * 100;
+          fill.style.width = Math.min(percentage, 100) + '%';
+        }
+
+        // Update percent display based on slider max (not budget)
+        var percentEl = sliderRow.querySelector('.amount-percent');
+        if (percentEl && slider) {
+          var maxVal = parseFloat(slider.max) || 1;
+          var percent = Math.round((value / maxVal) * 100);
+          percentEl.textContent = percent + '%';
+        }
+      }
+
+      // Update total allocated
+      updateTotalAllocated();
+    }
+
+    // Sprint 5.5: Update vehicle allocation (on slider change complete)
+    function updateVehicleAllocation(vehicleName, value) {
+      // Store the new value
+      if (!formData.vehicleAllocations) {
+        formData.vehicleAllocations = {};
+      }
+      formData.vehicleAllocations[vehicleName] = parseFloat(value);
+
+      // Update display
+      updateVehicleDisplay(vehicleName, value);
+
+      // Mark calculator as needing recalculation
+      markCalculatorDirty();
+    }
+
+    // Calculate and update total allocated display
+    function updateTotalAllocated() {
+      var total = 0;
+      var sliders = document.querySelectorAll('.vehicle-slider');
+      sliders.forEach(function(slider) {
+        total += parseFloat(slider.value) || 0;
+      });
+
+      var totalEl = document.getElementById('totalAllocated');
+      if (totalEl) {
+        totalEl.textContent = '$' + total.toLocaleString();
+      }
+
+      // Check if over budget and show warning
+      var budgetEl = document.querySelector('.budget-amount');
+      if (budgetEl) {
+        var budget = parseInt(budgetEl.textContent.replace(/[^0-9]/g, '')) || 0;
+        var warningsEl = document.getElementById('allocationWarnings');
+        if (warningsEl) {
+          if (total > budget) {
+            warningsEl.innerHTML = '<div class="allocation-warning"><span class="warning-icon">⚠️</span> Total allocation ($' + total.toLocaleString() + ') exceeds your budget ($' + budget.toLocaleString() + ')</div>';
+          } else {
+            warningsEl.innerHTML = '';
+          }
+        }
+      }
+    }
+
+    // Mark calculator as dirty (needs recalculation)
+    var calculatorDirty = false;
+    function markCalculatorDirty() {
+      calculatorDirty = true;
+      var recalcBtn = document.querySelector('.btn-recalc');
+      if (recalcBtn) {
+        recalcBtn.style.animation = 'pulse 1s infinite';
+      }
+    }
+
+    // Sprint 5.6: Recalculate allocation
+    function recalculateAllocation() {
+      // Show loading
+      var overlay = document.getElementById('loadingOverlay');
+      var loadingText = document.getElementById('loadingText');
+      var loadingSubtext = document.getElementById('loadingSubtext');
+
+      if (overlay) {
+        loadingText.textContent = 'Recalculating...';
+        loadingSubtext.textContent = 'Optimizing your vehicle allocation';
+        overlay.classList.add('show');
+      }
+
+      // Gather current form data
+      var currentData = Object.assign({}, formData);
+
+      // Get current slider values as overrides
+      var sliderValues = {};
+      document.querySelectorAll('.vehicle-slider').forEach(function(slider) {
+        // FIX: Use data-vehicle-id attribute
+        sliderValues[slider.dataset.vehicleId] = parseFloat(slider.value);
+      });
+      currentData.vehicleOverrides = sliderValues;
+
+      // Call server to recalculate
+      google.script.run
+        .withSuccessHandler(function(result) {
+          if (overlay) overlay.classList.remove('show');
+
+          if (result && result.success) {
+            // FIX: Use GAS-compliant navigation pattern per CLAUDE.md
+            // NEVER use location.reload() - use document.write() pattern instead
+            if (result.nextPageHtml) {
+              document.open();
+              document.write(result.nextPageHtml);
+              document.close();
+              window.scrollTo(0, 0);
+            } else {
+              // Fallback: request fresh page from server
+              google.script.run
+                .withSuccessHandler(function(pageResult) {
+                  if (pageResult && pageResult.html) {
+                    document.open();
+                    document.write(pageResult.html);
+                    document.close();
+                    window.scrollTo(0, 0);
+                  }
+                })
+                .withFailureHandler(function(err) {
+                  alert('Error refreshing page: ' + err.message);
+                })
+                .getTool6Page(clientId);
+            }
+          } else {
+            alert('Error recalculating: ' + (result ? result.error : 'Unknown error'));
+          }
+        })
+        .withFailureHandler(function(error) {
+          if (overlay) overlay.classList.remove('show');
+          alert('Server error: ' + error.message);
+        })
+        .savePreSurveyTool6(clientId, currentData);
+
+      calculatorDirty = false;
+      var recalcBtn = document.querySelector('.btn-recalc');
+      if (recalcBtn) {
+        recalcBtn.style.animation = '';
+      }
+    }
+
+    // Add pulse animation for recalc button
+    var style = document.createElement('style');
+    style.textContent = '@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }';
+    document.head.appendChild(style);
+
+    // ========================================================================
     // INITIALIZATION
     // ========================================================================
 
@@ -2732,6 +3708,15 @@ const Tool6 = {
       if (classifiedProfile) {
         updateAllocationVisibility();
       }
+
+      // Initialize slider fills on page load
+      document.querySelectorAll('.vehicle-slider').forEach(function(slider) {
+        var fill = slider.closest('.slider-container').querySelector('.slider-fill');
+        if (fill) {
+          var percentage = (slider.value / slider.max) * 100;
+          fill.style.width = percentage + '%';
+        }
+      });
     });
 
     // Run immediately in case DOMContentLoaded already fired
@@ -3199,6 +4184,28 @@ const Tool6 = {
  */
 function savePreSurveyTool6(clientId, preSurveyData) {
   return Tool6.savePreSurvey(clientId, preSurveyData);
+}
+
+/**
+ * Global wrapper for getting Tool 6 page HTML
+ * Used for GAS-compliant page refresh (document.write pattern)
+ * Called from client-side JavaScript via google.script.run
+ */
+function getTool6Page(clientId) {
+  try {
+    const result = Tool6.render({ clientId: clientId });
+    // getContent() returns the raw HTML string
+    return {
+      success: true,
+      html: result.getContent()
+    };
+  } catch (error) {
+    Logger.log('Error getting Tool6 page: ' + error);
+    return {
+      success: false,
+      error: error.toString()
+    };
+  }
 }
 
 /**
