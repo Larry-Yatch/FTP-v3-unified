@@ -1195,9 +1195,8 @@ const Tool6 = {
     const leftoverRetirement = allocateInDomain('Retirement', retirementBudget);
 
     // 4. Any remaining goes to Family Bank (final overflow)
-    if (leftoverRetirement > 0) {
-      allocations['Family Bank'] = leftoverRetirement;
-    }
+    // Always include Family Bank (even if $0) so it shows in the UI
+    allocations['Family Bank'] = leftoverRetirement > 0 ? leftoverRetirement : 0;
 
     return allocations;
   },
@@ -1599,8 +1598,15 @@ const Tool6 = {
     `;
 
     // Render vehicle sliders for each allocated vehicle
+    // Ensure Family Bank is always in the list (it's the final overflow)
+    if (!vehicles['Family Bank'] && eligibleVehicles['Family Bank']) {
+      vehicles['Family Bank'] = 0;
+    }
+
     const vehicleOrder = Object.keys(vehicles).sort((a, b) => {
-      // Sort by allocation amount descending
+      // Sort by allocation amount descending, but keep Family Bank at the end
+      if (a === 'Family Bank') return 1;
+      if (b === 'Family Bank') return -1;
       return (vehicles[b] || 0) - (vehicles[a] || 0);
     });
 
