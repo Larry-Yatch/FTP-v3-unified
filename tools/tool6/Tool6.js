@@ -3932,8 +3932,15 @@ const Tool6 = {
           if (!maxVal || !isFinite(maxVal) || maxVal <= 0) {
             maxVal = allocationState.budget || 1;
           }
-          var percentage = (parseFloat(slider.value) / maxVal) * 100;
-          fill.style.width = Math.min(percentage, 100) + '%';
+          var value = parseFloat(slider.value);
+          // Calculate fill width accounting for thumb width
+          var rawPercent = (value / maxVal) * 100;
+          var thumbHalfWidth = 9;
+          var sliderWidth = slider.offsetWidth || 200;
+          var trackWidth = sliderWidth - (thumbHalfWidth * 2);
+          var thumbPosition = thumbHalfWidth + (rawPercent / 100) * trackWidth;
+          var fillPercent = (thumbPosition / sliderWidth) * 100;
+          fill.style.width = Math.min(fillPercent, 100) + '%';
         }
       });
     }
@@ -3968,8 +3975,17 @@ const Tool6 = {
           if (!maxVal || !isFinite(maxVal) || maxVal <= 0) {
             maxVal = allocationState.budget || 1;
           }
-          var percentage = (value / maxVal) * 100;
-          fill.style.width = Math.min(percentage, 100) + '%';
+          // Calculate fill width accounting for thumb width
+          // The thumb is 18px wide, so the track effectively starts at 9px and ends 9px before the end
+          var rawPercent = (value / maxVal) * 100;
+          // Adjust for thumb: at 0% the center is at 9px, at 100% the center is at (width - 9px)
+          // This creates a linear interpolation that accounts for the thumb
+          var thumbHalfWidth = 9; // 18px thumb / 2
+          var sliderWidth = slider.offsetWidth || 200; // fallback width
+          var trackWidth = sliderWidth - (thumbHalfWidth * 2);
+          var thumbPosition = thumbHalfWidth + (rawPercent / 100) * trackWidth;
+          var fillPercent = (thumbPosition / sliderWidth) * 100;
+          fill.style.width = Math.min(fillPercent, 100) + '%';
         }
 
         var percentEl = sliderRow.querySelector('.amount-percent');
@@ -4092,16 +4108,18 @@ const Tool6 = {
       return total;
     }
 
-    // Normalize allocations to not exceed budget
+    // Normalize allocations to match budget exactly
     function normalizeAllocations(priorityId) {
       var total = 0;
       for (var id in allocationState.vehicles) {
         total += allocationState.vehicles[id];
       }
 
+      var budget = allocationState.budget;
+
       // If over budget, reduce unlocked vehicles proportionally
-      if (total > allocationState.budget) {
-        var excess = total - allocationState.budget;
+      if (total > budget) {
+        var excess = total - budget;
         var unlockedVehicles = [];
         var unlockedTotal = 0;
 
@@ -4118,6 +4136,35 @@ const Tool6 = {
             var reduction = excess * proportion;
             allocationState.vehicles[id] = Math.max(0, allocationState.vehicles[id] - reduction);
           });
+        }
+      }
+
+      // If under budget, add remainder to Family Bank (or another unlocked unlimited vehicle)
+      total = 0;
+      for (var id in allocationState.vehicles) {
+        total += allocationState.vehicles[id];
+      }
+
+      if (total < budget) {
+        var remainder = budget - total;
+        // Try Family Bank first
+        if (allocationState.vehicles.hasOwnProperty('Family_Bank') && !allocationState.locked['Family_Bank']) {
+          allocationState.vehicles['Family_Bank'] = (allocationState.vehicles['Family_Bank'] || 0) + remainder;
+        } else {
+          // Find any unlocked vehicle with room (check against IRS limit)
+          for (var id in allocationState.vehicles) {
+            if (!allocationState.locked[id]) {
+              var currentVal = allocationState.vehicles[id] || 0;
+              var limit = allocationState.limits[id] || budget;
+              var room = limit - currentVal;
+              if (room > 0) {
+                var add = Math.min(remainder, room);
+                allocationState.vehicles[id] = currentVal + add;
+                remainder -= add;
+                if (remainder <= 0) break;
+              }
+            }
+          }
         }
       }
 
@@ -4286,8 +4333,15 @@ const Tool6 = {
           if (!maxVal || !isFinite(maxVal) || maxVal <= 0) {
             maxVal = allocationState.budget || parseFloat(slider.value) || 1;
           }
-          var percentage = (parseFloat(slider.value) / maxVal) * 100;
-          fill.style.width = Math.min(percentage, 100) + '%';
+          var value = parseFloat(slider.value);
+          // Calculate fill width accounting for thumb width
+          var rawPercent = (value / maxVal) * 100;
+          var thumbHalfWidth = 9;
+          var sliderWidth = slider.offsetWidth || 200;
+          var trackWidth = sliderWidth - (thumbHalfWidth * 2);
+          var thumbPosition = thumbHalfWidth + (rawPercent / 100) * trackWidth;
+          var fillPercent = (thumbPosition / sliderWidth) * 100;
+          fill.style.width = Math.min(fillPercent, 100) + '%';
         }
       });
     });
