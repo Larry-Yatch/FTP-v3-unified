@@ -1610,8 +1610,11 @@ const Tool6 = {
       const safeId = vehicleName.replace(/[^a-zA-Z0-9]/g, '_');
       const escapedName = vehicleName.replace(/'/g, "\\'");
 
+      // Store IRS limit for budget recalculation (use large number for Infinity)
+      const irsLimitForData = monthlyLimit === Infinity ? 999999 : monthlyLimit;
+
       html += `
-        <div class="vehicle-slider-row ${vehicleClass}" data-vehicle-id="${safeId}" data-vehicle-name="${vehicleName}" data-domain="${domain}">
+        <div class="vehicle-slider-row ${vehicleClass}" data-vehicle-id="${safeId}" data-vehicle-name="${vehicleName}" data-domain="${domain}" data-irs-limit="${irsLimitForData}">
           <div class="vehicle-info">
             <span class="vehicle-icon">${domainIcon}</span>
             <span class="vehicle-name">${vehicleName}</span>
@@ -1626,6 +1629,7 @@ const Tool6 = {
                    value="${amount}"
                    step="10"
                    data-vehicle-id="${safeId}"
+                   data-irs-limit="${irsLimitForData}"
                    onchange="updateVehicleAllocation('${escapedName}', this.value)"
                    oninput="updateVehicleDisplay('${escapedName}', this.value)">
             <div class="slider-fill" style="width: ${percentage}%"></div>
@@ -3717,7 +3721,8 @@ const Tool6 = {
     var allocationState = {
       vehicles: {},           // Current allocation amounts by vehicle
       originalAllocation: {}, // Original algorithm output (for proportions)
-      limits: {},             // Max limits per vehicle
+      limits: {},             // Effective max limits per vehicle (min of IRS limit and budget)
+      irsLimits: {},          // True IRS limits per vehicle (does not change with budget)
       locked: {},             // Which vehicles are locked
       budget: 0,              // Total monthly budget
       originalBudget: 0       // Original budget from Tool 4
@@ -3740,7 +3745,13 @@ const Tool6 = {
           var value = parseFloat(slider.value) || 0;
           allocationState.vehicles[vehicleId] = value;
           allocationState.originalAllocation[vehicleId] = value; // Store original
-          allocationState.limits[vehicleId] = parseFloat(slider.max) || allocationState.budget;
+
+          // Get IRS limit from data attribute (true limit, not capped by budget)
+          var irsLimit = parseFloat(slider.dataset.irsLimit) || 999999;
+          allocationState.irsLimits[vehicleId] = irsLimit;
+
+          // Effective limit is min of IRS limit and budget
+          allocationState.limits[vehicleId] = Math.min(irsLimit, allocationState.budget);
           allocationState.locked[vehicleId] = false;
         }
       });
@@ -3855,6 +3866,18 @@ const Tool6 = {
 
       allocationState.budget = newBudget;
 
+      // Recalculate effective limits based on new budget
+      for (var id in allocationState.irsLimits) {
+        var irsLimit = allocationState.irsLimits[id];
+        allocationState.limits[id] = Math.min(irsLimit, newBudget);
+
+        // Update slider max attribute
+        var slider = document.getElementById('slider_' + id);
+        if (slider) {
+          slider.max = allocationState.limits[id];
+        }
+      }
+
       // Scale all unlocked vehicles proportionally
       for (var id in allocationState.vehicles) {
         if (!allocationState.locked[id]) {
@@ -3867,8 +3890,25 @@ const Tool6 = {
       // Normalize and update
       normalizeAllocations(null);
       updateAllVehicleDisplays();
+      updateSliderFills();
       updateBudgetDisplay();
       markCalculatorDirty();
+    }
+
+    // Update all slider fills after budget/limit change
+    function updateSliderFills() {
+      document.querySelectorAll('.vehicle-slider').forEach(function(slider) {
+        var container = slider.closest('.slider-container');
+        var fill = container ? container.querySelector('.slider-fill') : null;
+        if (fill) {
+          var maxVal = parseFloat(slider.max);
+          if (!maxVal || !isFinite(maxVal) || maxVal <= 0) {
+            maxVal = allocationState.budget || 1;
+          }
+          var percentage = (parseFloat(slider.value) / maxVal) * 100;
+          fill.style.width = Math.min(percentage, 100) + '%';
+        }
+      });
     }
 
     // Update budget display
@@ -3937,7 +3977,10 @@ const Tool6 = {
         if (slider) {
           allocationState.vehicles[vehicleId] = parseFloat(slider.value) || 0;
           allocationState.originalAllocation[vehicleId] = allocationState.vehicles[vehicleId];
-          allocationState.limits[vehicleId] = parseFloat(slider.max) || allocationState.budget;
+          // Get IRS limit from data attribute
+          var irsLimit = parseFloat(slider.dataset.irsLimit) || 999999;
+          allocationState.irsLimits[vehicleId] = irsLimit;
+          allocationState.limits[vehicleId] = Math.min(irsLimit, allocationState.budget);
           allocationState.locked[vehicleId] = false;
         }
       }
