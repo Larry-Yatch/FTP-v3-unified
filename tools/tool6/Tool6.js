@@ -858,15 +858,37 @@ const Tool6 = {
     }
 
     // --- Education Vehicles (If has children) ---
+    // Respect user's vehicle preference (a11_educationVehicle)
     if (hasChildren) {
-      eligible['529 Plan'] = {
-        monthlyLimit: Infinity,  // State-dependent, no federal limit
-        domain: 'Education'
-      };
-      eligible['Coverdell ESA'] = {
-        monthlyLimit: IRS_LIMITS_2025.COVERDELL_ESA / 12,
-        domain: 'Education'
-      };
+      const educationVehicleChoice = inputs.educationVehicle || '529';  // Default to 529
+      const numChildren = inputs.numChildren || 1;
+
+      // Coverdell limit is $2,000 per child per year
+      const coverdellMonthlyLimit = (IRS_LIMITS_2025.COVERDELL_ESA * numChildren) / 12;
+
+      if (educationVehicleChoice === '529') {
+        // Only 529 Plan
+        eligible['529 Plan'] = {
+          monthlyLimit: Infinity,  // State-dependent, no federal limit
+          domain: 'Education'
+        };
+      } else if (educationVehicleChoice === 'coverdell') {
+        // Only Coverdell ESA
+        eligible['Coverdell ESA'] = {
+          monthlyLimit: coverdellMonthlyLimit,
+          domain: 'Education'
+        };
+      } else if (educationVehicleChoice === 'both') {
+        // Both - Coverdell fills first (lower limit), overflow to 529
+        eligible['Coverdell ESA'] = {
+          monthlyLimit: coverdellMonthlyLimit,
+          domain: 'Education'
+        };
+        eligible['529 Plan'] = {
+          monthlyLimit: Infinity,
+          domain: 'Education'
+        };
+      }
     }
 
     // --- Family Bank (Always available - final overflow for all domains) ---
@@ -895,7 +917,8 @@ const Tool6 = {
 
     // Add education vehicles if eligible (not in VEHICLE_PRIORITY_BY_PROFILE)
     // Insert after HSA but before retirement vehicles
-    const educationVehicles = ['529 Plan', 'Coverdell ESA'].filter(v => eligibleVehicles[v]);
+    // Order: Coverdell first (fills to limit), then 529 (overflow)
+    const educationVehicles = ['Coverdell ESA', '529 Plan'].filter(v => eligibleVehicles[v]);
     if (educationVehicles.length > 0) {
       const hsaIndex = filteredOrder.indexOf('HSA');
       const insertIndex = hsaIndex >= 0 ? hsaIndex + 1 : 0;
@@ -1197,7 +1220,10 @@ const Tool6 = {
       // Ensure we have key fields
       age: preSurveyData.age || toolStatus.age || 35,
       grossIncome: preSurveyData.a1_grossIncome || preSurveyData.grossIncome || toolStatus.grossIncome || 0,
-      filingStatus: toolStatus.filingStatus || 'Single'
+      filingStatus: toolStatus.filingStatus || 'Single',
+      // Education fields
+      numChildren: parseInt(preSurveyData.a9_numChildren) || 1,
+      educationVehicle: preSurveyData.a11_educationVehicle || '529'
     };
 
     // Get monthly budget from Tool 4
@@ -3166,6 +3192,7 @@ const Tool6 = {
       a6_hasRoth401k: function() { return formData.a3_has401k === 'Yes'; },
       a9_numChildren: function() { return formData.a8_hasChildren === 'Yes'; },
       a10_yearsToEducation: function() { return formData.a8_hasChildren === 'Yes'; },
+      a11_educationVehicle: function() { return formData.a8_hasChildren === 'Yes'; },
       a12_current401kBalance: function() { return formData.a3_has401k === 'Yes'; },
       a14_currentHSABalance: function() { return formData.a7_hsaEligible === 'Yes'; },
       a15_currentEducationBalance: function() { return formData.a8_hasChildren === 'Yes'; },

@@ -889,6 +889,21 @@ const ALLOCATION_QUESTIONS = {
     showIf: (answers) => answers.a8_hasChildren === 'Yes',
     defaultWhenHidden: 99
   },
+  a11_educationVehicle: {
+    id: 'a11_educationVehicle',
+    label: 'Which education savings vehicle do you prefer?',
+    type: 'select',
+    required: false,
+    options: [
+      { value: '529', label: '529 Plan - No income limits, higher contribution room, college focus' },
+      { value: 'coverdell', label: 'Coverdell ESA - K-12 + college flexible, $2,000/child/year limit' },
+      { value: 'both', label: 'Both - Use Coverdell first, overflow to 529' }
+    ],
+    helpText: '529: No income limits, college expenses. Coverdell: $2k/child limit, phases out at $110k+ income, but covers K-12.',
+    category: 'education',
+    showIf: (answers) => answers.a8_hasChildren === 'Yes',
+    defaultWhenHidden: '529'
+  },
 
   // --- Current Balances (For projections) ---
   a12_current401kBalance: {
@@ -998,7 +1013,7 @@ const ALLOCATION_SECTIONS = [
     id: 'education',
     title: 'Education Savings',
     description: 'Saving for children education',
-    fields: ['a8_hasChildren', 'a9_numChildren', 'a10_yearsToEducation']
+    fields: ['a8_hasChildren', 'a9_numChildren', 'a10_yearsToEducation', 'a11_educationVehicle']
   },
   {
     id: 'balances',
