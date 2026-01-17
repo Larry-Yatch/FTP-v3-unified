@@ -1398,6 +1398,341 @@ const Tool6 = {
     };
   },
 
+  // ============================================================================
+  // PHASE 6: PROJECTIONS ENGINE
+  // ============================================================================
+
+  /**
+   * Sprint 6.1: Calculate personalized return rate from investment score
+   * Maps score 1-7 to 8%-20% annual return
+   *
+   * @param {number} investmentScore - Risk tolerance score (1-7)
+   * @returns {number} Annual return rate (decimal)
+   */
+  calculatePersonalizedRate(investmentScore) {
+    const score = Math.max(1, Math.min(7, investmentScore || 4));
+    return PROJECTION_CONFIG.BASE_RATE +
+           ((score - 1) / 6) * PROJECTION_CONFIG.MAX_ADDITIONAL_RATE;
+    // Score 1 → 8%, Score 4 → 14%, Score 7 → 20%
+  },
+
+  /**
+   * Sprint 6.1: Future value calculation with safeguards
+   * Calculates FV of monthly contributions using monthly compounding
+   *
+   * @param {number} monthlyContribution - Monthly payment amount
+   * @param {number} annualRate - Annual return rate (decimal, e.g., 0.10 for 10%)
+   * @param {number} years - Investment timeline
+   * @returns {number} Future value (capped at MAX_FV)
+   */
+  futureValue(monthlyContribution, annualRate, years) {
+    // Input validation
+    if (!monthlyContribution || monthlyContribution <= 0 || years <= 0) {
+      return 0;
+    }
+
+    // Handle "no children" indicator (yearsToEducation = 99)
+    if (years >= 99) {
+      return 0;
+    }
+
+    // Apply safeguards
+    years = Math.min(years, PROJECTION_CONFIG.MAX_YEARS);
+    annualRate = Math.min(annualRate, PROJECTION_CONFIG.MAX_RATE);
+
+    // Monthly compounding formula
+    const monthlyRate = annualRate / 12;
+    const months = years * 12;
+
+    // Check for overflow before calculation
+    const growthFactor = Math.pow(1 + monthlyRate, months);
+    if (!isFinite(growthFactor) || growthFactor > 1000000) {
+      return PROJECTION_CONFIG.MAX_FV;
+    }
+
+    // FV = PMT × ((1 + r)^n - 1) / r
+    let fv;
+    if (monthlyRate === 0) {
+      fv = monthlyContribution * months;
+    } else {
+      fv = monthlyContribution * ((growthFactor - 1) / monthlyRate);
+    }
+
+    // Apply maximum cap
+    return Math.min(Math.round(fv), PROJECTION_CONFIG.MAX_FV);
+  },
+
+  /**
+   * Sprint 6.1: Calculate retirement projections
+   * Computes future balance, real (inflation-adjusted) balance, baseline comparison
+   *
+   * @param {Object} inputs - Projection inputs
+   * @param {number} inputs.currentBalance - Total current retirement balance
+   * @param {number} inputs.monthlyContribution - Recommended monthly contribution
+   * @param {number} inputs.yearsToRetirement - Years until retirement
+   * @param {number} inputs.annualReturn - Expected annual return rate
+   * @param {number} [inputs.inflationRate=0.025] - Inflation rate for real value calculation
+   * @returns {Object} Projection results
+   */
+  calculateProjections(inputs) {
+    const {
+      currentBalance = 0,
+      monthlyContribution = 0,
+      yearsToRetirement = 0,
+      annualReturn = 0.10,
+      inflationRate = PROJECTION_CONFIG.DEFAULT_INFLATION
+    } = inputs;
+
+    // Edge case: 0 years = current balance
+    if (yearsToRetirement <= 0) {
+      return {
+        projectedBalance: currentBalance,
+        realBalance: currentBalance,
+        baseline: currentBalance,
+        improvement: 0,
+        monthlyRetirementIncome: currentBalance / (25 * 12),
+        yearsUsed: 0,
+        rateUsed: annualReturn
+      };
+    }
+
+    // Apply safeguards
+    const cappedYears = Math.min(yearsToRetirement, PROJECTION_CONFIG.MAX_YEARS);
+    const cappedRate = Math.min(annualReturn, PROJECTION_CONFIG.MAX_RATE);
+
+    // Future value of monthly contributions (using safeguarded futureValue)
+    const fvContributions = this.futureValue(monthlyContribution, cappedRate, cappedYears);
+
+    // Future value of current balance (lump sum growth)
+    const fvBalance = currentBalance * Math.pow(1 + cappedRate, cappedYears);
+
+    // Total projected balance (capped at $100M)
+    const projectedBalance = Math.min(
+      Math.round(fvBalance + fvContributions),
+      PROJECTION_CONFIG.MAX_FV
+    );
+
+    // Real (inflation-adjusted) balance
+    const realBalance = Math.round(projectedBalance / Math.pow(1 + inflationRate, cappedYears));
+
+    // Baseline (if they did nothing - just current balance growing)
+    const baseline = Math.round(currentBalance * Math.pow(1 + cappedRate, cappedYears));
+
+    // Improvement from following the plan
+    const improvement = projectedBalance - baseline;
+
+    // Monthly retirement income using 4% rule (divide by 300 months = 25 years)
+    const monthlyRetirementIncome = Math.round(realBalance / (25 * 12));
+
+    return {
+      projectedBalance,
+      realBalance,
+      baseline,
+      improvement,
+      monthlyRetirementIncome,
+      yearsUsed: cappedYears,
+      rateUsed: cappedRate
+    };
+  },
+
+  /**
+   * Sprint 6.1: Calculate education domain projections
+   * Separate from retirement - uses education-specific inputs and more conservative rate
+   *
+   * @param {Object} inputs - Education projection inputs
+   * @param {number} inputs.currentEducationBalance - Combined 529/CESA/UTMA balance
+   * @param {number} inputs.monthlyEducationContribution - Monthly education savings
+   * @param {number} inputs.yearsToEducation - Years until first child needs funds
+   * @param {number} inputs.numChildren - Number of children (for per-child estimate)
+   * @param {number} [inputs.annualReturn=0.07] - Conservative education growth rate
+   * @returns {Object} Education projection results
+   */
+  calculateEducationProjections(inputs) {
+    const {
+      currentEducationBalance = 0,
+      monthlyEducationContribution = 0,
+      yearsToEducation = 99,
+      numChildren = 0,
+      annualReturn = 0.07 // More conservative than retirement
+    } = inputs;
+
+    // Skip if no children or education disabled
+    if (yearsToEducation >= 99 || numChildren === 0) {
+      return {
+        projectedBalance: 0,
+        improvement: 0,
+        baseline: 0,
+        yearsUsed: 0,
+        numChildren: 0,
+        perChildEstimate: 0
+      };
+    }
+
+    // Apply safeguards
+    const cappedYears = Math.min(yearsToEducation, PROJECTION_CONFIG.MAX_YEARS);
+
+    // Future value of monthly contributions
+    const fvContributions = this.futureValue(monthlyEducationContribution, annualReturn, cappedYears);
+
+    // Future value of current balance
+    const fvBalance = currentEducationBalance * Math.pow(1 + annualReturn, cappedYears);
+
+    // Total projected
+    const projectedBalance = Math.min(
+      Math.round(fvBalance + fvContributions),
+      PROJECTION_CONFIG.MAX_FV
+    );
+
+    // Baseline (if they did nothing)
+    const baseline = Math.round(currentEducationBalance * Math.pow(1 + annualReturn, cappedYears));
+
+    return {
+      projectedBalance,
+      baseline,
+      improvement: projectedBalance - baseline,
+      yearsUsed: cappedYears,
+      numChildren,
+      perChildEstimate: numChildren > 0 ? Math.round(projectedBalance / numChildren) : 0
+    };
+  },
+
+  /**
+   * Sprint 6.3: Calculate tax-free vs taxable breakdown
+   * Determines what percentage of projected balance will be tax-free at withdrawal
+   *
+   * @param {Object} allocations - Vehicle allocations (monthly amounts)
+   * @param {Object} projections - Retirement projection results
+   * @returns {Object} Tax breakdown with amounts and percentages
+   */
+  calculateTaxBreakdown(allocations, projections) {
+    // Sum Roth allocations (tax-free at withdrawal)
+    const rothAllocation =
+      (allocations['401(k) Roth'] || 0) +
+      (allocations['IRA Roth'] || 0) +
+      (allocations['Backdoor Roth IRA'] || 0) +
+      (allocations['HSA'] || 0); // HSA is tax-free if used for medical
+
+    // Sum Traditional allocations (taxable at withdrawal)
+    const traditionalAllocation =
+      (allocations['401(k) Traditional'] || 0) +
+      (allocations['IRA Traditional'] || 0) +
+      (allocations['Solo 401(k)'] || 0) +
+      (allocations['SEP-IRA'] || 0) +
+      (allocations['SIMPLE IRA'] || 0);
+
+    // Family Bank is taxable (capital gains)
+    const taxableAllocation = allocations['Family Bank'] || 0;
+
+    const totalAllocation = rothAllocation + traditionalAllocation + taxableAllocation;
+
+    // Calculate percentages
+    const rothPercentage = totalAllocation > 0 ? (rothAllocation / totalAllocation) * 100 : 0;
+    const traditionalPercentage = totalAllocation > 0 ? (traditionalAllocation / totalAllocation) * 100 : 0;
+    const taxablePercentage = totalAllocation > 0 ? (taxableAllocation / totalAllocation) * 100 : 0;
+
+    // Apply percentages to projected balance
+    const projectedBalance = projections.projectedBalance || 0;
+
+    return {
+      // Tax-free at withdrawal (Roth + HSA for medical)
+      taxFreeAmount: Math.round(projectedBalance * (rothPercentage / 100)),
+      taxFreePercentage: Math.round(rothPercentage),
+
+      // Taxable as ordinary income (Traditional)
+      taxDeferredAmount: Math.round(projectedBalance * (traditionalPercentage / 100)),
+      taxDeferredPercentage: Math.round(traditionalPercentage),
+
+      // Taxable as capital gains (Family Bank)
+      capitalGainsAmount: Math.round(projectedBalance * (taxablePercentage / 100)),
+      capitalGainsPercentage: Math.round(taxablePercentage),
+
+      // Summary
+      totalAllocation: Math.round(totalAllocation)
+    };
+  },
+
+  /**
+   * Sprint 6.1-6.3: Complete projection calculation for display
+   * Combines retirement, education, and tax breakdown into single result
+   *
+   * @param {Object} preSurveyData - User's questionnaire answers
+   * @param {Object} allocation - Vehicle allocation from calculateAllocation()
+   * @param {Object} toolStatus - Upstream tool data
+   * @returns {Object} Complete projection results for both domains
+   */
+  calculateCompleteProjections(preSurveyData, allocation, toolStatus) {
+    if (!allocation || !allocation.vehicles) {
+      return null;
+    }
+
+    // Get inputs
+    const investmentScore = parseInt(preSurveyData.investmentScore || toolStatus.investmentScore) || 4;
+    const annualReturn = this.calculatePersonalizedRate(investmentScore);
+    const yearsToRetirement = parseInt(preSurveyData.a2_yearsToRetirement || toolStatus.yearsToRetirement) || 25;
+
+    // Current balances
+    const current401kBalance = parseFloat(preSurveyData.a12_current401kBalance) || 0;
+    const currentIRABalance = parseFloat(preSurveyData.a13_currentIRABalance) || 0;
+    const currentHSABalance = parseFloat(preSurveyData.a14_currentHSABalance) || 0;
+    const currentRetirementBalance = current401kBalance + currentIRABalance + currentHSABalance;
+
+    // Education inputs
+    const hasChildren = preSurveyData.a8_hasChildren === 'Yes';
+    const currentEducationBalance = parseFloat(preSurveyData.a15_currentEducationBalance) || 0;
+    const numChildren = parseInt(preSurveyData.a9_numChildren) || 0;
+    const yearsToEducation = parseInt(preSurveyData.a10_yearsToEducation) || 99;
+
+    // Get monthly contribution totals from allocation
+    const vehicles = allocation.vehicles || {};
+    const totalMonthlyContribution = Object.values(vehicles).reduce((sum, amt) => sum + amt, 0);
+
+    // Calculate retirement contribution (exclude education vehicles)
+    const educationVehicles = ['529 Plan', 'Coverdell ESA'];
+    const monthlyRetirementContribution = Object.entries(vehicles)
+      .filter(([name]) => !educationVehicles.includes(name))
+      .reduce((sum, [, amt]) => sum + amt, 0);
+
+    // Calculate education contribution
+    const monthlyEducationContribution = Object.entries(vehicles)
+      .filter(([name]) => educationVehicles.includes(name))
+      .reduce((sum, [, amt]) => sum + amt, 0);
+
+    // Calculate retirement projections
+    const retirementProjections = this.calculateProjections({
+      currentBalance: currentRetirementBalance,
+      monthlyContribution: monthlyRetirementContribution,
+      yearsToRetirement: yearsToRetirement,
+      annualReturn: annualReturn
+    });
+
+    // Calculate education projections (if applicable)
+    const educationProjections = hasChildren
+      ? this.calculateEducationProjections({
+          currentEducationBalance: currentEducationBalance,
+          monthlyEducationContribution: monthlyEducationContribution,
+          yearsToEducation: yearsToEducation,
+          numChildren: numChildren
+        })
+      : null;
+
+    // Calculate tax breakdown
+    const taxBreakdown = this.calculateTaxBreakdown(vehicles, retirementProjections);
+
+    return {
+      retirement: retirementProjections,
+      education: educationProjections,
+      taxBreakdown: taxBreakdown,
+      inputs: {
+        investmentScore,
+        annualReturn,
+        yearsToRetirement,
+        totalMonthlyContribution,
+        monthlyRetirementContribution,
+        monthlyEducationContribution
+      }
+    };
+  },
+
   /**
    * Sprint 5.1-5.4: Build calculator section HTML
    * Shows current state inputs, investment score, tax strategy, employer match, and vehicle sliders
@@ -1722,6 +2057,206 @@ const Tool6 = {
   },
 
   /**
+   * Sprint 6.2: Build projections display section
+   * Shows retirement projections, education projections (if applicable), and tax breakdown
+   *
+   * @param {Object} projections - Result from calculateCompleteProjections()
+   * @param {Object} preSurveyData - User's questionnaire answers
+   * @returns {string} HTML for projections section
+   */
+  buildProjectionsSection(projections, preSurveyData) {
+    if (!projections) {
+      return `
+        <div class="placeholder-message">
+          <h3>Complete Your Allocation First</h3>
+          <p>Projections will appear after you complete the questionnaire and get your allocation.</p>
+        </div>
+      `;
+    }
+
+    const retirement = projections.retirement;
+    const education = projections.education;
+    const taxBreakdown = projections.taxBreakdown;
+    const inputs = projections.inputs;
+
+    const hasChildren = preSurveyData?.a8_hasChildren === 'Yes';
+    const returnRatePercent = (inputs.annualReturn * 100).toFixed(1);
+
+    let html = `
+      <div class="projections-container">
+
+        <!-- Projection Assumptions -->
+        <div class="projection-assumptions">
+          <div class="assumptions-header">
+            <span class="assumptions-icon">⚙️</span>
+            <span class="assumptions-title">Projection Assumptions</span>
+          </div>
+          <div class="assumptions-grid">
+            <div class="assumption-item">
+              <span class="assumption-label">Investment Score</span>
+              <span class="assumption-value">${inputs.investmentScore}/7</span>
+            </div>
+            <div class="assumption-item">
+              <span class="assumption-label">Expected Return</span>
+              <span class="assumption-value">${returnRatePercent}% annually</span>
+            </div>
+            <div class="assumption-item">
+              <span class="assumption-label">Years to Retirement</span>
+              <span class="assumption-value">${inputs.yearsToRetirement} years</span>
+            </div>
+            <div class="assumption-item">
+              <span class="assumption-label">Monthly Contributions</span>
+              <span class="assumption-value">$${inputs.monthlyRetirementContribution.toLocaleString()}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Retirement Projections -->
+        <div class="projection-card retirement-projection">
+          <div class="projection-header">
+            <span class="projection-icon">🎯</span>
+            <h4 class="projection-title">Retirement Projection</h4>
+          </div>
+
+          <div class="projection-metrics">
+            <div class="metric-card primary">
+              <div class="metric-label">Projected Balance at Retirement</div>
+              <div class="metric-value">$${retirement.projectedBalance.toLocaleString()}</div>
+              <div class="metric-note">In ${retirement.yearsUsed} years</div>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-label">Inflation-Adjusted Value</div>
+              <div class="metric-value">$${retirement.realBalance.toLocaleString()}</div>
+              <div class="metric-note">In today's dollars (2.5% inflation)</div>
+            </div>
+
+            <div class="metric-card highlight">
+              <div class="metric-label">Est. Monthly Retirement Income</div>
+              <div class="metric-value">$${retirement.monthlyRetirementIncome.toLocaleString()}</div>
+              <div class="metric-note">Based on 4% withdrawal rule</div>
+            </div>
+          </div>
+
+          <!-- Improvement from Plan -->
+          <div class="improvement-section">
+            <div class="improvement-comparison">
+              <div class="comparison-item baseline">
+                <div class="comparison-label">If you did nothing</div>
+                <div class="comparison-value">$${retirement.baseline.toLocaleString()}</div>
+                <div class="comparison-note">Just letting current balance grow</div>
+              </div>
+              <div class="comparison-arrow">→</div>
+              <div class="comparison-item projected">
+                <div class="comparison-label">With this plan</div>
+                <div class="comparison-value">$${retirement.projectedBalance.toLocaleString()}</div>
+                <div class="comparison-note">Following recommended allocation</div>
+              </div>
+            </div>
+            <div class="improvement-result ${retirement.improvement > 0 ? 'positive' : ''}">
+              <span class="improvement-icon">${retirement.improvement > 0 ? '📈' : '➡️'}</span>
+              <span class="improvement-text">
+                ${retirement.improvement > 0
+                  ? `+$${retirement.improvement.toLocaleString()} improvement`
+                  : 'Start building your retirement today'
+                }
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tax Breakdown -->
+        <div class="projection-card tax-breakdown">
+          <div class="projection-header">
+            <span class="projection-icon">🏛️</span>
+            <h4 class="projection-title">Tax Treatment at Withdrawal</h4>
+          </div>
+
+          <div class="tax-bar-container">
+            <div class="tax-bar">
+              <div class="tax-segment tax-free" style="width: ${taxBreakdown.taxFreePercentage}%;" title="Tax-Free (Roth + HSA)"></div>
+              <div class="tax-segment tax-deferred" style="width: ${taxBreakdown.taxDeferredPercentage}%;" title="Tax-Deferred (Traditional)"></div>
+              <div class="tax-segment capital-gains" style="width: ${taxBreakdown.capitalGainsPercentage}%;" title="Capital Gains (Taxable)"></div>
+            </div>
+          </div>
+
+          <div class="tax-legend">
+            <div class="legend-item tax-free">
+              <span class="legend-color"></span>
+              <span class="legend-label">Tax-Free (Roth + HSA)</span>
+              <span class="legend-value">${taxBreakdown.taxFreePercentage}% · $${taxBreakdown.taxFreeAmount.toLocaleString()}</span>
+            </div>
+            <div class="legend-item tax-deferred">
+              <span class="legend-color"></span>
+              <span class="legend-label">Tax-Deferred (Traditional)</span>
+              <span class="legend-value">${taxBreakdown.taxDeferredPercentage}% · $${taxBreakdown.taxDeferredAmount.toLocaleString()}</span>
+            </div>
+            <div class="legend-item capital-gains">
+              <span class="legend-color"></span>
+              <span class="legend-label">Capital Gains (Taxable)</span>
+              <span class="legend-value">${taxBreakdown.capitalGainsPercentage}% · $${taxBreakdown.capitalGainsAmount.toLocaleString()}</span>
+            </div>
+          </div>
+
+          <div class="tax-insight">
+            ${taxBreakdown.taxFreePercentage >= 50
+              ? '<span class="insight-icon">✅</span> Great tax diversification! Majority of funds will be tax-free at withdrawal.'
+              : taxBreakdown.taxFreePercentage >= 25
+                ? '<span class="insight-icon">👍</span> Good mix of tax treatments for flexibility in retirement.'
+                : '<span class="insight-icon">💡</span> Consider increasing Roth contributions for more tax-free income in retirement.'
+            }
+          </div>
+        </div>
+    `;
+
+    // Education Projections (if applicable)
+    if (hasChildren && education && education.projectedBalance > 0) {
+      html += `
+        <!-- Education Projections -->
+        <div class="projection-card education-projection">
+          <div class="projection-header">
+            <span class="projection-icon">🎓</span>
+            <h4 class="projection-title">Education Savings Projection</h4>
+          </div>
+
+          <div class="projection-metrics">
+            <div class="metric-card primary">
+              <div class="metric-label">Projected Education Fund</div>
+              <div class="metric-value">$${education.projectedBalance.toLocaleString()}</div>
+              <div class="metric-note">In ${education.yearsUsed} years (7% growth)</div>
+            </div>
+
+            ${education.numChildren > 1 ? `
+            <div class="metric-card">
+              <div class="metric-label">Per Child Estimate</div>
+              <div class="metric-value">$${education.perChildEstimate.toLocaleString()}</div>
+              <div class="metric-note">Across ${education.numChildren} children</div>
+            </div>
+            ` : ''}
+
+            <div class="metric-card ${education.improvement > 0 ? 'highlight' : ''}">
+              <div class="metric-label">Growth from Contributions</div>
+              <div class="metric-value">+$${education.improvement.toLocaleString()}</div>
+              <div class="metric-note">Beyond current balance growth</div>
+            </div>
+          </div>
+
+          <div class="education-context">
+            <span class="context-icon">💡</span>
+            <span class="context-text">Average 4-year public university cost: ~$100,000. Private: ~$200,000+</span>
+          </div>
+        </div>
+      `;
+    }
+
+    html += `
+      </div> <!-- /.projections-container -->
+    `;
+
+    return html;
+  },
+
+  /**
    * Build unified page with questionnaire + calculator
    */
   buildUnifiedPage(clientId, toolStatus, preSurveyData, profile, allocation) {
@@ -1734,6 +2269,12 @@ const Tool6 = {
 
     // Pre-fill form values from Tool 2/4 data if available
     const prefillData = this.getPrefillData(toolStatus);
+
+    // Calculate projections if allocation exists (Sprint 6.1)
+    const projections = hasAllocation
+      ? this.calculateCompleteProjections(preSurveyData, allocation, toolStatus)
+      : null;
+    const hasProjections = !!projections;
 
     return `
 <!DOCTYPE html>
@@ -2985,6 +3526,342 @@ const Tool6 = {
       font-size: 1.1rem;
     }
 
+    /* ============================================
+       Sprint 6.2: Projections Section Styles
+       ============================================ */
+
+    .projections-container {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .projection-assumptions {
+      background: rgba(79, 70, 229, 0.08);
+      border-radius: 12px;
+      padding: 16px 20px;
+      border: 1px solid rgba(79, 70, 229, 0.2);
+    }
+
+    .assumptions-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .assumptions-icon {
+      font-size: 1.1rem;
+    }
+
+    .assumptions-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--color-text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .assumptions-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 16px;
+    }
+
+    .assumption-item {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .assumption-label {
+      font-size: 0.8rem;
+      color: var(--color-text-muted);
+    }
+
+    .assumption-value {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--color-text-primary);
+    }
+
+    .projection-card {
+      background: var(--color-surface);
+      border-radius: 16px;
+      padding: 24px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .projection-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .projection-icon {
+      font-size: 1.5rem;
+    }
+
+    .projection-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: var(--color-text-primary);
+      margin: 0;
+    }
+
+    .projection-metrics {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .metric-card {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      padding: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      transition: all 0.2s ease;
+    }
+
+    .metric-card.primary {
+      background: rgba(79, 70, 229, 0.15);
+      border-color: rgba(79, 70, 229, 0.3);
+    }
+
+    .metric-card.highlight {
+      background: rgba(16, 185, 129, 0.15);
+      border-color: rgba(16, 185, 129, 0.3);
+    }
+
+    .metric-label {
+      font-size: 0.85rem;
+      color: var(--color-text-muted);
+      margin-bottom: 8px;
+    }
+
+    .metric-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--color-text-primary);
+      margin-bottom: 4px;
+    }
+
+    .metric-card.primary .metric-value {
+      color: var(--color-primary-light, #818cf8);
+    }
+
+    .metric-card.highlight .metric-value {
+      color: #10b981;
+    }
+
+    .metric-note {
+      font-size: 0.8rem;
+      color: var(--color-text-muted);
+    }
+
+    /* Improvement Comparison */
+    .improvement-section {
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 12px;
+      padding: 20px;
+      border: 1px dashed rgba(255, 255, 255, 0.15);
+    }
+
+    .improvement-comparison {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+
+    .comparison-item {
+      text-align: center;
+      padding: 16px 24px;
+      border-radius: 12px;
+      min-width: 180px;
+    }
+
+    .comparison-item.baseline {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+    }
+
+    .comparison-item.projected {
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+
+    .comparison-label {
+      font-size: 0.85rem;
+      color: var(--color-text-muted);
+      margin-bottom: 8px;
+    }
+
+    .comparison-value {
+      font-size: 1.3rem;
+      font-weight: 700;
+    }
+
+    .comparison-item.baseline .comparison-value {
+      color: #f87171;
+    }
+
+    .comparison-item.projected .comparison-value {
+      color: #34d399;
+    }
+
+    .comparison-note {
+      font-size: 0.75rem;
+      color: var(--color-text-muted);
+      margin-top: 4px;
+    }
+
+    .comparison-arrow {
+      font-size: 2rem;
+      color: var(--color-text-muted);
+    }
+
+    .improvement-result {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+    }
+
+    .improvement-result.positive {
+      background: rgba(16, 185, 129, 0.15);
+    }
+
+    .improvement-icon {
+      font-size: 1.2rem;
+    }
+
+    .improvement-text {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--color-text-primary);
+    }
+
+    .improvement-result.positive .improvement-text {
+      color: #34d399;
+    }
+
+    /* Tax Breakdown */
+    .tax-bar-container {
+      margin-bottom: 20px;
+    }
+
+    .tax-bar {
+      height: 32px;
+      border-radius: 8px;
+      overflow: hidden;
+      display: flex;
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .tax-segment {
+      height: 100%;
+      transition: width 0.3s ease;
+      min-width: 2px;
+    }
+
+    .tax-segment.tax-free {
+      background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+    }
+
+    .tax-segment.tax-deferred {
+      background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
+    }
+
+    .tax-segment.capital-gains {
+      background: linear-gradient(135deg, #6366f1 0%, #818cf8 100%);
+    }
+
+    .tax-legend {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .legend-color {
+      width: 16px;
+      height: 16px;
+      border-radius: 4px;
+    }
+
+    .legend-item.tax-free .legend-color {
+      background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+    }
+
+    .legend-item.tax-deferred .legend-color {
+      background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
+    }
+
+    .legend-item.capital-gains .legend-color {
+      background: linear-gradient(135deg, #6366f1 0%, #818cf8 100%);
+    }
+
+    .legend-label {
+      font-size: 0.9rem;
+      color: var(--color-text-secondary);
+      flex: 1;
+    }
+
+    .legend-value {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--color-text-primary);
+    }
+
+    .tax-insight {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 16px;
+      background: rgba(79, 70, 229, 0.1);
+      border-radius: 8px;
+      font-size: 0.9rem;
+      color: var(--color-text-secondary);
+    }
+
+    .insight-icon {
+      font-size: 1.1rem;
+    }
+
+    /* Education Projection */
+    .education-projection {
+      border-left: 4px solid #8b5cf6;
+    }
+
+    .education-context {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 16px;
+      background: rgba(139, 92, 246, 0.1);
+      border-radius: 8px;
+      font-size: 0.85rem;
+      color: var(--color-text-muted);
+    }
+
+    .context-icon {
+      font-size: 1rem;
+    }
+
     /* Responsive adjustments */
     @media (max-width: 768px) {
       .vehicle-slider-row {
@@ -3122,15 +3999,11 @@ const Tool6 = {
     <div class="section-card">
       <div class="section-header" onclick="toggleSection('projections')">
         <div class="section-title">3. Future Value Projections</div>
-        <span class="section-toggle collapsed" id="projectionsToggle">&#9660;</span>
+        <span class="section-toggle ${hasProjections ? '' : 'collapsed'}" id="projectionsToggle">&#9660;</span>
       </div>
 
-      <div class="section-body collapsed" id="projectionsBody">
-        <div class="placeholder-message">
-          <h3>Coming Soon: Sprint 6</h3>
-          <p>Future value calculations with inflation adjustment.</p>
-          <p>Actual vs Ideal scenario comparison.</p>
-        </div>
+      <div class="section-body ${hasProjections ? '' : 'collapsed'}" id="projectionsBody">
+        ${this.buildProjectionsSection(projections, preSurveyData)}
       </div>
     </div>
 
@@ -3157,6 +4030,42 @@ const Tool6 = {
     var classifiedProfile = ${profile ? JSON.stringify(profile) : 'null'};
     var upstreamAge = ${toolStatus.age || 'null'};
     var upstreamYearsToRetirement = ${toolStatus.yearsToRetirement || 'null'};
+
+    // ========================================================================
+    // PROJECTION CONFIG (Sprint 6.1)
+    // ========================================================================
+
+    var PROJECTION_CONFIG = {
+      BASE_RATE: 0.08,
+      MAX_ADDITIONAL_RATE: 0.12,
+      MAX_YEARS: 70,
+      MAX_RATE: 0.25,
+      MAX_FV: 100000000,
+      DEFAULT_INFLATION: 0.025,
+      FAMILY_BANK_RATE: 0.05,
+      EDUCATION_RATE: 0.07
+    };
+
+    // Initial projections data from server
+    var initialProjections = ${projections ? JSON.stringify(projections) : 'null'};
+
+    // Investment score (for return rate calculation)
+    var currentInvestmentScore = ${preSurveyData?.investmentScore || toolStatus.investmentScore || 4};
+
+    // Current balances from form data
+    var currentBalances = {
+      retirement: ${(parseFloat(preSurveyData?.a12_current401kBalance) || 0) + (parseFloat(preSurveyData?.a13_currentIRABalance) || 0) + (parseFloat(preSurveyData?.a14_currentHSABalance) || 0)},
+      education: ${parseFloat(preSurveyData?.a15_currentEducationBalance) || 0}
+    };
+
+    // Years to retirement/education
+    var yearsToRetirement = ${parseInt(preSurveyData?.a2_yearsToRetirement || toolStatus.yearsToRetirement) || 25};
+    var yearsToEducation = ${parseInt(preSurveyData?.a10_yearsToEducation) || 99};
+    var numChildren = ${parseInt(preSurveyData?.a9_numChildren) || 0};
+    var hasChildren = ${preSurveyData?.a8_hasChildren === 'Yes'};
+
+    // Education vehicle names for filtering
+    var educationVehicles = ['529_Plan', 'Coverdell_ESA'];
 
     // ========================================================================
     // CLASSIFICATION FLOW CONFIGURATION
@@ -3721,6 +4630,17 @@ const Tool6 = {
       // Store in formData for submission
       formData.investmentScore = score;
 
+      // Sprint 6.2: Update global variable for projection calculations
+      currentInvestmentScore = score;
+
+      // Update projection assumptions display
+      var returnRatePercent = (calculatePersonalizedRate(score) * 100).toFixed(1);
+      updateElementText('.assumption-item:nth-child(1) .assumption-value', score + '/7');
+      updateElementText('.assumption-item:nth-child(2) .assumption-value', returnRatePercent + '% annually');
+
+      // Update projections with new rate
+      updateProjectionDisplay();
+
       // Trigger recalculation if calculator is active
       markCalculatorDirty();
     }
@@ -4216,6 +5136,9 @@ const Tool6 = {
         updateSingleVehicleDisplay(vehicleId, allocationState.vehicles[vehicleId]);
       }
       updateTotalAllocated();
+
+      // Sprint 6.2: Update projections when allocations change
+      updateProjectionDisplay();
     }
 
     // Legacy function - now calls the coupled adjustment
@@ -4345,6 +5268,216 @@ const Tool6 = {
     var style = document.createElement('style');
     style.textContent = '@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }';
     document.head.appendChild(style);
+
+    // ========================================================================
+    // SPRINT 6.2: CLIENT-SIDE PROJECTION UPDATES
+    // ========================================================================
+
+    // Calculate personalized return rate from investment score
+    function calculatePersonalizedRate(score) {
+      score = Math.max(1, Math.min(7, score || 4));
+      return PROJECTION_CONFIG.BASE_RATE +
+             ((score - 1) / 6) * PROJECTION_CONFIG.MAX_ADDITIONAL_RATE;
+    }
+
+    // Future value calculation with safeguards
+    function futureValue(monthlyContribution, annualRate, years) {
+      if (!monthlyContribution || monthlyContribution <= 0 || years <= 0 || years >= 99) {
+        return 0;
+      }
+
+      years = Math.min(years, PROJECTION_CONFIG.MAX_YEARS);
+      annualRate = Math.min(annualRate, PROJECTION_CONFIG.MAX_RATE);
+
+      var monthlyRate = annualRate / 12;
+      var months = years * 12;
+
+      var growthFactor = Math.pow(1 + monthlyRate, months);
+      if (!isFinite(growthFactor) || growthFactor > 1000000) {
+        return PROJECTION_CONFIG.MAX_FV;
+      }
+
+      var fv;
+      if (monthlyRate === 0) {
+        fv = monthlyContribution * months;
+      } else {
+        fv = monthlyContribution * ((growthFactor - 1) / monthlyRate);
+      }
+
+      return Math.min(Math.round(fv), PROJECTION_CONFIG.MAX_FV);
+    }
+
+    // Calculate projections from current allocation state
+    function calculateClientProjections() {
+      if (!allocationState || !allocationState.vehicles) {
+        return null;
+      }
+
+      var annualReturn = calculatePersonalizedRate(currentInvestmentScore);
+      var cappedYears = Math.min(yearsToRetirement, PROJECTION_CONFIG.MAX_YEARS);
+      var cappedRate = Math.min(annualReturn, PROJECTION_CONFIG.MAX_RATE);
+
+      // Calculate retirement contribution (exclude education vehicles)
+      var monthlyRetirementContribution = 0;
+      var monthlyEducationContribution = 0;
+      var rothAllocation = 0;
+      var traditionalAllocation = 0;
+      var taxableAllocation = 0;
+
+      for (var vehicleId in allocationState.vehicles) {
+        var amount = allocationState.vehicles[vehicleId] || 0;
+
+        if (educationVehicles.indexOf(vehicleId) >= 0) {
+          monthlyEducationContribution += amount;
+        } else {
+          monthlyRetirementContribution += amount;
+
+          // Categorize by tax treatment
+          if (vehicleId.indexOf('Roth') >= 0 || vehicleId === 'HSA') {
+            rothAllocation += amount;
+          } else if (vehicleId === 'Family_Bank') {
+            taxableAllocation += amount;
+          } else {
+            traditionalAllocation += amount;
+          }
+        }
+      }
+
+      // Retirement projections
+      var fvContributions = futureValue(monthlyRetirementContribution, cappedRate, cappedYears);
+      var fvBalance = currentBalances.retirement * Math.pow(1 + cappedRate, cappedYears);
+      var projectedBalance = Math.min(Math.round(fvBalance + fvContributions), PROJECTION_CONFIG.MAX_FV);
+      var realBalance = Math.round(projectedBalance / Math.pow(1 + PROJECTION_CONFIG.DEFAULT_INFLATION, cappedYears));
+      var baseline = Math.round(currentBalances.retirement * Math.pow(1 + cappedRate, cappedYears));
+      var improvement = projectedBalance - baseline;
+      var monthlyRetirementIncome = Math.round(realBalance / (25 * 12));
+
+      // Tax breakdown
+      var totalAlloc = rothAllocation + traditionalAllocation + taxableAllocation;
+      var taxFreePercentage = totalAlloc > 0 ? Math.round((rothAllocation / totalAlloc) * 100) : 0;
+      var taxDeferredPercentage = totalAlloc > 0 ? Math.round((traditionalAllocation / totalAlloc) * 100) : 0;
+      var capitalGainsPercentage = totalAlloc > 0 ? Math.round((taxableAllocation / totalAlloc) * 100) : 0;
+
+      // Education projections
+      var eduProjection = null;
+      if (hasChildren && yearsToEducation < 99 && numChildren > 0) {
+        var eduYears = Math.min(yearsToEducation, PROJECTION_CONFIG.MAX_YEARS);
+        var eduFvContrib = futureValue(monthlyEducationContribution, PROJECTION_CONFIG.EDUCATION_RATE, eduYears);
+        var eduFvBalance = currentBalances.education * Math.pow(1 + PROJECTION_CONFIG.EDUCATION_RATE, eduYears);
+        var eduProjectedBalance = Math.min(Math.round(eduFvBalance + eduFvContrib), PROJECTION_CONFIG.MAX_FV);
+        var eduBaseline = Math.round(currentBalances.education * Math.pow(1 + PROJECTION_CONFIG.EDUCATION_RATE, eduYears));
+
+        eduProjection = {
+          projectedBalance: eduProjectedBalance,
+          baseline: eduBaseline,
+          improvement: eduProjectedBalance - eduBaseline,
+          yearsUsed: eduYears,
+          numChildren: numChildren,
+          perChildEstimate: Math.round(eduProjectedBalance / numChildren)
+        };
+      }
+
+      return {
+        retirement: {
+          projectedBalance: projectedBalance,
+          realBalance: realBalance,
+          baseline: baseline,
+          improvement: improvement,
+          monthlyRetirementIncome: monthlyRetirementIncome,
+          yearsUsed: cappedYears,
+          rateUsed: cappedRate
+        },
+        taxBreakdown: {
+          taxFreeAmount: Math.round(projectedBalance * (taxFreePercentage / 100)),
+          taxFreePercentage: taxFreePercentage,
+          taxDeferredAmount: Math.round(projectedBalance * (taxDeferredPercentage / 100)),
+          taxDeferredPercentage: taxDeferredPercentage,
+          capitalGainsAmount: Math.round(projectedBalance * (capitalGainsPercentage / 100)),
+          capitalGainsPercentage: capitalGainsPercentage
+        },
+        education: eduProjection,
+        inputs: {
+          investmentScore: currentInvestmentScore,
+          annualReturn: annualReturn,
+          yearsToRetirement: yearsToRetirement,
+          monthlyRetirementContribution: monthlyRetirementContribution,
+          monthlyEducationContribution: monthlyEducationContribution
+        }
+      };
+    }
+
+    // Update projection display elements
+    function updateProjectionDisplay() {
+      var projections = calculateClientProjections();
+      if (!projections) return;
+
+      var r = projections.retirement;
+      var t = projections.taxBreakdown;
+
+      // Helper to format currency
+      function formatCurrency(num) {
+        return '$' + num.toLocaleString();
+      }
+
+      // Update retirement metrics
+      updateElementText('.projection-card.retirement-projection .metric-card.primary .metric-value', formatCurrency(r.projectedBalance));
+      updateElementText('.projection-card.retirement-projection .metric-card:not(.primary):not(.highlight) .metric-value', formatCurrency(r.realBalance));
+      updateElementText('.projection-card.retirement-projection .metric-card.highlight .metric-value', formatCurrency(r.monthlyRetirementIncome));
+
+      // Update comparison values
+      updateElementText('.comparison-item.baseline .comparison-value', formatCurrency(r.baseline));
+      updateElementText('.comparison-item.projected .comparison-value', formatCurrency(r.projectedBalance));
+
+      // Update improvement
+      var improvementEl = document.querySelector('.improvement-result');
+      if (improvementEl) {
+        improvementEl.className = 'improvement-result' + (r.improvement > 0 ? ' positive' : '');
+        var improvementText = improvementEl.querySelector('.improvement-text');
+        if (improvementText) {
+          improvementText.textContent = r.improvement > 0
+            ? '+' + formatCurrency(r.improvement) + ' improvement'
+            : 'Start building your retirement today';
+        }
+      }
+
+      // Update tax bar segments
+      updateElementStyle('.tax-segment.tax-free', 'width', t.taxFreePercentage + '%');
+      updateElementStyle('.tax-segment.tax-deferred', 'width', t.taxDeferredPercentage + '%');
+      updateElementStyle('.tax-segment.capital-gains', 'width', t.capitalGainsPercentage + '%');
+
+      // Update tax legend values
+      updateElementText('.legend-item.tax-free .legend-value', t.taxFreePercentage + '% - ' + formatCurrency(t.taxFreeAmount));
+      updateElementText('.legend-item.tax-deferred .legend-value', t.taxDeferredPercentage + '% - ' + formatCurrency(t.taxDeferredAmount));
+      updateElementText('.legend-item.capital-gains .legend-value', t.capitalGainsPercentage + '% - ' + formatCurrency(t.capitalGainsAmount));
+
+      // Update assumptions
+      updateElementText('.assumption-item:nth-child(4) .assumption-value', formatCurrency(projections.inputs.monthlyRetirementContribution));
+
+      // Update education if applicable
+      if (projections.education && hasChildren) {
+        var e = projections.education;
+        updateElementText('.education-projection .metric-card.primary .metric-value', formatCurrency(e.projectedBalance));
+        if (e.numChildren > 1) {
+          updateElementText('.education-projection .metric-card:not(.primary):not(.highlight) .metric-value', formatCurrency(e.perChildEstimate));
+        }
+        var eduImprovementEl = document.querySelector('.education-projection .metric-card.highlight .metric-value');
+        if (eduImprovementEl) {
+          eduImprovementEl.textContent = '+' + formatCurrency(e.improvement);
+        }
+      }
+    }
+
+    // Helper to update element text content
+    function updateElementText(selector, text) {
+      var el = document.querySelector(selector);
+      if (el) el.textContent = text;
+    }
+
+    // Helper to update element style
+    function updateElementStyle(selector, property, value) {
+      var el = document.querySelector(selector);
+      if (el) el.style[property] = value;
+    }
 
     // ========================================================================
     // INITIALIZATION

@@ -2,7 +2,7 @@
 
 > **Purpose:** Get any AI coder up to speed quickly for multi-session development
 > **Last Updated:** January 17, 2026
-> **Current Sprint:** Phase 5 COMPLETE - Ready for Phase 6 (Projections)
+> **Current Sprint:** Phase 6 COMPLETE - Ready for Phase 7 (Scenario Management)
 
 ---
 
@@ -217,10 +217,10 @@ google.script.run
 - [x] Sprint 5.6: Calculate Button & Recalc - ✅ **COMPLETE** (Jan 17, 2026)
 - [x] **Sprint 5.7: Coupled Slider Behavior** - ✅ **COMPLETE** (Jan 17, 2026) - Added post-spec
 
-### Phase 6: Projections
-- [ ] Sprint 6.1: Projections Calculation
-- [ ] Sprint 6.2: Projections Display
-- [ ] Sprint 6.3: Tax Breakdown Display
+### Phase 6: Projections ✅ COMPLETE
+- [x] Sprint 6.1: Projections Calculation - ✅ **COMPLETE** (Jan 17, 2026)
+- [x] Sprint 6.2: Projections Display - ✅ **COMPLETE** (Jan 17, 2026)
+- [x] Sprint 6.3: Tax Breakdown Display - ✅ **COMPLETE** (Jan 17, 2026)
 
 ### Phase 7: Scenario Management
 - [ ] Sprint 7.1: TOOL6_SCENARIOS Sheet (moved from Phase 1)
@@ -429,61 +429,42 @@ This startup doc serves as persistent memory across sessions. **Always update th
 When ending a session, update this section:
 
 ### Last Session Summary
-- **Date:** January 17, 2026
+- **Date:** January 17, 2026 (PM Session)
 - **What was done:**
-  - ✅ **COMPLETED: Phase 5 - Calculator UI (All Sprints + Bonus Sprint 5.7)**
-  - **Sprint 5.1: Current State Inputs**
-    - Total balances display (401k, IRA, HSA, Education)
-    - Current monthly contributions breakdown
-    - Recommended budget from Tool 4 displayed
-  - **Sprint 5.2: Investment Score Display**
-    - Interactive 1-7 score selector buttons
-    - Pulls default from Tool 4 data
-    - Shows return rate labels (4%-16%)
-  - **Sprint 5.3: Tax Strategy Toggle**
-    - Three-way radio: Traditional-Heavy / Balanced / Roth-Heavy
-    - Auto-recommendation based on income and age
-  - **Sprint 5.4: Employer Match Display**
-    - Shows calculated match as "free money"
-    - Conditional display (only when match > 0)
-  - **Sprint 5.5: Vehicle Sliders**
-    - Interactive range sliders for eligible vehicles
-    - Real-time amount/percentage updates
-    - Domain icons and Roth/Traditional color coding
-    - IRS limit indicators per vehicle
-  - **Sprint 5.6: Calculate Button & Recalc**
-    - Recalculate button with dirty state indicator
-    - GAS-compliant navigation (document.write pattern)
-    - `getTool6Page()` global wrapper for page refresh
-  - **Sprint 5.7: Coupled Slider Behavior (Post-Spec Addition)**
-    - When one slider moves, others adjust proportionally
-    - Uses ORIGINAL algorithm proportions for redistribution
-    - When vehicle at $0, it re-enters with original proportion when moved up
-    - Lock/unlock buttons for each vehicle
-    - Locked vehicles excluded from redistribution
-    - Editable monthly budget field with slider limit recalculation
-    - "Reset to Recommended" button restores original algorithm output
-  - **Bug Fixes Applied:**
-    - Fixed Infinity in slider max attribute
-    - Fixed CSS selector breaking with 401(k) parentheses (use safe ID)
-    - Fixed slider fill percentage calculation
-    - Replaced forbidden `location.reload()` with `document.write()` pattern
-    - Added proper escaping for vehicle names in JS handlers
-    - Fixed slider fill not tracking slider position (selector was matching input not row)
-    - Fixed budget change not updating slider limits (store IRS limits separately)
-    - Fixed slider fill alignment with thumb (account for 18px thumb width)
-    - Fixed budget remainder not being allocated (normalizeAllocations adds to Family Bank)
-    - Fixed Family Bank not showing in UI (always include in allocation result)
-    - Fixed Family Bank overflow logic (pull from FB when increasing, redistribute to others when decreasing)
-  - **Education Vehicle Choice Feature:**
-    - Added Q16 `a11_educationVehicle` dropdown (529, Coverdell, or Both)
-    - Dynamic Coverdell limit = $2,000 × numChildren
-    - Priority order: Coverdell fills first when "Both" selected
-- **Current state:** Phase 5 COMPLETE. Full Calculator UI with coupled sliders working.
-- **Next task:** Phase 6 (Projections) - Sprint 6.1: Projections Calculation
+  - ✅ **COMPLETED: Phase 6 - Projections (All Sprints)**
+  - **Sprint 6.1: Projections Calculation**
+    - Server-side: `calculatePersonalizedRate()`, `futureValue()`, `calculateProjections()`, `calculateEducationProjections()`, `calculateTaxBreakdown()`, `calculateCompleteProjections()`
+    - FV formula: `FV = PMT × ((1 + r)^n - 1) / r` with monthly compounding
+    - Safeguards: MAX_FV ($100M), MAX_YEARS (70), MAX_RATE (25%)
+    - Inflation adjustment at 2.5% default
+    - 4% withdrawal rule for monthly retirement income
+  - **Sprint 6.2: Projections Display**
+    - `buildProjectionsSection()` renders retirement projections, tax breakdown, and education projections
+    - Assumptions panel (investment score, return rate, years, monthly contributions)
+    - Retirement metrics: projected balance, inflation-adjusted value, monthly retirement income
+    - Improvement comparison: "If you did nothing" vs "With this plan"
+    - Tax bar visualization (Roth/Traditional/Taxable segments)
+    - Education section (conditional on hasChildren)
+    - Comprehensive CSS styling for all projection components
+  - **Sprint 6.3: Tax Breakdown Display**
+    - Visual tax bar with three segments
+    - Legend with percentages and dollar amounts
+    - Tax insight message based on Roth percentage
+  - **Client-Side Real-Time Updates:**
+    - `calculateClientProjections()` mirrors server logic for instant updates
+    - `updateProjectionDisplay()` updates all DOM elements when sliders change
+    - Investment score changes trigger projection recalculation
+    - Projections update automatically via `updateAllVehicleDisplays()`
+- **Current state:** Phase 6 COMPLETE. Full projections with real-time updates working.
+- **Next task:** Phase 7 (Scenario Management) - Sprint 7.1: TOOL6_SCENARIOS Sheet
 - **Blockers:** None
 
-### Previous Session (January 16, 2026)
+### Previous Session (January 17, 2026 AM)
+- ✅ Phase 5 Complete - Calculator UI with coupled sliders
+- Vehicle sliders, investment score, tax strategy, employer match display
+- Coupled slider behavior, lock/unlock, budget editing, reset to recommended
+
+### Earlier Session (January 16, 2026)
 - ✅ Phase 4 Complete - Vehicle Allocation Engine
 - `getEligibleVehicles()`, `getVehiclePriorityOrder()`, `coreAllocate()`, `validateAllocations()`
 - Waterfall allocation, shared limits, non-discretionary seeds
@@ -565,46 +546,56 @@ The `docs/Middleware/middleware-mapping.md` document is the **canonical referenc
 
 ### Notes for Next Session
 
-## Ready for Phase 6: Projections
+## Ready for Phase 7: Scenario Management
 
-Phase 5 is complete with all slider functionality working:
-- Coupled sliders with Family Bank as overflow
-- Lock/unlock, budget editing, reset to recommended
-- Education vehicle choice (529 vs Coverdell)
+Phase 6 is complete with full projections functionality:
+- Server-side projection calculations (retirement + education)
+- Client-side real-time updates when sliders change
+- Tax breakdown visualization (Roth/Traditional/Taxable bar)
+- Investment score changes trigger instant projection recalculation
 
-## Next Steps: Phase 6 - Projections
+## Next Steps: Phase 7 - Scenario Management
 
-**Sprint 6.1: Projections Calculation**
-- Create `calculateProjections(allocation, years, rate)` function
-- Future value formula: `FV = PV × (1 + r)^n + PMT × ((1 + r)^n - 1) / r`
-- Per-vehicle projections with their respective growth rates
-- Tax-free vs taxable breakdown (Roth vs Traditional vs Taxable)
-- Education domain projections (separate timeline)
+**Sprint 7.1: TOOL6_SCENARIOS Sheet**
+- Create sheet with 15 columns (A-O)
+- Schema: Timestamp, Client_ID, Scenario_Name, Profile_ID, Monthly_Budget, etc.
+- Education fields: numChildren, yearsToEducation, Education_Projection
 
-**Sprint 6.2: Projections Display**
-- Balance at retirement (per vehicle and total)
-- Tax-advantaged vs taxable pie chart or breakdown
-- Comparison: "With this plan vs Current trajectory"
+**Sprint 7.2: Save Scenario**
+- `Tool6.saveScenario(clientId, scenarioName)` function
+- Collect all current values including education inputs
+- Write to TOOL6_SCENARIOS sheet
+- Handle duplicate names
 
-**Sprint 6.3: Tax Breakdown Display**
-- Show projected tax-free withdrawals (Roth, HSA)
-- Show projected taxable withdrawals (Traditional, Taxable)
-- Estimated tax savings from Roth conversion strategy
+**Sprint 7.3: Load Scenario**
+- `Tool6.getScenarios(clientId)` to list saved scenarios
+- Dropdown selection
+- Restore all inputs and trigger recalculation
 
-## Key Reference: Projection Config
+**Sprint 7.4: Compare Scenarios**
+- Two scenario dropdowns
+- Side-by-side comparison table
+- Key metrics: projected balance, tax-free %, monthly income
 
-From `Tool6Constants.js`:
-```javascript
-PROJECTION_CONFIG: {
-  DEFAULT_RETURN_RATE: 0.10,     // 10% default
-  SCORE_TO_RATE: {               // Investment score mapping
-    1: 0.04, 2: 0.06, 3: 0.08, 4: 0.10,
-    5: 0.12, 6: 0.14, 7: 0.16
-  },
-  FAMILY_BANK_RATE: 0.05,        // 5% for overflow/taxable
-  EDUCATION_RATE: 0.07           // 7% for education vehicles
-}
-```
+## Projection Functions Reference
+
+| Function | Location | Purpose |
+|----------|----------|---------|
+| `calculatePersonalizedRate(score)` | Tool6.js:1412 | Score 1-7 → 8%-20% return |
+| `futureValue(pmt, rate, years)` | Tool6.js:1428 | FV with safeguards |
+| `calculateProjections(inputs)` | Tool6.js:1477 | Retirement projections |
+| `calculateEducationProjections(inputs)` | Tool6.js:1550 | Education projections |
+| `calculateTaxBreakdown(alloc, proj)` | Tool6.js:1607 | Tax-free vs taxable split |
+| `calculateCompleteProjections(...)` | Tool6.js:1663 | Combines all projections |
+
+## Client-Side Projection Functions
+
+| Function | Purpose |
+|----------|---------|
+| `calculateClientProjections()` | Mirrors server logic for instant UI updates |
+| `updateProjectionDisplay()` | Updates all projection DOM elements |
+| `calculatePersonalizedRate(score)` | Client-side return rate calculation |
+| `futureValue(pmt, rate, years)` | Client-side FV calculation |
 
 ## Coupled Slider Reference (for maintenance)
 
