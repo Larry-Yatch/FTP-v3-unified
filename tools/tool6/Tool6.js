@@ -3862,6 +3862,200 @@ const Tool6 = {
       font-size: 1rem;
     }
 
+    /* ============================================================================
+       Sprint 7.1: Scenario Management Styles
+       ============================================================================ */
+
+    .scenario-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+    }
+
+    .scenario-save-section,
+    .scenario-list-section {
+      padding: 20px;
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .scenario-section-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--color-text-primary);
+      margin: 0 0 8px 0;
+    }
+
+    .scenario-description {
+      font-size: 0.9rem;
+      color: var(--color-text-muted);
+      margin: 0 0 16px 0;
+    }
+
+    .scenario-save-form {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .scenario-save-form .form-input {
+      flex: 1;
+      min-width: 200px;
+      padding: 12px 16px;
+      font-size: 1rem;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      color: var(--color-text-primary);
+    }
+
+    .scenario-save-form .form-input:focus {
+      outline: none;
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+    }
+
+    .scenario-save-form .form-input::placeholder {
+      color: var(--color-text-muted);
+    }
+
+    .scenario-save-form .btn-primary {
+      padding: 12px 24px;
+      font-size: 1rem;
+      font-weight: 600;
+      background: var(--gold, #ffc107);
+      color: #1a1a2e;
+      border: none;
+      border-radius: 50px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+
+    .scenario-save-form .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
+    }
+
+    .scenario-save-form .btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .scenario-feedback {
+      margin-top: 12px;
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+    }
+
+    .scenario-feedback.success {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: #34d399;
+    }
+
+    .scenario-feedback.error {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #f87171;
+    }
+
+    .saved-scenarios-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .scenario-card {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      transition: all 0.2s ease;
+    }
+
+    .scenario-card:hover {
+      background: rgba(255, 255, 255, 0.06);
+      border-color: rgba(79, 70, 229, 0.3);
+    }
+
+    .scenario-card.is-latest {
+      border-color: rgba(16, 185, 129, 0.4);
+      background: rgba(16, 185, 129, 0.05);
+    }
+
+    .scenario-info {
+      flex: 1;
+    }
+
+    .scenario-name {
+      font-weight: 600;
+      color: var(--color-text-primary);
+      margin-bottom: 4px;
+    }
+
+    .scenario-meta {
+      font-size: 0.8rem;
+      color: var(--color-text-muted);
+    }
+
+    .scenario-meta span {
+      margin-right: 12px;
+    }
+
+    .scenario-actions-btns {
+      display: flex;
+      gap: 8px;
+    }
+
+    .scenario-btn {
+      padding: 8px 12px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 6px;
+      background: transparent;
+      color: var(--color-text-secondary);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .scenario-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.25);
+    }
+
+    .scenario-btn.load-btn:hover {
+      background: rgba(79, 70, 229, 0.2);
+      border-color: rgba(79, 70, 229, 0.4);
+      color: #a5b4fc;
+    }
+
+    .scenario-btn.delete-btn:hover {
+      background: rgba(239, 68, 68, 0.2);
+      border-color: rgba(239, 68, 68, 0.4);
+      color: #f87171;
+    }
+
+    .empty-scenarios {
+      text-align: center;
+      padding: 32px 16px;
+      color: var(--color-text-muted);
+    }
+
+    .empty-scenarios-icon {
+      font-size: 2.5rem;
+      margin-bottom: 12px;
+      opacity: 0.5;
+    }
+
     /* Responsive adjustments */
     @media (max-width: 768px) {
       .vehicle-slider-row {
@@ -4010,15 +4204,40 @@ const Tool6 = {
     <!-- Section 4: Saved Scenarios -->
     <div class="section-card">
       <div class="section-header" onclick="toggleSection('scenarios')">
-        <div class="section-title">4. Saved Scenarios</div>
-        <span class="section-toggle collapsed" id="scenariosToggle">&#9660;</span>
+        <div class="section-title">4. Scenario Management</div>
+        <span class="section-toggle ${hasAllocation ? '' : 'collapsed'}" id="scenariosToggle">&#9660;</span>
       </div>
 
-      <div class="section-body collapsed" id="scenariosBody">
-        <div class="placeholder-message">
-          <h3>Coming Soon: Sprint 7</h3>
-          <p>Save, load, and compare multiple allocation scenarios.</p>
+      <div class="section-body ${hasAllocation ? '' : 'collapsed'}" id="scenariosBody">
+        ${hasAllocation ? `
+        <!-- Save Scenario Section -->
+        <div class="scenario-actions">
+          <div class="scenario-save-section">
+            <h4 class="scenario-section-title">Save Current Allocation</h4>
+            <p class="scenario-description">Save your current vehicle allocation to compare with other scenarios later.</p>
+            <div class="scenario-save-form">
+              <input type="text" id="scenarioName" class="form-input" placeholder="Enter scenario name (e.g., 'Aggressive Roth')" maxlength="50">
+              <button type="button" class="btn-primary" onclick="saveScenario()">
+                💾 Save Scenario
+              </button>
+            </div>
+            <div id="saveScenarioFeedback" class="scenario-feedback" style="display: none;"></div>
+          </div>
+
+          <!-- Saved Scenarios List -->
+          <div class="scenario-list-section">
+            <h4 class="scenario-section-title">Your Saved Scenarios</h4>
+            <div id="savedScenariosList" class="saved-scenarios-list">
+              <p class="muted">Loading saved scenarios...</p>
+            </div>
+          </div>
         </div>
+        ` : `
+        <div class="placeholder-message">
+          <h3>Complete Your Allocation First</h3>
+          <p>Fill out the questionnaire and see your recommended allocation before saving scenarios.</p>
+        </div>
+        `}
       </div>
     </div>
 
@@ -5524,6 +5743,301 @@ const Tool6 = {
     if (document.querySelectorAll('.vehicle-slider').length > 0) {
       initAllocationState();
     }
+
+    // ========================================================================
+    // SPRINT 7.1: SCENARIO MANAGEMENT FUNCTIONS
+    // ========================================================================
+
+    var MAX_SCENARIOS = 10;
+
+    /**
+     * Save current allocation as a named scenario
+     * Matches Tool 4 pattern for consistency
+     */
+    function saveScenario() {
+      var nameInput = document.getElementById('scenarioName');
+      var scenarioName = nameInput ? nameInput.value.trim() : '';
+
+      if (!scenarioName) {
+        showScenarioFeedback('Please enter a scenario name', 'error');
+        if (nameInput) nameInput.focus();
+        return;
+      }
+
+      // Validate we have allocation data
+      if (!allocationState || !allocationState.vehicles || Object.keys(allocationState.vehicles).length === 0) {
+        showScenarioFeedback('No allocation data to save. Please complete the questionnaire first.', 'error');
+        return;
+      }
+
+      // Check if at limit and warn user (like Tool 4)
+      if (window.savedScenarios && window.savedScenarios.length >= MAX_SCENARIOS) {
+        var oldestScenario = window.savedScenarios[window.savedScenarios.length - 1];
+        var oldestName = oldestScenario ? oldestScenario.name : 'oldest scenario';
+
+        var confirmSave = confirm(
+          'You have reached the maximum of ' + MAX_SCENARIOS + ' saved scenarios.\\n\\n' +
+          'Saving a new scenario will delete your oldest one:\\n"' + oldestName + '"\\n\\n' +
+          'Do you want to continue?'
+        );
+
+        if (!confirmSave) {
+          return;
+        }
+      }
+
+      // Build scenario object matching the schema
+      var scenario = {
+        name: scenarioName,
+        profileId: classifiedProfile ? classifiedProfile.id : 7,
+        monthlyBudget: allocationState.budget || 0,
+        domainWeights: allocationState.domainWeights || { Retirement: 1, Education: 0, Health: 0 },
+        allocations: allocationState.vehicles || {},
+        investmentScore: currentInvestmentScore || 4,
+        taxStrategy: getCurrentTaxStrategy(),
+        projectedBalance: getProjectedRetirementBalance(),
+        currentBalances: {
+          '401k': parseFloat(formData.a12_current401kBalance) || 0,
+          ira: parseFloat(formData.a13_currentIRABalance) || 0,
+          hsa: parseFloat(formData.a14_currentHSABalance) || 0,
+          education: parseFloat(formData.a15_currentEducationBalance) || 0
+        },
+        currentContributions: {
+          '401k': parseFloat(formData.a16_monthly401kContribution) || 0,
+          ira: parseFloat(formData.a17_monthlyIRAContribution) || 0,
+          hsa: parseFloat(formData.a18_monthlyHSAContribution) || 0,
+          education: parseFloat(formData.a19_monthlyEducationContribution) || 0
+        },
+        educationInputs: {
+          numChildren: numChildren || 0,
+          yearsToEducation: yearsToEducation || 99
+        },
+        educationProjection: getProjectedEducationBalance()
+      };
+
+      // Show loading overlay (like Tool 4)
+      var loadingOverlay = document.getElementById('loadingOverlay');
+      var loadingText = document.getElementById('loadingText');
+      var loadingSubtext = document.getElementById('loadingSubtext');
+
+      if (loadingOverlay) {
+        if (loadingText) loadingText.textContent = 'Saving Scenario...';
+        if (loadingSubtext) loadingSubtext.textContent = 'Storing your vehicle allocation';
+        loadingOverlay.classList.add('show');
+      }
+
+      // Also disable button
+      var saveBtn = document.querySelector('.scenario-save-form .btn-primary');
+      if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Saving...';
+      }
+
+      // Call server to save
+      google.script.run
+        .withSuccessHandler(function(result) {
+          if (loadingOverlay) loadingOverlay.classList.remove('show');
+          if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.textContent = '💾 Save Scenario';
+          }
+
+          if (result.success) {
+            var message = 'Scenario "' + scenarioName + '" saved successfully!';
+            if (result.deletedScenario) {
+              message += ' (Oldest scenario "' + result.deletedScenario + '" was removed to stay within limit)';
+            }
+            if (result.isFirstScenario) {
+              message += ' Tool 6 marked as complete.';
+            }
+            showScenarioFeedback(message, 'success');
+
+            // Clear input
+            if (nameInput) nameInput.value = '';
+
+            // Refresh scenarios list
+            loadSavedScenarios();
+          } else {
+            showScenarioFeedback('Error: ' + (result.error || 'Failed to save scenario'), 'error');
+          }
+        })
+        .withFailureHandler(function(error) {
+          if (loadingOverlay) loadingOverlay.classList.remove('show');
+          if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.textContent = '💾 Save Scenario';
+          }
+          console.error('Save scenario error:', error);
+          showScenarioFeedback('Error: ' + error.message, 'error');
+        })
+        .saveTool6Scenario(clientId, scenario);
+    }
+
+    /**
+     * Get current tax strategy from radio buttons
+     */
+    function getCurrentTaxStrategy() {
+      var selected = document.querySelector('input[name="taxStrategy"]:checked');
+      return selected ? selected.value : 'Both';
+    }
+
+    /**
+     * Get projected retirement balance from display or calculate
+     */
+    function getProjectedRetirementBalance() {
+      var el = document.querySelector('.projection-card.retirement-projection .metric-card.primary .metric-value');
+      if (el) {
+        var text = el.textContent.replace(/[^0-9.-]/g, '');
+        return parseFloat(text) || 0;
+      }
+      return 0;
+    }
+
+    /**
+     * Get projected education balance from display
+     */
+    function getProjectedEducationBalance() {
+      var el = document.querySelector('.projection-card.education-projection .metric-card.primary .metric-value');
+      if (el) {
+        var text = el.textContent.replace(/[^0-9.-]/g, '');
+        return parseFloat(text) || 0;
+      }
+      return 0;
+    }
+
+    /**
+     * Show feedback message for scenario operations
+     */
+    function showScenarioFeedback(message, type) {
+      var feedback = document.getElementById('saveScenarioFeedback');
+      if (feedback) {
+        feedback.textContent = message;
+        feedback.className = 'scenario-feedback ' + type;
+        feedback.style.display = 'block';
+
+        // Auto-hide success messages after 5 seconds
+        if (type === 'success') {
+          setTimeout(function() {
+            feedback.style.display = 'none';
+          }, 5000);
+        }
+      }
+    }
+
+    /**
+     * Load and display saved scenarios for this client
+     */
+    function loadSavedScenarios() {
+      var listContainer = document.getElementById('savedScenariosList');
+      if (!listContainer) return;
+
+      listContainer.innerHTML = '<p class="muted">Loading saved scenarios...</p>';
+
+      google.script.run
+        .withSuccessHandler(function(scenarios) {
+          renderScenariosList(scenarios);
+        })
+        .withFailureHandler(function(error) {
+          listContainer.innerHTML = '<p class="muted">Error loading scenarios: ' + error.message + '</p>';
+        })
+        .getTool6Scenarios(clientId);
+    }
+
+    /**
+     * Render the list of saved scenarios
+     */
+    function renderScenariosList(scenarios) {
+      var listContainer = document.getElementById('savedScenariosList');
+      if (!listContainer) return;
+
+      if (!scenarios || scenarios.length === 0) {
+        listContainer.innerHTML = '<div class="empty-scenarios">' +
+          '<div class="empty-scenarios-icon">📁</div>' +
+          '<p>No saved scenarios yet.</p>' +
+          '<p class="muted">Save your first scenario above!</p>' +
+          '</div>';
+        return;
+      }
+
+      var html = '';
+      scenarios.forEach(function(s, index) {
+        var dateStr = s.timestamp ? new Date(s.timestamp).toLocaleDateString() : 'Unknown';
+        var isLatest = s.isLatest ? ' is-latest' : '';
+        var latestBadge = s.isLatest ? '<span style="color: #34d399; margin-left: 8px;">✓ Latest</span>' : '';
+
+        html += '<div class="scenario-card' + isLatest + '">' +
+          '<div class="scenario-info">' +
+          '<div class="scenario-name">' + escapeHtml(s.name) + latestBadge + '</div>' +
+          '<div class="scenario-meta">' +
+          '<span>📅 ' + dateStr + '</span>' +
+          '<span>💰 $' + (s.monthlyBudget || 0).toLocaleString() + '/mo</span>' +
+          '<span>📊 Profile ' + (s.profileId || '?') + '</span>' +
+          '</div>' +
+          '</div>' +
+          '<div class="scenario-actions-btns">' +
+          '<button class="scenario-btn load-btn" onclick="loadScenario(' + index + ')">Load</button>' +
+          '<button class="scenario-btn delete-btn" onclick="deleteScenario(' + index + ', \\'' + escapeHtml(s.name).replace(/'/g, "\\'") + '\\')">Delete</button>' +
+          '</div>' +
+          '</div>';
+      });
+
+      listContainer.innerHTML = html;
+
+      // Store scenarios for loading
+      window.savedScenarios = scenarios;
+    }
+
+    /**
+     * Escape HTML to prevent XSS
+     */
+    function escapeHtml(text) {
+      var div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    /**
+     * Load a scenario (Sprint 7.2 - basic implementation)
+     */
+    function loadScenario(index) {
+      if (!window.savedScenarios || !window.savedScenarios[index]) {
+        alert('Scenario not found');
+        return;
+      }
+
+      var scenario = window.savedScenarios[index];
+      alert('Loading scenario: ' + scenario.name + '\\n\\nFull load functionality coming in Sprint 7.2');
+      // TODO: Sprint 7.2 - Implement full scenario loading
+    }
+
+    /**
+     * Delete a scenario
+     */
+    function deleteScenario(index, name) {
+      if (!confirm('Delete scenario "' + name + '"?\\n\\nThis cannot be undone.')) {
+        return;
+      }
+
+      google.script.run
+        .withSuccessHandler(function(result) {
+          if (result.success) {
+            showScenarioFeedback('Scenario "' + name + '" deleted.', 'success');
+            loadSavedScenarios();
+          } else {
+            showScenarioFeedback('Error: ' + (result.error || 'Failed to delete'), 'error');
+          }
+        })
+        .withFailureHandler(function(error) {
+          showScenarioFeedback('Error: ' + error.message, 'error');
+        })
+        .deleteTool6Scenario(clientId, name);
+    }
+
+    // Load saved scenarios on page load (if allocation exists)
+    if (classifiedProfile) {
+      setTimeout(loadSavedScenarios, 500);
+    }
+
   </script>
 </body>
 </html>
@@ -5952,18 +6466,353 @@ const Tool6 = {
 
   /**
    * Save scenario to sheet
+   * Sprint 7.1: Persists current calculator state to TOOL6_SCENARIOS sheet
+   *
+   * Schema (15 columns A-O per spec):
+   * A: Timestamp, B: Client_ID, C: Scenario_Name, D: Profile_ID, E: Monthly_Budget
+   * F: Domain_Weights (JSON), G: Allocations (JSON), H: Investment_Score, I: Tax_Strategy
+   * J: Projected_Balance, K: Current_Balances (JSON), L: Current_Contributions (JSON)
+   * M: Education_Inputs (JSON), N: Education_Projection, O: Is_Latest
    */
   saveScenario(clientId, scenario) {
-    // TODO: Implement in Sprint 7
-    return { success: false, error: 'Not yet implemented' };
+    try {
+      Logger.log(`Tool6.saveScenario called for client ${clientId}`);
+      Logger.log(`Scenario data: ${JSON.stringify(scenario)}`);
+
+      // Validate scenario data
+      if (!scenario || !scenario.name) {
+        throw new Error('Scenario name is required');
+      }
+      if (!scenario.allocations || Object.keys(scenario.allocations).length === 0) {
+        throw new Error('Vehicle allocations are required');
+      }
+
+      // Get or create TOOL6_SCENARIOS sheet
+      let scenariosSheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.TOOL6_SCENARIOS);
+
+      if (!scenariosSheet) {
+        Logger.log('TOOL6_SCENARIOS sheet does not exist, creating...');
+        const ss = SpreadsheetCache.getSpreadsheet();
+        scenariosSheet = ss.insertSheet(CONFIG.SHEETS.TOOL6_SCENARIOS);
+
+        // Add headers per spec (15 columns A-O)
+        const headers = [
+          'Timestamp',           // A
+          'Client_ID',           // B
+          'Scenario_Name',       // C
+          'Profile_ID',          // D
+          'Monthly_Budget',      // E
+          'Domain_Weights',      // F (JSON)
+          'Allocations',         // G (JSON)
+          'Investment_Score',    // H
+          'Tax_Strategy',        // I
+          'Projected_Balance',   // J
+          'Current_Balances',    // K (JSON)
+          'Current_Contributions', // L (JSON)
+          'Education_Inputs',    // M (JSON)
+          'Education_Projection', // N
+          'Is_Latest'            // O
+        ];
+        scenariosSheet.appendRow(headers);
+        scenariosSheet.getRange(1, 1, 1, headers.length).setFontWeight('bold');
+        SpreadsheetApp.flush();
+        Logger.log('TOOL6_SCENARIOS sheet created with 15-column header');
+      }
+
+      // Mark all previous scenarios for this client as not latest
+      const dataRange = scenariosSheet.getDataRange();
+      const allData = dataRange.getValues();
+      const clientIdCol = 1; // Column B (0-indexed)
+      const isLatestCol = 14; // Column O (0-indexed)
+
+      for (let i = 1; i < allData.length; i++) {
+        if (allData[i][clientIdCol] === clientId && allData[i][isLatestCol] === true) {
+          scenariosSheet.getRange(i + 1, isLatestCol + 1).setValue(false);
+        }
+      }
+
+      // Prepare JSON fields
+      const domainWeightsJson = JSON.stringify(scenario.domainWeights || {
+        Retirement: 1,
+        Education: 0,
+        Health: 0
+      });
+
+      const allocationsJson = JSON.stringify(scenario.allocations || {});
+
+      const currentBalancesJson = JSON.stringify(scenario.currentBalances || {
+        '401k': 0,
+        ira: 0,
+        hsa: 0,
+        education: 0
+      });
+
+      const currentContributionsJson = JSON.stringify(scenario.currentContributions || {
+        '401k': 0,
+        ira: 0,
+        hsa: 0,
+        education: 0
+      });
+
+      const educationInputsJson = JSON.stringify(scenario.educationInputs || {
+        numChildren: 0,
+        yearsToEducation: 99
+      });
+
+      // Build row data (15 columns)
+      const row = [
+        new Date(),                                      // A: Timestamp
+        clientId,                                        // B: Client_ID
+        scenario.name,                                   // C: Scenario_Name
+        scenario.profileId || 7,                         // D: Profile_ID (default to Foundation Builder)
+        scenario.monthlyBudget || 0,                     // E: Monthly_Budget
+        domainWeightsJson,                               // F: Domain_Weights (JSON)
+        allocationsJson,                                 // G: Allocations (JSON)
+        scenario.investmentScore || 4,                   // H: Investment_Score
+        scenario.taxStrategy || 'Both',                  // I: Tax_Strategy
+        scenario.projectedBalance || 0,                  // J: Projected_Balance
+        currentBalancesJson,                             // K: Current_Balances (JSON)
+        currentContributionsJson,                        // L: Current_Contributions (JSON)
+        educationInputsJson,                             // M: Education_Inputs (JSON)
+        scenario.educationProjection || 0,               // N: Education_Projection
+        true                                             // O: Is_Latest
+      ];
+
+      // Detailed logging like Tool 4
+      Logger.log(`Row data to append (${row.length} columns):`);
+      Logger.log(`  [0] Timestamp: ${row[0]}`);
+      Logger.log(`  [1] Client_ID: ${row[1]}`);
+      Logger.log(`  [2] Scenario_Name: ${row[2]}`);
+      Logger.log(`  [3] Profile_ID: ${row[3]}`);
+      Logger.log(`  [4] Monthly_Budget: ${row[4]}`);
+      Logger.log(`  [7] Investment_Score: ${row[7]}`);
+      Logger.log(`  [8] Tax_Strategy: ${row[8]}`);
+      Logger.log(`  [9] Projected_Balance: ${row[9]}`);
+
+      // Verify sheet before append
+      Logger.log(`Sheet name: ${scenariosSheet.getName()}, Sheet ID: ${scenariosSheet.getSheetId()}`);
+      Logger.log(`Current row count before append: ${scenariosSheet.getLastRow()}`);
+
+      scenariosSheet.appendRow(row);
+      SpreadsheetApp.flush();
+
+      // Verify the append worked
+      const newRowCount = scenariosSheet.getLastRow();
+      Logger.log(`Row count after append: ${newRowCount}`);
+
+      // Read back the last row to verify (like Tool 4)
+      if (newRowCount > 1) {
+        const lastRow = scenariosSheet.getRange(newRowCount, 1, 1, 5).getValues()[0];
+        Logger.log(`Verification - Last row data: ${JSON.stringify(lastRow)}`);
+      }
+
+      // Count scenarios for this client and enforce limit (10 max like Tool 4)
+      const MAX_SCENARIOS_PER_CLIENT = 10;
+      const clientScenarioRows = [];
+
+      const refreshedData = scenariosSheet.getDataRange().getValues();
+      for (let i = 1; i < refreshedData.length; i++) {
+        if (refreshedData[i][clientIdCol] === clientId) {
+          clientScenarioRows.push({
+            rowIndex: i + 1,
+            timestamp: refreshedData[i][0],
+            name: refreshedData[i][2]
+          });
+        }
+      }
+
+      Logger.log(`Client ${clientId} now has ${clientScenarioRows.length} scenario(s)`);
+
+      // If over limit, delete oldest (FIFO)
+      let deletedScenario = null;
+      if (clientScenarioRows.length > MAX_SCENARIOS_PER_CLIENT) {
+        clientScenarioRows.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+        const oldest = clientScenarioRows[0];
+        Logger.log(`Deleting oldest scenario "${oldest.name}" to enforce ${MAX_SCENARIOS_PER_CLIENT} limit`);
+        scenariosSheet.deleteRow(oldest.rowIndex);
+        SpreadsheetApp.flush();
+        deletedScenario = oldest.name;
+      }
+
+      const isFirstScenario = clientScenarioRows.length === 1;
+
+      // If first scenario, mark Tool 6 as completed in Responses tab
+      if (isFirstScenario) {
+        try {
+          const dataPackage = {
+            scenarioName: scenario.name,
+            profileId: scenario.profileId,
+            monthlyBudget: scenario.monthlyBudget,
+            allocations: scenario.allocations,
+            projectedBalance: scenario.projectedBalance,
+            investmentScore: scenario.investmentScore,
+            taxStrategy: scenario.taxStrategy
+          };
+          DataService.saveToolResponse(clientId, 'tool6', dataPackage, 'COMPLETED');
+          Logger.log(`Tool6 marked as completed for client ${clientId}`);
+        } catch (responseError) {
+          Logger.log(`Warning: Could not update Responses tab: ${responseError}`);
+        }
+      }
+
+      Logger.log(`Scenario saved successfully: ${scenario.name}`);
+      return {
+        success: true,
+        message: 'Scenario saved successfully',
+        totalScenarios: clientScenarioRows.length - (deletedScenario ? 1 : 0),
+        isFirstScenario: isFirstScenario,
+        deletedScenario: deletedScenario
+      };
+
+    } catch (error) {
+      Logger.log(`Error saving Tool 6 scenario: ${error}`);
+      Logger.log(`Stack: ${error.stack}`);
+      return { success: false, error: error.message };
+    }
   },
 
   /**
    * Get all scenarios for a client
+   * Sprint 7.1: Returns array of scenario objects for display in UI
    */
   getScenarios(clientId) {
-    // TODO: Implement in Sprint 7
-    return [];
+    try {
+      Logger.log(`Tool6.getScenarios called for client ${clientId}`);
+
+      const scenariosSheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.TOOL6_SCENARIOS);
+      if (!scenariosSheet) {
+        Logger.log('TOOL6_SCENARIOS sheet does not exist');
+        return [];
+      }
+
+      const dataRange = scenariosSheet.getDataRange();
+      const allData = dataRange.getValues();
+
+      if (allData.length <= 1) {
+        // Only header row
+        return [];
+      }
+
+      // Column indices (0-indexed)
+      const COL = {
+        TIMESTAMP: 0,      // A
+        CLIENT_ID: 1,      // B
+        SCENARIO_NAME: 2,  // C
+        PROFILE_ID: 3,     // D
+        MONTHLY_BUDGET: 4, // E
+        DOMAIN_WEIGHTS: 5, // F (JSON)
+        ALLOCATIONS: 6,    // G (JSON)
+        INVESTMENT_SCORE: 7, // H
+        TAX_STRATEGY: 8,   // I
+        PROJECTED_BALANCE: 9, // J
+        CURRENT_BALANCES: 10, // K (JSON)
+        CURRENT_CONTRIBUTIONS: 11, // L (JSON)
+        EDUCATION_INPUTS: 12, // M (JSON)
+        EDUCATION_PROJECTION: 13, // N
+        IS_LATEST: 14      // O
+      };
+
+      const scenarios = [];
+
+      for (let i = 1; i < allData.length; i++) {
+        const row = allData[i];
+        if (row[COL.CLIENT_ID] === clientId) {
+          // Convert Date to ISO string for serialization to client (like Tool 4)
+          let timestampVal = row[COL.TIMESTAMP];
+          let timestampStr = '';
+          if (timestampVal instanceof Date) {
+            timestampStr = timestampVal.toISOString();
+          } else if (timestampVal) {
+            timestampStr = String(timestampVal);
+          }
+
+          scenarios.push({
+            timestamp: timestampStr,
+            name: String(row[COL.SCENARIO_NAME] || ''),
+            profileId: row[COL.PROFILE_ID],
+            monthlyBudget: row[COL.MONTHLY_BUDGET],
+            domainWeights: this.safeJsonParse(row[COL.DOMAIN_WEIGHTS], {}),
+            allocations: this.safeJsonParse(row[COL.ALLOCATIONS], {}),
+            investmentScore: row[COL.INVESTMENT_SCORE],
+            taxStrategy: String(row[COL.TAX_STRATEGY] || 'Both'),
+            projectedBalance: row[COL.PROJECTED_BALANCE],
+            currentBalances: this.safeJsonParse(row[COL.CURRENT_BALANCES], {}),
+            currentContributions: this.safeJsonParse(row[COL.CURRENT_CONTRIBUTIONS], {}),
+            educationInputs: this.safeJsonParse(row[COL.EDUCATION_INPUTS], {}),
+            educationProjection: row[COL.EDUCATION_PROJECTION],
+            isLatest: row[COL.IS_LATEST] === true
+          });
+        }
+      }
+
+      // Sort by timestamp descending (newest first)
+      scenarios.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+      Logger.log(`Found ${scenarios.length} scenarios for client ${clientId}`);
+      return scenarios;
+
+    } catch (error) {
+      Logger.log(`Error getting Tool 6 scenarios: ${error}`);
+      Logger.log(`Stack: ${error.stack}`);
+      return [];
+    }
+  },
+
+  /**
+   * Safely parse JSON string, return default on error
+   */
+  safeJsonParse(str, defaultVal) {
+    if (!str || typeof str !== 'string') return defaultVal;
+    try {
+      return JSON.parse(str);
+    } catch (e) {
+      return defaultVal;
+    }
+  },
+
+  /**
+   * Delete a scenario by name
+   * Sprint 7.1: Removes scenario from TOOL6_SCENARIOS sheet
+   */
+  deleteScenario(clientId, scenarioName) {
+    try {
+      Logger.log(`Tool6.deleteScenario called for client ${clientId}, scenario "${scenarioName}"`);
+
+      const scenariosSheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.TOOL6_SCENARIOS);
+      if (!scenariosSheet) {
+        return { success: false, error: 'Scenarios sheet not found' };
+      }
+
+      const dataRange = scenariosSheet.getDataRange();
+      const allData = dataRange.getValues();
+
+      // Column indices
+      const CLIENT_ID_COL = 1;  // B
+      const NAME_COL = 2;       // C
+
+      // Find the row to delete (search from bottom to handle index shifting)
+      let rowToDelete = -1;
+      for (let i = allData.length - 1; i >= 1; i--) {
+        if (allData[i][CLIENT_ID_COL] === clientId && allData[i][NAME_COL] === scenarioName) {
+          rowToDelete = i + 1; // Convert to 1-indexed for sheet operations
+          break;
+        }
+      }
+
+      if (rowToDelete === -1) {
+        return { success: false, error: 'Scenario not found' };
+      }
+
+      scenariosSheet.deleteRow(rowToDelete);
+      SpreadsheetApp.flush();
+
+      Logger.log(`Deleted scenario "${scenarioName}" at row ${rowToDelete}`);
+      return { success: true, message: 'Scenario deleted' };
+
+    } catch (error) {
+      Logger.log(`Error deleting Tool 6 scenario: ${error}`);
+      return { success: false, error: error.message };
+    }
   },
 
   /**
@@ -6007,6 +6856,30 @@ function getTool6Page(clientId) {
       error: error.toString()
     };
   }
+}
+
+/**
+ * Global wrapper for saving Tool 6 scenario
+ * Sprint 7.1: Called from client-side JavaScript via google.script.run
+ */
+function saveTool6Scenario(clientId, scenario) {
+  return Tool6.saveScenario(clientId, scenario);
+}
+
+/**
+ * Global wrapper for getting Tool 6 scenarios
+ * Sprint 7.1: Called from client-side JavaScript via google.script.run
+ */
+function getTool6Scenarios(clientId) {
+  return Tool6.getScenarios(clientId);
+}
+
+/**
+ * Global wrapper for deleting Tool 6 scenario
+ * Sprint 7.1: Called from client-side JavaScript via google.script.run
+ */
+function deleteTool6Scenario(clientId, scenarioName) {
+  return Tool6.deleteScenario(clientId, scenarioName);
 }
 
 /**
