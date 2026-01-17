@@ -1,6 +1,6 @@
 # Tool 6: Retirement Blueprint Calculator - Consolidated Specification
 
-> **Version:** 1.8
+> **Version:** 1.9
 > **Date:** January 17, 2026
 > **Status:** Approved for Implementation
 > **Consolidates:** Tool-6-Design-Spec.md + Tool6-Technical-Specification.md + Legacy Tool 6
@@ -9,6 +9,7 @@
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 1.9 | Jan 17, 2026 | **Education Vehicle Choice:** Added Q11 `a11_educationVehicle` allowing user to choose between 529 Plan, Coverdell ESA, or Both. Dynamic Coverdell limit = $2,000 × numChildren per year. Priority order: Coverdell fills first when "Both" selected. Help text explains trade-offs (529: no income limit, college focus; Coverdell: $2k/child, K-12 flexible, income phase-out). |
 | 1.8 | Jan 17, 2026 | **Phase 5 Complete - Calculator UI with Coupled Sliders:** Added Sprint 5.7 for coupled slider behavior. Sliders use ORIGINAL algorithm proportions for redistribution (preserves algorithm intelligence). Lock/unlock buttons exclude vehicles from redistribution. Editable budget field recalculates effective limits (min of IRS limit and budget). Reset to Recommended button restores original output. IRS limits stored separately in data attributes for dynamic limit recalculation. |
 | 1.7 | Jan 17, 2026 | **Ambition Quotient Enhancement:** Replaced simple 1-2-3 priority ranking with rich psychological assessment (9 questions: importance/anxiety/motivation on 1-7 scales per domain + tie-breaker). Added Phase C to questionnaire flow. Made tax preference question (`a2b_taxPreference`) required for ALL profiles in Phase B. Added `computeDomainsAndWeights()` function aligned with legacy algorithm. Adaptive design: only asks about active domains (Retirement always, Education if hasChildren, Health if hsaEligible). |
 | 1.6 | Jan 11, 2026 | **Education Domain Enhancement:** Added Q14 (numChildren), Q20 (currentEducationBalance), Q24 (monthlyEducationContribution); uses "Combined CESA" approach (total across all children, not per-child); renumbered questions to **24 total**; fixed ROBS qualifiers to only show for "Interested"; added `calculateEducationProjections()` algorithm; expanded TOOL6_SCENARIOS schema (15 columns A-O); updated Sprints 5.1, 6.1, 6.2, 7.1 with education domain requirements |
@@ -235,9 +236,17 @@ function getMonthlyBudget(toolStatus) {
 | 13 | Do you have children or plan to save for education? | Y/N | Education domain activation |
 | 14 | How many children/dependents are you saving for? | Number (1-10) | Education planning (if Q13=Y) |
 | 15 | Years until first child needs education funds | Number (0-25) | Education urgency (if Q13=Y) |
-| 16 | Rank your savings priorities (drag to reorder) | Ranking | Relative importance |
+| 16 | Which education savings vehicle do you prefer? | Select | Vehicle selection (if Q13=Y) |
+| 17 | Rank your savings priorities (drag to reorder) | Ranking | Relative importance |
 
-Options for Q16:
+Options for Q16 (Education Vehicle - v1.9):
+- **529 Plan** - No income limits, higher contribution room, college expenses only
+- **Coverdell ESA** - K-12 + college flexible, $2,000/child/year limit, income phase-out at $110k+
+- **Both** - Use Coverdell first (fills to limit), overflow to 529
+
+> **v1.9 Note:** Coverdell ESA limit is dynamic: `$2,000 × numChildren` per year. When "Both" is selected, Coverdell has priority in the allocation order (fills first due to lower limit).
+
+Options for Q17:
 - Retirement security
 - Children's education
 - Health/medical expenses
@@ -246,18 +255,18 @@ Options for Q16:
 
 #### Current State Questions (8 total)
 
-> **Note:** Total retirement balance is calculated from Q17+Q18+Q19 (no separate question). Education balances are combined across all children.
+> **Note:** Total retirement balance is calculated from Q18+Q19+Q20 (no separate question). Education balances are combined across all children.
 
 | # | Question | Type | Purpose |
 |---|----------|------|---------|
-| 17 | Current 401(k) balance | Currency | Vehicle-specific (conditional on Q5=Yes) |
-| 18 | Current IRA balance (Traditional + Roth) | Currency | Vehicle-specific (always shown) |
-| 19 | Current HSA balance | Currency | Vehicle-specific (conditional on Q9=Yes) |
-| 20 | Current education savings balance (all children combined) | Currency | 529/CESA/UTMA total (conditional on Q13=Yes) |
-| 21 | Current monthly 401(k) contribution | Currency | Baseline (conditional on Q5=Yes) |
-| 22 | Current monthly IRA contribution | Currency | Baseline (always shown) |
-| 23 | Current monthly HSA contribution | Currency | Baseline (conditional on Q9=Yes) |
-| 24 | Current monthly education contribution (all children) | Currency | Combined (conditional on Q13=Yes) |
+| 18 | Current 401(k) balance | Currency | Vehicle-specific (conditional on Q5=Yes) |
+| 19 | Current IRA balance (Traditional + Roth) | Currency | Vehicle-specific (always shown) |
+| 20 | Current HSA balance | Currency | Vehicle-specific (conditional on Q9=Yes) |
+| 21 | Current education savings balance (all children combined) | Currency | 529/CESA/UTMA total (conditional on Q13=Yes) |
+| 22 | Current monthly 401(k) contribution | Currency | Baseline (conditional on Q5=Yes) |
+| 23 | Current monthly IRA contribution | Currency | Baseline (always shown) |
+| 24 | Current monthly HSA contribution | Currency | Baseline (conditional on Q9=Yes) |
+| 25 | Current monthly education contribution (all children) | Currency | Combined (conditional on Q13=Yes) |
 
 ---
 

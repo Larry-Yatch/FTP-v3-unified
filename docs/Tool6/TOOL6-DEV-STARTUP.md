@@ -397,6 +397,7 @@ This startup doc serves as persistent memory across sessions. **Always update th
 | **Zero vehicles can re-enter at original proportion** | When user sets vehicle to $0, it's effectively "paused". Moving it up re-enters it with its original algorithm-calculated proportion. | Jan 17, 2026 |
 | **Locked vehicles excluded from redistribution** | Locked sliders don't participate in coupled adjustment. Remaining unlocked vehicles' proportions are renormalized. | Jan 17, 2026 |
 | **Store IRS limits separately from effective limits** | IRS limits are static per vehicle. Effective limits = min(IRS limit, budget). When budget changes, recalculate effective limits and update slider max values. | Jan 17, 2026 |
+| **Education vehicle choice (529 vs Coverdell)** | User selects preferred vehicle: 529 (no income limit, college), Coverdell ($2k/child, K-12+college), or Both. Dynamic Coverdell limit = $2,000 × numChildren. | Jan 17, 2026 |
 
 ### Design Patterns Established
 1. **Single-page calculator** - Same as Tool 4, not multi-phase like Tools 1-3
