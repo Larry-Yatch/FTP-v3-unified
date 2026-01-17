@@ -659,19 +659,717 @@ const Tool6 = {
     return result;
   },
 
+  // ==========================================================================
+  // VEHICLE ALLOCATION ENGINE (Phase 4)
+  // ==========================================================================
+
   /**
-   * Calculate vehicle allocation using waterfall algorithm
+   * Sprint 4.1: Get eligible vehicles for user based on profile and inputs
+   *
+   * Eligibility depends on:
+   * - Profile (ROBS, self-employed, W-2, etc.)
+   * - HSA eligibility (HDHP enrollment)
+   * - Employer plan availability (401k, match, Roth option)
+   * - Income (Roth IRA phase-out)
+   * - Age (catch-up eligibility)
+   *
+   * @param {Object} profile - User's profile from classifyProfile()
+   * @param {Object} inputs - Combined data from preSurvey and toolStatus
+   * @returns {Object} Map of eligible vehicles with their monthly limits
+   */
+  getEligibleVehicles(profile, inputs) {
+    const profileId = profile.id;
+    const age = parseInt(inputs.age) || 35;
+    const grossIncome = parseFloat(inputs.grossIncome) || 0;
+    const filingStatus = inputs.filingStatus || 'Single';
+
+    // Extract questionnaire answers
+    const hsaEligible = inputs.hsaEligible === 'Yes' || inputs.a7_hsaEligible === 'Yes';
+    const has401k = inputs.has401k === 'Yes' || inputs.a3_has401k === 'Yes';
+    const hasMatch = inputs.hasMatch === 'Yes' || inputs.a4_hasMatch === 'Yes';
+    const hasRoth401k = inputs.hasRoth401k === 'Yes' || inputs.a6_hasRoth401k === 'Yes';
+    const hasChildren = inputs.hasChildren === 'Yes' || inputs.a8_hasChildren === 'Yes';
+
+    const eligible = {};
+
+    // Helper: Get monthly limit with catch-up
+    const getMonthlyLimit = (vehicleName) => {
+      const def = VEHICLE_DEFINITIONS[vehicleName];
+      if (!def) return 0;
+
+      // Vehicles without limits (employer match, ROBS, taxable)
+      if (def.hasLimit === false || def.isNonDiscretionary) {
+        return Infinity;
+      }
+
+      let annualLimit = 0;
+
+      // HSA has coverage-based limits
+      if (vehicleName === 'HSA') {
+        const coverageType = filingStatus === 'MFJ' ? 'Family' : 'Individual';
+        annualLimit = coverageType === 'Family'
+          ? IRS_LIMITS_2025.HSA_FAMILY
+          : IRS_LIMITS_2025.HSA_INDIVIDUAL;
+        // HSA catch-up at 55+ (not 50)
+        if (age >= 55) {
+          annualLimit += IRS_LIMITS_2025.HSA_CATCHUP;
+        }
+        return annualLimit / 12;
+      }
+
+      // Standard vehicle with annual limit
+      annualLimit = def.annualLimit || 0;
+
+      // Add catch-up for age 50+
+      if (def.catchUpAge && age >= def.catchUpAge) {
+        // SECURE 2.0 super catch-up for ages 60-63
+        if (def.superCatchUpAge && age >= def.superCatchUpAge && age <= 63) {
+          annualLimit += def.superCatchUpAmount || 0;
+        } else {
+          annualLimit += def.catchUpAmount || 0;
+        }
+      }
+
+      return annualLimit / 12;
+    };
+
+    // Helper: Check Roth IRA eligibility (income phase-out)
+    const getRothIRAEligibility = () => {
+      const limits = IRS_LIMITS_2025.ROTH_PHASE_OUT[filingStatus] ||
+                     IRS_LIMITS_2025.ROTH_PHASE_OUT.SINGLE;
+
+      if (grossIncome >= limits.end) {
+        // Completely phased out - use Backdoor Roth instead
+        return { eligible: false, useBackdoor: true, limit: 0 };
+      } else if (grossIncome > limits.start) {
+        // Partial phase-out
+        const phaseOutRatio = (limits.end - grossIncome) / (limits.end - limits.start);
+        const baseLimit = IRS_LIMITS_2025.ROTH_IRA + (age >= 50 ? IRS_LIMITS_2025.CATCHUP_IRA : 0);
+        return { eligible: true, useBackdoor: false, limit: (baseLimit * phaseOutRatio) / 12 };
+      } else {
+        // Full eligibility
+        return { eligible: true, useBackdoor: false, limit: getMonthlyLimit('IRA Roth') };
+      }
+    };
+
+    // =======================================================================
+    // ELIGIBILITY RULES BY VEHICLE
+    // =======================================================================
+
+    // --- ROBS Vehicles (Profile 1 only) ---
+    if (profileId === 1) {
+      eligible['ROBS Distribution'] = { monthlyLimit: Infinity, domain: 'Retirement' };
+    }
+
+    // --- Solo 401(k) Vehicles (Profile 4 - Self-employed, no employees) ---
+    if (profileId === 4) {
+      eligible['Solo 401(k) Employee'] = {
+        monthlyLimit: getMonthlyLimit('Solo 401(k) Employee'),
+        domain: 'Retirement'
+      };
+      eligible['Solo 401(k) Employer'] = {
+        monthlyLimit: getMonthlyLimit('Solo 401(k) Employer'),
+        domain: 'Retirement'
+      };
+    }
+
+    // --- SEP-IRA (Profile 3 only - Business Owner with Employees) ---
+    // Note: Profile 4 (Solo 401k Optimizer) uses Solo 401(k) instead of SEP-IRA
+    // Solo 401(k) has higher limits and more flexibility
+    if (profileId === 3) {
+      // SEP limit is 25% of compensation, max $70k
+      const sepLimit = Math.min(grossIncome * 0.25, IRS_LIMITS_2025.SEP_IRA_MAX);
+      eligible['SEP-IRA'] = {
+        monthlyLimit: sepLimit / 12,
+        domain: 'Retirement'
+      };
+    }
+
+    // --- SIMPLE IRA (Profile 3 - Business with employees) ---
+    if (profileId === 3) {
+      eligible['SIMPLE IRA'] = {
+        monthlyLimit: getMonthlyLimit('SIMPLE IRA'),
+        domain: 'Retirement'
+      };
+    }
+
+    // --- Employer 401(k) Plans (W-2 profiles: 5, 6, 7, 8, 9) ---
+    // Also Profile 2 (ROBS-Curious) may still have W-2 job
+    const w2Profiles = [2, 5, 6, 7, 8, 9];
+    if (w2Profiles.includes(profileId) && has401k) {
+      // Employer Match (non-discretionary - handled separately in seeds)
+      if (hasMatch) {
+        eligible['401(k) Employer Match'] = {
+          monthlyLimit: Infinity,
+          domain: 'Retirement',
+          isNonDiscretionary: true
+        };
+      }
+
+      // Traditional 401(k) - always available if employer offers 401k
+      eligible['401(k) Traditional'] = {
+        monthlyLimit: getMonthlyLimit('401(k) Traditional'),
+        domain: 'Retirement'
+      };
+
+      // Roth 401(k) - only if employer plan offers it
+      if (hasRoth401k) {
+        eligible['401(k) Roth'] = {
+          monthlyLimit: getMonthlyLimit('401(k) Roth'),
+          domain: 'Retirement',
+          sharesLimitWith: '401(k) Traditional'  // Combined $23,500 limit
+        };
+      }
+    }
+
+    // --- IRA Vehicles (Available to most profiles) ---
+    // Traditional IRA - available to everyone
+    eligible['IRA Traditional'] = {
+      monthlyLimit: getMonthlyLimit('IRA Traditional'),
+      domain: 'Retirement'
+    };
+
+    // Roth IRA - subject to income phase-out
+    const rothEligibility = getRothIRAEligibility();
+    if (rothEligibility.eligible) {
+      eligible['IRA Roth'] = {
+        monthlyLimit: rothEligibility.limit,
+        domain: 'Retirement',
+        sharesLimitWith: 'IRA Traditional'  // Combined $7,000 limit
+      };
+    }
+
+    // Backdoor Roth IRA - for high earners above phase-out
+    if (rothEligibility.useBackdoor) {
+      eligible['Backdoor Roth IRA'] = {
+        monthlyLimit: getMonthlyLimit('Backdoor Roth IRA'),
+        domain: 'Retirement',
+        sharesLimitWith: 'IRA Traditional',
+        note: 'Recommended due to income above Roth IRA limits'
+      };
+    }
+
+    // --- HSA (Requires HDHP enrollment) ---
+    if (hsaEligible) {
+      eligible['HSA'] = {
+        monthlyLimit: getMonthlyLimit('HSA'),
+        domain: 'Health'
+      };
+    }
+
+    // --- Education Vehicles (If has children) ---
+    if (hasChildren) {
+      eligible['529 Plan'] = {
+        monthlyLimit: Infinity,  // State-dependent, no federal limit
+        domain: 'Education'
+      };
+      eligible['Coverdell ESA'] = {
+        monthlyLimit: IRS_LIMITS_2025.COVERDELL_ESA / 12,
+        domain: 'Education'
+      };
+    }
+
+    // --- Family Bank (Always available - final overflow for all domains) ---
+    eligible['Family Bank'] = {
+      monthlyLimit: Infinity,
+      domain: 'Overflow'
+    };
+
+    return eligible;
+  },
+
+  /**
+   * Sprint 4.2: Get vehicle priority order for profile, filtered to eligible vehicles
+   *
+   * @param {number} profileId - User's profile ID (1-9)
+   * @param {Object} eligibleVehicles - Map from getEligibleVehicles()
+   * @param {string} taxPreference - 'Now' (Roth), 'Later' (Traditional), or 'Both'
+   * @returns {Array} Ordered list of vehicle names
+   */
+  getVehiclePriorityOrder(profileId, eligibleVehicles, taxPreference) {
+    // Get base priority order for this profile
+    const basePriority = VEHICLE_PRIORITY_BY_PROFILE[profileId] || VEHICLE_PRIORITY_BY_PROFILE[7];
+
+    // Filter to only eligible vehicles
+    let filteredOrder = basePriority.filter(vehicle => eligibleVehicles[vehicle]);
+
+    // Add education vehicles if eligible (not in VEHICLE_PRIORITY_BY_PROFILE)
+    // Insert after HSA but before retirement vehicles
+    const educationVehicles = ['529 Plan', 'Coverdell ESA'].filter(v => eligibleVehicles[v]);
+    if (educationVehicles.length > 0) {
+      const hsaIndex = filteredOrder.indexOf('HSA');
+      const insertIndex = hsaIndex >= 0 ? hsaIndex + 1 : 0;
+      filteredOrder.splice(insertIndex, 0, ...educationVehicles);
+    }
+
+    // Add Backdoor Roth IRA if eligible (replaces IRA Roth for high earners)
+    // IMPORTANT: Backdoor Roth shares limit with IRA Traditional, so it should be
+    // placed BEFORE IRA Traditional to get priority (since it's the Roth option)
+    if (eligibleVehicles['Backdoor Roth IRA'] && !filteredOrder.includes('Backdoor Roth IRA')) {
+      const iraRothIndex = filteredOrder.indexOf('IRA Roth');
+      const iraTradIndex = filteredOrder.indexOf('IRA Traditional');
+      if (iraRothIndex >= 0) {
+        // Insert at IRA Roth position (same priority as regular Roth IRA would have)
+        filteredOrder.splice(iraRothIndex, 0, 'Backdoor Roth IRA');
+      } else if (iraTradIndex >= 0) {
+        // Insert BEFORE IRA Traditional (Backdoor Roth should get priority over Traditional)
+        filteredOrder.splice(iraTradIndex, 0, 'Backdoor Roth IRA');
+      } else {
+        // Add before Family Bank
+        const familyBankIndex = filteredOrder.indexOf('Family Bank');
+        if (familyBankIndex >= 0) {
+          filteredOrder.splice(familyBankIndex, 0, 'Backdoor Roth IRA');
+        } else {
+          filteredOrder.push('Backdoor Roth IRA');
+        }
+      }
+    }
+
+    // Apply tax strategy reordering
+    if (taxPreference === 'Now') {
+      // User wants tax-free retirement → prioritize Roth
+      filteredOrder = this.prioritizeRothAccounts(filteredOrder);
+    } else if (taxPreference === 'Later') {
+      // User wants tax savings now → prioritize Traditional
+      filteredOrder = this.prioritizeTraditionalAccounts(filteredOrder);
+    }
+    // 'Both' or undefined keeps the profile's default order
+
+    return filteredOrder;
+  },
+
+  /**
+   * Reorder vehicles to prioritize Roth accounts (for tax preference = 'Now')
+   * HSA stays high priority regardless (triple tax advantage)
+   */
+  prioritizeRothAccounts(vehicleOrder) {
+    const hsaVehicle = vehicleOrder.filter(v => v === 'HSA');
+    const matchVehicle = vehicleOrder.filter(v => v.includes('Employer Match'));
+    const rothVehicles = vehicleOrder.filter(v =>
+      v.includes('Roth') && !v.includes('Employer Match')
+    );
+    const traditionalVehicles = vehicleOrder.filter(v =>
+      v.includes('Traditional') && !v.includes('Employer Match')
+    );
+    const otherVehicles = vehicleOrder.filter(v =>
+      !v.includes('Roth') && !v.includes('Traditional') &&
+      v !== 'HSA' && !v.includes('Employer Match')
+    );
+
+    // Order: Match → HSA → Roth → Traditional → Other
+    return [...matchVehicle, ...hsaVehicle, ...rothVehicles, ...traditionalVehicles, ...otherVehicles];
+  },
+
+  /**
+   * Reorder vehicles to prioritize Traditional accounts (for tax preference = 'Later')
+   * HSA stays high priority regardless (triple tax advantage)
+   */
+  prioritizeTraditionalAccounts(vehicleOrder) {
+    const hsaVehicle = vehicleOrder.filter(v => v === 'HSA');
+    const matchVehicle = vehicleOrder.filter(v => v.includes('Employer Match'));
+    const traditionalVehicles = vehicleOrder.filter(v =>
+      v.includes('Traditional') && !v.includes('Employer Match')
+    );
+    const rothVehicles = vehicleOrder.filter(v =>
+      v.includes('Roth') && !v.includes('Employer Match')
+    );
+    const otherVehicles = vehicleOrder.filter(v =>
+      !v.includes('Roth') && !v.includes('Traditional') &&
+      v !== 'HSA' && !v.includes('Employer Match')
+    );
+
+    // Order: Match → HSA → Traditional → Roth → Other
+    return [...matchVehicle, ...hsaVehicle, ...traditionalVehicles, ...rothVehicles, ...otherVehicles];
+  },
+
+  /**
+   * Sprint 4.3: Calculate monthly employer match based on formula
+   *
+   * @param {number} grossAnnualIncome - User's gross annual income
+   * @param {string} matchFormula - e.g., "100_6" for "100% up to 6%"
+   * @returns {number} Monthly match amount in dollars
+   */
+  calculateEmployerMatch(grossAnnualIncome, matchFormula) {
+    if (!matchFormula || matchFormula === 'other' || !grossAnnualIncome) {
+      return 0;
+    }
+
+    // Parse formula: "100_6" means 100% up to 6%
+    const match = matchFormula.match(/(\d+)_(\d+)/);
+    if (!match) return 0;
+
+    const matchRate = parseInt(match[1]) / 100;  // 1.00 for 100%
+    const matchLimit = parseInt(match[2]) / 100; // 0.06 for 6%
+
+    // Annual match = income * limit * rate
+    const annualMatch = grossAnnualIncome * matchLimit * matchRate;
+
+    // Monthly match
+    return annualMatch / 12;
+  },
+
+  /**
+   * Sprint 4.3: Get non-discretionary seeds (pre-filled before waterfall)
+   *
+   * Non-discretionary contributions are:
+   * - Employer match (free money - not from user's budget)
+   * - ROBS distributions (Profile 1)
+   * - Defined Benefit minimums (Profile 3)
+   *
+   * @param {number} profileId - User's profile ID
+   * @param {Object} userData - Combined preSurvey and toolStatus data
+   * @returns {Object} Seeds by domain { Retirement: {}, Education: {}, Health: {} }
+   */
+  getNonDiscretionarySeeds(profileId, userData) {
+    const seeds = {
+      Retirement: {},
+      Education: {},
+      Health: {}
+    };
+
+    // Employer match (for W-2 employees with employer 401k)
+    const hasMatch = userData.hasMatch === 'Yes' || userData.a4_hasMatch === 'Yes';
+    const matchFormula = userData.matchFormula || userData.a5_matchFormula;
+    const grossIncome = parseFloat(userData.grossIncome || userData.a1_grossIncome) || 0;
+
+    if (hasMatch && matchFormula && grossIncome > 0) {
+      const monthlyMatch = this.calculateEmployerMatch(grossIncome, matchFormula);
+      if (monthlyMatch > 0) {
+        seeds.Retirement['401(k) Employer Match'] = monthlyMatch;
+      }
+    }
+
+    // ROBS distributions (Profile 1 only)
+    if (profileId === 1 && userData.robsProfitDistribution) {
+      seeds.Retirement['ROBS Distribution'] = parseFloat(userData.robsProfitDistribution) / 12;
+    }
+
+    // Defined Benefit Plan minimums (Profile 3 - Business Owner with Employees)
+    if (profileId === 3 && userData.dbPlanAnnual) {
+      seeds.Retirement['Defined Benefit Plan'] = parseFloat(userData.dbPlanAnnual) / 12;
+    }
+
+    return seeds;
+  },
+
+  /**
+   * Sprint 4.3: Core waterfall allocation algorithm
+   *
+   * Implements the full allocation engine with:
+   * - Domain budget allocation based on Ambition Quotient weights
+   * - Leftover cascade: Education → Health → Retirement
+   * - Cross-domain vehicle tracking (e.g., HSA in both Health and Retirement)
+   * - Shared limit enforcement (401k Trad + Roth, IRA Trad + Roth)
+   *
+   * @param {Object} params - Allocation parameters
+   * @param {Object} params.domainWeights - Weights from computeDomainsAndWeights()
+   * @param {number} params.monthlyBudget - User's monthly discretionary budget
+   * @param {Object} params.seeds - Non-discretionary seeds from getNonDiscretionarySeeds()
+   * @param {Array} params.vehicleOrder - Priority order from getVehiclePriorityOrder()
+   * @param {Object} params.eligibleVehicles - Map from getEligibleVehicles()
+   * @returns {Object} Final allocations by vehicle name
+   */
+  coreAllocate({ domainWeights, monthlyBudget, seeds, vehicleOrder, eligibleVehicles }) {
+    const allocations = {};
+    const cumulativeAllocations = {};  // Track cross-domain usage
+
+    // Initialize with seeds (non-discretionary)
+    for (const domain of Object.keys(seeds)) {
+      for (const [vehicle, amount] of Object.entries(seeds[domain])) {
+        allocations[vehicle] = amount;
+        cumulativeAllocations[vehicle] = amount;
+      }
+    }
+
+    // Calculate domain budgets based on weights
+    const domainBudgets = {
+      Education: monthlyBudget * (domainWeights.Education || 0),
+      Health: monthlyBudget * (domainWeights.Health || 0),
+      Retirement: monthlyBudget * (domainWeights.Retirement || 0)
+    };
+
+    // Helper: Get effective limit accounting for shared limits and cumulative usage
+    const getEffectiveLimit = (vehicle) => {
+      const vehicleInfo = eligibleVehicles[vehicle];
+      if (!vehicleInfo) return 0;
+
+      let limit = vehicleInfo.monthlyLimit;
+      if (limit === Infinity) return Infinity;
+
+      // Account for cumulative usage of this vehicle
+      const alreadyAllocated = cumulativeAllocations[vehicle] || 0;
+      limit = Math.max(0, limit - alreadyAllocated);
+
+      // Check shared limits (e.g., 401k Trad + Roth share $23,500)
+      // Look for vehicles that share a limit with this one (bidirectional check)
+      const sharedVehicles = [];
+
+      // Check if this vehicle declares a shared limit
+      if (vehicleInfo.sharesLimitWith) {
+        sharedVehicles.push(vehicleInfo.sharesLimitWith);
+      }
+
+      // Check if other vehicles declare this one as shared
+      for (const [otherVehicle, otherInfo] of Object.entries(eligibleVehicles)) {
+        if (otherInfo.sharesLimitWith === vehicle) {
+          sharedVehicles.push(otherVehicle);
+        }
+      }
+
+      // Calculate combined usage across all shared vehicles
+      if (sharedVehicles.length > 0) {
+        let totalSharedAllocated = alreadyAllocated;
+        for (const sharedVehicle of sharedVehicles) {
+          totalSharedAllocated += cumulativeAllocations[sharedVehicle] || 0;
+        }
+        // Effective limit is base limit minus total used across shared group
+        limit = Math.min(limit, Math.max(0, vehicleInfo.monthlyLimit - totalSharedAllocated));
+      }
+
+      return limit;
+    };
+
+    // Helper: Allocate within a domain using waterfall
+    const allocateInDomain = (domainName, budget) => {
+      let remaining = budget;
+
+      // Get vehicles for this domain in priority order
+      const domainVehicles = vehicleOrder.filter(v => {
+        const info = eligibleVehicles[v];
+        return info && info.domain === domainName && !info.isNonDiscretionary;
+      });
+
+      for (const vehicle of domainVehicles) {
+        if (remaining <= 0) break;
+
+        const effectiveLimit = getEffectiveLimit(vehicle);
+        if (effectiveLimit <= 0) continue;
+
+        const allocation = Math.min(remaining, effectiveLimit);
+        if (allocation > 0) {
+          allocations[vehicle] = (allocations[vehicle] || 0) + allocation;
+          cumulativeAllocations[vehicle] = (cumulativeAllocations[vehicle] || 0) + allocation;
+          remaining -= allocation;
+        }
+      }
+
+      return remaining;  // Return unused budget for cascade
+    };
+
+    // =======================================================================
+    // LEFTOVER CASCADE: Education → Health → Retirement
+    // =======================================================================
+
+    // 1. Education domain gets its weighted share
+    const leftoverEducation = allocateInDomain('Education', domainBudgets.Education);
+
+    // 2. Health domain gets its share PLUS leftover from Education
+    const healthBudget = domainBudgets.Health + leftoverEducation;
+    const leftoverHealth = allocateInDomain('Health', healthBudget);
+
+    // 3. Retirement domain gets its share PLUS leftover from Health
+    const retirementBudget = domainBudgets.Retirement + leftoverHealth;
+    const leftoverRetirement = allocateInDomain('Retirement', retirementBudget);
+
+    // 4. Any remaining goes to Family Bank (final overflow)
+    if (leftoverRetirement > 0) {
+      allocations['Family Bank'] = leftoverRetirement;
+    }
+
+    return allocations;
+  },
+
+  /**
+   * Sprint 4.3: Calculate vehicle allocation using waterfall algorithm
    * Core logic from spec section "Vehicle Allocation Engine"
+   *
+   * @param {string} clientId - Client ID
+   * @param {Object} preSurveyData - User's questionnaire answers
+   * @param {Object} profile - User's profile from classifyProfile()
+   * @param {Object} toolStatus - Status from checkToolCompletion()
+   * @returns {Object} Allocation result with vehicles, weights, and totals
    */
   calculateAllocation(clientId, preSurveyData, profile, toolStatus) {
-    // TODO: Implement allocation engine (Sprint 4.1-4.5)
-    // For now, return placeholder with correct default domain weights
+    // Combine preSurvey and toolStatus for input data
+    const inputs = {
+      ...toolStatus,
+      ...preSurveyData,
+      // Ensure we have key fields
+      age: preSurveyData.age || toolStatus.age || 35,
+      grossIncome: preSurveyData.a1_grossIncome || preSurveyData.grossIncome || toolStatus.grossIncome || 0,
+      filingStatus: toolStatus.filingStatus || 'Single'
+    };
+
+    // Get monthly budget from Tool 4
+    const monthlyBudget = parseFloat(preSurveyData.monthlyBudget) ||
+                          parseFloat(toolStatus.monthlyBudget) || 0;
+
+    if (monthlyBudget <= 0) {
+      return {
+        vehicles: {},
+        domainWeights: AMBITION_QUOTIENT_CONFIG.DEFAULT_WEIGHTS,
+        totalBudget: 0,
+        employerMatch: 0,
+        profile: profile,
+        error: 'No monthly budget available. Please complete Tool 4 first.'
+      };
+    }
+
+    // Step 1: Get eligible vehicles
+    const eligibleVehicles = this.getEligibleVehicles(profile, inputs);
+
+    // Step 2: Get tax preference for priority ordering
+    const taxPreference = preSurveyData.a2b_taxPreference || preSurveyData.taxPreference || 'Both';
+
+    // Step 3: Get vehicle priority order
+    const vehicleOrder = this.getVehiclePriorityOrder(profile.id, eligibleVehicles, taxPreference);
+
+    // Step 4: Compute domain weights from Ambition Quotient
+    const domainWeights = this.computeDomainsAndWeights(preSurveyData);
+
+    // Step 5: Get non-discretionary seeds (employer match, etc.)
+    const seeds = this.getNonDiscretionarySeeds(profile.id, inputs);
+    const employerMatch = seeds.Retirement['401(k) Employer Match'] || 0;
+
+    // Step 6: Run core allocation
+    const allocations = this.coreAllocate({
+      domainWeights,
+      monthlyBudget,
+      seeds,
+      vehicleOrder,
+      eligibleVehicles
+    });
+
+    // Calculate totals by domain
+    const domainTotals = { Retirement: 0, Education: 0, Health: 0, Overflow: 0 };
+    for (const [vehicle, amount] of Object.entries(allocations)) {
+      const info = eligibleVehicles[vehicle] || VEHICLE_DEFINITIONS[vehicle];
+      const domain = info?.domain || 'Overflow';
+      domainTotals[domain] = (domainTotals[domain] || 0) + amount;
+    }
+
+    // Calculate total allocated (excluding employer match which is non-discretionary)
+    const totalAllocated = Object.values(allocations).reduce((sum, amt) => sum + amt, 0) - employerMatch;
+
     return {
-      vehicles: {},
-      domainWeights: { Retirement: 0.60, Education: 0.20, Health: 0.20 },
-      totalBudget: preSurveyData.monthlyBudget || 0,
+      vehicles: allocations,
+      eligibleVehicles: eligibleVehicles,
+      vehicleOrder: vehicleOrder,
+      domainWeights: domainWeights,
+      domainTotals: domainTotals,
+      totalBudget: monthlyBudget,
+      totalAllocated: totalAllocated,
+      employerMatch: employerMatch,
+      taxPreference: taxPreference,
       profile: profile,
-      taxableBrokerage: 0  // Overflow vehicle - gets remaining after tax-advantaged
+      overflow: allocations['Family Bank'] || 0
+    };
+  },
+
+  /**
+   * Sprint 4.5: Validate allocations against IRS limits
+   *
+   * Checks:
+   * - Individual vehicle limits (with catch-ups)
+   * - Shared limits (401k Trad + Roth, IRA Trad + Roth)
+   * - Total contribution limits
+   *
+   * @param {Object} allocations - Vehicle allocations (monthly)
+   * @param {number} age - User's age
+   * @param {string} filingStatus - 'Single', 'MFJ', or 'MFS'
+   * @returns {Object} Validation result with warnings and isValid flag
+   */
+  validateAllocations(allocations, age, filingStatus) {
+    const warnings = [];
+    const annualAllocations = {};
+
+    // Convert monthly to annual for validation
+    for (const [vehicle, monthly] of Object.entries(allocations)) {
+      annualAllocations[vehicle] = monthly * 12;
+    }
+
+    // Helper: Get annual limit with catch-up
+    const getAnnualLimit = (vehicleName) => {
+      const def = VEHICLE_DEFINITIONS[vehicleName];
+      if (!def || def.hasLimit === false) return Infinity;
+
+      let limit = def.annualLimit || 0;
+
+      // HSA special handling
+      if (vehicleName === 'HSA') {
+        const coverageType = filingStatus === 'MFJ' ? 'Family' : 'Individual';
+        limit = coverageType === 'Family'
+          ? IRS_LIMITS_2025.HSA_FAMILY
+          : IRS_LIMITS_2025.HSA_INDIVIDUAL;
+        if (age >= 55) {
+          limit += IRS_LIMITS_2025.HSA_CATCHUP;
+        }
+        return limit;
+      }
+
+      // Add catch-up
+      if (def.catchUpAge && age >= def.catchUpAge) {
+        if (def.superCatchUpAge && age >= def.superCatchUpAge && age <= 63) {
+          limit += def.superCatchUpAmount || 0;
+        } else {
+          limit += def.catchUpAmount || 0;
+        }
+      }
+
+      return limit;
+    };
+
+    // Check individual vehicle limits
+    for (const [vehicle, annual] of Object.entries(annualAllocations)) {
+      const limit = getAnnualLimit(vehicle);
+      if (annual > limit && limit !== Infinity) {
+        warnings.push({
+          vehicle: vehicle,
+          type: 'individual_limit',
+          allocated: annual,
+          limit: limit,
+          message: `${vehicle} allocation ($${annual.toLocaleString()}/yr) exceeds IRS limit ($${limit.toLocaleString()}/yr)`
+        });
+      }
+    }
+
+    // Check shared limits: 401(k) Traditional + Roth
+    const trad401k = annualAllocations['401(k) Traditional'] || 0;
+    const roth401k = annualAllocations['401(k) Roth'] || 0;
+    const combined401k = trad401k + roth401k;
+    const limit401k = getAnnualLimit('401(k) Traditional');
+
+    if (combined401k > limit401k) {
+      warnings.push({
+        vehicles: ['401(k) Traditional', '401(k) Roth'],
+        type: 'shared_limit',
+        allocated: combined401k,
+        limit: limit401k,
+        message: `Combined 401(k) contributions ($${combined401k.toLocaleString()}/yr) exceed shared limit ($${limit401k.toLocaleString()}/yr)`
+      });
+    }
+
+    // Check shared limits: IRA Traditional + Roth
+    const tradIRA = annualAllocations['IRA Traditional'] || 0;
+    const rothIRA = annualAllocations['IRA Roth'] || 0;
+    const backdoorRoth = annualAllocations['Backdoor Roth IRA'] || 0;
+    const combinedIRA = tradIRA + rothIRA + backdoorRoth;
+    const limitIRA = getAnnualLimit('IRA Traditional');
+
+    if (combinedIRA > limitIRA) {
+      warnings.push({
+        vehicles: ['IRA Traditional', 'IRA Roth', 'Backdoor Roth IRA'],
+        type: 'shared_limit',
+        allocated: combinedIRA,
+        limit: limitIRA,
+        message: `Combined IRA contributions ($${combinedIRA.toLocaleString()}/yr) exceed shared limit ($${limitIRA.toLocaleString()}/yr)`
+      });
+    }
+
+    return {
+      isValid: warnings.length === 0,
+      warnings: warnings,
+      annualAllocations: annualAllocations
     };
   },
 

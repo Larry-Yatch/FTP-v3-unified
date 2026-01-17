@@ -303,11 +303,12 @@ const VEHICLE_DEFINITIONS = {
     isNonDiscretionary: true,
     description: 'Defined Benefit Plan - actuarially determined contributions'
   },
-  'Taxable Brokerage': {
+  'Family Bank': {
     domain: 'Overflow',
-    taxTreatment: 'Capital gains',
+    taxTreatment: 'Tax-advantaged loans',
     hasLimit: false,
-    description: 'Taxable brokerage - no limits, no tax advantages'
+    growthRate: 0.05,  // Conservative 5% growth rate
+    description: 'Family Bank - whole life policies with cash value for tax-free borrowing'
   },
   'Mega Backdoor Roth': {
     domain: 'Retirement',
@@ -346,7 +347,7 @@ const VEHICLE_PRIORITY_BY_PROFILE = {
     '401(k) Traditional',
     '401(k) Roth',
     'IRA Roth',
-    'Taxable Brokerage'
+    'Family Bank'
   ],
   2: [  // ROBS-Curious Candidate
     'IRA Rollover to ROBS',
@@ -354,7 +355,7 @@ const VEHICLE_PRIORITY_BY_PROFILE = {
     'HSA',
     '401(k) Traditional',
     'IRA Roth',
-    'Taxable Brokerage'
+    'Family Bank'
   ],
   3: [  // Business Owner with Employees
     '401(k) Employer Match',
@@ -363,7 +364,7 @@ const VEHICLE_PRIORITY_BY_PROFILE = {
     'SIMPLE IRA',
     '401(k) Traditional',
     'IRA Traditional',
-    'Taxable Brokerage'
+    'Family Bank'
   ],
   4: [  // Solo 401(k) Optimizer
     'HSA',
@@ -371,7 +372,7 @@ const VEHICLE_PRIORITY_BY_PROFILE = {
     'Solo 401(k) Employer',
     'IRA Roth',
     'IRA Traditional',
-    'Taxable Brokerage'
+    'Family Bank'
   ],
   5: [  // Bracket Strategist (Traditional Focus)
     '401(k) Employer Match',
@@ -380,7 +381,7 @@ const VEHICLE_PRIORITY_BY_PROFILE = {
     'IRA Traditional',
     '401(k) Roth',
     'IRA Roth',
-    'Taxable Brokerage'
+    'Family Bank'
   ],
   6: [  // Catch-Up Contributor
     '401(k) Employer Match',
@@ -388,7 +389,7 @@ const VEHICLE_PRIORITY_BY_PROFILE = {
     '401(k) Traditional',
     'IRA Traditional',
     '401(k) Roth',
-    'Taxable Brokerage'
+    'Family Bank'
   ],
   7: [  // Foundation Builder (Standard W-2 Employee)
     '401(k) Employer Match',
@@ -397,7 +398,7 @@ const VEHICLE_PRIORITY_BY_PROFILE = {
     '401(k) Traditional',
     'IRA Roth',
     'IRA Traditional',
-    'Taxable Brokerage'
+    'Family Bank'
   ],
   8: [  // Roth Maximizer
     '401(k) Employer Match',
@@ -406,7 +407,7 @@ const VEHICLE_PRIORITY_BY_PROFILE = {
     'IRA Roth',
     '401(k) Traditional',
     'IRA Traditional',
-    'Taxable Brokerage'
+    'Family Bank'
   ],
   9: [  // Late-Stage Growth
     '401(k) Employer Match',
@@ -414,7 +415,7 @@ const VEHICLE_PRIORITY_BY_PROFILE = {
     '401(k) Traditional',
     '401(k) Roth',
     'IRA Traditional',
-    'Taxable Brokerage'
+    'Family Bank'
   ]
 };
 
@@ -452,7 +453,7 @@ const DOMAIN_DEFINITIONS = {
     name: 'Overflow',
     description: 'Taxable investments after tax-advantaged limits',
     defaultWeight: 0,
-    vehicles: ['Taxable Brokerage']
+    vehicles: ['Family Bank']
   }
 };
 

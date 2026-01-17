@@ -201,12 +201,12 @@ google.script.run
 - [x] Sprint 3.1: Priority Ranking UI - ✅ **REPLACED** with Ambition Quotient UI (Phase C)
 - [x] Sprint 3.2: Ambition Quotient Algorithm - ✅ **COMPLETE** (Jan 17, 2026) - `computeDomainsAndWeights()`
 
-### Phase 4: Vehicle Allocation
-- [ ] Sprint 4.1: Vehicle Eligibility
-- [ ] Sprint 4.2: Vehicle Priority Order
-- [ ] Sprint 4.3: Waterfall Allocation (Core)
-- [ ] Sprint 4.4: Tax Strategy Reordering & Roth Phase-Out
-- [ ] Sprint 4.5: IRS Limit Validation
+### Phase 4: Vehicle Allocation ✅ COMPLETE
+- [x] Sprint 4.1: Vehicle Eligibility - ✅ **COMPLETE** (Jan 16, 2026)
+- [x] Sprint 4.2: Vehicle Priority Order - ✅ **COMPLETE** (Jan 16, 2026)
+- [x] Sprint 4.3: Waterfall Allocation (Core) - ✅ **COMPLETE** (Jan 16, 2026)
+- [x] Sprint 4.4: Tax Strategy Reordering & Roth Phase-Out - ✅ **COMPLETE** (Jan 16, 2026)
+- [x] Sprint 4.5: IRS Limit Validation - ✅ **COMPLETE** (Jan 16, 2026)
 
 ### Phase 5: Calculator UI
 - [ ] Sprint 5.1: Current State Inputs
@@ -422,39 +422,45 @@ This startup doc serves as persistent memory across sessions. **Always update th
 When ending a session, update this section:
 
 ### Last Session Summary
-- **Date:** January 17, 2026
+- **Date:** January 16, 2026
 - **What was done:**
-  - ✅ **COMPLETED & TESTED: Three-Phase Questionnaire with Ambition Quotient**
-  - **Phase C: Ambition Quotient Implementation**
-    - Added `AMBITION_QUESTIONS` to Tool6Constants.js (10 questions total):
-      - 3 Retirement questions (importance, anxiety, motivation on 1-7 scales)
-      - 3 Education questions (conditional on hasChildren = Yes)
-      - 3 Health questions (conditional on hsaEligible = Yes)
-      - 1 Tie-breaker question (conditional on all 3 domains active)
-    - Added `AMBITION_QUESTION_ORDER` for rendering by domain
-    - Removed old `a11_priorityRanking` (simple 1-2-3 ranking) in favor of rich psychological assessment
-  - **Tax Preference Question Added**
-    - Added `a2b_taxPreference` to Phase B for ALL profiles
-    - Options: Now (Roth focus), Later (Traditional focus), Both (balanced)
-    - Required for allocation calculations - affects every profile's vehicle prioritization
-  - **computeDomainsAndWeights() Function**
-    - Implements legacy Ambition Quotient algorithm (code.js lines 3512-3551)
-    - Blends importance scores with time-based urgency using discount factor
-    - Formula: `weight = (importance + urgency) / 2`, then normalize
-    - Adaptive: Only calculates weights for active domains
-  - **Phase C UI Implementation**
-    - Added scale input type (1-7 clickable buttons with labels)
-    - Added domain-based grouping with conditional visibility
-    - Added `continueToPhaseC()`, `updateAmbitionVisibility()`, `selectScale()` handlers
-    - CSS styling for scale inputs and ambition domain cards
-  - **Bug Fix: Phase A Rendering**
-    - Fixed issue where clicking "Change" button did nothing when profile already existed
-    - Root cause: Phase A HTML was not rendered when profile existed (conditional `if (!hasProfile)`)
-    - Fix: Always render Phase A, just hide it with `hidden` class when profile exists
-  - ✅ **Pushed to GAS and tested - all features working**
-- **Current state:** Phase 3 COMPLETE. Three-phase questionnaire (Classification → Allocation → Ambition) tested and working.
-- **Next task:** Phase 4 (Vehicle Allocation) - Sprint 4.1: Vehicle Eligibility
+  - ✅ **COMPLETED: Phase 4 - Vehicle Allocation Engine (All Sprints)**
+  - **Sprint 4.1: getEligibleVehicles(profile, inputs)**
+    - Determines which vehicles are available based on profile, HSA eligibility, employer plans, income
+    - Handles Roth IRA income phase-out (partial and full) with Backdoor Roth substitution
+    - Calculates monthly limits with age-based catch-ups (50+ for retirement, 55+ for HSA)
+    - SECURE 2.0 super catch-up for ages 60-63 ($11,250 for 401k)
+  - **Sprint 4.2: getVehiclePriorityOrder(profileId, eligibleVehicles, taxPreference)**
+    - Uses `VEHICLE_PRIORITY_BY_PROFILE` constant
+    - Filters to only eligible vehicles
+    - Dynamic insertion of Education vehicles (529, Coverdell) and Backdoor Roth IRA
+    - Tax strategy reordering: `prioritizeRothAccounts()` and `prioritizeTraditionalAccounts()`
+  - **Sprint 4.3: coreAllocate() - Waterfall Allocation Engine**
+    - Domain budgets from Ambition Quotient weights
+    - Leftover cascade: Education → Health → Retirement → Family Bank
+    - Cross-domain vehicle tracking with cumulative allocations
+    - Shared limit enforcement (401k Trad + Roth, IRA Trad + Roth) - bidirectional
+    - Non-discretionary seeds: employer match, ROBS distributions, DB plan minimums
+  - **Sprint 4.4: Tax Strategy Reordering (included in 4.2)**
+    - Now = Roth priority, Later = Traditional priority, Both = profile default
+    - HSA stays high priority regardless (triple tax advantage)
+  - **Sprint 4.5: validateAllocations()**
+    - Individual vehicle limit checks
+    - Shared limit validation (401k, IRA)
+    - Returns warnings array with detailed messages
+  - **Post-Implementation Fixes:**
+    - Renamed "Taxable Brokerage" to "Family Bank" (whole life policies for tax-free borrowing)
+    - Removed SEP-IRA from Profile 4 (Solo 401k Optimizer uses Solo 401k instead)
+    - Fixed bidirectional shared limit checking
+    - Fixed Backdoor Roth insertion (before IRA Traditional, not after)
+- **Current state:** Phase 4 COMPLETE. Full allocation engine implemented and tested.
+- **Next task:** Phase 5 (Calculator UI) - Sprint 5.1: Current State Inputs
 - **Blockers:** None
+
+### Previous Session (January 17, 2026)
+- ✅ Phase 3 Complete - Three-Phase Questionnaire with Ambition Quotient
+- Added `AMBITION_QUESTIONS`, `computeDomainsAndWeights()`, Phase C UI
+- Added `a2b_taxPreference` to Phase B for all profiles
 
 ### Decision Tree Order (Legacy Aligned)
 ```
