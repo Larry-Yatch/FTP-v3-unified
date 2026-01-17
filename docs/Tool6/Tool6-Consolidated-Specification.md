@@ -1,6 +1,6 @@
 # Tool 6: Retirement Blueprint Calculator - Consolidated Specification
 
-> **Version:** 1.7
+> **Version:** 1.8
 > **Date:** January 17, 2026
 > **Status:** Approved for Implementation
 > **Consolidates:** Tool-6-Design-Spec.md + Tool6-Technical-Specification.md + Legacy Tool 6
@@ -9,6 +9,7 @@
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 1.8 | Jan 17, 2026 | **Phase 5 Complete - Calculator UI with Coupled Sliders:** Added Sprint 5.7 for coupled slider behavior. Sliders use ORIGINAL algorithm proportions for redistribution (preserves algorithm intelligence). Lock/unlock buttons exclude vehicles from redistribution. Editable budget field recalculates effective limits (min of IRS limit and budget). Reset to Recommended button restores original output. IRS limits stored separately in data attributes for dynamic limit recalculation. |
 | 1.7 | Jan 17, 2026 | **Ambition Quotient Enhancement:** Replaced simple 1-2-3 priority ranking with rich psychological assessment (9 questions: importance/anxiety/motivation on 1-7 scales per domain + tie-breaker). Added Phase C to questionnaire flow. Made tax preference question (`a2b_taxPreference`) required for ALL profiles in Phase B. Added `computeDomainsAndWeights()` function aligned with legacy algorithm. Adaptive design: only asks about active domains (Retirement always, Education if hasChildren, Health if hsaEligible). |
 | 1.6 | Jan 11, 2026 | **Education Domain Enhancement:** Added Q14 (numChildren), Q20 (currentEducationBalance), Q24 (monthlyEducationContribution); uses "Combined CESA" approach (total across all children, not per-child); renumbered questions to **24 total**; fixed ROBS qualifiers to only show for "Interested"; added `calculateEducationProjections()` algorithm; expanded TOOL6_SCENARIOS schema (15 columns A-O); updated Sprints 5.1, 6.1, 6.2, 7.1 with education domain requirements |
 | 1.5 | Jan 11, 2026 | Added UI Style Requirements section (Tool 4 alignment), added Q1/Q2 as required Tool 6 questions (gross income, years to retirement), renumbered questions to 22 total |
@@ -2343,6 +2344,107 @@ function handleSharedLimitSlider(changedVehicle, newValue, allocations) {
 - No flicker during updates
 
 **Deliverable:** Full calculation flow
+
+---
+
+#### Sprint 5.7: Coupled Slider Behavior (Added v1.8)
+**Goal:** Implement Tool 4-style coupled sliders with intelligent redistribution
+
+> **v1.8 Note:** This sprint was added during implementation to specify the coupled slider behavior that makes Tool 6's allocation adjustment intelligent.
+
+**Architecture:**
+
+```javascript
+var allocationState = {
+  vehicles: {},           // Current allocation amounts by vehicle
+  originalAllocation: {}, // Original algorithm output (for proportions)
+  limits: {},             // Effective max limits (min of IRS and budget)
+  irsLimits: {},          // True IRS limits per vehicle (static)
+  locked: {},             // Which vehicles are locked
+  budget: 0,              // Total monthly budget
+  originalBudget: 0       // Original budget from Tool 4
+};
+```
+
+**Tasks:**
+1. Store original algorithm output separately from current values
+2. When slider X moves, redistribute delta among OTHER vehicles using ORIGINAL proportions
+3. Renormalize proportions to exclude the moved slider and locked vehicles
+4. Add lock/unlock button for each vehicle
+5. Add editable budget field that recalculates all limits
+6. Add "Reset to Recommended" button
+7. Store IRS limits in data attributes for budget recalculation
+
+**Redistribution Algorithm:**
+```javascript
+function adjustVehicleAllocation(vehicleName, newValue) {
+  // 1. Calculate delta
+  var delta = newValue - allocationState.vehicles[vehicleId];
+
+  // 2. Get ORIGINAL proportions for unlocked vehicles (excluding moved one)
+  var proportions = getOriginalProportions(vehicleId);
+
+  // 3. Distribute -delta among other vehicles by proportion
+  for (var id in proportions) {
+    if (!allocationState.locked[id]) {
+      var share = delta * proportions[id];
+      var newVal = allocationState.vehicles[id] - share;
+      // Clamp to [0, effective limit]
+      newVal = Math.max(0, Math.min(newVal, allocationState.limits[id]));
+      allocationState.vehicles[id] = newVal;
+    }
+  }
+
+  // 4. Update all displays
+  updateAllVehicleDisplays();
+  updateTotalAllocated();
+}
+
+function getOriginalProportions(excludeVehicleId) {
+  // Sum original allocations for unlocked, non-excluded vehicles
+  var totalOriginal = 0;
+  for (var id in allocationState.originalAllocation) {
+    if (id !== excludeVehicleId && !allocationState.locked[id]) {
+      totalOriginal += allocationState.originalAllocation[id] || 0;
+    }
+  }
+
+  // Calculate renormalized proportions
+  var proportions = {};
+  for (var id in allocationState.originalAllocation) {
+    if (id !== excludeVehicleId && !allocationState.locked[id]) {
+      proportions[id] = (allocationState.originalAllocation[id] || 0) / totalOriginal;
+    }
+  }
+  return proportions;
+}
+```
+
+**Test:**
+- Algorithm recommends: 401k=$1000, IRA=$500, HSA=$300
+- User moves 401k to $700 (delta=-300)
+- IRA has proportion 500/800 = 62.5%, HSA has proportion 300/800 = 37.5%
+- IRA gets +$187.50, HSA gets +$112.50
+- Result: 401k=$700, IRA=$687.50, HSA=$412.50
+- Total unchanged: $1800
+
+**Test - Zero and Re-entry:**
+- User sets IRA to $0 → redistribution occurs
+- User moves IRA back to $200 → re-enters with original proportion
+- IRA's original proportion preserved, not lost
+
+**Test - Lock:**
+- User locks HSA at $300
+- User moves 401k from $1000 to $800 → HSA stays at $300
+- Only IRA absorbs the delta ($500 → $700)
+
+**Test - Budget Change:**
+- Original budget $2000, slider max for IRA = $583 (IRS limit)
+- User changes budget to $5000
+- IRA slider max stays at $583 (IRS limit < budget)
+- Family Bank slider max increases to $5000 (unlimited IRS limit)
+
+**Deliverable:** Fully coupled slider system matching Tool 4 behavior
 
 ---
 

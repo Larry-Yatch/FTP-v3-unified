@@ -2,7 +2,7 @@
 
 > **Purpose:** Get any AI coder up to speed quickly for multi-session development
 > **Last Updated:** January 17, 2026
-> **Current Sprint:** Phase 3 Complete - Three-Phase Questionnaire with Ambition Quotient
+> **Current Sprint:** Phase 5 In Progress - Calculator UI with Coupled Sliders
 
 ---
 
@@ -208,13 +208,14 @@ google.script.run
 - [x] Sprint 4.4: Tax Strategy Reordering & Roth Phase-Out - ✅ **COMPLETE** (Jan 16, 2026)
 - [x] Sprint 4.5: IRS Limit Validation - ✅ **COMPLETE** (Jan 16, 2026)
 
-### Phase 5: Calculator UI
-- [ ] Sprint 5.1: Current State Inputs
-- [ ] Sprint 5.2: Investment Score Display
-- [ ] Sprint 5.3: Tax Strategy Toggle
-- [ ] Sprint 5.4: Employer Match UI
-- [ ] Sprint 5.5: Vehicle Sliders
-- [ ] Sprint 5.6: Calculate Button & Recalc
+### Phase 5: Calculator UI ⏳ IN PROGRESS
+- [x] Sprint 5.1: Current State Inputs - ✅ **COMPLETE** (Jan 17, 2026)
+- [x] Sprint 5.2: Investment Score Display - ✅ **COMPLETE** (Jan 17, 2026)
+- [x] Sprint 5.3: Tax Strategy Toggle - ✅ **COMPLETE** (Jan 17, 2026)
+- [x] Sprint 5.4: Employer Match UI - ✅ **COMPLETE** (Jan 17, 2026)
+- [x] Sprint 5.5: Vehicle Sliders - ✅ **COMPLETE** (Jan 17, 2026) - With coupled slider behavior
+- [x] Sprint 5.6: Calculate Button & Recalc - ✅ **COMPLETE** (Jan 17, 2026)
+- [x] **Sprint 5.7: Coupled Slider Behavior** - ✅ **COMPLETE** (Jan 17, 2026) - Added post-spec
 
 ### Phase 6: Projections
 - [ ] Sprint 6.1: Projections Calculation
@@ -392,6 +393,10 @@ This startup doc serves as persistent memory across sessions. **Always update th
 | **Tax preference asked for ALL profiles** | Required for allocation calculations - determines Roth vs Traditional prioritization. Previously only asked as classification tie-breaker for W-2 employees. | Jan 17, 2026 |
 | **Rich Ambition Quotient over simple ranking** | Legacy algorithm used 9 questions (importance/anxiety/motivation per domain) + 3 tie-breakers. Simple 1-2-3 ranking lacked psychological depth. Adaptive design skips irrelevant domains. | Jan 17, 2026 |
 | **Always render Phase A (hidden when profile exists)** | Fixes bug where "Change" button did nothing. Elements must exist in DOM for JS handlers to work. | Jan 17, 2026 |
+| **Coupled sliders use ORIGINAL proportions** | When one slider moves, redistribute delta among others using ORIGINAL algorithm proportions, not current amounts. Preserves algorithm's intelligence. | Jan 17, 2026 |
+| **Zero vehicles can re-enter at original proportion** | When user sets vehicle to $0, it's effectively "paused". Moving it up re-enters it with its original algorithm-calculated proportion. | Jan 17, 2026 |
+| **Locked vehicles excluded from redistribution** | Locked sliders don't participate in coupled adjustment. Remaining unlocked vehicles' proportions are renormalized. | Jan 17, 2026 |
+| **Store IRS limits separately from effective limits** | IRS limits are static per vehicle. Effective limits = min(IRS limit, budget). When budget changes, recalculate effective limits and update slider max values. | Jan 17, 2026 |
 
 ### Design Patterns Established
 1. **Single-page calculator** - Same as Tool 4, not multi-phase like Tools 1-3
@@ -422,42 +427,58 @@ This startup doc serves as persistent memory across sessions. **Always update th
 When ending a session, update this section:
 
 ### Last Session Summary
-- **Date:** January 16, 2026
+- **Date:** January 17, 2026
 - **What was done:**
-  - ✅ **COMPLETED: Phase 4 - Vehicle Allocation Engine (All Sprints)**
-  - **Sprint 4.1: getEligibleVehicles(profile, inputs)**
-    - Determines which vehicles are available based on profile, HSA eligibility, employer plans, income
-    - Handles Roth IRA income phase-out (partial and full) with Backdoor Roth substitution
-    - Calculates monthly limits with age-based catch-ups (50+ for retirement, 55+ for HSA)
-    - SECURE 2.0 super catch-up for ages 60-63 ($11,250 for 401k)
-  - **Sprint 4.2: getVehiclePriorityOrder(profileId, eligibleVehicles, taxPreference)**
-    - Uses `VEHICLE_PRIORITY_BY_PROFILE` constant
-    - Filters to only eligible vehicles
-    - Dynamic insertion of Education vehicles (529, Coverdell) and Backdoor Roth IRA
-    - Tax strategy reordering: `prioritizeRothAccounts()` and `prioritizeTraditionalAccounts()`
-  - **Sprint 4.3: coreAllocate() - Waterfall Allocation Engine**
-    - Domain budgets from Ambition Quotient weights
-    - Leftover cascade: Education → Health → Retirement → Family Bank
-    - Cross-domain vehicle tracking with cumulative allocations
-    - Shared limit enforcement (401k Trad + Roth, IRA Trad + Roth) - bidirectional
-    - Non-discretionary seeds: employer match, ROBS distributions, DB plan minimums
-  - **Sprint 4.4: Tax Strategy Reordering (included in 4.2)**
-    - Now = Roth priority, Later = Traditional priority, Both = profile default
-    - HSA stays high priority regardless (triple tax advantage)
-  - **Sprint 4.5: validateAllocations()**
-    - Individual vehicle limit checks
-    - Shared limit validation (401k, IRA)
-    - Returns warnings array with detailed messages
-  - **Post-Implementation Fixes:**
-    - Renamed "Taxable Brokerage" to "Family Bank" (whole life policies for tax-free borrowing)
-    - Removed SEP-IRA from Profile 4 (Solo 401k Optimizer uses Solo 401k instead)
-    - Fixed bidirectional shared limit checking
-    - Fixed Backdoor Roth insertion (before IRA Traditional, not after)
-- **Current state:** Phase 4 COMPLETE. Full allocation engine implemented and tested.
-- **Next task:** Phase 5 (Calculator UI) - Sprint 5.1: Current State Inputs
-- **Blockers:** None
+  - ✅ **COMPLETED: Phase 5 - Calculator UI (All Sprints + Bonus Sprint 5.7)**
+  - **Sprint 5.1: Current State Inputs**
+    - Total balances display (401k, IRA, HSA, Education)
+    - Current monthly contributions breakdown
+    - Recommended budget from Tool 4 displayed
+  - **Sprint 5.2: Investment Score Display**
+    - Interactive 1-7 score selector buttons
+    - Pulls default from Tool 4 data
+    - Shows return rate labels (4%-16%)
+  - **Sprint 5.3: Tax Strategy Toggle**
+    - Three-way radio: Traditional-Heavy / Balanced / Roth-Heavy
+    - Auto-recommendation based on income and age
+  - **Sprint 5.4: Employer Match Display**
+    - Shows calculated match as "free money"
+    - Conditional display (only when match > 0)
+  - **Sprint 5.5: Vehicle Sliders**
+    - Interactive range sliders for eligible vehicles
+    - Real-time amount/percentage updates
+    - Domain icons and Roth/Traditional color coding
+    - IRS limit indicators per vehicle
+  - **Sprint 5.6: Calculate Button & Recalc**
+    - Recalculate button with dirty state indicator
+    - GAS-compliant navigation (document.write pattern)
+    - `getTool6Page()` global wrapper for page refresh
+  - **Sprint 5.7: Coupled Slider Behavior (Post-Spec Addition)**
+    - When one slider moves, others adjust proportionally
+    - Uses ORIGINAL algorithm proportions for redistribution
+    - When vehicle at $0, it re-enters with original proportion when moved up
+    - Lock/unlock buttons for each vehicle
+    - Locked vehicles excluded from redistribution
+    - Editable monthly budget field with slider limit recalculation
+    - "Reset to Recommended" button restores original algorithm output
+  - **Bug Fixes Applied:**
+    - Fixed Infinity in slider max attribute
+    - Fixed CSS selector breaking with 401(k) parentheses (use safe ID)
+    - Fixed slider fill percentage calculation
+    - Replaced forbidden `location.reload()` with `document.write()` pattern
+    - Added proper escaping for vehicle names in JS handlers
+    - Fixed slider fill not tracking slider position (selector was matching input not row)
+    - Fixed budget change not updating slider limits (store IRS limits separately)
+- **Current state:** Phase 5 COMPLETE. Full Calculator UI with coupled sliders working.
+- **Next task:** Phase 6 (Projections) - Sprint 6.1: Projections Calculation
+- **Blockers:** None - testing in progress
 
-### Previous Session (January 17, 2026)
+### Previous Session (January 16, 2026)
+- ✅ Phase 4 Complete - Vehicle Allocation Engine
+- `getEligibleVehicles()`, `getVehiclePriorityOrder()`, `coreAllocate()`, `validateAllocations()`
+- Waterfall allocation, shared limits, non-discretionary seeds
+
+### Earlier Session (January 17, 2026 AM)
 - ✅ Phase 3 Complete - Three-Phase Questionnaire with Ambition Quotient
 - Added `AMBITION_QUESTIONS`, `computeDomainsAndWeights()`, Phase C UI
 - Added `a2b_taxPreference` to Phase B for all profiles
@@ -534,65 +555,71 @@ The `docs/Middleware/middleware-mapping.md` document is the **canonical referenc
 
 ### Notes for Next Session
 
-**Three-Phase Questionnaire Implementation Complete**
+**Phase 5: Calculator UI Complete with Coupled Sliders**
 
-The questionnaire now works in three phases:
+## Coupled Slider Architecture
 
-## Phase A: Classification (Short-Circuit Decision Tree)
-Ask questions in decision tree order. **Stop as soon as profile is determined.**
-- Max 4 questions (most users answer 2-3)
-- Profiles 6 and 9 determined by DERIVED values from Tools 1-5
+The sliders in "Your Recommended Allocation" section behave like Tool 4's bucket sliders - they're coupled so adjusting one redistributes among others.
 
-## Phase B: Allocation Inputs (Profile-Specific)
-After profile is assigned, ask ONLY relevant questions:
-- Income & Timeline: grossIncome, yearsToRetirement, **taxPreference** (all profiles)
-- Employer Plans: conditional on profile (skip for ROBS/Solo)
-- HSA: hsaEligible
-- Education: hasChildren, numChildren, yearsToEducation
-- Current Balances & Contributions: conditional visibility
-
-## Phase C: Ambition Quotient (Adaptive)
-Psychological assessment that adapts based on Phase B answers:
-
-| Domain | Condition | Questions |
-|--------|-----------|-----------|
-| Retirement | Always | importance, anxiety, motivation (1-7 scales) |
-| Education | hasChildren = Yes | importance, anxiety, motivation (1-7 scales) |
-| Health | hsaEligible = Yes | importance, anxiety, motivation (1-7 scales) |
-| Tie-breaker | All 3 domains active | "If you could only fund ONE..." |
-
-**Algorithm (computeDomainsAndWeights):**
+### State Object
 ```javascript
-// For each active domain:
-importance = (score - 1) / 6;  // Normalize 1-7 to 0-1
-urgency = 1 / Math.pow(1 + 0.005, months);  // Time discount
-rawWeight = (importance + urgency) / 2;
-// Then normalize all weights to sum to 1.0
+var allocationState = {
+  vehicles: {},           // Current allocation amounts by vehicle
+  originalAllocation: {}, // Original algorithm output (for proportions)
+  limits: {},             // Effective max limits (min of IRS and budget)
+  irsLimits: {},          // True IRS limits (never change)
+  locked: {},             // Which vehicles are locked
+  budget: 0,              // Total monthly budget
+  originalBudget: 0       // Original budget from Tool 4
+};
 ```
 
-## Question Count Comparison
+### Key Functions
 
-| Scenario | Old Approach | New Approach |
-|----------|--------------|--------------|
-| ROBS, no kids, no HSA | 31 questions | ~10 questions |
-| Solo 401k, has kids | 31 questions | ~16 questions |
-| Standard W-2, all domains | 31 questions | ~22 questions |
+| Function | Purpose |
+|----------|---------|
+| `initAllocationState()` | Initialize state from DOM on page load |
+| `adjustVehicleAllocation(name, value)` | Coupled adjustment using original proportions |
+| `getOriginalProportions(excludeId)` | Get renormalized proportions for unlocked vehicles |
+| `toggleVehicleLock(id)` | Lock/unlock a vehicle from redistribution |
+| `updateBudget(newBudget)` | Recalculate limits and scale allocations |
+| `resetToRecommended()` | Restore original algorithm output |
+| `updateSliderFills()` | Refresh fill bars after limit changes |
 
-## Key Decisions This Session
+### Redistribution Logic
 
-| Decision | Rationale |
-|----------|-----------|
-| Replace 1-2-3 ranking with 1-7 scales | Legacy algorithm used importance/anxiety/motivation - provides richer insight |
-| Tax preference asked for ALL profiles | Affects every allocation calculation (Roth vs Traditional) |
-| Adaptive Phase C | Skip irrelevant domains entirely - reduces question fatigue |
-| Always render Phase A | Fixes "Change" button bug when profile already saved |
+When slider X changes from `oldValue` to `newValue`:
+1. Calculate `delta = newValue - oldValue`
+2. Get original proportions for unlocked vehicles (excluding X)
+3. Renormalize proportions to sum to 1.0
+4. Distribute `-delta` among other vehicles by proportion
+5. Clamp each vehicle to [0, effective limit]
+6. Update all displays
 
-## Next Steps: Phase 4 - Vehicle Allocation
+### HTML Data Attributes
 
-**Sprint 4.1: Vehicle Eligibility**
-- Create `getEligibleVehicles(profile, inputs)`
-- Check each vehicle against eligibility criteria
-- Return list with monthly limits
+Each slider row has:
+- `data-vehicle-id` - Safe alphanumeric ID
+- `data-vehicle-name` - Original name with special chars
+- `data-irs-limit` - True IRS monthly limit (999999 for unlimited)
+
+Each slider input has:
+- `data-vehicle-id` - Safe ID for JS lookup
+- `data-irs-limit` - True IRS limit
+- `max` - Effective max (min of IRS and budget)
+
+## Next Steps: Phase 6 - Projections
+
+**Sprint 6.1: Projections Calculation**
+- `calculateProjections(allocation, years, rate)`
+- Future value for each vehicle
+- Tax-free vs taxable breakdown
+- Education domain projections
+
+**Sprint 6.2: Projections Display**
+- Balance at retirement
+- Tax-advantaged vs taxable comparison
+- Per-vehicle growth chart (optional)
 
 ---
 
