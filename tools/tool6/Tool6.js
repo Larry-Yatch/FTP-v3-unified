@@ -3725,20 +3725,27 @@ const Tool6 = {
 
     // Initialize state from DOM on page load
     function initAllocationState() {
-      var budgetEl = document.querySelector('.budget-amount');
-      if (budgetEl) {
-        allocationState.budget = parseInt(budgetEl.textContent.replace(/[^0-9]/g, '')) || 0;
+      // Get budget from input field
+      var budgetInput = document.getElementById('budgetInput');
+      if (budgetInput) {
+        allocationState.budget = parseFloat(budgetInput.value) || 0;
         allocationState.originalBudget = allocationState.budget;
       }
 
-      document.querySelectorAll('.vehicle-slider').forEach(function(slider) {
+      // Initialize each vehicle from slider values
+      var sliders = document.querySelectorAll('.vehicle-slider');
+      sliders.forEach(function(slider) {
         var vehicleId = slider.dataset.vehicleId;
-        var value = parseFloat(slider.value) || 0;
-        allocationState.vehicles[vehicleId] = value;
-        allocationState.originalAllocation[vehicleId] = value; // Store original
-        allocationState.limits[vehicleId] = parseFloat(slider.max) || allocationState.budget;
-        allocationState.locked[vehicleId] = false;
+        if (vehicleId) {
+          var value = parseFloat(slider.value) || 0;
+          allocationState.vehicles[vehicleId] = value;
+          allocationState.originalAllocation[vehicleId] = value; // Store original
+          allocationState.limits[vehicleId] = parseFloat(slider.max) || allocationState.budget;
+          allocationState.locked[vehicleId] = false;
+        }
       });
+
+      console.log('initAllocationState called:', allocationState);
     }
 
     // Get original proportions for unlocked vehicles (renormalized)
@@ -3866,9 +3873,9 @@ const Tool6 = {
 
     // Update budget display
     function updateBudgetDisplay() {
-      var budgetEl = document.querySelector('.budget-amount');
-      if (budgetEl) {
-        budgetEl.textContent = '$' + allocationState.budget.toLocaleString();
+      var budgetInput = document.getElementById('budgetInput');
+      if (budgetInput) {
+        budgetInput.value = allocationState.budget;
       }
     }
 
@@ -3908,6 +3915,25 @@ const Tool6 = {
       var vehicleId = vehicleName.replace(/[^a-zA-Z0-9]/g, '_');
       newValue = parseFloat(newValue);
 
+      // Ensure state is initialized (safety check)
+      if (Object.keys(allocationState.vehicles).length === 0) {
+        console.log('State not initialized, calling initAllocationState');
+        initAllocationState();
+      }
+
+      // If still no state for this vehicle, something is wrong
+      if (allocationState.vehicles[vehicleId] === undefined) {
+        console.error('Vehicle not in state:', vehicleId, allocationState);
+        // Initialize just this vehicle from the slider
+        var slider = document.getElementById('slider_' + vehicleId);
+        if (slider) {
+          allocationState.vehicles[vehicleId] = parseFloat(slider.value) || 0;
+          allocationState.originalAllocation[vehicleId] = allocationState.vehicles[vehicleId];
+          allocationState.limits[vehicleId] = parseFloat(slider.max) || allocationState.budget;
+          allocationState.locked[vehicleId] = false;
+        }
+      }
+
       // Clamp to vehicle limit
       var maxLimit = allocationState.limits[vehicleId] || allocationState.budget;
       newValue = Math.min(newValue, maxLimit);
@@ -3915,6 +3941,8 @@ const Tool6 = {
 
       var oldValue = allocationState.vehicles[vehicleId] || 0;
       var delta = newValue - oldValue;
+
+      console.log('adjustVehicleAllocation:', vehicleId, 'old:', oldValue, 'new:', newValue, 'delta:', delta);
 
       // Update the adjusted vehicle
       allocationState.vehicles[vehicleId] = newValue;
