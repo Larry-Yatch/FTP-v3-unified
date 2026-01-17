@@ -3882,7 +3882,7 @@ const Tool6 = {
     // Sprint 5.5: Update single vehicle display
     function updateSingleVehicleDisplay(vehicleId, value) {
       var amountEl = document.getElementById('amount_' + vehicleId);
-      var sliderRow = document.querySelector('[data-vehicle-id="' + vehicleId + '"]');
+      var sliderRow = document.querySelector('.vehicle-slider-row[data-vehicle-id="' + vehicleId + '"]');
       var slider = document.getElementById('slider_' + vehicleId);
 
       if (amountEl) {
@@ -3896,14 +3896,22 @@ const Tool6 = {
       if (sliderRow) {
         var fill = sliderRow.querySelector('.slider-fill');
         if (fill && slider) {
-          var maxVal = parseFloat(slider.max) || 1;
+          var maxVal = parseFloat(slider.max);
+          // Protect against 0, NaN, or Infinity
+          if (!maxVal || !isFinite(maxVal) || maxVal <= 0) {
+            maxVal = allocationState.budget || 1;
+          }
           var percentage = (value / maxVal) * 100;
           fill.style.width = Math.min(percentage, 100) + '%';
         }
 
         var percentEl = sliderRow.querySelector('.amount-percent');
         if (percentEl) {
-          var maxVal = parseFloat(slider.max) || 1;
+          var maxVal = parseFloat(slider.max);
+          // Protect against 0, NaN, or Infinity
+          if (!maxVal || !isFinite(maxVal) || maxVal <= 0) {
+            maxVal = allocationState.budget || 1;
+          }
           var percent = Math.round((value / maxVal) * 100);
           percentEl.textContent = percent + '%';
         }
@@ -4203,8 +4211,13 @@ const Tool6 = {
         var container = slider.closest('.slider-container');
         var fill = container ? container.querySelector('.slider-fill') : null;
         if (fill) {
-          var percentage = (slider.value / slider.max) * 100;
-          fill.style.width = percentage + '%';
+          var maxVal = parseFloat(slider.max);
+          // Protect against 0, NaN, or Infinity
+          if (!maxVal || !isFinite(maxVal) || maxVal <= 0) {
+            maxVal = allocationState.budget || parseFloat(slider.value) || 1;
+          }
+          var percentage = (parseFloat(slider.value) / maxVal) * 100;
+          fill.style.width = Math.min(percentage, 100) + '%';
         }
       });
     });
