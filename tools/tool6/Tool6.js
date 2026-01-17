@@ -2677,31 +2677,80 @@ const Tool6 = {
 
     .slider-container {
       position: relative;
-      height: 8px;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 4px;
-      overflow: hidden;
+      height: 24px;
+      display: flex;
+      align-items: center;
     }
 
     .vehicle-slider {
-      position: absolute;
-      top: 0;
-      left: 0;
+      -webkit-appearance: none;
+      appearance: none;
       width: 100%;
-      height: 100%;
-      opacity: 0;
+      height: 8px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+      outline: none;
       cursor: pointer;
+      position: relative;
       z-index: 2;
     }
 
+    /* Slider track - WebKit (Chrome, Safari) */
+    .vehicle-slider::-webkit-slider-runnable-track {
+      width: 100%;
+      height: 8px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+    }
+
+    /* Slider thumb - WebKit */
+    .vehicle-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      background: var(--color-primary, #4f46e5);
+      border-radius: 50%;
+      cursor: pointer;
+      margin-top: -5px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+      transition: transform 0.1s ease;
+    }
+
+    .vehicle-slider::-webkit-slider-thumb:hover {
+      transform: scale(1.1);
+    }
+
+    /* Slider track - Firefox */
+    .vehicle-slider::-moz-range-track {
+      width: 100%;
+      height: 8px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+    }
+
+    /* Slider thumb - Firefox */
+    .vehicle-slider::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      background: var(--color-primary, #4f46e5);
+      border-radius: 50%;
+      cursor: pointer;
+      border: none;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    }
+
+    /* Slider fill - sits behind the actual slider */
     .slider-fill {
       position: absolute;
-      top: 0;
+      top: 50%;
       left: 0;
-      height: 100%;
-      background: linear-gradient(90deg, var(--color-primary), #818cf8);
+      transform: translateY(-50%);
+      height: 8px;
+      background: linear-gradient(90deg, var(--color-primary, #4f46e5), #818cf8);
       border-radius: 4px;
-      transition: width 0.1s ease;
+      pointer-events: none;
+      z-index: 1;
     }
 
     .vehicle-amount-display {
