@@ -2075,14 +2075,43 @@ const Tool6 = {
       // Store IRS limit for budget recalculation (use large number for Infinity)
       const irsLimitForData = monthlyLimit === Infinity ? 999999 : monthlyLimit;
 
+      // Get vehicle description for display
+      const vehicleDescriptions = {
+        '401k_employee_roth': 'Tax-free growth, pay taxes now on contributions',
+        '401k_employee_trad': 'Tax-deferred growth, pay taxes in retirement',
+        '401k_employer': 'Free money from your employer - maximize this first!',
+        'ira_roth': 'Tax-free withdrawals in retirement',
+        'ira_trad': 'Tax deduction now, taxed in retirement',
+        'hsa': 'Triple tax advantage for medical expenses',
+        'brokerage': 'Flexible access, taxed on gains',
+        '529': 'Tax-free growth for education expenses',
+        'solo_401k_employee_roth': 'Self-employed Roth contributions',
+        'solo_401k_employee_trad': 'Self-employed Traditional contributions',
+        'solo_401k_employer': 'Self-employed profit sharing contributions',
+        'robs': 'Use retirement funds to fund your business'
+      };
+      const description = vehicleDescriptions[vehicle.id] || '';
+
       html += `
         <div class="vehicle-slider-row ${vehicleClass}" data-vehicle-id="${safeId}" data-vehicle-name="${vehicleName}" data-domain="${domain}" data-irs-limit="${irsLimitForData}">
-          <div class="vehicle-info">
-            <span class="vehicle-icon">${domainIcon}</span>
-            <span class="vehicle-name">${vehicleName}</span>
-            <span class="vehicle-limit">${annualLimit}</span>
+          <div class="vehicle-slider-header">
+            <div class="vehicle-slider-title">
+              <span class="vehicle-icon">${domainIcon}</span>
+              <span class="vehicle-name">${vehicleName}</span>
+              <span class="vehicle-limit">${annualLimit}</span>
+            </div>
+            <div class="vehicle-slider-value">
+              <span class="amount-value" id="amount_${safeId}">$${amount.toLocaleString()}</span>
+              <span class="amount-percent" id="percent_${safeId}">(${percentage}%)</span>
+              <button type="button"
+                      class="lock-btn"
+                      id="lock_${safeId}"
+                      onclick="toggleVehicleLock('${safeId}')"
+                      title="Lock this vehicle">🔓</button>
+            </div>
           </div>
-          <div class="slider-container">
+          <div class="slider-track-container">
+            <div class="slider-fill" id="fill_${safeId}" style="width: ${percentage}%"></div>
             <input type="range"
                    class="vehicle-slider"
                    id="slider_${safeId}"
@@ -2094,17 +2123,8 @@ const Tool6 = {
                    data-irs-limit="${irsLimitForData}"
                    onchange="updateVehicleAllocation('${escapedName}', this.value)"
                    oninput="updateVehicleDisplay('${escapedName}', this.value)">
-            <div class="slider-fill" style="width: ${percentage}%"></div>
           </div>
-          <div class="vehicle-amount-display">
-            <span class="amount-value" id="amount_${safeId}">$${amount.toLocaleString()}</span>
-            <span class="amount-percent">${percentage}%</span>
-          </div>
-          <button type="button"
-                  class="lock-btn"
-                  id="lock_${safeId}"
-                  onclick="toggleVehicleLock('${safeId}')"
-                  title="Lock this vehicle">🔓</button>
+          ${description ? `<div class="vehicle-description">${description}</div>` : ''}
         </div>
       `;
     }
@@ -2519,34 +2539,70 @@ const Tool6 = {
       font-size: 1.1rem;
     }
 
+    /* Gold Pill Buttons - matches Tool 4 style */
     .btn-primary {
-      background: var(--color-primary);
-      color: white;
+      background: var(--gold, #ffc107);
+      color: #140f23;
       border: none;
       padding: 12px 24px;
-      border-radius: 8px;
-      font-size: 1rem;
+      border-radius: 50px;
+      font-size: 0.95rem;
+      font-weight: 700;
       cursor: pointer;
-      transition: background 0.2s;
+      transition: transform 0.2s, box-shadow 0.2s;
     }
 
     .btn-primary:hover {
-      background: var(--color-primary-dark);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 15px rgba(255, 193, 7, 0.3);
     }
 
     .btn-primary:disabled {
-      background: rgba(79, 70, 229, 0.3);
+      opacity: 0.5;
       cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
     }
 
     .btn-secondary {
-      background: transparent;
-      color: var(--color-primary);
-      border: 1px solid var(--color-primary);
+      background: var(--gold, #ffc107);
+      color: #140f23;
+      border: none;
       padding: 10px 20px;
-      border-radius: 8px;
+      border-radius: 50px;
       font-size: 0.95rem;
+      font-weight: 700;
       cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .btn-secondary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 15px rgba(255, 193, 7, 0.3);
+    }
+
+    .btn-secondary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* Navigation button - gold pill */
+    .btn-nav {
+      background: var(--gold, #ffc107);
+      color: #140f23;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 50px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .btn-nav:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 15px rgba(255, 193, 7, 0.3);
     }
 
     .form-group {
@@ -3022,24 +3078,6 @@ const Tool6 = {
       color: #f59e0b;
     }
 
-    /* Phase transition button styling */
-    .btn-secondary {
-      background: transparent;
-      border: 2px solid var(--color-primary);
-      color: var(--color-primary);
-      padding: 12px 32px;
-      border-radius: 8px;
-      font-size: 1rem;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-
-    .btn-secondary:hover {
-      background: var(--color-primary);
-      color: white;
-    }
-
     /* ================================================================
        PHASE 5: CALCULATOR UI STYLES
        ================================================================ */
@@ -3353,86 +3391,102 @@ const Tool6 = {
       color: var(--color-text-muted);
     }
 
-    /* Reset Button */
+    /* Reset Button - Tool 4 gold pill style */
     .btn-reset {
-      padding: 6px 12px;
+      padding: 8px 16px;
       font-size: 0.85rem;
-      color: var(--color-text-secondary);
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 6px;
+      color: #140f23;
+      background: var(--gold, #ffc107);
+      border: none;
+      border-radius: 50px;
+      font-weight: 600;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: transform 0.2s, box-shadow 0.2s;
       margin-left: auto;
     }
 
     .btn-reset:hover {
-      background: rgba(255, 255, 255, 0.2);
-      color: var(--color-text-primary);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
     }
 
-    /* Lock Button */
+    /* Lock Button - Tool 4 style */
     .lock-btn {
-      width: 36px;
-      height: 36px;
-      padding: 0;
-      font-size: 1.1rem;
       background: transparent;
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      color: rgba(255, 255, 255, 0.6);
+      padding: 8px 16px;
       border-radius: 6px;
+      font-size: 1.2rem;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: all 0.2s;
+      min-width: 70px;
       display: flex;
       align-items: center;
       justify-content: center;
     }
 
     .lock-btn:hover {
-      background: rgba(255, 255, 255, 0.1);
-      border-color: rgba(255, 255, 255, 0.3);
+      border-color: rgba(255, 255, 255, 0.4);
+      color: rgba(255, 255, 255, 0.8);
     }
 
     .lock-btn.locked {
-      background: rgba(239, 68, 68, 0.2);
-      border-color: rgba(239, 68, 68, 0.5);
+      background: rgba(255, 193, 7, 0.2);
+      border-color: #ffc107;
+      color: #ffc107;
     }
 
     .vehicle-sliders {
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 16px;
     }
 
+    /* Vehicle Slider Container - Tool 4 bucket-slider-container style */
     .vehicle-slider-row {
-      display: grid;
-      grid-template-columns: 220px 1fr 120px 40px;
-      gap: 16px;
-      align-items: center;
-      padding: 14px 16px;
-      background: rgba(255, 255, 255, 0.02);
-      border-radius: 8px;
-      transition: background 0.2s ease, opacity 0.2s ease;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 10px;
+      padding: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      transition: all 0.2s ease;
     }
 
     .vehicle-slider-row:hover {
       background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.15);
     }
 
     .vehicle-slider-row.roth-vehicle {
-      border-left: 3px solid #22c55e;
+      border-left: 4px solid #22c55e;
     }
 
     .vehicle-slider-row.trad-vehicle {
-      border-left: 3px solid #3b82f6;
+      border-left: 4px solid #3b82f6;
     }
 
     .vehicle-slider-row.locked {
-      opacity: 0.7;
       background: rgba(255, 255, 255, 0.01);
+      border-color: rgba(255, 193, 7, 0.3);
     }
 
     .vehicle-slider-row.locked .vehicle-slider {
       cursor: not-allowed;
+      opacity: 0.5;
+    }
+
+    /* Vehicle Slider Header - Tool 4 bucket-slider-header style */
+    .vehicle-slider-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+
+    .vehicle-slider-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
 
     .vehicle-info {
@@ -3442,21 +3496,54 @@ const Tool6 = {
     }
 
     .vehicle-icon {
-      font-size: 1.2rem;
+      font-size: 1.3rem;
     }
 
     .vehicle-name {
-      font-weight: 500;
+      font-size: 1.1rem;
+      font-weight: 600;
       color: var(--color-text-primary);
-      font-size: 0.95rem;
     }
 
     .vehicle-limit {
-      font-size: 0.75rem;
+      font-size: 0.8rem;
       color: var(--color-text-muted);
       background: rgba(255, 255, 255, 0.1);
-      padding: 2px 6px;
+      padding: 3px 8px;
       border-radius: 4px;
+    }
+
+    /* Vehicle Value Display - Tool 4 bucket-slider-value style */
+    .vehicle-slider-value {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .amount-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--color-primary);
+    }
+
+    .amount-value.locked {
+      color: #ffc107;
+    }
+
+    .amount-dollar {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #ffc107;
+      opacity: 0.8;
+    }
+
+    /* Slider Track Container */
+    .slider-track-container {
+      position: relative;
+      height: 10px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 5px;
+      margin-bottom: 10px;
     }
 
     .slider-container {
@@ -3470,33 +3557,39 @@ const Tool6 = {
       -webkit-appearance: none;
       appearance: none;
       width: 100%;
-      height: 8px;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 4px;
+      height: 10px;
+      background: transparent;
+      border-radius: 5px;
       outline: none;
       cursor: pointer;
       position: relative;
       z-index: 2;
     }
 
+    .vehicle-slider:disabled {
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+
     /* Slider track - WebKit (Chrome, Safari) */
     .vehicle-slider::-webkit-slider-runnable-track {
       width: 100%;
-      height: 8px;
+      height: 10px;
       background: rgba(255, 255, 255, 0.1);
-      border-radius: 4px;
+      border-radius: 5px;
     }
 
-    /* Slider thumb - WebKit */
+    /* Slider thumb - WebKit - Tool 4 size */
     .vehicle-slider::-webkit-slider-thumb {
       -webkit-appearance: none;
       appearance: none;
-      width: 18px;
-      height: 18px;
+      width: 24px;
+      height: 24px;
       background: var(--color-primary, #4f46e5);
+      border: 3px solid rgba(0, 0, 0, 0.3);
       border-radius: 50%;
       cursor: pointer;
-      margin-top: -5px;
+      margin-top: -7px;
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
       transition: transform 0.1s ease;
     }
@@ -3505,36 +3598,60 @@ const Tool6 = {
       transform: scale(1.1);
     }
 
+    /* Locked slider thumb - gold color */
+    .vehicle-slider.locked::-webkit-slider-thumb {
+      background: #ffc107;
+    }
+
     /* Slider track - Firefox */
     .vehicle-slider::-moz-range-track {
       width: 100%;
-      height: 8px;
+      height: 10px;
       background: rgba(255, 255, 255, 0.1);
-      border-radius: 4px;
+      border-radius: 5px;
     }
 
-    /* Slider thumb - Firefox */
+    /* Slider thumb - Firefox - Tool 4 size */
     .vehicle-slider::-moz-range-thumb {
-      width: 18px;
-      height: 18px;
+      width: 24px;
+      height: 24px;
       background: var(--color-primary, #4f46e5);
+      border: 3px solid rgba(0, 0, 0, 0.3);
       border-radius: 50%;
       cursor: pointer;
-      border: none;
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
     }
 
-    /* Slider fill - sits behind the actual slider */
+    /* Locked slider thumb - Firefox */
+    .vehicle-slider.locked::-moz-range-thumb {
+      background: #ffc107;
+    }
+
+    /* Slider fill - Tool 4 gradient style */
     .slider-fill {
       position: absolute;
       top: 50%;
       left: 0;
       transform: translateY(-50%);
-      height: 8px;
-      background: linear-gradient(90deg, var(--color-primary, #4f46e5), #818cf8);
-      border-radius: 4px;
+      height: 10px;
+      background: linear-gradient(90deg, #4f46e5, #7c3aed);
+      border-radius: 5px;
       pointer-events: none;
       z-index: 1;
+      transition: width 0.15s ease-out;
+    }
+
+    /* Locked slider fill - gold gradient */
+    .slider-fill.locked {
+      background: linear-gradient(90deg, #f59e0b, #ffc107);
+    }
+
+    /* Vehicle Description - Tool 4 bucket-description style */
+    .vehicle-description {
+      font-size: 0.95rem;
+      color: var(--color-text-secondary);
+      margin-top: 8px;
+      font-style: italic;
     }
 
     .vehicle-amount-display {
@@ -3544,15 +3661,8 @@ const Tool6 = {
       gap: 2px;
     }
 
-    .amount-value {
-      font-size: 1rem;
-      font-weight: 600;
-      color: var(--color-text-primary);
-      font-family: monospace;
-    }
-
     .amount-percent {
-      font-size: 0.8rem;
+      font-size: 0.85rem;
       color: var(--color-text-muted);
     }
 
@@ -3591,34 +3701,53 @@ const Tool6 = {
       font-size: 1.2rem;
     }
 
-    /* Calculate Button */
+    /* Calculator Controls - Tool 4 style */
     .calc-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
       margin-top: 24px;
-      text-align: center;
+      flex-wrap: wrap;
     }
 
     .btn-recalc {
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      padding: 14px 32px;
-      background: var(--color-primary);
-      color: white;
+      padding: 12px 24px;
+      background: var(--gold, #ffc107);
+      color: #140f23;
       border: none;
-      border-radius: 8px;
-      font-size: 1rem;
-      font-weight: 600;
+      border-radius: 50px;
+      font-size: 0.95rem;
+      font-weight: 700;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: transform 0.2s, box-shadow 0.2s;
     }
 
     .btn-recalc:hover {
-      background: var(--color-primary-dark, #4338ca);
       transform: translateY(-2px);
+      box-shadow: 0 6px 15px rgba(255, 193, 7, 0.3);
     }
 
     .btn-icon {
       font-size: 1.1rem;
+    }
+
+    /* Interactive Calculator Wrapper - Tool 4 style */
+    .interactive-calculator {
+      margin-top: 30px;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 12px;
+      padding: 25px;
+    }
+
+    .calculator-controls-row {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 25px;
+      flex-wrap: wrap;
     }
 
     /* ============================================
@@ -4110,39 +4239,51 @@ const Tool6 = {
       gap: 8px;
     }
 
+    /* Scenario Buttons - Tool 4 gold pill style */
     .scenario-btn {
-      padding: 8px 12px;
+      padding: 8px 16px;
       font-size: 0.85rem;
-      font-weight: 500;
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      border-radius: 6px;
-      background: transparent;
-      color: var(--color-text-secondary);
+      font-weight: 600;
+      border: none;
+      border-radius: 50px;
+      background: var(--gold, #ffc107);
+      color: #140f23;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: transform 0.2s, box-shadow 0.2s;
     }
 
     .scenario-btn:hover {
-      background: rgba(255, 255, 255, 0.1);
-      border-color: rgba(255, 255, 255, 0.25);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
+    }
+
+    .scenario-btn.load-btn {
+      background: var(--gold, #ffc107);
+      color: #140f23;
     }
 
     .scenario-btn.load-btn:hover {
-      background: rgba(79, 70, 229, 0.2);
-      border-color: rgba(79, 70, 229, 0.4);
-      color: #a5b4fc;
+      box-shadow: 0 4px 12px rgba(255, 193, 7, 0.4);
+    }
+
+    .scenario-btn.delete-btn {
+      background: rgba(239, 68, 68, 0.8);
+      color: white;
     }
 
     .scenario-btn.delete-btn:hover {
-      background: rgba(239, 68, 68, 0.2);
-      border-color: rgba(239, 68, 68, 0.4);
-      color: #f87171;
+      background: #ef4444;
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+    }
+
+    .scenario-btn.pdf-btn {
+      background: rgba(79, 70, 229, 0.8);
+      color: white;
     }
 
     .scenario-btn.pdf-btn:hover {
-      background: rgba(196, 160, 82, 0.2);
-      border-color: rgba(196, 160, 82, 0.4);
-      color: #c4a052;
+      background: #4f46e5;
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
     }
 
     .empty-scenarios {
@@ -5361,14 +5502,37 @@ const Tool6 = {
     function updateSliderState(vehicleId) {
       var slider = document.getElementById('slider_' + vehicleId);
       var row = document.querySelector('[data-vehicle-id="' + vehicleId + '"]');
+      var fill = document.getElementById('fill_' + vehicleId);
+      var amountValue = document.getElementById('amount_' + vehicleId);
+      var isLocked = allocationState.locked[vehicleId];
+
       if (slider) {
-        slider.disabled = allocationState.locked[vehicleId];
+        slider.disabled = isLocked;
+        if (isLocked) {
+          slider.classList.add('locked');
+        } else {
+          slider.classList.remove('locked');
+        }
       }
       if (row) {
-        if (allocationState.locked[vehicleId]) {
+        if (isLocked) {
           row.classList.add('locked');
         } else {
           row.classList.remove('locked');
+        }
+      }
+      if (fill) {
+        if (isLocked) {
+          fill.classList.add('locked');
+        } else {
+          fill.classList.remove('locked');
+        }
+      }
+      if (amountValue) {
+        if (isLocked) {
+          amountValue.classList.add('locked');
+        } else {
+          amountValue.classList.remove('locked');
         }
       }
     }
@@ -5415,8 +5579,13 @@ const Tool6 = {
     // Update all slider fills after budget/limit change
     function updateSliderFills() {
       document.querySelectorAll('.vehicle-slider').forEach(function(slider) {
-        var container = slider.closest('.slider-container');
-        var fill = container ? container.querySelector('.slider-fill') : null;
+        var vehicleId = slider.dataset.vehicleId;
+        var fill = document.getElementById('fill_' + vehicleId);
+        if (!fill) {
+          // Fallback to old structure
+          var container = slider.closest('.slider-track-container') || slider.closest('.slider-container');
+          fill = container ? container.querySelector('.slider-fill') : null;
+        }
         if (fill) {
           var maxVal = parseFloat(slider.max);
           if (!maxVal || !isFinite(maxVal) || maxVal <= 0) {
@@ -5425,7 +5594,7 @@ const Tool6 = {
           var value = parseFloat(slider.value);
           // Calculate fill width accounting for thumb width
           var rawPercent = (value / maxVal) * 100;
-          var thumbHalfWidth = 9;
+          var thumbHalfWidth = 12; // Updated for larger Tool 4 thumb
           var sliderWidth = slider.offsetWidth || 200;
           var trackWidth = sliderWidth - (thumbHalfWidth * 2);
           var thumbPosition = thumbHalfWidth + (rawPercent / 100) * trackWidth;
@@ -5457,37 +5626,41 @@ const Tool6 = {
         slider.value = value;
       }
 
-      if (sliderRow) {
-        var fill = sliderRow.querySelector('.slider-fill');
-        if (fill && slider) {
-          var maxVal = parseFloat(slider.max);
-          // Protect against 0, NaN, or Infinity
-          if (!maxVal || !isFinite(maxVal) || maxVal <= 0) {
-            maxVal = allocationState.budget || 1;
-          }
-          // Calculate fill width accounting for thumb width
-          // The thumb is 18px wide, so the track effectively starts at 9px and ends 9px before the end
-          var rawPercent = (value / maxVal) * 100;
-          // Adjust for thumb: at 0% the center is at 9px, at 100% the center is at (width - 9px)
-          // This creates a linear interpolation that accounts for the thumb
-          var thumbHalfWidth = 9; // 18px thumb / 2
-          var sliderWidth = slider.offsetWidth || 200; // fallback width
-          var trackWidth = sliderWidth - (thumbHalfWidth * 2);
-          var thumbPosition = thumbHalfWidth + (rawPercent / 100) * trackWidth;
-          var fillPercent = (thumbPosition / sliderWidth) * 100;
-          fill.style.width = Math.min(fillPercent, 100) + '%';
+      // Update slider fill - try ID first, then fallback to querySelector
+      var fill = document.getElementById('fill_' + vehicleId);
+      if (!fill && sliderRow) {
+        fill = sliderRow.querySelector('.slider-fill');
+      }
+      if (fill && slider) {
+        var maxVal = parseFloat(slider.max);
+        // Protect against 0, NaN, or Infinity
+        if (!maxVal || !isFinite(maxVal) || maxVal <= 0) {
+          maxVal = allocationState.budget || 1;
         }
+        // Calculate fill width accounting for thumb width
+        // The thumb is 24px wide (Tool 4 style), so the track effectively starts at 12px and ends 12px before the end
+        var rawPercent = (value / maxVal) * 100;
+        var thumbHalfWidth = 12; // 24px thumb / 2
+        var sliderWidth = slider.offsetWidth || 200; // fallback width
+        var trackWidth = sliderWidth - (thumbHalfWidth * 2);
+        var thumbPosition = thumbHalfWidth + (rawPercent / 100) * trackWidth;
+        var fillPercent = (thumbPosition / sliderWidth) * 100;
+        fill.style.width = Math.min(fillPercent, 100) + '%';
+      }
 
-        var percentEl = sliderRow.querySelector('.amount-percent');
-        if (percentEl) {
-          var maxVal = parseFloat(slider.max);
-          // Protect against 0, NaN, or Infinity
-          if (!maxVal || !isFinite(maxVal) || maxVal <= 0) {
-            maxVal = allocationState.budget || 1;
-          }
-          var percent = Math.round((value / maxVal) * 100);
-          percentEl.textContent = percent + '%';
+      // Update percentage display - try ID first, then fallback
+      var percentEl = document.getElementById('percent_' + vehicleId);
+      if (!percentEl && sliderRow) {
+        percentEl = sliderRow.querySelector('.amount-percent');
+      }
+      if (percentEl && slider) {
+        var maxVal = parseFloat(slider.max);
+        // Protect against 0, NaN, or Infinity
+        if (!maxVal || !isFinite(maxVal) || maxVal <= 0) {
+          maxVal = allocationState.budget || 1;
         }
+        var percent = Math.round((value / maxVal) * 100);
+        percentEl.textContent = '(' + percent + '%)';
       }
     }
 
