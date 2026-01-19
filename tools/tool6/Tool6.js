@@ -3538,13 +3538,13 @@ const Tool6 = {
       opacity: 0.8;
     }
 
-    /* Slider Track Container */
+    /* Slider Track Container - contains both slider and fill */
     .slider-track-container {
       position: relative;
-      height: 10px;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 5px;
-      margin-bottom: 10px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      margin-bottom: 5px;
     }
 
     .slider-container {
@@ -3559,7 +3559,7 @@ const Tool6 = {
       appearance: none;
       width: 100%;
       height: 10px;
-      background: transparent;
+      background: rgba(255, 255, 255, 0.1);
       border-radius: 5px;
       outline: none;
       cursor: pointer;
@@ -3640,6 +3640,16 @@ const Tool6 = {
       pointer-events: none;
       z-index: 1;
       transition: width 0.15s ease-out;
+    }
+
+    /* Position slider input over the fill */
+    .slider-track-container .vehicle-slider {
+      position: absolute;
+      top: 50%;
+      left: 0;
+      right: 0;
+      transform: translateY(-50%);
+      margin: 0;
     }
 
     /* Locked slider fill - gold gradient */
