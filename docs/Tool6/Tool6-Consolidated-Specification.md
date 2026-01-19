@@ -1,7 +1,7 @@
 # Tool 6: Retirement Blueprint Calculator - Consolidated Specification
 
-> **Version:** 1.9
-> **Date:** January 17, 2026
+> **Version:** 2.0
+> **Date:** January 19, 2026
 > **Status:** Approved for Implementation
 > **Consolidates:** Tool-6-Design-Spec.md + Tool6-Technical-Specification.md + Legacy Tool 6
 
@@ -9,6 +9,7 @@
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 2.0 | Jan 19, 2026 | **UI Polish - Tool 4 Styling Alignment:** Applied consistent styling across Tool 6 to match Tool 4. Gold pill buttons, card-style slider containers, larger slider thumbs (24px), gradient fills, lock buttons with text ("Locked/Unlocked"), vehicle descriptions with tax treatment explanations. Removed conflicting CSS definitions. |
 | 1.9 | Jan 17, 2026 | **Education Vehicle Choice:** Added Q11 `a11_educationVehicle` allowing user to choose between 529 Plan, Coverdell ESA, or Both. Dynamic Coverdell limit = $2,000 × numChildren per year. Priority order: Coverdell fills first when "Both" selected. Help text explains trade-offs (529: no income limit, college focus; Coverdell: $2k/child, K-12 flexible, income phase-out). |
 | 1.8 | Jan 17, 2026 | **Phase 5 Complete - Calculator UI with Coupled Sliders:** Added Sprint 5.7 for coupled slider behavior. Sliders use ORIGINAL algorithm proportions for redistribution (preserves algorithm intelligence). Lock/unlock buttons exclude vehicles from redistribution. Editable budget field recalculates effective limits (min of IRS limit and budget). Reset to Recommended button restores original output. IRS limits stored separately in data attributes for dynamic limit recalculation. |
 | 1.7 | Jan 17, 2026 | **Ambition Quotient Enhancement:** Replaced simple 1-2-3 priority ranking with rich psychological assessment (9 questions: importance/anxiety/motivation on 1-7 scales per domain + tie-breaker). Added Phase C to questionnaire flow. Made tax preference question (`a2b_taxPreference`) required for ALL profiles in Phase B. Added `computeDomainsAndWeights()` function aligned with legacy algorithm. Adaptive design: only asks about active domains (Retirement always, Education if hasChildren, Health if hsaEligible). |
@@ -102,7 +103,7 @@ Following the proven Tool 4 and Tool 8 patterns:
 2. **Slider Adjustments** → Real-time recalculation (client-side JS)
 3. **Scenario Save** → Persists to TOOL6_SCENARIOS sheet
 
-### UI Style Requirements (Tool 4 Alignment)
+### UI Style Requirements (Tool 4 Alignment) ✅ IMPLEMENTED
 
 **IMPORTANT:** Tool 6 must follow Tool 4's established UI patterns for consistency across the application. Reference `tools/tool4/Tool4.js` for implementation details.
 
@@ -110,7 +111,15 @@ Following the proven Tool 4 and Tool 8 patterns:
 
 | Element | Class | Key Styles |
 |---------|-------|------------|
-| Submit Button | `.submit-btn` | Gold background (`var(--gold, #ffc107)`), dark text, 50px border-radius, hover transform |
+| Primary Button | `.btn-primary` | Gold background (`var(--gold)`), dark text (#140f23), 50px border-radius, hover translateY(-2px) with gold shadow |
+| Secondary Button | `.btn-secondary` | Gold background, 50px border-radius, font-weight: 700, hover transform |
+| Slider Container | `.vehicle-slider-row` | Card-style: padding 20px, border-radius 10px, background rgba(255,255,255,0.03) |
+| Slider Header | `.vehicle-slider-header` | Flex row: title (name + value) on left, lock button on right |
+| Slider Track | `.slider-track` | 10px height, rgba(255,255,255,0.1) background, border-radius 5px |
+| Slider Fill | `.slider-fill` | Gradient: linear-gradient(90deg, #4f46e5, #7c3aed), gold when locked |
+| Slider Input | `.vehicle-slider` | Transparent background, 24px thumb with 3px border |
+| Lock Button | `.lock-btn` | Padding 8px 16px, min-width 80px, gold when locked, shows text "🔒 Locked" / "🔓 Unlocked" |
+| Vehicle Description | `.vehicle-description` | Italic text explaining tax treatment |
 | Form Inputs | `.form-input` | `background: rgba(0, 0, 0, 0.3)`, white text, 8px border-radius |
 | Loading Overlay | `.loading-overlay` | Fixed position, `rgba(0,0,0,0.8)` background, uses `.show` class toggle |
 | Error Message | `.error-message` | Red border/background, uses `.show` class toggle (not inline style) |
