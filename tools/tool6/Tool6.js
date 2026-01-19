@@ -2075,22 +2075,23 @@ const Tool6 = {
       // Store IRS limit for budget recalculation (use large number for Infinity)
       const irsLimitForData = monthlyLimit === Infinity ? 999999 : monthlyLimit;
 
-      // Get vehicle description for display
+      // Get vehicle description for display (keyed by safeId pattern)
       const vehicleDescriptions = {
-        '401k_employee_roth': 'Tax-free growth, pay taxes now on contributions',
-        '401k_employee_trad': 'Tax-deferred growth, pay taxes in retirement',
-        '401k_employer': 'Free money from your employer - maximize this first!',
-        'ira_roth': 'Tax-free withdrawals in retirement',
-        'ira_trad': 'Tax deduction now, taxed in retirement',
-        'hsa': 'Triple tax advantage for medical expenses',
-        'brokerage': 'Flexible access, taxed on gains',
-        '529': 'Tax-free growth for education expenses',
-        'solo_401k_employee_roth': 'Self-employed Roth contributions',
-        'solo_401k_employee_trad': 'Self-employed Traditional contributions',
-        'solo_401k_employer': 'Self-employed profit sharing contributions',
-        'robs': 'Use retirement funds to fund your business'
+        '401_k__Employee__Roth_': 'Tax-free growth, pay taxes now on contributions',
+        '401_k__Employee__Traditional_': 'Tax-deferred growth, pay taxes in retirement',
+        '401_k__Employer_Match': 'Free money from your employer - maximize this first!',
+        'Roth_IRA': 'Tax-free withdrawals in retirement',
+        'Traditional_IRA': 'Tax deduction now, taxed in retirement',
+        'HSA': 'Triple tax advantage for medical expenses',
+        'Taxable_Brokerage': 'Flexible access, taxed on gains',
+        '529_Plan': 'Tax-free growth for education expenses',
+        'Solo_401_k__Employee__Roth_': 'Self-employed Roth contributions',
+        'Solo_401_k__Employee__Traditional_': 'Self-employed Traditional contributions',
+        'Solo_401_k__Employer': 'Self-employed profit sharing contributions',
+        'ROBS': 'Use retirement funds to fund your business',
+        'Family_Bank': 'Build generational wealth through family lending'
       };
-      const description = vehicleDescriptions[vehicle.id] || '';
+      const description = vehicleDescriptions[safeId] || '';
 
       html += `
         <div class="vehicle-slider-row ${vehicleClass}" data-vehicle-id="${safeId}" data-vehicle-name="${vehicleName}" data-domain="${domain}" data-irs-limit="${irsLimitForData}">
