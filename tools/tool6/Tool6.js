@@ -2063,6 +2063,25 @@ const Tool6 = {
       };
       const domainIcon = domainIcons[domain] || '💰';
 
+      // Vehicle descriptions for each vehicle type
+      const vehicleDescriptions = {
+        'Employer Match': 'Free money from your employer - always maximize this first',
+        '401(k) Traditional': 'Pre-tax contributions reduce taxable income now, taxed in retirement',
+        '401(k) Roth': 'After-tax contributions grow tax-free, tax-free withdrawals in retirement',
+        'Solo 401(k) Employee Traditional': 'Pre-tax employee contributions for self-employed',
+        'Solo 401(k) Employee Roth': 'After-tax employee contributions for self-employed',
+        'Solo 401(k) Employer': 'Employer profit-sharing contributions (up to 25% of compensation)',
+        'HSA': 'Triple tax advantage - deductible, grows tax-free, tax-free for medical',
+        'Roth IRA': 'Tax-free growth and withdrawals, income limits apply',
+        'Traditional IRA': 'Tax-deductible contributions, taxed in retirement',
+        'Backdoor Roth': 'Roth IRA access for high earners via conversion strategy',
+        '529 Plan': 'Tax-free growth for qualified education expenses',
+        'Family Bank': 'Taxable brokerage account for flexible long-term investing',
+        'SEP IRA': 'Simplified pension for self-employed, employer contributions only',
+        'SIMPLE IRA': 'Retirement plan for small businesses with employer match'
+      };
+      const vehicleDescription = vehicleDescriptions[vehicleName] || 'Tax-advantaged retirement savings';
+
       // Determine if this is a Roth or Traditional vehicle for styling
       const isRoth = vehicleName.includes('Roth');
       const isTrad = vehicleName.includes('Traditional');
@@ -2077,34 +2096,36 @@ const Tool6 = {
 
       html += `
         <div class="vehicle-slider-row ${vehicleClass}" data-vehicle-id="${safeId}" data-vehicle-name="${vehicleName}" data-domain="${domain}" data-irs-limit="${irsLimitForData}">
-          <div class="vehicle-info">
-            <span class="vehicle-icon">${domainIcon}</span>
-            <span class="vehicle-name">${vehicleName}</span>
-            <span class="vehicle-limit">${annualLimit}</span>
+          <div class="vehicle-slider-header">
+            <div class="vehicle-slider-title">
+              <span class="vehicle-slider-name">${domainIcon} ${vehicleName}</span>
+              <span class="vehicle-slider-value">
+                <span id="amount_${safeId}">$${amount.toLocaleString()}</span>
+                <span class="dollar-amount" id="percent_${safeId}">(${percentage}%)</span>
+              </span>
+            </div>
+            <button type="button"
+                    class="lock-btn"
+                    id="lock_${safeId}"
+                    onclick="toggleVehicleLock('${safeId}')"
+                    title="Lock this vehicle">🔓 Unlocked</button>
           </div>
-          <div class="slider-container">
-            <input type="range"
-                   class="vehicle-slider"
-                   id="slider_${safeId}"
-                   min="0"
-                   max="${effectiveMax}"
-                   value="${amount}"
-                   step="10"
-                   data-vehicle-id="${safeId}"
-                   data-irs-limit="${irsLimitForData}"
-                   onchange="updateVehicleAllocation('${escapedName}', this.value)"
-                   oninput="updateVehicleDisplay('${escapedName}', this.value)">
-            <div class="slider-fill" style="width: ${percentage}%"></div>
+          <div class="slider-track">
+            <div class="slider-fill" id="fill_${safeId}" style="width: ${percentage}%"></div>
           </div>
-          <div class="vehicle-amount-display">
-            <span class="amount-value" id="amount_${safeId}">$${amount.toLocaleString()}</span>
-            <span class="amount-percent">${percentage}%</span>
-          </div>
-          <button type="button"
-                  class="lock-btn"
-                  id="lock_${safeId}"
-                  onclick="toggleVehicleLock('${safeId}')"
-                  title="Lock this vehicle">🔓</button>
+          <input type="range"
+                 class="vehicle-slider"
+                 id="slider_${safeId}"
+                 min="0"
+                 max="${effectiveMax}"
+                 value="${amount}"
+                 step="10"
+                 data-vehicle-id="${safeId}"
+                 data-irs-limit="${irsLimitForData}"
+                 onchange="updateVehicleAllocation('${escapedName}', this.value)"
+                 oninput="updateVehicleDisplay('${escapedName}', this.value)">
+          <div class="vehicle-description">${vehicleDescription}</div>
+          <div class="vehicle-limit-info">${annualLimit}</div>
         </div>
       `;
     }
@@ -2501,18 +2522,7 @@ const Tool6 = {
       font-weight: normal;
     }
 
-    .vehicle-slider-row {
-      display: grid;
-      grid-template-columns: 200px 1fr 100px;
-      gap: 16px;
-      align-items: center;
-      padding: 12px 0;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    .vehicle-name {
-      font-weight: 500;
-    }
+    /* Old vehicle-slider-row grid removed - now using card style in Phase 5 section */
 
     .vehicle-amount {
       font-family: monospace;
@@ -2520,33 +2530,48 @@ const Tool6 = {
     }
 
     .btn-primary {
-      background: var(--color-primary);
-      color: white;
+      background: var(--gold);
+      color: #140f23;
       border: none;
       padding: 12px 24px;
-      border-radius: 8px;
-      font-size: 1rem;
+      border-radius: 50px;
+      font-size: 0.95rem;
+      font-weight: 700;
       cursor: pointer;
-      transition: background 0.2s;
+      transition: all 0.2s;
     }
 
     .btn-primary:hover {
-      background: var(--color-primary-dark);
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(255, 193, 7, 0.3);
     }
 
     .btn-primary:disabled {
-      background: rgba(79, 70, 229, 0.3);
+      opacity: 0.5;
       cursor: not-allowed;
+      transform: none;
     }
 
     .btn-secondary {
-      background: transparent;
-      color: var(--color-primary);
-      border: 1px solid var(--color-primary);
+      background: var(--gold);
+      color: #140f23;
+      border: none;
       padding: 10px 20px;
-      border-radius: 8px;
+      border-radius: 50px;
       font-size: 0.95rem;
+      font-weight: 700;
       cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-secondary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 15px rgba(255, 193, 7, 0.3);
+    }
+
+    .btn-secondary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
     }
 
     .form-group {
@@ -3022,24 +3047,6 @@ const Tool6 = {
       color: #f59e0b;
     }
 
-    /* Phase transition button styling */
-    .btn-secondary {
-      background: transparent;
-      border: 2px solid var(--color-primary);
-      color: var(--color-primary);
-      padding: 12px 32px;
-      border-radius: 8px;
-      font-size: 1rem;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-
-    .btn-secondary:hover {
-      background: var(--color-primary);
-      color: white;
-    }
-
     /* ================================================================
        PHASE 5: CALCULATOR UI STYLES
        ================================================================ */
@@ -3371,47 +3378,44 @@ const Tool6 = {
       color: var(--color-text-primary);
     }
 
-    /* Lock Button */
+    /* Lock Button - Tool 4 style */
     .lock-btn {
-      width: 36px;
-      height: 36px;
-      padding: 0;
-      font-size: 1.1rem;
       background: transparent;
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      color: rgba(255, 255, 255, 0.6);
+      padding: 8px 16px;
       border-radius: 6px;
+      font-size: 1.2rem;
       cursor: pointer;
-      transition: all 0.2s ease;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      transition: all 0.2s;
+      min-width: 80px;
     }
 
     .lock-btn:hover {
-      background: rgba(255, 255, 255, 0.1);
-      border-color: rgba(255, 255, 255, 0.3);
+      border-color: rgba(255, 255, 255, 0.4);
+      color: rgba(255, 255, 255, 0.8);
     }
 
     .lock-btn.locked {
-      background: rgba(239, 68, 68, 0.2);
-      border-color: rgba(239, 68, 68, 0.5);
+      background: rgba(255, 193, 7, 0.2);
+      border-color: #ffc107;
+      color: #ffc107;
     }
 
     .vehicle-sliders {
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 15px;
     }
 
+    /* Vehicle slider container - Tool 4 card style */
     .vehicle-slider-row {
-      display: grid;
-      grid-template-columns: 220px 1fr 120px 40px;
-      gap: 16px;
-      align-items: center;
-      padding: 14px 16px;
-      background: rgba(255, 255, 255, 0.02);
-      border-radius: 8px;
-      transition: background 0.2s ease, opacity 0.2s ease;
+      margin-bottom: 10px;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 10px;
+      padding: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      transition: background 0.2s ease, border-color 0.2s ease;
     }
 
     .vehicle-slider-row:hover {
@@ -3427,12 +3431,49 @@ const Tool6 = {
     }
 
     .vehicle-slider-row.locked {
-      opacity: 0.7;
       background: rgba(255, 255, 255, 0.01);
+      border-color: rgba(255, 193, 7, 0.3);
     }
 
     .vehicle-slider-row.locked .vehicle-slider {
       cursor: not-allowed;
+      opacity: 0.5;
+    }
+
+    /* Vehicle slider header - Tool 4 style */
+    .vehicle-slider-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+
+    .vehicle-slider-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .vehicle-slider-name {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--color-text-primary);
+    }
+
+    .vehicle-slider-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--color-primary);
+    }
+
+    .vehicle-slider-value .dollar-amount {
+      color: #ffc107;
+      margin-left: 8px;
+      font-size: 1em;
+    }
+
+    .vehicle-slider-row.locked .vehicle-slider-value {
+      color: #ffc107;
     }
 
     .vehicle-info {
@@ -3446,9 +3487,9 @@ const Tool6 = {
     }
 
     .vehicle-name {
-      font-weight: 500;
+      font-weight: 600;
       color: var(--color-text-primary);
-      font-size: 0.95rem;
+      font-size: 1.1rem;
     }
 
     .vehicle-limit {
@@ -3459,82 +3500,95 @@ const Tool6 = {
       border-radius: 4px;
     }
 
-    .slider-container {
+    /* Slider track - visual fill bar */
+    .slider-track {
       position: relative;
-      height: 24px;
-      display: flex;
-      align-items: center;
+      height: 10px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 5px;
+      margin-bottom: 10px;
     }
 
+    .slider-fill {
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 100%;
+      background: linear-gradient(90deg, #4f46e5, #7c3aed);
+      border-radius: 5px;
+      transition: width 0.15s ease-out;
+    }
+
+    .slider-fill.locked {
+      background: linear-gradient(90deg, #f59e0b, #ffc107);
+    }
+
+    /* Range input - Tool 4 style (exact copy) */
     .vehicle-slider {
+      width: 100%;
       -webkit-appearance: none;
       appearance: none;
-      width: 100%;
-      height: 8px;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 4px;
+      height: 10px;
+      background: transparent;
       outline: none;
-      cursor: pointer;
       position: relative;
       z-index: 2;
+      cursor: pointer;
     }
 
-    /* Slider track - WebKit (Chrome, Safari) */
-    .vehicle-slider::-webkit-slider-runnable-track {
-      width: 100%;
-      height: 8px;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 4px;
+    .vehicle-slider:disabled {
+      cursor: not-allowed;
+      opacity: 0.5;
     }
 
-    /* Slider thumb - WebKit */
+    /* Slider thumb - WebKit - Tool 4 style (no margin-top) */
     .vehicle-slider::-webkit-slider-thumb {
       -webkit-appearance: none;
       appearance: none;
-      width: 18px;
-      height: 18px;
-      background: var(--color-primary, #4f46e5);
+      width: 24px;
+      height: 24px;
+      background: var(--color-primary);
+      border: 3px solid rgba(0, 0, 0, 0.3);
       border-radius: 50%;
       cursor: pointer;
-      margin-top: -5px;
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
-      transition: transform 0.1s ease;
     }
 
-    .vehicle-slider::-webkit-slider-thumb:hover {
-      transform: scale(1.1);
+    .vehicle-slider.locked::-webkit-slider-thumb {
+      background: #ffc107;
     }
 
-    /* Slider track - Firefox */
-    .vehicle-slider::-moz-range-track {
-      width: 100%;
-      height: 8px;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 4px;
-    }
-
-    /* Slider thumb - Firefox */
+    /* Slider thumb - Firefox - Tool 4 style */
     .vehicle-slider::-moz-range-thumb {
-      width: 18px;
-      height: 18px;
-      background: var(--color-primary, #4f46e5);
+      width: 24px;
+      height: 24px;
+      background: var(--color-primary);
+      border: 3px solid rgba(0, 0, 0, 0.3);
       border-radius: 50%;
       cursor: pointer;
-      border: none;
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
     }
 
-    /* Slider fill - sits behind the actual slider */
-    .slider-fill {
-      position: absolute;
-      top: 50%;
-      left: 0;
-      transform: translateY(-50%);
-      height: 8px;
-      background: linear-gradient(90deg, var(--color-primary, #4f46e5), #818cf8);
+    .vehicle-slider.locked::-moz-range-thumb {
+      background: #ffc107;
+    }
+
+    /* Vehicle description - Tool 4 style */
+    .vehicle-description {
+      font-size: 0.95rem;
+      color: var(--color-text-secondary);
+      margin-top: 5px;
+      font-style: italic;
+    }
+
+    .vehicle-limit-info {
+      font-size: 0.8rem;
+      color: var(--color-text-muted);
+      margin-top: 8px;
+      padding: 4px 8px;
+      background: rgba(255, 255, 255, 0.05);
       border-radius: 4px;
-      pointer-events: none;
-      z-index: 1;
+      display: inline-block;
     }
 
     .vehicle-amount-display {
@@ -3545,14 +3599,13 @@ const Tool6 = {
     }
 
     .amount-value {
-      font-size: 1rem;
-      font-weight: 600;
-      color: var(--color-text-primary);
-      font-family: monospace;
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--color-primary);
     }
 
     .amount-percent {
-      font-size: 0.8rem;
+      font-size: 0.9rem;
       color: var(--color-text-muted);
     }
 
@@ -4373,18 +4426,17 @@ const Tool6 = {
     /* Responsive adjustments */
     @media (max-width: 768px) {
       .vehicle-slider-row {
-        grid-template-columns: 1fr;
-        gap: 12px;
+        padding: 15px;
       }
 
-      .vehicle-info {
-        justify-content: space-between;
+      .vehicle-slider-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
       }
 
-      .vehicle-amount-display {
-        flex-direction: row;
-        justify-content: space-between;
-        align-items: center;
+      .lock-btn {
+        align-self: flex-end;
       }
 
       .allocation-summary {
@@ -5333,18 +5385,38 @@ const Tool6 = {
       updateSliderState(vehicleId);
     }
 
-    // Update lock button display
+    // Update lock button display - Tool 4 style with text
     function updateLockButton(vehicleId) {
       var btn = document.getElementById('lock_' + vehicleId);
+      var slider = document.getElementById('slider_' + vehicleId);
+      var fill = document.getElementById('fill_' + vehicleId);
+
       if (btn) {
         if (allocationState.locked[vehicleId]) {
-          btn.textContent = '🔒';
+          btn.textContent = '🔒 Locked';
           btn.title = 'Unlock this vehicle';
           btn.classList.add('locked');
         } else {
-          btn.textContent = '🔓';
+          btn.textContent = '🔓 Unlocked';
           btn.title = 'Lock this vehicle';
           btn.classList.remove('locked');
+        }
+      }
+
+      // Update slider and fill locked class for styling
+      if (slider) {
+        if (allocationState.locked[vehicleId]) {
+          slider.classList.add('locked');
+        } else {
+          slider.classList.remove('locked');
+        }
+      }
+
+      if (fill) {
+        if (allocationState.locked[vehicleId]) {
+          fill.classList.add('locked');
+        } else {
+          fill.classList.remove('locked');
         }
       }
     }
@@ -5446,6 +5518,8 @@ const Tool6 = {
     // Sprint 5.5: Update single vehicle display
     function updateSingleVehicleDisplay(vehicleId, value) {
       var amountEl = document.getElementById('amount_' + vehicleId);
+      var percentEl = document.getElementById('percent_' + vehicleId);
+      var fillEl = document.getElementById('fill_' + vehicleId);
       var sliderRow = document.querySelector('.vehicle-slider-row[data-vehicle-id="' + vehicleId + '"]');
       var slider = document.getElementById('slider_' + vehicleId);
 
@@ -5457,36 +5531,36 @@ const Tool6 = {
         slider.value = value;
       }
 
-      if (sliderRow) {
-        var fill = sliderRow.querySelector('.slider-fill');
-        if (fill && slider) {
-          var maxVal = parseFloat(slider.max);
-          // Protect against 0, NaN, or Infinity
-          if (!maxVal || !isFinite(maxVal) || maxVal <= 0) {
-            maxVal = allocationState.budget || 1;
-          }
-          // Calculate fill width accounting for thumb width
-          // The thumb is 18px wide, so the track effectively starts at 9px and ends 9px before the end
-          var rawPercent = (value / maxVal) * 100;
-          // Adjust for thumb: at 0% the center is at 9px, at 100% the center is at (width - 9px)
-          // This creates a linear interpolation that accounts for the thumb
-          var thumbHalfWidth = 9; // 18px thumb / 2
-          var sliderWidth = slider.offsetWidth || 200; // fallback width
-          var trackWidth = sliderWidth - (thumbHalfWidth * 2);
-          var thumbPosition = thumbHalfWidth + (rawPercent / 100) * trackWidth;
-          var fillPercent = (thumbPosition / sliderWidth) * 100;
-          fill.style.width = Math.min(fillPercent, 100) + '%';
-        }
+      // Calculate percentage
+      var maxVal = slider ? parseFloat(slider.max) : allocationState.budget;
+      if (!maxVal || !isFinite(maxVal) || maxVal <= 0) {
+        maxVal = allocationState.budget || 1;
+      }
+      var percent = Math.round((value / maxVal) * 100);
 
-        var percentEl = sliderRow.querySelector('.amount-percent');
-        if (percentEl) {
-          var maxVal = parseFloat(slider.max);
-          // Protect against 0, NaN, or Infinity
-          if (!maxVal || !isFinite(maxVal) || maxVal <= 0) {
-            maxVal = allocationState.budget || 1;
+      // Update percent display (new Tool 4 style)
+      if (percentEl) {
+        percentEl.textContent = '(' + percent + '%)';
+      }
+
+      // Update fill bar (new Tool 4 style - simpler percentage-based fill)
+      if (fillEl) {
+        fillEl.style.width = Math.min(percent, 100) + '%';
+      }
+
+      // Fallback: Try old class-based selectors
+      if (sliderRow) {
+        if (!fillEl) {
+          var fill = sliderRow.querySelector('.slider-fill');
+          if (fill) {
+            fill.style.width = Math.min(percent, 100) + '%';
           }
-          var percent = Math.round((value / maxVal) * 100);
-          percentEl.textContent = percent + '%';
+        }
+        if (!percentEl) {
+          var oldPercentEl = sliderRow.querySelector('.amount-percent');
+          if (oldPercentEl) {
+            oldPercentEl.textContent = percent + '%';
+          }
         }
       }
     }
