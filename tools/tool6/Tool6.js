@@ -2111,20 +2111,20 @@ const Tool6 = {
                       title="Lock this vehicle">🔓</button>
             </div>
           </div>
-          <div class="slider-track-container">
+          <div class="slider-track">
             <div class="slider-fill" id="fill_${safeId}" style="width: ${percentage}%"></div>
-            <input type="range"
-                   class="vehicle-slider"
-                   id="slider_${safeId}"
-                   min="0"
-                   max="${effectiveMax}"
-                   value="${amount}"
-                   step="10"
-                   data-vehicle-id="${safeId}"
-                   data-irs-limit="${irsLimitForData}"
-                   onchange="updateVehicleAllocation('${escapedName}', this.value)"
-                   oninput="updateVehicleDisplay('${escapedName}', this.value)">
           </div>
+          <input type="range"
+                 class="vehicle-slider"
+                 id="slider_${safeId}"
+                 min="0"
+                 max="${effectiveMax}"
+                 value="${amount}"
+                 step="10"
+                 data-vehicle-id="${safeId}"
+                 data-irs-limit="${irsLimitForData}"
+                 onchange="updateVehicleAllocation('${escapedName}', this.value)"
+                 oninput="updateVehicleDisplay('${escapedName}', this.value)">
           ${description ? `<div class="vehicle-description">${description}</div>` : ''}
         </div>
       `;
@@ -3538,13 +3538,13 @@ const Tool6 = {
       opacity: 0.8;
     }
 
-    /* Slider Track Container - contains both slider and fill */
-    .slider-track-container {
+    /* Slider Track - visual fill bar (Tool 4 style) */
+    .slider-track {
       position: relative;
-      height: 24px;
-      display: flex;
-      align-items: center;
-      margin-bottom: 5px;
+      height: 10px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 5px;
+      margin-bottom: 10px;
     }
 
     .slider-container {
@@ -3554,13 +3554,13 @@ const Tool6 = {
       align-items: center;
     }
 
+    /* Slider input - sits below the track (Tool 4 style) */
     .vehicle-slider {
+      width: 100%;
       -webkit-appearance: none;
       appearance: none;
-      width: 100%;
       height: 10px;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 5px;
+      background: transparent;
       outline: none;
       cursor: pointer;
       position: relative;
@@ -3631,25 +3631,12 @@ const Tool6 = {
     /* Slider fill - Tool 4 gradient style */
     .slider-fill {
       position: absolute;
-      top: 50%;
       left: 0;
-      transform: translateY(-50%);
-      height: 10px;
+      top: 0;
+      height: 100%;
       background: linear-gradient(90deg, #4f46e5, #7c3aed);
       border-radius: 5px;
-      pointer-events: none;
-      z-index: 1;
       transition: width 0.15s ease-out;
-    }
-
-    /* Position slider input over the fill */
-    .slider-track-container .vehicle-slider {
-      position: absolute;
-      top: 50%;
-      left: 0;
-      right: 0;
-      transform: translateY(-50%);
-      margin: 0;
     }
 
     /* Locked slider fill - gold gradient */
@@ -5592,25 +5579,14 @@ const Tool6 = {
       document.querySelectorAll('.vehicle-slider').forEach(function(slider) {
         var vehicleId = slider.dataset.vehicleId;
         var fill = document.getElementById('fill_' + vehicleId);
-        if (!fill) {
-          // Fallback to old structure
-          var container = slider.closest('.slider-track-container') || slider.closest('.slider-container');
-          fill = container ? container.querySelector('.slider-fill') : null;
-        }
         if (fill) {
           var maxVal = parseFloat(slider.max);
           if (!maxVal || !isFinite(maxVal) || maxVal <= 0) {
             maxVal = allocationState.budget || 1;
           }
           var value = parseFloat(slider.value);
-          // Calculate fill width accounting for thumb width
-          var rawPercent = (value / maxVal) * 100;
-          var thumbHalfWidth = 12; // Updated for larger Tool 4 thumb
-          var sliderWidth = slider.offsetWidth || 200;
-          var trackWidth = sliderWidth - (thumbHalfWidth * 2);
-          var thumbPosition = thumbHalfWidth + (rawPercent / 100) * trackWidth;
-          var fillPercent = (thumbPosition / sliderWidth) * 100;
-          fill.style.width = Math.min(fillPercent, 100) + '%';
+          var percent = (value / maxVal) * 100;
+          fill.style.width = Math.min(percent, 100) + '%';
         }
       });
     }
@@ -5637,26 +5613,16 @@ const Tool6 = {
         slider.value = value;
       }
 
-      // Update slider fill - try ID first, then fallback to querySelector
+      // Update slider fill
       var fill = document.getElementById('fill_' + vehicleId);
-      if (!fill && sliderRow) {
-        fill = sliderRow.querySelector('.slider-fill');
-      }
       if (fill && slider) {
         var maxVal = parseFloat(slider.max);
         // Protect against 0, NaN, or Infinity
         if (!maxVal || !isFinite(maxVal) || maxVal <= 0) {
           maxVal = allocationState.budget || 1;
         }
-        // Calculate fill width accounting for thumb width
-        // The thumb is 24px wide (Tool 4 style), so the track effectively starts at 12px and ends 12px before the end
-        var rawPercent = (value / maxVal) * 100;
-        var thumbHalfWidth = 12; // 24px thumb / 2
-        var sliderWidth = slider.offsetWidth || 200; // fallback width
-        var trackWidth = sliderWidth - (thumbHalfWidth * 2);
-        var thumbPosition = thumbHalfWidth + (rawPercent / 100) * trackWidth;
-        var fillPercent = (thumbPosition / sliderWidth) * 100;
-        fill.style.width = Math.min(fillPercent, 100) + '%';
+        var percent = (value / maxVal) * 100;
+        fill.style.width = Math.min(percent, 100) + '%';
       }
 
       // Update percentage display - try ID first, then fallback
