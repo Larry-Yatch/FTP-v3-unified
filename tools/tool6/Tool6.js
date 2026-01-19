@@ -4056,6 +4056,219 @@ const Tool6 = {
       opacity: 0.5;
     }
 
+    /* Sprint 7.3: Scenario Comparison Styles */
+    .scenario-comparison-section {
+      margin-top: 24px;
+      padding-top: 24px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .comparison-dropdowns {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin: 16px 0;
+      flex-wrap: wrap;
+    }
+
+    .comparison-select-group {
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .comparison-select-group label {
+      display: block;
+      font-size: 0.85rem;
+      color: var(--color-text-muted);
+      margin-bottom: 6px;
+    }
+
+    .comparison-select-group select {
+      width: 100%;
+    }
+
+    .comparison-vs {
+      font-weight: 700;
+      color: var(--color-text-muted);
+      padding: 0 8px;
+    }
+
+    .comparison-results {
+      margin-top: 20px;
+    }
+
+    .comparison-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+      margin-bottom: 20px;
+    }
+
+    .comparison-table th,
+    .comparison-table td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .comparison-table th {
+      background: rgba(79, 70, 229, 0.15);
+      color: var(--color-text-primary);
+      font-weight: 600;
+    }
+
+    .comparison-table td {
+      color: var(--color-text-secondary);
+    }
+
+    .comparison-table td.metric-label {
+      color: var(--color-text-primary);
+      font-weight: 500;
+    }
+
+    .comparison-table td.value-a,
+    .comparison-table td.value-b {
+      text-align: center;
+    }
+
+    .comparison-table td.diff-cell {
+      text-align: center;
+      font-weight: 600;
+    }
+
+    .comparison-table td.diff-cell.better-a {
+      color: #34d399;
+      background: rgba(16, 185, 129, 0.1);
+    }
+
+    .comparison-table td.diff-cell.better-b {
+      color: #60a5fa;
+      background: rgba(96, 165, 250, 0.1);
+    }
+
+    .comparison-table td.diff-cell.neutral {
+      color: var(--color-text-muted);
+    }
+
+    .comparison-winner {
+      margin-top: 20px;
+      padding: 16px;
+      background: rgba(79, 70, 229, 0.1);
+      border: 1px solid rgba(79, 70, 229, 0.3);
+      border-radius: 8px;
+    }
+
+    .comparison-winner h5 {
+      margin: 0 0 8px 0;
+      color: var(--color-text-primary);
+    }
+
+    .comparison-winner p {
+      margin: 0;
+      color: var(--color-text-secondary);
+      font-size: 0.9rem;
+    }
+
+    .comparison-section-header td {
+      background: rgba(79, 70, 229, 0.1) !important;
+      color: var(--color-text-primary) !important;
+      font-weight: 600 !important;
+      font-size: 0.95rem;
+      padding: 10px 12px !important;
+      border-top: 2px solid rgba(79, 70, 229, 0.3);
+    }
+
+    .comparison-section {
+      margin-bottom: 24px;
+    }
+
+    .comparison-section-title {
+      color: var(--color-text-primary);
+      font-size: 1rem;
+      font-weight: 600;
+      margin: 0 0 12px 0;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .comparison-narratives {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .scenario-narrative {
+      padding: 16px;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .scenario-narrative.scenario-a {
+      border-left: 3px solid #34d399;
+    }
+
+    .scenario-narrative.scenario-b {
+      border-left: 3px solid #60a5fa;
+    }
+
+    .narrative-label {
+      font-size: 0.8rem;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+
+    .narrative-name {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--color-text-primary);
+      margin-bottom: 12px;
+    }
+
+    .narrative-details {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .narrative-item {
+      font-size: 0.9rem;
+      color: var(--color-text-secondary);
+    }
+
+    .narrative-item::before {
+      content: '•';
+      margin-right: 8px;
+      color: var(--color-text-muted);
+    }
+
+    .section-insight {
+      margin-top: 16px;
+      padding: 16px;
+      background: rgba(79, 70, 229, 0.08);
+      border-radius: 8px;
+      border-left: 3px solid rgba(79, 70, 229, 0.5);
+    }
+
+    .section-insight p {
+      margin: 0 0 12px 0;
+      color: var(--color-text-secondary);
+      font-size: 0.9rem;
+      line-height: 1.6;
+    }
+
+    .section-insight p:last-child {
+      margin-bottom: 0;
+    }
+
+    @media (max-width: 600px) {
+      .comparison-narratives {
+        grid-template-columns: 1fr;
+      }
+    }
+
     /* Responsive adjustments */
     @media (max-width: 768px) {
       .vehicle-slider-row {
@@ -4229,6 +4442,30 @@ const Tool6 = {
             <h4 class="scenario-section-title">Your Saved Scenarios</h4>
             <div id="savedScenariosList" class="saved-scenarios-list">
               <p class="muted">Loading saved scenarios...</p>
+            </div>
+          </div>
+
+          <!-- Compare Scenarios Section (Sprint 7.3) -->
+          <div id="comparisonSection" class="scenario-comparison-section" style="display: none;">
+            <h4 class="scenario-section-title">📊 Compare Scenarios</h4>
+            <p class="scenario-description">Select two scenarios to see a side-by-side comparison of key metrics.</p>
+            <div class="comparison-dropdowns">
+              <div class="comparison-select-group">
+                <label>Scenario A:</label>
+                <select id="compareSelect1" class="form-input" onchange="updateScenarioComparison()">
+                  <option value="">Select scenario...</option>
+                </select>
+              </div>
+              <div class="comparison-vs">vs</div>
+              <div class="comparison-select-group">
+                <label>Scenario B:</label>
+                <select id="compareSelect2" class="form-input" onchange="updateScenarioComparison()">
+                  <option value="">Select scenario...</option>
+                </select>
+              </div>
+            </div>
+            <div id="comparisonResults" class="comparison-results">
+              <p class="muted">Select two different scenarios to compare.</p>
             </div>
           </div>
         </div>
@@ -5985,6 +6222,9 @@ const Tool6 = {
 
       // Store scenarios for loading
       window.savedScenarios = scenarios;
+
+      // Sprint 7.3: Update comparison dropdowns
+      updateComparisonDropdowns(scenarios);
     }
 
     /**
@@ -6103,6 +6343,408 @@ const Tool6 = {
           showScenarioFeedback('Error: ' + error.message, 'error');
         })
         .deleteTool6Scenario(clientId, name);
+    }
+
+    // ========================================================================
+    // SPRINT 7.3: SCENARIO COMPARISON FUNCTIONS
+    // ========================================================================
+
+    /**
+     * Update comparison dropdowns when scenarios are loaded
+     */
+    function updateComparisonDropdowns(scenarios) {
+      var select1 = document.getElementById('compareSelect1');
+      var select2 = document.getElementById('compareSelect2');
+      var comparisonSection = document.getElementById('comparisonSection');
+
+      if (!select1 || !select2) return;
+
+      // Show/hide comparison section based on scenario count
+      if (comparisonSection) {
+        comparisonSection.style.display = (scenarios && scenarios.length >= 2) ? 'block' : 'none';
+      }
+
+      if (!scenarios || scenarios.length < 2) return;
+
+      var options = '<option value="">Select scenario...</option>';
+      scenarios.forEach(function(scenario, index) {
+        var budgetStr = scenario.monthlyBudget ? '$' + scenario.monthlyBudget.toLocaleString() : '?';
+        options += '<option value="' + index + '">' + escapeHtml(scenario.name) + ' (' + budgetStr + '/mo)</option>';
+      });
+
+      select1.innerHTML = options;
+      select2.innerHTML = options;
+    }
+
+    /**
+     * Update comparison when selections change
+     */
+    function updateScenarioComparison() {
+      var select1 = document.getElementById('compareSelect1');
+      var select2 = document.getElementById('compareSelect2');
+      var resultsContainer = document.getElementById('comparisonResults');
+
+      if (!select1 || !select2 || !resultsContainer) return;
+
+      var index1 = select1.value;
+      var index2 = select2.value;
+
+      if (index1 === '' || index2 === '' || index1 === index2) {
+        resultsContainer.innerHTML = '<p class="muted">Select two different scenarios to compare.</p>';
+        return;
+      }
+
+      var scenario1 = window.savedScenarios[parseInt(index1)];
+      var scenario2 = window.savedScenarios[parseInt(index2)];
+
+      if (!scenario1 || !scenario2) {
+        resultsContainer.innerHTML = '<p class="muted">Error loading scenarios.</p>';
+        return;
+      }
+
+      renderComparisonTable(scenario1, scenario2);
+    }
+
+    /**
+     * Render comparison table - comprehensive view with projections and allocations
+     */
+    function renderComparisonTable(s1, s2) {
+      var resultsContainer = document.getElementById('comparisonResults');
+
+      // Calculate tax-free percentage (Roth + HSA + 529 + Coverdell / total)
+      function calcTaxFreePercent(allocations) {
+        if (!allocations) return 0;
+        // Tax-free vehicles: Roth accounts, HSA, and education accounts (529, Coverdell)
+        var taxFreeVehicles = ['Roth_401k', 'Roth_IRA', 'HSA', 'Backdoor_Roth', '529_Plan', 'Coverdell_ESA'];
+        var taxFreeTotal = 0;
+        var total = 0;
+        for (var key in allocations) {
+          total += allocations[key] || 0;
+          if (taxFreeVehicles.indexOf(key) >= 0) {
+            taxFreeTotal += allocations[key] || 0;
+          }
+        }
+        return total > 0 ? Math.round((taxFreeTotal / total) * 100) : 0;
+      }
+
+      // Calculate monthly income at retirement (4% rule)
+      function calcMonthlyIncome(projectedBalance) {
+        return Math.round((projectedBalance * 0.04) / 12);
+      }
+
+      // Calculate real (inflation-adjusted) balance
+      function calcRealBalance(projectedBalance, years) {
+        var inflationRate = 0.025; // 2.5% default
+        return Math.round(projectedBalance / Math.pow(1 + inflationRate, years || 25));
+      }
+
+      // Highlight helper - returns class and text for difference
+      function getDiffInfo(val1, val2, higherIsBetter, isPercent) {
+        if (val1 === val2) {
+          return { cssClass: 'neutral', text: '-' };
+        }
+
+        var diff = val2 - val1;
+        var pctDiff = val1 !== 0 ? Math.abs(diff / val1) * 100 : 100;
+        var isSignificant = pctDiff > 5;
+
+        if (!isSignificant) {
+          return { cssClass: 'neutral', text: isPercent ? (diff > 0 ? '+' : '') + diff + '%' : (diff > 0 ? '+$' : '-$') + Math.abs(diff).toLocaleString() };
+        }
+
+        var winner = higherIsBetter ? (diff > 0 ? 'B' : 'A') : (diff < 0 ? 'B' : 'A');
+        var diffText = isPercent ? (diff > 0 ? '+' : '') + diff + '%' : (diff > 0 ? '+$' : '-$') + Math.abs(diff).toLocaleString();
+
+        return {
+          cssClass: winner === 'A' ? 'better-a' : 'better-b',
+          text: diffText + ' (' + winner + ' wins)'
+        };
+      }
+
+      // Build section header helper
+      function buildSectionHeader(title, icon) {
+        return '<tr class="comparison-section-header"><td colspan="4">' + icon + ' ' + title + '</td></tr>';
+      }
+
+      // Build metric row helper
+      function buildMetricRow(label, val1, val2, diffInfo, format) {
+        var val1Str, val2Str;
+        switch (format) {
+          case 'currency':
+            val1Str = '$' + val1.toLocaleString();
+            val2Str = '$' + val2.toLocaleString();
+            break;
+          case 'percent':
+            val1Str = val1 + '%';
+            val2Str = val2 + '%';
+            break;
+          default:
+            val1Str = val1;
+            val2Str = val2;
+        }
+        return '<tr>' +
+          '<td class="metric-label">' + label + '</td>' +
+          '<td class="value-a">' + val1Str + '</td>' +
+          '<td class="value-b">' + val2Str + '</td>' +
+          '<td class="diff-cell ' + diffInfo.cssClass + '">' + diffInfo.text + '</td>' +
+          '</tr>';
+      }
+
+      // Get all unique vehicle keys from both scenarios
+      function getAllVehicleKeys(alloc1, alloc2) {
+        var keys = {};
+        if (alloc1) for (var k in alloc1) keys[k] = true;
+        if (alloc2) for (var k in alloc2) keys[k] = true;
+        return Object.keys(keys).sort();
+      }
+
+      // Format vehicle name for display
+      function formatVehicleName(key) {
+        return key.replace(/_/g, ' ').replace(/401k/g, '401(k)');
+      }
+
+      // Build allocation insights narrative
+      function buildAllocationInsights(s1, s2, taxFree1, taxFree2) {
+        var insights = [];
+
+        // Tax strategy insight
+        if (taxFree1 !== taxFree2) {
+          var rothHeavy = taxFree1 > taxFree2 ? 'A' : 'B';
+          var tradHeavy = taxFree1 > taxFree2 ? 'B' : 'A';
+          insights.push('Scenario ' + rothHeavy + ' allocates more to tax-free vehicles (Roth/HSA) at ' + Math.max(taxFree1, taxFree2) + '%, while Scenario ' + tradHeavy + ' leans toward tax-deferred accounts at ' + (100 - Math.min(taxFree1, taxFree2)) + '%. Tax-free growth means no taxes in retirement, but you pay taxes now. Tax-deferred means lower taxes today but taxable withdrawals later.');
+        }
+
+        // Compare specific vehicles
+        var alloc1 = s1.allocations || {};
+        var alloc2 = s2.allocations || {};
+
+        // HSA comparison
+        var hsa1 = alloc1.HSA || 0;
+        var hsa2 = alloc2.HSA || 0;
+        if (hsa1 > 0 || hsa2 > 0) {
+          if (Math.abs(hsa1 - hsa2) > 50) {
+            var hsaHigher = hsa1 > hsa2 ? 'A' : 'B';
+            insights.push('Scenario ' + hsaHigher + ' maximizes HSA contributions ($' + Math.max(hsa1, hsa2).toLocaleString() + '/mo). The HSA offers triple tax benefits: tax-deductible contributions, tax-free growth, and tax-free withdrawals for medical expenses.');
+          }
+        }
+
+        // 401k comparison
+        var trad401k1 = (alloc1.Traditional_401k || 0) + (alloc1.Roth_401k || 0);
+        var trad401k2 = (alloc2.Traditional_401k || 0) + (alloc2.Roth_401k || 0);
+        if (Math.abs(trad401k1 - trad401k2) > 100) {
+          var k401Higher = trad401k1 > trad401k2 ? 'A' : 'B';
+          insights.push('Scenario ' + k401Higher + ' prioritizes 401(k) contributions ($' + Math.max(trad401k1, trad401k2).toLocaleString() + '/mo total). This captures any employer match and provides high contribution limits.');
+        }
+
+        // Family Bank comparison
+        var fb1 = alloc1.Family_Bank || 0;
+        var fb2 = alloc2.Family_Bank || 0;
+        if ((fb1 > 0 || fb2 > 0) && Math.abs(fb1 - fb2) > 100) {
+          var fbHigher = fb1 > fb2 ? 'A' : 'B';
+          var fbLower = fb1 > fb2 ? 'B' : 'A';
+          insights.push('Scenario ' + fbHigher + ' keeps more in the Family Bank ($' + Math.max(fb1, fb2).toLocaleString() + '/mo), providing liquidity and flexibility. Scenario ' + fbLower + ' prioritizes tax-advantaged accounts over accessible savings.');
+        }
+
+        if (insights.length === 0) {
+          insights.push('Both scenarios have similar allocation strategies across vehicles.');
+        }
+
+        return insights.map(function(i) { return '<p>' + i + '</p>'; }).join('');
+      }
+
+      // Build projection insights narrative
+      function buildProjectionInsights(s1, s2, proj1, proj2, real1, real2, monthly1, monthly2, taxFree1, taxFree2) {
+        var insights = [];
+        var projDiff = proj2 - proj1;
+        var realDiff = real2 - real1;
+        var monthlyDiff = monthly2 - monthly1;
+
+        // Main balance insight
+        if (Math.abs(projDiff) > 10000) {
+          var balanceWinner = projDiff > 0 ? 'B' : 'A';
+          var balanceLoser = projDiff > 0 ? 'A' : 'B';
+          insights.push('Scenario ' + balanceWinner + ' projects a retirement balance of $' + Math.max(proj1, proj2).toLocaleString() + ', which is $' + Math.abs(projDiff).toLocaleString() + ' more than Scenario ' + balanceLoser + '. This difference compounds significantly over time due to investment growth.');
+        } else {
+          insights.push('Both scenarios project similar retirement balances (within $' + Math.abs(projDiff).toLocaleString() + ' of each other). The choice between them comes down to tax strategy preference and risk tolerance.');
+        }
+
+        // Real balance insight
+        if (Math.abs(realDiff) > 5000) {
+          var realWinner = realDiff > 0 ? 'B' : 'A';
+          insights.push('After adjusting for inflation (2.5% annually), Scenario ' + realWinner + ' provides $' + Math.abs(realDiff).toLocaleString() + ' more in today\\'s purchasing power. This is the more accurate measure of your future lifestyle.');
+        }
+
+        // Monthly income insight
+        if (Math.abs(monthlyDiff) > 100) {
+          var incomeWinner = monthlyDiff > 0 ? 'B' : 'A';
+          insights.push('Using the 4% safe withdrawal rule, Scenario ' + incomeWinner + ' could provide $' + Math.abs(monthlyDiff).toLocaleString() + ' more per month in retirement income. Over a 25-year retirement, that is an additional $' + (Math.abs(monthlyDiff) * 12 * 25).toLocaleString() + ' in total withdrawals.');
+        }
+
+        // Tax flexibility insight
+        if (taxFree1 !== taxFree2 && Math.abs(taxFree1 - taxFree2) >= 10) {
+          var taxFlexWinner = taxFree1 > taxFree2 ? 'A' : 'B';
+          insights.push('Scenario ' + taxFlexWinner + ' has ' + Math.abs(taxFree1 - taxFree2) + '% more in tax-free accounts. This provides greater flexibility in retirement to manage tax brackets and avoid Required Minimum Distributions (RMDs) on that portion.');
+        }
+
+        return insights.map(function(i) { return '<p>' + i + '</p>'; }).join('');
+      }
+
+      // Helper to generate scenario narrative
+      function buildScenarioNarrative(scenario, label) {
+        var taxDesc = {
+          'Later': 'traditional-heavy (tax-deferred)',
+          'Now': 'Roth-heavy (tax-free growth)',
+          'Both': 'balanced (mixed tax treatment)'
+        };
+        var riskDesc = ['very conservative', 'conservative', 'moderately conservative', 'moderate', 'moderately aggressive', 'aggressive', 'very aggressive'];
+        var score = (scenario.investmentScore || 4) - 1;
+        var riskLevel = riskDesc[Math.min(Math.max(score, 0), 6)];
+
+        var narrative = '<div class="narrative-label">Scenario ' + label + '</div>';
+        narrative += '<div class="narrative-name">"' + escapeHtml(scenario.name) + '"</div>';
+        narrative += '<div class="narrative-details">';
+        narrative += '<span class="narrative-item">Profile ' + (scenario.profileId || '?') + '</span>';
+        narrative += '<span class="narrative-item">' + (taxDesc[scenario.taxStrategy] || 'balanced') + ' tax strategy</span>';
+        narrative += '<span class="narrative-item">' + riskLevel + ' risk (score ' + (scenario.investmentScore || 4) + '/7)</span>';
+        narrative += '<span class="narrative-item">$' + (scenario.monthlyBudget || 0).toLocaleString() + '/month</span>';
+        narrative += '</div>';
+
+        return narrative;
+      }
+
+      // Calculate values upfront
+      var proj1 = s1.projectedBalance || 0;
+      var proj2 = s2.projectedBalance || 0;
+      var real1 = calcRealBalance(proj1, yearsToRetirement);
+      var real2 = calcRealBalance(proj2, yearsToRetirement);
+      var monthly1 = calcMonthlyIncome(proj1);
+      var monthly2 = calcMonthlyIncome(proj2);
+      var taxFree1 = calcTaxFreePercent(s1.allocations);
+      var taxFree2 = calcTaxFreePercent(s2.allocations);
+
+      // Start building HTML
+      var html = '';
+
+      // ============ SECTION 1: Setup & Configuration (Narrative) ============
+      html += '<div class="comparison-section">';
+      html += '<h4 class="comparison-section-title">📋 Setup & Configuration</h4>';
+      html += '<div class="comparison-narratives">';
+      html += '<div class="scenario-narrative scenario-a">' + buildScenarioNarrative(s1, 'A') + '</div>';
+      html += '<div class="scenario-narrative scenario-b">' + buildScenarioNarrative(s2, 'B') + '</div>';
+      html += '</div>';
+      html += '</div>';
+
+      // ============ SECTION 2: Vehicle Allocation Breakdown ============
+      html += '<div class="comparison-section">';
+      html += '<h4 class="comparison-section-title">💰 Vehicle Allocation Breakdown</h4>';
+
+      html += '<table class="comparison-table">';
+      html += '<thead><tr>';
+      html += '<th>Vehicle</th>';
+      html += '<th style="text-align: center;">Scenario A</th>';
+      html += '<th style="text-align: center;">Scenario B</th>';
+      html += '<th style="text-align: center;">Difference</th>';
+      html += '</tr></thead><tbody>';
+
+      var allVehicles = getAllVehicleKeys(s1.allocations, s2.allocations);
+      allVehicles.forEach(function(vehicleKey) {
+        var val1 = (s1.allocations && s1.allocations[vehicleKey]) || 0;
+        var val2 = (s2.allocations && s2.allocations[vehicleKey]) || 0;
+
+        // Only show vehicles that have allocation in at least one scenario
+        if (val1 > 0 || val2 > 0) {
+          html += buildMetricRow(formatVehicleName(vehicleKey), val1, val2, getDiffInfo(val1, val2, true, false), 'currency');
+        }
+      });
+
+      html += '</tbody></table>';
+
+      // Allocation Insights Narrative
+      html += '<div class="section-insight">';
+      html += buildAllocationInsights(s1, s2, taxFree1, taxFree2);
+      html += '</div>';
+
+      html += '</div>';
+
+      // ============ SECTION 3: Future Projections ============
+      html += '<div class="comparison-section">';
+      html += '<h4 class="comparison-section-title">📈 Future Projections</h4>';
+
+      html += '<table class="comparison-table">';
+      html += '<thead><tr>';
+      html += '<th>Metric</th>';
+      html += '<th style="text-align: center;">Scenario A</th>';
+      html += '<th style="text-align: center;">Scenario B</th>';
+      html += '<th style="text-align: center;">Difference</th>';
+      html += '</tr></thead><tbody>';
+
+      // Retirement Projections
+      html += buildSectionHeader('Retirement', '🏦');
+      html += buildMetricRow('Projected Balance', proj1, proj2, getDiffInfo(proj1, proj2, true, false), 'currency');
+      html += buildMetricRow('Real Balance (Inflation-Adj)', real1, real2, getDiffInfo(real1, real2, true, false), 'currency');
+      html += buildMetricRow('Est. Monthly Income (4% Rule)', monthly1, monthly2, getDiffInfo(monthly1, monthly2, true, false), 'currency');
+      html += buildMetricRow('Tax-Free Percentage', taxFree1, taxFree2, getDiffInfo(taxFree1, taxFree2, true, true), 'percent');
+
+      // Education Projections (if applicable)
+      var hasEducation1 = s1.educationProjection && s1.educationProjection > 0;
+      var hasEducation2 = s2.educationProjection && s2.educationProjection > 0;
+
+      if (hasEducation1 || hasEducation2) {
+        var edu1 = s1.educationProjection || 0;
+        var edu2 = s2.educationProjection || 0;
+        var eduInputs1 = s1.educationInputs || {};
+        var eduInputs2 = s2.educationInputs || {};
+
+        html += buildSectionHeader('Education', '🎓');
+        html += buildMetricRow('Projected Education Fund', edu1, edu2, getDiffInfo(edu1, edu2, true, false), 'currency');
+        html += buildMetricRow('Number of Children', eduInputs1.numChildren || 0, eduInputs2.numChildren || 0,
+          { cssClass: 'neutral', text: '-' }, 'text');
+        html += buildMetricRow('Years to Education', eduInputs1.yearsToEducation || '?', eduInputs2.yearsToEducation || '?',
+          { cssClass: 'neutral', text: '-' }, 'text');
+      }
+
+      html += '</tbody></table>';
+
+      // Projections Insights Narrative
+      html += '<div class="section-insight">';
+      html += buildProjectionInsights(s1, s2, proj1, proj2, real1, real2, monthly1, monthly2, taxFree1, taxFree2);
+      html += '</div>';
+
+      html += '</div>';
+
+      // ============ Winner Summary ============
+      var projDiff = proj2 - proj1;
+      if (Math.abs(projDiff) > 1000) {
+        var winner = projDiff > 0 ? s2 : s1;
+        var winnerLabel = projDiff > 0 ? 'B' : 'A';
+        html += '<div class="comparison-winner">';
+        html += '<h5>💡 Quick Take</h5>';
+        html += '<p>Scenario ' + winnerLabel + ' ("' + escapeHtml(winner.name) + '") projects a higher retirement balance. ';
+        html += 'The difference of <strong>$' + Math.abs(projDiff).toLocaleString() + '</strong> could mean ';
+        html += '<strong>$' + Math.round(Math.abs(projDiff) * 0.04 / 12).toLocaleString() + '/month</strong> more in retirement income.</p>';
+
+        // Add tax strategy insight if different
+        if (taxFree1 !== taxFree2) {
+          var taxWinner = taxFree1 > taxFree2 ? 'A' : 'B';
+          html += '<p style="margin-top: 8px;">Scenario ' + taxWinner + ' has more in tax-free accounts (' + Math.max(taxFree1, taxFree2) + '% vs ' + Math.min(taxFree1, taxFree2) + '%), which provides more flexibility in retirement.</p>';
+        }
+        html += '</div>';
+      } else {
+        html += '<div class="comparison-winner">';
+        html += '<h5>💡 Quick Take</h5>';
+        html += '<p>These scenarios are quite similar in projected outcomes. Choose based on your comfort with the tax strategy and risk level.</p>';
+        html += '</div>';
+      }
+
+      // Action buttons
+      var idx1 = document.getElementById('compareSelect1').value;
+      var idx2 = document.getElementById('compareSelect2').value;
+      html += '<div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px; flex-wrap: wrap;">';
+      html += '<button type="button" class="scenario-btn load-btn" onclick="loadScenario(' + idx1 + ')">Load "' + escapeHtml(s1.name) + '"</button>';
+      html += '<button type="button" class="scenario-btn load-btn" onclick="loadScenario(' + idx2 + ')">Load "' + escapeHtml(s2.name) + '"</button>';
+      html += '</div>';
+
+      resultsContainer.innerHTML = html;
     }
 
     // Load saved scenarios on page load (if allocation exists)
