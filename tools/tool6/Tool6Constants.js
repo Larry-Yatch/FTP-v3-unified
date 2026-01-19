@@ -106,7 +106,7 @@ const PROFILE_DEFINITIONS = {
       'No W-2 employees (spouse OK)',
       'High contribution limits available'
     ],
-    primaryVehicles: ['Solo 401(k) Employee', 'Solo 401(k) Employer', 'HSA', 'IRA Roth'],
+    primaryVehicles: ['Solo 401(k) Employee (Roth)', 'Solo 401(k) Employee (Traditional)', 'Solo 401(k) Employer', 'HSA', 'IRA Roth'],
     icon: '💼'
   },
   5: {
@@ -368,7 +368,8 @@ const VEHICLE_PRIORITY_BY_PROFILE = {
   ],
   4: [  // Solo 401(k) Optimizer
     'HSA',
-    'Solo 401(k) Employee',
+    'Solo 401(k) Employee (Roth)',       // These get filtered by eligibility
+    'Solo 401(k) Employee (Traditional)', // based on user's tax preference
     'Solo 401(k) Employer',
     'IRA Roth',
     'IRA Traditional',
@@ -431,7 +432,7 @@ const DOMAIN_DEFINITIONS = {
     vehicles: [
       '401(k) Employer Match', '401(k) Traditional', '401(k) Roth',
       'IRA Traditional', 'IRA Roth', 'Backdoor Roth IRA',
-      'Solo 401(k) Employee', 'Solo 401(k) Employer',
+      'Solo 401(k) Employee (Roth)', 'Solo 401(k) Employee (Traditional)', 'Solo 401(k) Employer',
       'SEP-IRA', 'SIMPLE IRA', 'ROBS Distribution', 'Defined Benefit Plan',
       'Mega Backdoor Roth', 'IRA Rollover to ROBS', 'IRA Rollover to 401k',
       'HSA'  // HSA is triple-tax-advantaged and can serve as retirement vehicle

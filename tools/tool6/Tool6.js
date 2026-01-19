@@ -677,7 +677,7 @@ const Tool6 = {
    * @param {Object} inputs - Combined data from preSurvey and toolStatus
    * @returns {Object} Map of eligible vehicles with their monthly limits
    */
-  getEligibleVehicles(profile, inputs) {
+  getEligibleVehicles(profile, inputs, taxPreference = 'Both') {
     const profileId = profile.id;
     const age = parseInt(inputs.age) || 35;
     const grossIncome = parseFloat(inputs.grossIncome) || 0;
@@ -762,11 +762,39 @@ const Tool6 = {
     }
 
     // --- Solo 401(k) Vehicles (Profile 4 - Self-employed, no employees) ---
+    // Employee contributions can be Roth or Traditional based on tax preference
     if (profileId === 4) {
-      eligible['Solo 401(k) Employee'] = {
-        monthlyLimit: getMonthlyLimit('Solo 401(k) Employee'),
-        domain: 'Retirement'
-      };
+      const soloEmployeeLimit = getMonthlyLimit('Solo 401(k) Employee');
+
+      // Add Roth and/or Traditional based on tax preference
+      if (taxPreference === 'Now') {
+        // Roth-heavy: only show Roth option
+        eligible['Solo 401(k) Employee (Roth)'] = {
+          monthlyLimit: soloEmployeeLimit,
+          domain: 'Retirement'
+        };
+      } else if (taxPreference === 'Later') {
+        // Traditional-heavy: only show Traditional option
+        eligible['Solo 401(k) Employee (Traditional)'] = {
+          monthlyLimit: soloEmployeeLimit,
+          domain: 'Retirement'
+        };
+      } else {
+        // Both: show both options with shared limit
+        // They share the same IRS limit ($23,500 total), so we mark them as sharing
+        eligible['Solo 401(k) Employee (Roth)'] = {
+          monthlyLimit: soloEmployeeLimit,
+          domain: 'Retirement',
+          sharesLimitWith: 'Solo 401(k) Employee (Traditional)'
+        };
+        eligible['Solo 401(k) Employee (Traditional)'] = {
+          monthlyLimit: soloEmployeeLimit,
+          domain: 'Retirement',
+          sharesLimitWith: 'Solo 401(k) Employee (Roth)'
+        };
+      }
+
+      // Employer contributions are always pre-tax
       eligible['Solo 401(k) Employer'] = {
         monthlyLimit: getMonthlyLimit('Solo 401(k) Employer'),
         domain: 'Retirement'
@@ -1162,17 +1190,52 @@ const Tool6 = {
         return info && info.domain === domainName && !info.isNonDiscretionary;
       });
 
+      // Group vehicles that share limits (for balanced allocation)
+      const processedVehicles = new Set();
+
       for (const vehicle of domainVehicles) {
         if (remaining <= 0) break;
+        if (processedVehicles.has(vehicle)) continue;
 
-        const effectiveLimit = getEffectiveLimit(vehicle);
-        if (effectiveLimit <= 0) continue;
+        const vehicleInfo = eligibleVehicles[vehicle];
+        const sharedWith = vehicleInfo?.sharesLimitWith;
 
-        const allocation = Math.min(remaining, effectiveLimit);
-        if (allocation > 0) {
-          allocations[vehicle] = (allocations[vehicle] || 0) + allocation;
-          cumulativeAllocations[vehicle] = (cumulativeAllocations[vehicle] || 0) + allocation;
-          remaining -= allocation;
+        // Check if this vehicle shares a limit with another eligible vehicle
+        if (sharedWith && eligibleVehicles[sharedWith] && domainVehicles.includes(sharedWith)) {
+          // Split allocation 50/50 between the two vehicles
+          processedVehicles.add(vehicle);
+          processedVehicles.add(sharedWith);
+
+          const sharedLimit = vehicleInfo.monthlyLimit;
+          const alreadyUsed = (cumulativeAllocations[vehicle] || 0) + (cumulativeAllocations[sharedWith] || 0);
+          const effectiveSharedLimit = Math.max(0, sharedLimit - alreadyUsed);
+
+          if (effectiveSharedLimit <= 0) continue;
+
+          // Split: allocate half to each, up to the shared limit
+          const totalToAllocate = Math.min(remaining, effectiveSharedLimit);
+          const halfAllocation = totalToAllocate / 2;
+
+          if (halfAllocation > 0) {
+            allocations[vehicle] = (allocations[vehicle] || 0) + halfAllocation;
+            cumulativeAllocations[vehicle] = (cumulativeAllocations[vehicle] || 0) + halfAllocation;
+
+            allocations[sharedWith] = (allocations[sharedWith] || 0) + halfAllocation;
+            cumulativeAllocations[sharedWith] = (cumulativeAllocations[sharedWith] || 0) + halfAllocation;
+
+            remaining -= totalToAllocate;
+          }
+        } else {
+          // Normal waterfall for non-shared vehicles
+          const effectiveLimit = getEffectiveLimit(vehicle);
+          if (effectiveLimit <= 0) continue;
+
+          const allocation = Math.min(remaining, effectiveLimit);
+          if (allocation > 0) {
+            allocations[vehicle] = (allocations[vehicle] || 0) + allocation;
+            cumulativeAllocations[vehicle] = (cumulativeAllocations[vehicle] || 0) + allocation;
+            remaining -= allocation;
+          }
         }
       }
 
@@ -1240,11 +1303,11 @@ const Tool6 = {
       };
     }
 
-    // Step 1: Get eligible vehicles
-    const eligibleVehicles = this.getEligibleVehicles(profile, inputs);
-
-    // Step 2: Get tax preference for priority ordering
+    // Step 1: Get tax preference (needed for vehicle eligibility and priority ordering)
     const taxPreference = preSurveyData.a2b_taxPreference || preSurveyData.taxPreference || 'Both';
+
+    // Step 2: Get eligible vehicles (tax preference affects Roth vs Traditional options)
+    const eligibleVehicles = this.getEligibleVehicles(profile, inputs, taxPreference);
 
     // Step 3: Get vehicle priority order
     const vehicleOrder = this.getVehiclePriorityOrder(profile.id, eligibleVehicles, taxPreference);
@@ -1938,18 +2001,50 @@ const Tool6 = {
       vehicles['Family Bank'] = 0;
     }
 
+    // Ensure all eligible vehicles appear (even if $0) when they share limits
+    // This is important for "Balanced" tax preference where user may want to split Roth/Traditional
+    for (const vehicleName of Object.keys(eligibleVehicles)) {
+      if (vehicles[vehicleName] === undefined) {
+        const info = eligibleVehicles[vehicleName];
+        // Add vehicles that share limits with an allocated vehicle
+        if (info.sharesLimitWith && vehicles[info.sharesLimitWith] !== undefined) {
+          vehicles[vehicleName] = 0;
+        }
+      }
+    }
+
     const vehicleOrder = Object.keys(vehicles).sort((a, b) => {
-      // Sort by allocation amount descending, but keep Family Bank at the end
+      // Sort by allocation amount descending, but:
+      // 1. Keep Family Bank at the end
+      // 2. Keep vehicles that share limits together
       if (a === 'Family Bank') return 1;
       if (b === 'Family Bank') return -1;
+
+      // Check if these vehicles share a limit - if so, keep them together
+      const infoA = eligibleVehicles[a] || {};
+      const infoB = eligibleVehicles[b] || {};
+
+      // If A shares limit with B, keep them adjacent
+      if (infoA.sharesLimitWith === b) return -1;
+      if (infoB.sharesLimitWith === a) return 1;
+
+      // If both share with the same vehicle or each other, sort by name for consistency
+      if (infoA.sharesLimitWith && infoA.sharesLimitWith === infoB.sharesLimitWith) {
+        return a.localeCompare(b);
+      }
+
+      // Default: sort by allocation amount descending
       return (vehicles[b] || 0) - (vehicles[a] || 0);
     });
 
     for (const vehicleName of vehicleOrder) {
       const amount = vehicles[vehicleName] || 0;
-      if (amount <= 0 && vehicleName !== 'Family Bank') continue; // Skip zero allocations except Family Bank
-
       const vehicleInfo = eligibleVehicles[vehicleName] || {};
+
+      // Skip zero allocations UNLESS it's Family Bank or shares a limit with another vehicle
+      const sharesLimit = vehicleInfo.sharesLimitWith;
+      if (amount <= 0 && vehicleName !== 'Family Bank' && !sharesLimit) continue;
+
       const monthlyLimit = vehicleInfo.monthlyLimit || Infinity;
       const annualLimit = monthlyLimit === Infinity ? 'Unlimited' : '$' + (monthlyLimit * 12).toLocaleString() + '/yr';
 
@@ -5118,8 +5213,10 @@ const Tool6 = {
       // Store in formData
       formData.a2b_taxPreference = strategy;
 
-      // Trigger recalculation
-      markCalculatorDirty();
+      // Auto-recalculate when tax strategy changes
+      // This is important because it can change which vehicles are available
+      // (e.g., Solo 401k Employee Roth vs Traditional for Profile 4)
+      recalculateAllocation();
     }
 
     // ========================================================================
@@ -6414,13 +6511,12 @@ const Tool6 = {
       // Calculate tax-free percentage (Roth + HSA + 529 + Coverdell / total)
       function calcTaxFreePercent(allocations) {
         if (!allocations) return 0;
-        // Tax-free vehicles: Roth accounts, HSA, and education accounts (529, Coverdell)
-        var taxFreeVehicles = ['Roth_401k', 'Roth_IRA', 'HSA', 'Backdoor_Roth', '529_Plan', 'Coverdell_ESA'];
         var taxFreeTotal = 0;
         var total = 0;
         for (var key in allocations) {
           total += allocations[key] || 0;
-          if (taxFreeVehicles.indexOf(key) >= 0) {
+          // Tax-free vehicles: anything with "Roth" in the name, HSA, 529, Coverdell
+          if (key.includes('Roth') || key === 'HSA' || key.includes('529') || key.includes('Coverdell')) {
             taxFreeTotal += allocations[key] || 0;
           }
         }
