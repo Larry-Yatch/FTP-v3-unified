@@ -4139,6 +4139,12 @@ const Tool6 = {
       color: #f87171;
     }
 
+    .scenario-btn.pdf-btn:hover {
+      background: rgba(196, 160, 82, 0.2);
+      border-color: rgba(196, 160, 82, 0.4);
+      color: #c4a052;
+    }
+
     .empty-scenarios {
       text-align: center;
       padding: 32px 16px;
@@ -4561,6 +4567,11 @@ const Tool6 = {
             </div>
             <div id="comparisonResults" class="comparison-results">
               <p class="muted">Select two different scenarios to compare.</p>
+            </div>
+            <div id="comparisonPDFSection" style="display: none; margin-top: 15px; text-align: center;">
+              <button type="button" class="btn-primary" onclick="downloadComparisonPDF()" id="comparisonPDFBtn">
+                📄 Download Comparison Report
+              </button>
             </div>
           </div>
         </div>
@@ -6310,6 +6321,7 @@ const Tool6 = {
           '</div>' +
           '<div class="scenario-actions-btns">' +
           '<button class="scenario-btn load-btn" onclick="loadScenario(' + index + ')">Load</button>' +
+          '<button class="scenario-btn pdf-btn" onclick="downloadScenarioPDF(' + index + ')" title="Download PDF Report">📄 PDF</button>' +
           '<button class="scenario-btn delete-btn" onclick="deleteScenario(' + index + ', \\'' + escapeHtml(s.name).replace(/'/g, "\\'") + '\\')">Delete</button>' +
           '</div>' +
           '</div>';
@@ -6443,6 +6455,95 @@ const Tool6 = {
     }
 
     // ========================================================================
+    // SPRINT 7.4: PDF DOWNLOAD FUNCTIONS
+    // ========================================================================
+
+    /**
+     * Download PDF report for a saved scenario
+     */
+    function downloadScenarioPDF(index) {
+      if (!window.savedScenarios || !window.savedScenarios[index]) {
+        alert('Scenario not found');
+        return;
+      }
+
+      var scenario = window.savedScenarios[index];
+      showScenarioFeedback('Generating PDF report for "' + scenario.name + '"...', 'info');
+
+      google.script.run
+        .withSuccessHandler(function(result) {
+          if (result.success) {
+            // Trigger download
+            downloadBase64PDF(result.pdf, result.fileName);
+            showScenarioFeedback('PDF downloaded successfully!', 'success');
+          } else {
+            showScenarioFeedback('Error generating PDF: ' + (result.error || 'Unknown error'), 'error');
+          }
+        })
+        .withFailureHandler(function(error) {
+          showScenarioFeedback('Error: ' + error.message, 'error');
+        })
+        .generateTool6PDF(clientId, scenario);
+    }
+
+    /**
+     * Download comparison PDF for selected scenarios
+     */
+    function downloadComparisonPDF() {
+      var select1 = document.getElementById('compareSelect1');
+      var select2 = document.getElementById('compareSelect2');
+
+      if (!select1 || !select2) {
+        alert('Please select two scenarios to compare');
+        return;
+      }
+
+      var index1 = select1.value;
+      var index2 = select2.value;
+
+      if (index1 === '' || index2 === '' || index1 === index2) {
+        alert('Please select two different scenarios to compare');
+        return;
+      }
+
+      var scenario1 = window.savedScenarios[parseInt(index1)];
+      var scenario2 = window.savedScenarios[parseInt(index2)];
+
+      if (!scenario1 || !scenario2) {
+        alert('Error loading scenarios');
+        return;
+      }
+
+      showScenarioFeedback('Generating comparison PDF...', 'info');
+
+      google.script.run
+        .withSuccessHandler(function(result) {
+          if (result.success) {
+            downloadBase64PDF(result.pdf, result.fileName);
+            showScenarioFeedback('Comparison PDF downloaded successfully!', 'success');
+          } else {
+            showScenarioFeedback('Error generating PDF: ' + (result.error || 'Unknown error'), 'error');
+          }
+        })
+        .withFailureHandler(function(error) {
+          showScenarioFeedback('Error: ' + error.message, 'error');
+        })
+        .generateTool6ComparisonPDF(clientId, scenario1, scenario2);
+    }
+
+    /**
+     * Helper to download base64-encoded PDF
+     */
+    function downloadBase64PDF(base64Data, fileName) {
+      var link = document.createElement('a');
+      link.href = 'data:application/pdf;base64,' + base64Data;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    // ========================================================================
     // SPRINT 7.3: SCENARIO COMPARISON FUNCTIONS
     // ========================================================================
 
@@ -6486,10 +6587,17 @@ const Tool6 = {
       var index1 = select1.value;
       var index2 = select2.value;
 
+      // Show/hide comparison PDF button
+      var pdfSection = document.getElementById('comparisonPDFSection');
+
       if (index1 === '' || index2 === '' || index1 === index2) {
         resultsContainer.innerHTML = '<p class="muted">Select two different scenarios to compare.</p>';
+        if (pdfSection) pdfSection.style.display = 'none';
         return;
       }
+
+      // Show PDF button when both scenarios are selected
+      if (pdfSection) pdfSection.style.display = 'block';
 
       var scenario1 = window.savedScenarios[parseInt(index1)];
       var scenario2 = window.savedScenarios[parseInt(index2)];
@@ -7626,11 +7734,230 @@ const Tool6 = {
   },
 
   /**
-   * Generate PDF report
+   * Generate PDF report for a single scenario
+   * Sprint 7.4: PDF Generation with GPT insights
+   *
+   * @param {string} clientId - Client ID
+   * @param {Object} scenarioData - Scenario data (from saved scenario or current state)
+   * @returns {Object} { success, pdf, fileName, mimeType } or { success: false, error }
    */
-  generatePDF(clientId, scenario) {
-    // TODO: Implement in Sprint 10
-    return { success: false, error: 'Not yet implemented' };
+  generatePDF(clientId, scenarioData) {
+    try {
+      Logger.log(`[Tool6.generatePDF] Generating PDF for client ${clientId}`);
+
+      // Get client name
+      const clientName = this.getClientName(clientId);
+
+      // Get Tool 1 and Tool 3 data for trauma-informed context
+      const tool1Data = DataService.getLatestResponse(clientId, 'tool1');
+      const tool3Data = DataService.getLatestResponse(clientId, 'tool3');
+
+      // Get profile definition
+      const profileId = scenarioData.profileId || 7;
+      const profile = PROFILE_DEFINITIONS[profileId] || PROFILE_DEFINITIONS[7];
+
+      // Build inputs object
+      const inputs = {
+        age: scenarioData.age || 40,
+        yearsToRetirement: scenarioData.yearsToRetirement || 25,
+        income: scenarioData.income || 0,
+        monthlyBudget: scenarioData.monthlyBudget || 0,
+        investmentScore: scenarioData.investmentScore || 4,
+        taxPreference: scenarioData.taxStrategy || 'Balanced',
+        hasChildren: scenarioData.hasChildren || false,
+        numChildren: scenarioData.numChildren || 0,
+        yearsToEducation: scenarioData.yearsToEducation || 18,
+        educationVehicle: scenarioData.educationVehicle || '529 Plan',
+        domainWeights: scenarioData.domainWeights || null,
+        hasEmployerMatch: scenarioData.hasEmployerMatch || false,
+        employerMatchAmount: scenarioData.employerMatchAmount || 0
+      };
+
+      // Build projections object
+      const projections = {
+        projectedBalance: scenarioData.projectedBalance || 0,
+        inflationAdjusted: scenarioData.inflationAdjusted || 0,
+        monthlyRetirementIncome: scenarioData.monthlyRetirementIncome || 0,
+        taxFreePercent: scenarioData.taxFreePercent || 0,
+        traditionalPercent: scenarioData.traditionalPercent || 0,
+        taxablePercent: scenarioData.taxablePercent || 0,
+        educationProjection: scenarioData.educationProjection || null
+      };
+
+      // Get GPT insights (3-tier fallback)
+      Logger.log('[Tool6.generatePDF] Generating GPT insights...');
+      const gptInsights = Tool6GPTAnalysis.generateSingleReportInsights({
+        clientId,
+        profile,
+        allocation: scenarioData.allocations || {},
+        projections,
+        inputs,
+        tool1Data,
+        tool3Data
+      });
+
+      Logger.log(`[Tool6.generatePDF] GPT source: ${gptInsights.source}`);
+
+      // Generate HTML report
+      const htmlContent = Tool6Report.generateSingleReportHTML({
+        clientName,
+        profile,
+        allocation: scenarioData.allocations || {},
+        projections,
+        inputs,
+        gptInsights
+      });
+
+      // Convert to PDF
+      const fileName = Tool6Report.generateFileName(clientName, 'single');
+      const pdfResult = PDFGenerator.htmlToPDF(htmlContent, fileName);
+
+      if (!pdfResult.success) {
+        throw new Error(pdfResult.error || 'PDF generation failed');
+      }
+
+      Logger.log(`[Tool6.generatePDF] PDF generated successfully: ${fileName}`);
+
+      return {
+        success: true,
+        pdf: pdfResult.pdf,
+        fileName: pdfResult.fileName,
+        mimeType: pdfResult.mimeType
+      };
+
+    } catch (error) {
+      Logger.log(`[Tool6.generatePDF] Error: ${error.message}`);
+      Logger.log(`[Tool6.generatePDF] Stack: ${error.stack}`);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  },
+
+  /**
+   * Generate PDF comparison report for two scenarios
+   * Sprint 7.4: Comparison Report PDF
+   *
+   * @param {string} clientId - Client ID
+   * @param {Object} scenario1 - First scenario data
+   * @param {Object} scenario2 - Second scenario data
+   * @returns {Object} { success, pdf, fileName, mimeType } or { success: false, error }
+   */
+  generateComparisonPDF(clientId, scenario1, scenario2) {
+    try {
+      Logger.log(`[Tool6.generateComparisonPDF] Generating comparison PDF for client ${clientId}`);
+
+      // Get client name
+      const clientName = this.getClientName(clientId);
+
+      // Get Tool 1 and Tool 3 data for trauma-informed context
+      const tool1Data = DataService.getLatestResponse(clientId, 'tool1');
+      const tool3Data = DataService.getLatestResponse(clientId, 'tool3');
+
+      // Build inputs object (use scenario1 as primary)
+      const inputs = {
+        age: scenario1.age || scenario2.age || 40,
+        yearsToRetirement: scenario1.yearsToRetirement || scenario2.yearsToRetirement || 25
+      };
+
+      // Get GPT comparison insights (3-tier fallback)
+      Logger.log('[Tool6.generateComparisonPDF] Generating GPT comparison insights...');
+      const gptInsights = Tool6GPTAnalysis.generateComparisonInsights({
+        clientId,
+        scenario1: {
+          name: scenario1.name || 'Scenario A',
+          profileName: PROFILE_DEFINITIONS[scenario1.profileId]?.name || 'Unknown',
+          monthlyBudget: scenario1.monthlyBudget || 0,
+          taxPreference: scenario1.taxStrategy || 'Balanced',
+          projectedBalance: scenario1.projectedBalance || 0,
+          taxFreePercent: scenario1.taxFreePercent || 0,
+          monthlyRetirementIncome: scenario1.monthlyRetirementIncome || 0,
+          allocation: scenario1.allocations || {}
+        },
+        scenario2: {
+          name: scenario2.name || 'Scenario B',
+          profileName: PROFILE_DEFINITIONS[scenario2.profileId]?.name || 'Unknown',
+          monthlyBudget: scenario2.monthlyBudget || 0,
+          taxPreference: scenario2.taxStrategy || 'Balanced',
+          projectedBalance: scenario2.projectedBalance || 0,
+          taxFreePercent: scenario2.taxFreePercent || 0,
+          monthlyRetirementIncome: scenario2.monthlyRetirementIncome || 0,
+          allocation: scenario2.allocations || {}
+        },
+        inputs,
+        tool1Data,
+        tool3Data
+      });
+
+      Logger.log(`[Tool6.generateComparisonPDF] GPT source: ${gptInsights.source}`);
+
+      // Generate HTML comparison report
+      const htmlContent = Tool6Report.generateComparisonReportHTML({
+        clientName,
+        scenario1: {
+          name: scenario1.name || 'Scenario A',
+          profileName: PROFILE_DEFINITIONS[scenario1.profileId]?.name || 'Unknown',
+          monthlyBudget: scenario1.monthlyBudget || 0,
+          taxPreference: scenario1.taxStrategy || 'Balanced',
+          projectedBalance: scenario1.projectedBalance || 0,
+          inflationAdjusted: scenario1.inflationAdjusted || 0,
+          monthlyRetirementIncome: scenario1.monthlyRetirementIncome || 0,
+          taxFreePercent: scenario1.taxFreePercent || 0,
+          allocation: scenario1.allocations || {}
+        },
+        scenario2: {
+          name: scenario2.name || 'Scenario B',
+          profileName: PROFILE_DEFINITIONS[scenario2.profileId]?.name || 'Unknown',
+          monthlyBudget: scenario2.monthlyBudget || 0,
+          taxPreference: scenario2.taxStrategy || 'Balanced',
+          projectedBalance: scenario2.projectedBalance || 0,
+          inflationAdjusted: scenario2.inflationAdjusted || 0,
+          monthlyRetirementIncome: scenario2.monthlyRetirementIncome || 0,
+          taxFreePercent: scenario2.taxFreePercent || 0,
+          allocation: scenario2.allocations || {}
+        },
+        gptInsights
+      });
+
+      // Convert to PDF
+      const fileName = Tool6Report.generateFileName(clientName, 'comparison');
+      const pdfResult = PDFGenerator.htmlToPDF(htmlContent, fileName);
+
+      if (!pdfResult.success) {
+        throw new Error(pdfResult.error || 'PDF generation failed');
+      }
+
+      Logger.log(`[Tool6.generateComparisonPDF] PDF generated successfully: ${fileName}`);
+
+      return {
+        success: true,
+        pdf: pdfResult.pdf,
+        fileName: pdfResult.fileName,
+        mimeType: pdfResult.mimeType
+      };
+
+    } catch (error) {
+      Logger.log(`[Tool6.generateComparisonPDF] Error: ${error.message}`);
+      Logger.log(`[Tool6.generateComparisonPDF] Stack: ${error.stack}`);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  },
+
+  /**
+   * Get client name from DataService or return default
+   */
+  getClientName(clientId) {
+    try {
+      const tool2Data = DataService.getLatestResponse(clientId, 'tool2');
+      const formData = tool2Data?.data?.data || {};
+      return formData.name || formData.firstName || 'Client';
+    } catch (e) {
+      return 'Client';
+    }
   }
 };
 
@@ -7690,6 +8017,22 @@ function getTool6Scenarios(clientId) {
  */
 function deleteTool6Scenario(clientId, scenarioName) {
   return Tool6.deleteScenario(clientId, scenarioName);
+}
+
+/**
+ * Global wrapper for generating Tool 6 PDF report
+ * Sprint 7.4: Called from client-side JavaScript via google.script.run
+ */
+function generateTool6PDF(clientId, scenarioData) {
+  return Tool6.generatePDF(clientId, scenarioData);
+}
+
+/**
+ * Global wrapper for generating Tool 6 comparison PDF
+ * Sprint 7.4: Called from client-side JavaScript via google.script.run
+ */
+function generateTool6ComparisonPDF(clientId, scenario1, scenario2) {
+  return Tool6.generateComparisonPDF(clientId, scenario1, scenario2);
 }
 
 /**

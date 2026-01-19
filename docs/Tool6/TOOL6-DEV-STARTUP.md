@@ -1,8 +1,8 @@
 # Tool 6: Development Startup Guide
 
 > **Purpose:** Get any AI coder up to speed quickly for multi-session development
-> **Last Updated:** January 17, 2026
-> **Current Sprint:** Phase 6 COMPLETE - Ready for Phase 7 (Scenario Management)
+> **Last Updated:** January 18, 2026
+> **Current Sprint:** Phase 7 COMPLETE - Ready for Phase 8 (Trauma Integration)
 
 ---
 
@@ -222,19 +222,18 @@ google.script.run
 - [x] Sprint 6.2: Projections Display - ✅ **COMPLETE** (Jan 17, 2026)
 - [x] Sprint 6.3: Tax Breakdown Display - ✅ **COMPLETE** (Jan 17, 2026)
 
-### Phase 7: Scenario Management
-- [ ] Sprint 7.1: TOOL6_SCENARIOS Sheet (moved from Phase 1)
-- [ ] Sprint 7.2: Save Scenario
-- [ ] Sprint 7.3: Load Scenario
-- [ ] Sprint 7.4: Compare Scenarios
-- [ ] Sprint 7.5: PDF Generation
+### Phase 7: Scenario Management ✅ COMPLETE
+- [x] Sprint 7.1: Save Scenario - ✅ **COMPLETE** (Jan 18, 2026) - TOOL6_SCENARIOS sheet, `saveScenario()` function
+- [x] Sprint 7.2: Load Scenario - ✅ **COMPLETE** (Jan 18, 2026) - `getScenarios()`, dropdown selection, restore state
+- [x] Sprint 7.3: Compare Scenarios - ✅ **COMPLETE** (Jan 18, 2026) - Side-by-side comparison with comprehensive insights
+- [x] Sprint 7.4: PDF Generation - ✅ **COMPLETE** (Jan 18, 2026) - Single + Comparison reports with GPT integration
 
 ### Phase 8: Trauma Integration
 - [ ] Sprint 8.1: Trauma Insights Display
 
-### Phase 9: GPT Integration
-- [ ] Sprint 9.1: GPT Analysis
-- [ ] Sprint 9.2: Fallbacks
+### Phase 9: GPT Integration ✅ MERGED INTO PHASE 7.4
+- [x] Sprint 9.1: GPT Analysis - ✅ **MERGED** into Sprint 7.4 (Tool6GPTAnalysis.js)
+- [x] Sprint 9.2: Fallbacks - ✅ **MERGED** into Sprint 7.4 (Tool6Fallbacks.js)
 
 ### Phase 10: Polish
 - [ ] Sprint 10.1: Error Handling
@@ -429,37 +428,34 @@ This startup doc serves as persistent memory across sessions. **Always update th
 When ending a session, update this section:
 
 ### Last Session Summary
-- **Date:** January 17, 2026 (PM Session)
+- **Date:** January 18, 2026 (PM Session)
 - **What was done:**
-  - ✅ **COMPLETED: Phase 6 - Projections (All Sprints)**
-  - **Sprint 6.1: Projections Calculation**
-    - Server-side: `calculatePersonalizedRate()`, `futureValue()`, `calculateProjections()`, `calculateEducationProjections()`, `calculateTaxBreakdown()`, `calculateCompleteProjections()`
-    - FV formula: `FV = PMT × ((1 + r)^n - 1) / r` with monthly compounding
-    - Safeguards: MAX_FV ($100M), MAX_YEARS (70), MAX_RATE (25%)
-    - Inflation adjustment at 2.5% default
-    - 4% withdrawal rule for monthly retirement income
-  - **Sprint 6.2: Projections Display**
-    - `buildProjectionsSection()` renders retirement projections, tax breakdown, and education projections
-    - Assumptions panel (investment score, return rate, years, monthly contributions)
-    - Retirement metrics: projected balance, inflation-adjusted value, monthly retirement income
-    - Improvement comparison: "If you did nothing" vs "With this plan"
-    - Tax bar visualization (Roth/Traditional/Taxable segments)
-    - Education section (conditional on hasChildren)
-    - Comprehensive CSS styling for all projection components
-  - **Sprint 6.3: Tax Breakdown Display**
-    - Visual tax bar with three segments
-    - Legend with percentages and dollar amounts
-    - Tax insight message based on Roth percentage
-  - **Client-Side Real-Time Updates:**
-    - `calculateClientProjections()` mirrors server logic for instant updates
-    - `updateProjectionDisplay()` updates all DOM elements when sliders change
-    - Investment score changes trigger projection recalculation
-    - Projections update automatically via `updateAllVehicleDisplays()`
-- **Current state:** Phase 6 COMPLETE. Full projections with real-time updates working.
-- **Next task:** Phase 7 (Scenario Management) - Sprint 7.1: TOOL6_SCENARIOS Sheet
+  - ✅ **COMPLETED: Phase 7 - Sprint 7.4 PDF Generation**
+  - **Sprint 7.4: PDF Generation**
+    - Created `Tool6GPTAnalysis.js` (~650 lines) - GPT integration with 3-tier fallback
+    - Created `Tool6Fallbacks.js` (~400 lines) - Profile-aware fallback narratives for all 9 profiles
+    - Created `Tool6Report.js` (~700 lines) - PDF HTML generation for single + comparison reports
+    - Integrated into `Tool6.js`:
+      - `generatePDF(clientId, scenarioData)` - Single scenario PDF with GPT insights
+      - `generateComparisonPDF(clientId, scenario1, scenario2)` - Comparison PDF
+      - UI: Added "PDF" button to each scenario card
+      - UI: Added "Download Comparison Report" button in comparison section
+    - Global wrappers: `generateTool6PDF()`, `generateTool6ComparisonPDF()`
+  - **GPT Integration (merged from Phase 9):**
+    - Trauma-informed context from Tool 1 + Tool 3
+    - 3-tier fallback: GPT → Retry → Profile-aware fallback
+    - Single report: Overview, Key Observations, Focus, Implementation Steps
+    - Comparison report: Synthesis, Decision Guidance, Trade-offs
+- **Current state:** Phase 7 COMPLETE. Full PDF generation with GPT integration working.
+- **Next task:** Phase 8 (Trauma Integration) or Phase 10 (Polish)
 - **Blockers:** None
 
-### Previous Session (January 17, 2026 AM)
+### Previous Session (January 17, 2026 PM)
+- ✅ Phase 6 Complete - Projections Engine
+- Server-side: `calculatePersonalizedRate()`, `futureValue()`, `calculateProjections()`
+- Client-side real-time updates, tax breakdown visualization
+
+### Earlier Session (January 17, 2026 AM)
 - ✅ Phase 5 Complete - Calculator UI with coupled sliders
 - Vehicle sliders, investment score, tax strategy, employer match display
 - Coupled slider behavior, lock/unlock, budget editing, reset to recommended
@@ -524,58 +520,65 @@ The `docs/Middleware/middleware-mapping.md` document is the **canonical referenc
 | Identity Insights | ✅ Green | subdomainQuotients mapped |
 | Connection Insights | ✅ Green | subdomainQuotients mapped |
 
-### Files Modified This Session
+### Files Modified This Session (Jan 18, 2026 PM)
+- `tools/tool6/Tool6GPTAnalysis.js` - **NEW** - GPT integration with trauma-informed context
+- `tools/tool6/Tool6Fallbacks.js` - **NEW** - Profile-aware fallback narratives
+- `tools/tool6/Tool6Report.js` - **NEW** - PDF HTML generation
+- `tools/tool6/Tool6.js`:
+  - Added `generatePDF()`, `generateComparisonPDF()`, `getClientName()`
+  - Added global wrappers: `generateTool6PDF()`, `generateTool6ComparisonPDF()`
+  - Added PDF buttons to scenario cards and comparison section
+  - Added CSS for PDF button styling
+  - Added client-side `downloadScenarioPDF()`, `downloadComparisonPDF()`, `downloadBase64PDF()`
+- `docs/Tool6/Tool6-Dev-Startup.md` - Updated for Sprint 7.4 completion
+
+### Files Modified Earlier (Jan 18, 2026 AM)
+- `tools/tool6/Tool6.js`:
+  - Sprint 7.1: `saveScenario()`, TOOL6_SCENARIOS sheet creation
+  - Sprint 7.2: `getScenarios()`, `loadScenario()`, dropdown UI
+  - Sprint 7.3: `compareScenarios()`, side-by-side comparison UI
+  - Solo 401(k) Employee split into Roth/Traditional based on tax preference
+
+### Files Modified Previous Session (Jan 17, 2026)
 - `tools/tool6/Tool6Constants.js`:
   - Added `AMBITION_QUESTIONS` (10 questions with conditional showIf logic)
   - Added `AMBITION_QUESTION_ORDER` for domain-based rendering
   - Added `a2b_taxPreference` to ALLOCATION_QUESTIONS (all profiles)
-  - Updated `ALLOCATION_SECTIONS` to include tax preference in income section
-  - Removed old `a11_priorityRanking` from ALLOCATION_QUESTIONS and ALLOCATION_SECTIONS
-  - Updated exports to include new constants
 - `tools/tool6/Tool6.js`:
   - Added `computeDomainsAndWeights()` function (legacy algorithm alignment)
-  - Added `scale` input type to `renderField()` for 1-7 button scales
   - Added Phase C HTML generation to `buildQuestionnaireHtml()`
-  - Added CSS styles for scale inputs and ambition domain cards
-  - Added JS handlers: `continueToPhaseC()`, `updateAmbitionVisibility()`, `selectScale()`
-  - Updated validation to require ambition fields conditionally
-  - Updated form submission to parse ambition data
-  - Fixed Phase A rendering (always render, hide with class when profile exists)
-- `docs/Tool6/TOOL6-DEV-STARTUP.md` - Updated session notes
+  - Phase 6: Projections engine with real-time updates
 - `docs/Tool6/Tool6-Consolidated-Specification.md` - Updated Ambition Quotient section
 
 ### Notes for Next Session
 
-## Ready for Phase 7: Scenario Management
+## Phase 7 COMPLETE - Ready for Phase 8 or 10
 
-Phase 6 is complete with full projections functionality:
-- Server-side projection calculations (retirement + education)
-- Client-side real-time updates when sliders change
-- Tax breakdown visualization (Roth/Traditional/Taxable bar)
-- Investment score changes trigger instant projection recalculation
+All Phase 7 sprints are complete:
+- ✅ Sprint 7.1: Save Scenario
+- ✅ Sprint 7.2: Load Scenario
+- ✅ Sprint 7.3: Compare Scenarios
+- ✅ Sprint 7.4: PDF Generation (with GPT integration)
 
-## Next Steps: Phase 7 - Scenario Management
+## New Files Created
+| File | Lines | Purpose |
+|------|-------|---------|
+| `Tool6GPTAnalysis.js` | ~650 | GPT prompts, 3-tier fallback, trauma context |
+| `Tool6Fallbacks.js` | ~400 | Profile-aware fallback narratives |
+| `Tool6Report.js` | ~700 | PDF HTML generation |
 
-**Sprint 7.1: TOOL6_SCENARIOS Sheet**
-- Create sheet with 15 columns (A-O)
-- Schema: Timestamp, Client_ID, Scenario_Name, Profile_ID, Monthly_Budget, etc.
-- Education fields: numChildren, yearsToEducation, Education_Projection
+## Next Steps Options
 
-**Sprint 7.2: Save Scenario**
-- `Tool6.saveScenario(clientId, scenarioName)` function
-- Collect all current values including education inputs
-- Write to TOOL6_SCENARIOS sheet
-- Handle duplicate names
+**Option A: Phase 8 - Trauma Integration**
+- Sprint 8.1: Display trauma-informed messaging in the UI (not just reports)
+- Pull Tool 1 pattern and show specific guidance
 
-**Sprint 7.3: Load Scenario**
-- `Tool6.getScenarios(clientId)` to list saved scenarios
-- Dropdown selection
-- Restore all inputs and trigger recalculation
+**Option B: Phase 10 - Polish**
+- Sprint 10.1: Error handling improvements
+- Sprint 10.2: Edge case testing
+- Sprint 10.3: Performance optimization
 
-**Sprint 7.4: Compare Scenarios**
-- Two scenario dropdowns
-- Side-by-side comparison table
-- Key metrics: projected balance, tax-free %, monthly income
+**Recommendation:** Phase 10 (Polish) may be more valuable since trauma integration is already in the PDF reports via GPT insights.
 
 ## Projection Functions Reference
 
