@@ -334,7 +334,18 @@
 - **Traditional (tax-deferred):** Added `Solo 401(k) Employee (Traditional)`, `Solo 401(k) Employer`, `401(k) Employer Match`, `ROBS Distribution`, `Defined Benefit Plan`
 - **Note:** Client-side code already uses smart pattern matching (`indexOf('Roth')`) and was not affected.
 
-### BUG-2: (Add others as discovered)
+### BUG-2: Backup Questions Save Not Working ✅ FIXED (Jan 24, 2026)
+**Priority:** High
+**Issue:** Backup questions "Save & Continue" button collected empty data, causing page to reload with blank answers.
+**Location:** `saveBackupQuestions()` function and `hasBackupAnswers` check in Tool6.js
+**Root Cause:** Multiple issues:
+1. `saveBackupQuestions()` was looking for wrong field IDs for Tool 1 tier (`backup_investmentScore`, `backup_riskComfort`) instead of actual fields (`backup_stressResponse`, `backup_coreBelief`, `backup_consequence`)
+2. `hasBackupAnswers` check only looked for Tool 4/2 fields, missing Tool 1 fields
+**Fix Applied:**
+- Updated `saveBackupQuestions()` to collect correct field names for all 3 tiers
+- Updated `hasBackupAnswers` to check for backup fields from ALL tiers (Tool 1, 2, and 4)
+
+### BUG-3: (Add others as discovered)
 
 ---
 
@@ -359,53 +370,115 @@
 12. **Recalculate button:** Clarify purpose or remove
 13. **Welcome screen:** Brief orientation before first question
 
-### P3 - Nice to Have (Future)
-14. **Jargon tooltips:** Info icons for financial terms
-15. **One-question-at-a-time option:** Wizard style for Phase B
-16. **Profile reveal celebration:** Animation and detailed explanation
-17. **Slider tutorial:** Guided explanation of coupled behavior
-18. **Plain English results:** "What This Means" summary
-19. **Domain weight transparency:** Show calculated weights
+### P3 - SKIP (Not Implementing)
+14. ~~**Jargon tooltips:**~~ SKIP - Time-consuming, minimal student value
+15. ~~**One-question-at-a-time option:**~~ SKIP - Major restructure, slows experienced users
+16. ~~**Profile reveal celebration:**~~ SKIP - Polish only, not essential
+17. ~~**Domain weight transparency:**~~ SKIP - Could confuse more than help
+18. ~~**Auto-save draft:**~~ SKIP - Tool 6 is single-page, less needed than Tool 5
 
 ---
 
 ## Implementation Plan
 
-### Sprint 11.1: Critical Fixes
-- [ ] Fix Solo 401(k) Roth tax graph bug
-- [ ] Implement Tool 4-style guided walkthrough
-- [ ] Create persistent profile banner
+### Sprint 11.1: Foundation & Navigation
+- [x] Fix Solo 401(k) Roth tax graph bug ✅ FIXED
+- [ ] Add Return to Dashboard button (top of page, gold `.btn-nav` style)
+- [ ] Add Get Help button (use FeedbackWidget from Tool 5)
+- [ ] Implement Tool 4-style guided walkthrough (auto-open/close sections)
+- [ ] Add section headers with icons (📊 Profile, 💼 Details, ⚖️ Priorities, 💰 Allocation)
+- [ ] Apply transparent card backgrounds (`rgba(255, 255, 255, 0.03)`)
 
-### Sprint 11.2: Educational Content
-- [ ] Add tax strategy explanation section
-- [ ] Add investment score explanation
+### Sprint 11.2: Profile & Flow Improvements
+- [ ] Create persistent profile banner (shows after classification)
+- [ ] Separate profile classification into distinct section
+- [ ] Skip Phase C when only Retirement domain applies
+- [ ] Add collapsible section summaries (show values when collapsed)
+
+### Sprint 11.3: Educational Content
+- [ ] Add welcome/intro section (explain tool purpose, time estimate, data sources)
+- [ ] Add tax strategy explanation (Roth vs Traditional decision - THE key decision)
+- [ ] Add investment score explanation (what 1-7 means, 8%-20% returns)
 - [ ] Add scenario management instructions
+- [ ] Add slider behavior explanation (coupled limits, lock buttons)
 
-### Sprint 11.3: UI Restructure
-- [ ] Move action buttons to top of calculator
-- [ ] Skip Phase C when only Retirement domain active
-- [ ] Add progress indicator
-- [ ] Add welcome/orientation screen
-- [ ] Apply Tool 4 visual styling (headers with icons, transparent card backgrounds)
-- [ ] Add Return to Dashboard button
-- [ ] Add Get Help button
+### Sprint 11.4: Progress & Actions
+- [ ] Add progress indicator (Step 1/2/3 with visual bar)
+- [ ] Move action buttons to top of calculator section
+- [ ] Investigate/clarify recalculate button purpose
+- [ ] Add plain English results summary ("What This Means")
 
-### Sprint 11.4: Polish & Refinement
-- [ ] Review recalculate button necessity
-- [ ] Add jargon tooltips
-- [ ] Consider wizard-style Phase B option
+### Sprint 11.5: SKIP (Not Implementing)
+- ~~Jargon tooltips~~ - Time-consuming, minimal value
+- ~~Wizard-style Phase B~~ - Major restructure, slows experienced users
+- ~~Profile reveal celebration~~ - Polish only
+- ~~Domain weight transparency~~ - Could confuse more than help
+- ~~Auto-save draft~~ - Single-page tool, less needed
 
 ---
 
-## Reference: Tool 4 Patterns to Mirror
+## Reference: Tool 4 & Tool 5 Patterns to Mirror
 
-From Tool 4's successful patterns:
-1. **Section auto-open/close:** Only one section expanded at a time
-2. **Clear instructions:** Each section has header + description + help text
-3. **Action buttons at top:** Save, Reset, Compare buttons prominently placed
-4. **Progress feedback:** Clear indication of what's complete
-5. **Inline validation:** Errors shown immediately, not on submit
-6. **Loading states:** Clear feedback during calculations
+### Tool 4 Patterns (Verified in Code)
+
+| Pattern | Tool 4 Implementation | Tool 6 Status |
+|---------|----------------------|---------------|
+| **Welcome Section** | Intro with transparent background `rgba(79, 70, 229, 0.1)`, explains what tool does, 2-3 min estimate | ❌ Missing |
+| **Section Headers with Icons** | Emoji icons (📊, 🎯, 💰), clickable headers, expand/collapse indicators | ❌ Missing |
+| **Collapsible Sections** | Auto-collapse completed sections, show summary when collapsed | ❌ Missing |
+| **Return to Dashboard Button** | Top of page, gold button `.btn-nav`, "← Return to Dashboard" | ❌ Missing |
+| **Action Buttons at Top** | Calculator controls: Reset, Check Plan, Save, Download Report | ❌ Buttons at bottom |
+| **Progress Summary** | Shows completed values when section collapsed (Income, Essentials, etc.) | ❌ Missing |
+| **Loading Overlay** | Full-screen with spinner, contextual messages ("Loading Tool 1...") | ⚠️ Partial |
+| **Lock Buttons for Sliders** | 🔓/🔒 toggle to prevent slider changes | ✅ Has locks |
+| **Slider Visual Feedback** | Fill gradient, real-time dollar amounts in gold | ✅ Has this |
+| **Helper Text** | `.question-help` italic text explaining each input | ⚠️ Some present |
+| **Validation Results Display** | Color-coded warnings (red errors, blue info) | ⚠️ Partial |
+| **Priority Cards** | Selectable cards with recommended/challenging indicators | N/A |
+| **Transparent Card Backgrounds** | `rgba(255, 255, 255, 0.03)` with subtle borders | ❌ Missing |
+
+### Tool 5 Patterns (Verified in Code)
+
+| Pattern | Tool 5 Implementation | Tool 6 Status |
+|---------|----------------------|---------------|
+| **Welcome/Intro Page** | Full intro page explaining domains, time estimate (20-25 min), tips | ❌ Missing |
+| **Dashboard Button** | Top-left "← Dashboard" button in page header | ❌ Missing |
+| **Get Help Button** | Floating bottom-right "💬 Get Help" via FeedbackWidget | ❌ Missing |
+| **Back Button** | "← Back to Page X" below form, saves before navigating | ❌ Missing |
+| **Progress Bar** | Visual progress fill with "Page X of Y" text | ❌ Missing |
+| **Edit Mode Banner** | Yellow banner when editing previous responses | N/A |
+| **Empathy Tip Box** | Warm-toned box with 💡 icon for sensitive content | Could use for tax/investment |
+| **Loading States** | `showLoading('Saving your responses')` with contextual text | ⚠️ Partial |
+| **Auto-Save Draft** | Debounced auto-save on input change | ❌ Missing |
+
+### Patterns MISSING from Tool 6 (Action Items)
+
+**Critical (Add to Sprint 11.1-11.3):**
+1. ❌ **Welcome/Intro Section** - Neither Tool 4 nor Tool 5 start cold
+2. ❌ **Dashboard Navigation Button** - Both tools have this prominently
+3. ❌ **Get Help Button** - Tool 5 has floating FeedbackWidget
+4. ❌ **Progress Indicator** - Tool 5 has progress bar, Tool 4 has summary
+5. ❌ **Section Headers with Icons** - Tool 4 uses emoji icons (📊, 🎯, 💰)
+6. ❌ **Transparent Card Backgrounds** - Tool 4's visual hierarchy
+7. ❌ **Collapsible Section Summaries** - Tool 4 shows values when collapsed
+
+**Nice to Have (Sprint 11.4+):**
+8. ⚠️ **Auto-Save Draft** - Tool 5 has this, useful for long forms
+9. ⚠️ **Back Button** - Tool 5 allows going back with data saved
+10. ⚠️ **Empathy/Tip Boxes** - Tool 5's warm-toned guidance boxes
+
+---
+
+## Recommended Section Icons (Mirror Tool 4)
+
+| Section | Suggested Icon | Reasoning |
+|---------|---------------|-----------|
+| Welcome/Intro | 🎯 or 📋 | Goal-setting, getting started |
+| Profile Classification | 👤 or 📊 | Personal profile |
+| Allocation Inputs | 💼 or 📝 | Work/financial details |
+| Savings Priorities | ⚖️ or 🎚️ | Balancing priorities |
+| Your Allocation | 💰 or 📈 | Money/results |
+| Scenarios | 💾 or 📊 | Saving/comparing |
 
 ---
 
@@ -415,3 +488,4 @@ From Tool 4's successful patterns:
 - Maintain existing functionality while improving UX
 - Test with actual students to validate improvements
 - Document any new patterns for future tools
+- **Use shared utilities where possible** (FeedbackWidget, loading patterns)

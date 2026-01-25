@@ -237,36 +237,46 @@ google.script.run
 
 ### Phase 10: Polish
 - [x] Sprint 10.1: Backup Questions System - ✅ **COMPLETE** (Jan 24, 2026) - Fallback questions for missing tool data
-- [ ] Sprint 10.2: Edge Cases
+- [x] Sprint 10.2: Backup Questions UI - ✅ **COMPLETE** (Jan 24, 2026) - Section 0 with status indicators, save functionality
 - [x] Sprint 10.3: UI Polish - ✅ **COMPLETE** (Jan 19, 2026) - Tool 4 styling alignment
 
 ### Phase 11: UX Improvements (Student-Friendly)
-> **Reference:** `docs/Tool6/Tool6-UI-Improvements.md` for full details and reasoning
+> **Reference:** `docs/Tool6/Tool6-UI-Improvements.md` for full details, reasoning, and Tool 4/5 pattern comparison
 
-#### Sprint 11.1: Critical Fixes & Guided Flow
+#### Sprint 11.1: Foundation & Navigation (Mirror Tool 4/5)
 - [x] **BUG FIX:** Solo 401(k) Roth not updating tax treatment graph - ✅ **FIXED** (Jan 24, 2026)
+- [x] **BUG FIX:** Backup questions save not working - ✅ **FIXED** (Jan 24, 2026) - Fixed field name mismatches for all 3 tiers
+- [ ] Add Return to Dashboard button (top of page, gold `.btn-nav` style like Tool 4)
+- [ ] Add Get Help button (use FeedbackWidget from Tool 5)
 - [ ] Implement Tool 4-style guided walkthrough (auto-open/close sections)
-- [ ] Separate profile classification into its own section with persistent banner
+- [ ] Add section headers with icons (📊 Profile, 💼 Details, ⚖️ Priorities, 💰 Allocation)
+- [ ] Apply transparent card backgrounds (`rgba(255, 255, 255, 0.03)`)
+
+#### Sprint 11.2: Profile & Flow Improvements
+- [ ] Create persistent profile banner (shows after classification)
+- [ ] Separate profile classification into distinct section
 - [ ] Skip Phase C (Ambition Quotient) when only Retirement domain applies
+- [ ] Add collapsible section summaries (show values when collapsed, like Tool 4)
 
-#### Sprint 11.2: Educational Content
-- [ ] Add tax strategy explanation (Roth vs Traditional decision)
-- [ ] Add investment score explanation (what 1-7 means, how it affects projections)
+#### Sprint 11.3: Educational Content
+- [ ] Add welcome/intro section (explain tool purpose, time estimate, data sources)
+- [ ] Add tax strategy explanation (Roth vs Traditional - THE key decision)
+- [ ] Add investment score explanation (what 1-7 means, 8%-20% returns)
 - [ ] Add scenario management instructions
-- [ ] Clarify or remove "Recalculate Allocation" button
+- [ ] Add slider behavior explanation (coupled limits, lock buttons)
 
-#### Sprint 11.3: UI Restructure
-- [ ] Move action buttons to top of calculator section (like Tool 4)
-- [ ] Add progress indicator (Step 1/2/3)
-- [ ] Add welcome/orientation screen
-- [ ] Apply Tool 4 visual styling (headers with icons, transparent card backgrounds)
-- [ ] Add Return to Dashboard button
-- [ ] Add Get Help button
+#### Sprint 11.4: Progress & Actions
+- [ ] Add progress indicator (Step 1/2/3 with visual bar like Tool 5)
+- [ ] Move action buttons to top of calculator section
+- [ ] Investigate/clarify recalculate button purpose
+- [ ] Add plain English results summary ("What This Means")
 
-#### Sprint 11.4: Polish & Refinement
-- [ ] Add jargon tooltips (ROBS, HSA, 401k, Roth, Traditional, etc.)
-- [ ] Consider wizard-style Phase B option (one question at a time)
-- [ ] Plain English results summary ("What This Means")
+#### Sprint 11.5: SKIP (Not Implementing)
+- ~~Jargon tooltips~~ - Time-consuming, minimal value
+- ~~Wizard-style Phase B~~ - Major restructure, slows experienced users
+- ~~Profile reveal celebration~~ - Polish only
+- ~~Domain weight transparency~~ - Could confuse more than help
+- ~~Auto-save draft~~ - Single-page tool, less needed
 
 ---
 

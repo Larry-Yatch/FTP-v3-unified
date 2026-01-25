@@ -486,7 +486,9 @@ const Tool6 = {
     try {
       const preSurveyKey = `tool6_presurvey_${clientId}`;
       const preSurveyData = PropertiesService.getUserProperties().getProperty(preSurveyKey);
-      return preSurveyData ? JSON.parse(preSurveyData) : null;
+      const parsed = preSurveyData ? JSON.parse(preSurveyData) : null;
+      Logger.log(`Retrieved pre-survey for ${clientId}: ${JSON.stringify(parsed)}`);
+      return parsed;
     } catch (error) {
       Logger.log(`Error getting pre-survey: ${error}`);
       return null;
@@ -499,6 +501,7 @@ const Tool6 = {
   savePreSurvey(clientId, preSurveyData) {
     try {
       const preSurveyKey = `tool6_presurvey_${clientId}`;
+      Logger.log(`Saving pre-survey data: ${JSON.stringify(preSurveyData)}`);
       PropertiesService.getUserProperties().setProperty(preSurveyKey, JSON.stringify(preSurveyData));
       Logger.log(`Pre-survey saved for client: ${clientId}`);
 
@@ -2726,6 +2729,53 @@ const Tool6 = {
       : null;
     const hasProjections = !!projections;
 
+    // Build Section 0: Backup Questions (if needed)
+    const needsBackup = !toolStatus.hasTool1 || !toolStatus.hasTool2 || !toolStatus.hasTool4;
+    let backupSectionHtml = '';
+    if (needsBackup) {
+      // Check for backup answers from ANY tier
+      const hasBackupAnswers = preSurveyData && (
+        // Tool 4 backup fields
+        preSurveyData.backup_monthlyBudget ||
+        preSurveyData.backup_monthlyIncome ||
+        // Tool 2 backup fields
+        preSurveyData.backup_age ||
+        preSurveyData.backup_grossIncome ||
+        preSurveyData.backup_employmentType ||
+        // Tool 1 backup fields (trauma pattern)
+        preSurveyData.backup_stressResponse ||
+        preSurveyData.backup_coreBelief ||
+        preSurveyData.backup_consequence
+      );
+      const backupStatus = hasBackupAnswers ? 'complete' : 'incomplete';
+      const backupIcon = hasBackupAnswers ? '&#9989;' : '&#9888;&#65039;';
+      const backupExpanded = !hasBackupAnswers;
+      const backupQuestionsHtml = this.buildBackupQuestionsHtml(preSurveyData || {}, toolStatus.hasTool1, toolStatus.hasTool2, toolStatus.hasTool4);
+
+      backupSectionHtml = `
+    <!-- Section 0: Additional Info Needed (Backup Questions) -->
+    <div class="section-card section-${backupStatus}">
+      <div class="section-header section-header-${backupStatus}" onclick="toggleSection('backup')">
+        <div class="section-title">${backupIcon} Additional Info Needed</div>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <span class="status-badge status-${backupStatus}">${hasBackupAnswers ? 'Complete' : 'Action Required'}</span>
+          <span class="section-toggle ${backupExpanded ? '' : 'collapsed'}" id="backupToggle">&#9660;</span>
+        </div>
+      </div>
+
+      <div class="section-body ${backupExpanded ? '' : 'collapsed'}" id="backupBody">
+        ${backupQuestionsHtml}
+
+        <div class="backup-actions" style="margin-top: 24px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
+          <button type="button" class="btn-primary" onclick="saveBackupQuestions()" style="width: 100%;">
+            &#10004; Save Info & Continue
+          </button>
+        </div>
+      </div>
+    </div>
+      `;
+    }
+
     return `
 <!DOCTYPE html>
 <html>
@@ -2742,8 +2792,42 @@ const Tool6 = {
       padding: 20px;
     }
 
+    /* Navigation header - matches Tool 4 pattern */
+    .tool-navigation {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px 0;
+      margin-bottom: 24px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .btn-nav {
+      background: var(--gold, #ad9168);
+      color: #140f23;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 50px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn-nav:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 15px rgba(173, 145, 104, 0.3);
+    }
+
+    .tool-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--color-text-primary);
+    }
+
     .section-card {
-      background: var(--color-surface);
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
       border-radius: 12px;
       margin-bottom: 24px;
       overflow: hidden;
@@ -2760,6 +2844,45 @@ const Tool6 = {
 
     .section-header:hover {
       background: rgba(79, 70, 229, 0.15);
+    }
+
+    /* Section status variants */
+    .section-header-incomplete {
+      background: rgba(234, 179, 8, 0.15);
+      border-left: 4px solid #eab308;
+    }
+
+    .section-header-incomplete:hover {
+      background: rgba(234, 179, 8, 0.2);
+    }
+
+    .section-header-complete {
+      background: rgba(34, 197, 94, 0.1);
+      border-left: 4px solid #22c55e;
+    }
+
+    .section-header-complete:hover {
+      background: rgba(34, 197, 94, 0.15);
+    }
+
+    /* Status badges */
+    .status-badge {
+      font-size: 0.75rem;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .status-incomplete {
+      background: rgba(234, 179, 8, 0.2);
+      color: #eab308;
+    }
+
+    .status-complete {
+      background: rgba(34, 197, 94, 0.2);
+      color: #22c55e;
     }
 
     .section-title {
@@ -3846,6 +3969,19 @@ const Tool6 = {
       font-size: 0.9rem;
       color: var(--color-text-muted);
       margin-bottom: 20px;
+    }
+
+    /* Add spacing between backup questions */
+    .backup-tier .form-group {
+      margin-bottom: 28px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .backup-tier .form-group:last-child {
+      margin-bottom: 0;
+      padding-bottom: 0;
+      border-bottom: none;
     }
 
     .backup-slider {
@@ -5099,12 +5235,18 @@ const Tool6 = {
   </div>
 
   <div class="tool6-container">
-    <!-- Header -->
+    <!-- Navigation Header -->
+    <div class="tool-navigation">
+      <button type="button" class="btn-nav" onclick="returnToDashboard()">
+        &#8592; Dashboard
+      </button>
+      <span class="tool-title">Retirement Blueprint Calculator</span>
+      <div style="width: 120px;"></div> <!-- Spacer for centering -->
+    </div>
+
+    <!-- Tool Description -->
     <div style="text-align: center; margin-bottom: 32px;">
-      <h1 style="font-size: 2rem; color: var(--color-text-primary); margin-bottom: 8px;">
-        Retirement Blueprint Calculator
-      </h1>
-      <p style="color: var(--color-text-secondary); font-size: 1.1rem;">
+      <p style="color: var(--color-text-secondary); font-size: 1.1rem; margin: 0;">
         Optimize your retirement vehicle allocations for maximum tax efficiency
       </p>
     </div>
@@ -5118,10 +5260,12 @@ const Tool6 = {
     </div>
     ` : ''}
 
-    <!-- Section 1: Your Profile (Questionnaire) -->
+    ${backupSectionHtml}
+
+    <!-- Section 1: Your Financial Profile (Questionnaire) -->
     <div class="section-card">
       <div class="section-header" onclick="toggleSection('profile')">
-        <div class="section-title">1. Your Financial Profile</div>
+        <div class="section-title">&#128202; 1. Your Financial Profile ${hasPreSurvey ? '' : '<span class="status-badge status-incomplete">Incomplete</span>'}</div>
         <div style="display: flex; align-items: center; gap: 12px;">
           ${hasPreSurvey ? '<span class="profile-badge">Profile: ' + (profile?.name || 'Calculating...') + '</span>' : ''}
           <span class="section-toggle ${hasPreSurvey ? 'collapsed' : ''}" id="profileToggle">&#9660;</span>
@@ -5168,7 +5312,7 @@ const Tool6 = {
     <!-- Section 2: Vehicle Allocation Calculator -->
     <div class="section-card">
       <div class="section-header" onclick="toggleSection('calculator')">
-        <div class="section-title">2. Vehicle Allocation</div>
+        <div class="section-title">&#128176; 2. Vehicle Allocation</div>
         <span class="section-toggle ${hasAllocation ? '' : 'collapsed'}" id="calculatorToggle">&#9660;</span>
       </div>
 
@@ -5190,7 +5334,7 @@ const Tool6 = {
     <!-- Section 3: Projections -->
     <div class="section-card">
       <div class="section-header" onclick="toggleSection('projections')">
-        <div class="section-title">3. Future Value Projections</div>
+        <div class="section-title">&#128200; 3. Future Value Projections</div>
         <span class="section-toggle ${hasProjections ? '' : 'collapsed'}" id="projectionsToggle">&#9660;</span>
       </div>
 
@@ -5202,7 +5346,7 @@ const Tool6 = {
     <!-- Section 4: Saved Scenarios -->
     <div class="section-card">
       <div class="section-header" onclick="toggleSection('scenarios')">
-        <div class="section-title">4. Scenario Management</div>
+        <div class="section-title">&#128190; 4. Scenario Management</div>
         <span class="section-toggle ${hasAllocation ? '' : 'collapsed'}" id="scenariosToggle">&#9660;</span>
       </div>
 
@@ -5374,6 +5518,140 @@ const Tool6 = {
       body.classList.toggle('collapsed');
       toggle.classList.toggle('collapsed');
       if (summary) summary.classList.toggle('show');
+    }
+
+    // ========================================================================
+    // NAVIGATION - Return to Dashboard (Sprint 11.1)
+    // ========================================================================
+
+    function returnToDashboard() {
+      var loadingOverlay = document.getElementById('loadingOverlay');
+      var loadingText = document.getElementById('loadingText');
+      var loadingSubtext = document.getElementById('loadingSubtext');
+
+      if (loadingOverlay) {
+        if (loadingText) loadingText.textContent = 'Returning to Dashboard...';
+        if (loadingSubtext) loadingSubtext.textContent = 'Loading your overview';
+        loadingOverlay.classList.add('show');
+      }
+
+      google.script.run
+        .withSuccessHandler(function(dashboardHtml) {
+          if (dashboardHtml) {
+            document.open();
+            document.write(dashboardHtml);
+            document.close();
+            window.scrollTo(0, 0);
+          } else {
+            if (loadingOverlay) loadingOverlay.classList.remove('show');
+            alert('Error loading dashboard');
+          }
+        })
+        .withFailureHandler(function(error) {
+          if (loadingOverlay) loadingOverlay.classList.remove('show');
+          console.error('Navigation error:', error);
+          alert('Error returning to dashboard: ' + error.message);
+        })
+        .getDashboardHtml('${clientId}');
+    }
+
+    // ========================================================================
+    // BACKUP QUESTIONS - Save & Continue (Section 0)
+    // ========================================================================
+
+    function saveBackupQuestions() {
+      var loadingOverlay = document.getElementById('loadingOverlay');
+      var loadingText = document.getElementById('loadingText');
+      var loadingSubtext = document.getElementById('loadingSubtext');
+
+      // Show loading
+      if (loadingOverlay) {
+        if (loadingText) loadingText.textContent = 'Saving Your Information...';
+        if (loadingSubtext) loadingSubtext.textContent = 'Updating your profile';
+        loadingOverlay.classList.add('show');
+      }
+
+      // Collect ALL backup question values from all tiers
+      var backupData = {};
+
+      // Helper to collect input value if it exists
+      function collectInput(fieldId, parser) {
+        var input = document.getElementById(fieldId);
+        if (input && input.value !== '') {
+          return parser ? parser(input.value) : input.value;
+        }
+        return null;
+      }
+
+      // Helper to collect radio/select value
+      function collectRadio(fieldName) {
+        var selected = document.querySelector('input[name="' + fieldName + '"]:checked');
+        return selected ? selected.value : null;
+      }
+
+      // Tier 1: Tool 4 backup (income/budget)
+      var val = collectInput('backup_monthlyIncome', parseFloat);
+      if (val !== null) backupData.backup_monthlyIncome = val;
+
+      val = collectInput('backup_monthlyBudget', parseFloat);
+      if (val !== null) backupData.backup_monthlyBudget = val;
+
+      // Tier 2: Tool 2 backup (age, gross income, employment, filing status)
+      val = collectInput('backup_age', parseInt);
+      if (val !== null) backupData.backup_age = val;
+
+      val = collectInput('backup_grossIncome', parseFloat);
+      if (val !== null) backupData.backup_grossIncome = val;
+
+      val = collectRadio('backup_employmentType');
+      if (val !== null) backupData.backup_employmentType = val;
+
+      val = collectRadio('backup_filingStatus');
+      if (val !== null) backupData.backup_filingStatus = val;
+
+      val = collectRadio('backup_hasHSA');
+      if (val !== null) backupData.backup_hasHSA = val;
+
+      // Tier 3: Tool 1 backup (trauma pattern questions)
+      val = collectRadio('backup_stressResponse');
+      if (val !== null) backupData.backup_stressResponse = val;
+
+      val = collectRadio('backup_coreBelief');
+      if (val !== null) backupData.backup_coreBelief = val;
+
+      val = collectRadio('backup_consequence');
+      if (val !== null) backupData.backup_consequence = val;
+
+      console.log('Backup data collected:', backupData);
+
+      // Merge with existing preSurvey data if any
+      var existingData = ${JSON.stringify(preSurveyData || {})};
+      console.log('Existing data:', existingData);
+      var mergedData = Object.assign({}, existingData, backupData);
+      console.log('Merged data to save:', mergedData);
+
+      google.script.run
+        .withSuccessHandler(function(result) {
+          if (result && result.success === false) {
+            if (loadingOverlay) loadingOverlay.classList.remove('show');
+            alert('Error saving: ' + (result.error || 'Unknown error'));
+            return;
+          }
+
+          // Refresh page with updated data
+          if (result && result.nextPageHtml) {
+            document.open();
+            document.write(result.nextPageHtml);
+            document.close();
+            window.scrollTo(0, 0);
+          }
+        })
+        .withFailureHandler(function(error) {
+          if (loadingOverlay) loadingOverlay.classList.remove('show');
+          console.error('Save error:', error);
+          alert('Error saving: ' + error.message);
+        })
+        .savePreSurveyTool6('${clientId}', mergedData);
     }
 
     // Sprint 8.1: Toggle trauma insight section
@@ -7801,6 +8079,10 @@ const Tool6 = {
     }
 
   </script>
+
+  <!-- FeedbackWidget - Get Help Button (Sprint 11.1) -->
+  ${FeedbackWidget.render(clientId, 'tool6', 'calculator')}
+
 </body>
 </html>
     `;
@@ -8230,15 +8512,11 @@ const Tool6 = {
    * Sprint 10.1: Backup Questions
    * Shows backup questions when Tool 1, 2, or 4 data is missing
    */
+  // eslint-disable-next-line no-unused-vars
   buildQuestionnaireHtml(preSurveyData, prefillData, profile = null, toolStatus = {}) {
+    // Note: toolStatus parameter kept for API compatibility but backup questions moved to Section 0
     const savedAnswers = preSurveyData || {};
     const hasProfile = !!profile;
-
-    // Sprint 10.1: Check which tools are missing for backup questions
-    const hasTool1 = toolStatus.hasTool1 || false;
-    const hasTool2 = toolStatus.hasTool2 || false;
-    const hasTool4 = toolStatus.hasTool4 || false;
-    const needsBackupQuestions = !hasTool1 || !hasTool2 || !hasTool4;
 
     // Helper to get value (saved > prefill > empty)
     const getValue = (fieldId, prefillKey) => {
@@ -8398,13 +8676,8 @@ const Tool6 = {
 
     let html = '<form id="questionnaireForm" onsubmit="return false;">';
 
-    // ========================================================================
-    // BACKUP QUESTIONS SECTION (Sprint 10.1)
-    // Shown when Tool 1, 2, or 4 data is missing
-    // ========================================================================
-    if (needsBackupQuestions) {
-      html += this.buildBackupQuestionsHtml(savedAnswers, hasTool1, hasTool2, hasTool4);
-    }
+    // NOTE: Backup questions are now rendered in Section 0 (separate card)
+    // See buildUnifiedPage() lines 2729-2765 for the new backup section implementation
 
     // ========================================================================
     // PHASE A: CLASSIFICATION (Progressive short-circuit flow)
