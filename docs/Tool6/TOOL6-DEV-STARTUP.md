@@ -244,7 +244,7 @@ google.script.run
 > **Reference:** `docs/Tool6/Tool6-UI-Improvements.md` for full details and reasoning
 
 #### Sprint 11.1: Critical Fixes & Guided Flow
-- [ ] **BUG FIX:** Solo 401(k) Roth not updating tax treatment graph
+- [x] **BUG FIX:** Solo 401(k) Roth not updating tax treatment graph - ✅ **FIXED** (Jan 24, 2026)
 - [ ] Implement Tool 4-style guided walkthrough (auto-open/close sections)
 - [ ] Separate profile classification into its own section with persistent banner
 - [ ] Skip Phase C (Ambition Quotient) when only Retirement domain applies
@@ -259,6 +259,9 @@ google.script.run
 - [ ] Move action buttons to top of calculator section (like Tool 4)
 - [ ] Add progress indicator (Step 1/2/3)
 - [ ] Add welcome/orientation screen
+- [ ] Apply Tool 4 visual styling (headers with icons, transparent card backgrounds)
+- [ ] Add Return to Dashboard button
+- [ ] Add Get Help button
 
 #### Sprint 11.4: Polish & Refinement
 - [ ] Add jargon tooltips (ROBS, HSA, 401k, Roth, Traditional, etc.)

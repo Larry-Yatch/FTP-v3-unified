@@ -1847,19 +1847,28 @@ const Tool6 = {
    */
   calculateTaxBreakdown(allocations, projections) {
     // Sum Roth allocations (tax-free at withdrawal)
+    // Includes: 401(k) Roth, IRA Roth, Backdoor Roth, Mega Backdoor Roth, Solo 401(k) Roth, HSA
     const rothAllocation =
       (allocations['401(k) Roth'] || 0) +
       (allocations['IRA Roth'] || 0) +
       (allocations['Backdoor Roth IRA'] || 0) +
+      (allocations['Mega Backdoor Roth'] || 0) +
+      (allocations['Solo 401(k) Employee (Roth)'] || 0) +
       (allocations['HSA'] || 0); // HSA is tax-free if used for medical
 
-    // Sum Traditional allocations (taxable at withdrawal)
+    // Sum Traditional/Pre-tax allocations (taxable at withdrawal as ordinary income)
+    // Includes: 401(k) Traditional, IRA Traditional, Solo 401(k) Traditional/Employer,
+    //           SEP-IRA, SIMPLE IRA, Employer Match, ROBS, Defined Benefit
     const traditionalAllocation =
       (allocations['401(k) Traditional'] || 0) +
+      (allocations['401(k) Employer Match'] || 0) +
       (allocations['IRA Traditional'] || 0) +
-      (allocations['Solo 401(k)'] || 0) +
+      (allocations['Solo 401(k) Employee (Traditional)'] || 0) +
+      (allocations['Solo 401(k) Employer'] || 0) +
       (allocations['SEP-IRA'] || 0) +
-      (allocations['SIMPLE IRA'] || 0);
+      (allocations['SIMPLE IRA'] || 0) +
+      (allocations['ROBS Distribution'] || 0) +
+      (allocations['Defined Benefit Plan'] || 0);
 
     // Family Bank is taxable (capital gains)
     const taxableAllocation = allocations['Family Bank'] || 0;

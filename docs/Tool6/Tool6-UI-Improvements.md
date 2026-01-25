@@ -164,6 +164,35 @@
 
 ---
 
+### 10. Visual Section Styling (Mirror Tool 4)
+**Issue:** Tool 6 sections lack the polished visual treatment of Tool 4.
+
+**Current State:** Basic section styling without consistent visual hierarchy.
+
+**Desired State:** Match Tool 4's visual patterns:
+- **Section headers:** Consistent styling with icons in headers
+- **Transparent card backgrounds:** Semi-transparent boxes behind each section for visual separation
+- **Header icons:** Meaningful icons that represent each section's purpose
+- **Visual hierarchy:** Clear distinction between sections
+
+**Reasoning:** Tool 4's visual design creates a professional, approachable feel that reduces cognitive load and improves scannability.
+
+---
+
+### 11. Navigation & Help Buttons
+**Issue:** Tool 6 lacks standard navigation elements present in other tools.
+
+**Current State:** No easy way to return to dashboard or get help.
+
+**Desired State:** Add consistent navigation elements (like Tool 4 and Tool 5):
+- **Return to Dashboard button:** Prominent button to go back to main dashboard
+- **Get Help button:** Access to help resources (like on dashboard and Tool 5)
+- **Placement:** Top of tool, consistent with other tools
+
+**Reasoning:** Users need easy escape routes and help access. Consistency across tools reduces learning curve.
+
+---
+
 ## AI Analysis Observations
 
 ### 10. No Welcome/Orientation Screen
@@ -295,11 +324,15 @@
 
 ## Bug Fixes Required
 
-### BUG-1: Solo 401(k) Roth Tax Graph
+### BUG-1: Solo 401(k) Roth Tax Graph ✅ FIXED (Jan 24, 2026)
 **Priority:** High
 **Issue:** Solo 401(k) Roth not counted in tax-free allocation percentage.
-**Location:** `calculateTaxBreakdown()` function
-**Fix:** Add Solo 401(k) Roth variants to the Roth allocation sum.
+**Location:** `calculateTaxBreakdown()` function in Tool6.js (lines 1848-1893)
+**Root Cause:** Server-side function was using hardcoded vehicle names that did not include all variants.
+**Fix Applied:** Updated `calculateTaxBreakdown()` to include ALL vehicle types:
+- **Roth (tax-free):** Added `Solo 401(k) Employee (Roth)`, `Mega Backdoor Roth`
+- **Traditional (tax-deferred):** Added `Solo 401(k) Employee (Traditional)`, `Solo 401(k) Employer`, `401(k) Employer Match`, `ROBS Distribution`, `Defined Benefit Plan`
+- **Note:** Client-side code already uses smart pattern matching (`indexOf('Roth')`) and was not affected.
 
 ### BUG-2: (Add others as discovered)
 
@@ -308,7 +341,7 @@
 ## Prioritized Improvements
 
 ### P0 - Critical (Fix Before Class Use)
-1. **BUG-1:** Solo 401(k) Roth tax graph fix
+1. ~~**BUG-1:** Solo 401(k) Roth tax graph fix~~ ✅ FIXED
 2. **Guided walkthrough:** Mirror Tool 4's section-by-section flow
 3. **Profile banner:** Persistent profile display with change option
 
@@ -317,20 +350,22 @@
 5. **Investment score explanation:** What the score means and how it affects projections
 6. **Action buttons relocation:** Move to top of calculator section like Tool 4
 7. **Skip Phase C when single domain:** Don't ask priorities when only Retirement applies
+8. **Visual section styling:** Match Tool 4's headers, icons, and transparent card backgrounds
+9. **Navigation buttons:** Add Return to Dashboard and Get Help buttons
 
 ### P2 - Medium Priority (Polish)
-8. **Progress indicator:** Step 1/2/3 with visual progress bar
-9. **Scenario management instructions:** Explain what scenarios are and why to save
-10. **Recalculate button:** Clarify purpose or remove
-11. **Welcome screen:** Brief orientation before first question
+10. **Progress indicator:** Step 1/2/3 with visual progress bar
+11. **Scenario management instructions:** Explain what scenarios are and why to save
+12. **Recalculate button:** Clarify purpose or remove
+13. **Welcome screen:** Brief orientation before first question
 
 ### P3 - Nice to Have (Future)
-12. **Jargon tooltips:** Info icons for financial terms
-13. **One-question-at-a-time option:** Wizard style for Phase B
-14. **Profile reveal celebration:** Animation and detailed explanation
-15. **Slider tutorial:** Guided explanation of coupled behavior
-16. **Plain English results:** "What This Means" summary
-17. **Domain weight transparency:** Show calculated weights
+14. **Jargon tooltips:** Info icons for financial terms
+15. **One-question-at-a-time option:** Wizard style for Phase B
+16. **Profile reveal celebration:** Animation and detailed explanation
+17. **Slider tutorial:** Guided explanation of coupled behavior
+18. **Plain English results:** "What This Means" summary
+19. **Domain weight transparency:** Show calculated weights
 
 ---
 
@@ -351,6 +386,9 @@
 - [ ] Skip Phase C when only Retirement domain active
 - [ ] Add progress indicator
 - [ ] Add welcome/orientation screen
+- [ ] Apply Tool 4 visual styling (headers with icons, transparent card backgrounds)
+- [ ] Add Return to Dashboard button
+- [ ] Add Get Help button
 
 ### Sprint 11.4: Polish & Refinement
 - [ ] Review recalculate button necessity
