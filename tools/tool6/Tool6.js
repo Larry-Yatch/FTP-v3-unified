@@ -3208,6 +3208,27 @@ const Tool6 = {
       border-color: #ef4444;
     }
 
+    /* Intro Section - matches Tool 4 style */
+    .intro-section {
+      background: rgba(79, 70, 229, 0.1);
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 30px;
+    }
+
+    .intro-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--color-text-primary);
+      margin-bottom: 10px;
+    }
+
+    .intro-text {
+      color: var(--color-text-secondary);
+      line-height: 1.6;
+      font-size: 0.95rem;
+    }
+
     /* Submit Button - matches Tool 4 style */
     .submit-btn {
       background: var(--gold, #ffc107);
@@ -5238,10 +5259,10 @@ const Tool6 = {
     <!-- Navigation Header -->
     <div class="tool-navigation">
       <button type="button" class="btn-nav" onclick="returnToDashboard()">
-        &#8592; Dashboard
+        &#8592; Return to Dashboard
       </button>
       <span class="tool-title">Retirement Blueprint Calculator</span>
-      <div style="width: 120px;"></div> <!-- Spacer for centering -->
+      <div style="width: 180px;"></div> <!-- Spacer for centering -->
     </div>
 
     <!-- Tool Description -->
@@ -5274,13 +5295,33 @@ const Tool6 = {
 
       ${hasPreSurvey ? `
       <div class="section-summary show" id="profileSummary">
-        <strong>Monthly Budget:</strong> $${(preSurveyData.monthlyBudget || 0).toLocaleString()} |
-        <strong>Age:</strong> ${preSurveyData.age || prefillData.age || 'Not set'} |
-        <strong>Filing Status:</strong> ${preSurveyData.filingStatus || 'Single'}
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+          <div>
+            <strong>Monthly Budget:</strong> $${(preSurveyData.monthlyBudget || 0).toLocaleString()} |
+            <strong>Age:</strong> ${preSurveyData.age || prefillData.age || 'Not set'} |
+            <strong>Filing Status:</strong> ${preSurveyData.filingStatus || 'Single'}
+          </div>
+          <button type="button" class="btn-link" onclick="event.stopPropagation(); toggleSection('profile'); setTimeout(restartClassification, 100);">
+            Change Profile
+          </button>
+        </div>
       </div>
       ` : ''}
 
       <div class="section-body ${hasPreSurvey ? 'collapsed' : ''}" id="profileBody">
+        <!-- Intro Section -->
+        <div class="intro-section">
+          <div class="intro-title">Welcome to Your Retirement Blueprint Calculator</div>
+          <div class="intro-text">
+            This tool helps you optimize your retirement savings across different account types (401k, IRA, HSA, etc.) for maximum tax efficiency. Based on your financial situation and goals, we will recommend the best allocation strategy for you.
+            <br><br>
+            <strong>How it works:</strong> Answer a few questions about your employment, retirement goals, and tax preferences. We will classify your investor profile and calculate the optimal allocation of your retirement budget across tax-advantaged accounts.
+            <br><br>
+            <strong>Time needed:</strong> 3-5 minutes
+            ${toolStatus.hasTool4 ? '<br><br><strong>Data imported:</strong> Your monthly retirement budget and investment score from Tool 4.' : ''}
+          </div>
+        </div>
+
         <!-- Data Summary from Tools 1-5 -->
         <div style="margin-bottom: 24px;">
           <h4 style="color: var(--color-text-secondary); margin-bottom: 12px;">Your Tool 4 Allocation</h4>

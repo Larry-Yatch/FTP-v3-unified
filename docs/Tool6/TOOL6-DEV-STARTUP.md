@@ -243,14 +243,14 @@ google.script.run
 ### Phase 11: UX Improvements (Student-Friendly)
 > **Reference:** `docs/Tool6/Tool6-UI-Improvements.md` for full details, reasoning, and Tool 4/5 pattern comparison
 
-#### Sprint 11.1: Foundation & Navigation (Mirror Tool 4/5)
+#### Sprint 11.1: Foundation & Navigation (Mirror Tool 4/5) ✅ COMPLETE
 - [x] **BUG FIX:** Solo 401(k) Roth not updating tax treatment graph - ✅ **FIXED** (Jan 24, 2026)
 - [x] **BUG FIX:** Backup questions save not working - ✅ **FIXED** (Jan 24, 2026) - Fixed field name mismatches for all 3 tiers
-- [ ] Add Return to Dashboard button (top of page, gold `.btn-nav` style like Tool 4)
-- [ ] Add Get Help button (use FeedbackWidget from Tool 5)
-- [ ] Implement Tool 4-style guided walkthrough (auto-open/close sections)
-- [ ] Add section headers with icons (📊 Profile, 💼 Details, ⚖️ Priorities, 💰 Allocation)
-- [ ] Apply transparent card backgrounds (`rgba(255, 255, 255, 0.03)`)
+- [x] Add Return to Dashboard button (top of page, gold `.btn-nav` style like Tool 4) - ✅ **COMPLETE** (Jan 24, 2026)
+- [x] Add Get Help button (use FeedbackWidget from Tool 5) - ✅ **COMPLETE** (Jan 24, 2026) - Already integrated
+- [x] Implement Tool 4-style guided walkthrough (auto-open/close sections) - ✅ **COMPLETE** (Jan 24, 2026) - Added intro section
+- [x] Add section headers with icons (📊 Profile, 💼 Details, ⚖️ Priorities, 💰 Allocation) - ✅ **COMPLETE** (Jan 24, 2026) - Already had icons
+- [x] Apply transparent card backgrounds (`rgba(255, 255, 255, 0.03)`) - ✅ **COMPLETE** (Jan 24, 2026) - Already applied
 
 #### Sprint 11.2: Profile & Flow Improvements
 - [ ] Create persistent profile banner (shows after classification)
@@ -259,7 +259,7 @@ google.script.run
 - [ ] Add collapsible section summaries (show values when collapsed, like Tool 4)
 
 #### Sprint 11.3: Educational Content
-- [ ] Add welcome/intro section (explain tool purpose, time estimate, data sources)
+- [x] Add welcome/intro section (explain tool purpose, time estimate, data sources) - ✅ **COMPLETE** (Jan 24, 2026) - Added as part of Sprint 11.1
 - [ ] Add tax strategy explanation (Roth vs Traditional - THE key decision)
 - [ ] Add investment score explanation (what 1-7 means, 8%-20% returns)
 - [ ] Add scenario management instructions
@@ -468,24 +468,21 @@ When ending a session, update this section:
 ### Last Session Summary
 - **Date:** January 24, 2026
 - **What was done:**
-  - ✅ **Sprint 10.1: Backup Questions System**
-  - Implemented 3-tier backup questions when prerequisite tool data is missing:
-    - **Tier 1 (Tool 4 missing):** Monthly income, monthly budget, years to retirement, investment risk
-    - **Tier 2 (Tool 2 missing):** Age, gross income, employment type, filing status
-    - **Tier 3 (Tool 1 missing):** 3 trauma pattern questions (majority voting)
-  - New method: `buildBackupQuestionsHtml(savedAnswers, hasTool1, hasTool2, hasTool4)`
-  - New derivation functions:
-    - `deriveTool4FromBackup()` - Extracts financial data from backup answers
-    - `deriveTool2FromBackup()` - Extracts demographics from backup answers
-    - `deriveTraumaPatternFromBackup()` - Majority voting across 3 questions
-    - `mergeBackupData()` - Integrates derived data into toolStatus
-  - New CSS: `.backup-questions-section`, `.backup-tier`, `.backup-statement-group` styles
-  - New JS functions: `updateBackupSlider()`, `selectBackupScore()`, `selectBackupStatement()`, `navigateToTool()`
-  - Updated `buildQuestionnaireHtml()` to accept toolStatus parameter
-  - Updated `render()` and `savePreSurvey()` to call `mergeBackupData()`
-- **Current state:** Sprint 10.1 Complete. Users can now proceed without Tool 1, 2, or 4 by answering backup questions.
-- **Next task:** Sprint 10.2 - Edge Cases
+  - ✅ **Sprint 11.1: Foundation & Navigation** - UX improvements for student-friendly experience
+  - Updated Return to Dashboard button text ("← Return to Dashboard")
+  - Verified FeedbackWidget (Get Help button) already integrated
+  - Added welcome/intro section explaining tool purpose, time estimate, and data sources
+  - Added intro section CSS (matches Tool 4 pattern)
+  - Verified section headers already have emoji icons
+  - Verified transparent card backgrounds already applied
+- **Current state:** Sprint 11.1 Complete. Tool 6 now has better navigation, intro section, and help button.
+- **Next task:** Sprint 11.2 - Profile & Flow Improvements
 - **Blockers:** None
+
+### Previous Session (January 24, 2026 PM)
+- ✅ **Sprint 10.1: Backup Questions System**
+- Implemented 3-tier backup questions when prerequisite tool data is missing
+- New functions: `buildBackupQuestionsHtml()`, `deriveTool4FromBackup()`, `deriveTool2FromBackup()`, `deriveTraumaPatternFromBackup()`, `mergeBackupData()`
 
 ### Previous Session (January 24, 2026 AM)
 - ✅ Sprint 8.1: Trauma Integration - Trauma Insights Display

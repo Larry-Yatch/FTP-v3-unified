@@ -381,13 +381,13 @@
 
 ## Implementation Plan
 
-### Sprint 11.1: Foundation & Navigation
+### Sprint 11.1: Foundation & Navigation ✅ COMPLETE (Jan 24, 2026)
 - [x] Fix Solo 401(k) Roth tax graph bug ✅ FIXED
-- [ ] Add Return to Dashboard button (top of page, gold `.btn-nav` style)
-- [ ] Add Get Help button (use FeedbackWidget from Tool 5)
-- [ ] Implement Tool 4-style guided walkthrough (auto-open/close sections)
-- [ ] Add section headers with icons (📊 Profile, 💼 Details, ⚖️ Priorities, 💰 Allocation)
-- [ ] Apply transparent card backgrounds (`rgba(255, 255, 255, 0.03)`)
+- [x] Add Return to Dashboard button (top of page, gold `.btn-nav` style) ✅ COMPLETE
+- [x] Add Get Help button (use FeedbackWidget from Tool 5) ✅ COMPLETE - Already integrated
+- [x] Implement Tool 4-style guided walkthrough (auto-open/close sections) ✅ COMPLETE - Added intro section
+- [x] Add section headers with icons (📊 Profile, 💼 Details, ⚖️ Priorities, 💰 Allocation) ✅ COMPLETE - Already had icons
+- [x] Apply transparent card backgrounds (`rgba(255, 255, 255, 0.03)`) ✅ COMPLETE - Already applied
 
 ### Sprint 11.2: Profile & Flow Improvements
 - [ ] Create persistent profile banner (shows after classification)
@@ -396,7 +396,7 @@
 - [ ] Add collapsible section summaries (show values when collapsed)
 
 ### Sprint 11.3: Educational Content
-- [ ] Add welcome/intro section (explain tool purpose, time estimate, data sources)
+- [x] Add welcome/intro section (explain tool purpose, time estimate, data sources) ✅ COMPLETE (Jan 24, 2026)
 - [ ] Add tax strategy explanation (Roth vs Traditional decision - THE key decision)
 - [ ] Add investment score explanation (what 1-7 means, 8%-20% returns)
 - [ ] Add scenario management instructions
