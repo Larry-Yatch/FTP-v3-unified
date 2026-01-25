@@ -33,11 +33,17 @@ const Tool6 = {
     try {
       // Check Tools 1-5 completion status
       console.log('Calling checkToolCompletion...');
-      const toolStatus = this.checkToolCompletion(clientId);
+      let toolStatus = this.checkToolCompletion(clientId);
       console.log('checkToolCompletion returned. hasTool4: ' + toolStatus.hasTool4);
 
       // Check if pre-survey completed (questionnaire answers)
       const preSurveyData = this.getPreSurvey(clientId);
+
+      // Sprint 10.1: Merge backup data if user answered backup questions
+      if (preSurveyData) {
+        toolStatus = this.mergeBackupData(toolStatus, preSurveyData);
+        console.log('After mergeBackupData. hasCriticalData: ' + toolStatus.hasCriticalData);
+      }
 
       // Calculate allocation if pre-survey exists
       let allocation = null;
@@ -215,6 +221,173 @@ const Tool6 = {
   },
 
   /**
+   * Sprint 10.1: Derive Tool 4 data from backup questions
+   * Called when Tool 4 data is missing but user provided backup answers
+   *
+   * @param {Object} preSurveyData - Form data containing backup_ prefixed fields
+   * @returns {Object} Derived Tool 4 equivalent values
+   */
+  deriveTool4FromBackup(preSurveyData) {
+    const monthlyIncome = parseFloat(preSurveyData.backup_monthlyIncome) || 0;
+    const monthlyBudget = parseFloat(preSurveyData.backup_monthlyBudget) || 0;
+    const yearsToRetirement = parseInt(preSurveyData.backup_yearsToRetirement) || 25;
+    const investmentScore = parseInt(preSurveyData.backup_investmentScore) || 4;
+
+    // Only return if we have meaningful data
+    if (monthlyBudget <= 0) {
+      return null;
+    }
+
+    Logger.log('Derived Tool 4 from backup: budget=' + monthlyBudget + ', years=' + yearsToRetirement + ', score=' + investmentScore);
+
+    return {
+      monthlyTakeHome: monthlyIncome,
+      monthlyBudget: monthlyBudget,
+      yearsToRetirement: yearsToRetirement,
+      investmentScore: investmentScore,
+      multiplyPercent: monthlyIncome > 0 ? Math.round((monthlyBudget / monthlyIncome) * 100) : 0
+    };
+  },
+
+  /**
+   * Sprint 10.1: Derive Tool 2 data from backup questions
+   * Called when Tool 2 data is missing but user provided backup answers
+   *
+   * @param {Object} preSurveyData - Form data containing backup_ prefixed fields
+   * @returns {Object} Derived Tool 2 equivalent values
+   */
+  deriveTool2FromBackup(preSurveyData) {
+    const age = parseInt(preSurveyData.backup_age) || null;
+    const grossIncome = parseFloat(preSurveyData.backup_grossIncome) || null;
+    const employmentType = preSurveyData.backup_employmentType || null;
+    const filingStatus = preSurveyData.backup_filingStatus || null;
+
+    // Only return if we have at least age (most critical)
+    if (!age) {
+      return null;
+    }
+
+    // Infer HSA coverage type from filing status
+    const hsaCoverageType = filingStatus === 'MFJ' ? 'Family' : 'Individual';
+
+    // Infer business owner from employment type
+    const businessOwner = employmentType === 'Business Owner';
+
+    Logger.log('Derived Tool 2 from backup: age=' + age + ', income=' + grossIncome + ', filing=' + filingStatus);
+
+    return {
+      age: age,
+      grossIncome: grossIncome,
+      employmentType: employmentType,
+      filingStatus: filingStatus,
+      hsaCoverageType: hsaCoverageType,
+      businessOwner: businessOwner
+    };
+  },
+
+  /**
+   * Sprint 10.1: Derive trauma pattern from backup questions
+   * Uses majority voting across 3 questions (same as Tool 4)
+   *
+   * @param {Object} preSurveyData - Form data containing backup_ prefixed fields
+   * @returns {string|null} Trauma pattern (FSV, ExVal, Showing, Receiving, Control, Fear) or null
+   */
+  deriveTraumaPatternFromBackup(preSurveyData) {
+    const stressResponse = preSurveyData.backup_stressResponse;
+    const coreBelief = preSurveyData.backup_coreBelief;
+    const consequence = preSurveyData.backup_consequence;
+
+    // If no backup questions answered, return null
+    if (!stressResponse && !coreBelief && !consequence) {
+      return null;
+    }
+
+    // Count votes for each pattern
+    const votes = { FSV: 0, ExVal: 0, Showing: 0, Receiving: 0, Control: 0, Fear: 0 };
+    const patterns = Object.keys(votes);
+
+    if (stressResponse && patterns.includes(stressResponse)) {
+      votes[stressResponse]++;
+    }
+    if (coreBelief && patterns.includes(coreBelief)) {
+      votes[coreBelief]++;
+    }
+    if (consequence && patterns.includes(consequence)) {
+      votes[consequence]++;
+    }
+
+    // Find pattern with most votes
+    let maxVotes = 0;
+    let winner = null;
+
+    for (const pattern of patterns) {
+      if (votes[pattern] > maxVotes) {
+        maxVotes = votes[pattern];
+        winner = pattern;
+      }
+    }
+
+    Logger.log('Derived trauma pattern from backup: ' + winner + ' (votes: ' + JSON.stringify(votes) + ')');
+    return winner;
+  },
+
+  /**
+   * Sprint 10.1: Merge backup-derived data into toolStatus
+   * Called after checkToolCompletion to supplement missing data
+   *
+   * @param {Object} toolStatus - Original tool status from checkToolCompletion
+   * @param {Object} preSurveyData - Form data that may contain backup answers
+   * @returns {Object} Updated toolStatus with backup data merged in
+   */
+  mergeBackupData(toolStatus, preSurveyData) {
+    if (!preSurveyData) return toolStatus;
+
+    const merged = { ...toolStatus };
+
+    // Derive and merge Tool 4 data if missing
+    if (!toolStatus.hasTool4 || !toolStatus.monthlyBudget) {
+      const derived4 = this.deriveTool4FromBackup(preSurveyData);
+      if (derived4) {
+        merged.monthlyTakeHome = derived4.monthlyTakeHome || merged.monthlyTakeHome;
+        merged.monthlyBudget = derived4.monthlyBudget || merged.monthlyBudget;
+        merged.yearsToRetirement = derived4.yearsToRetirement || merged.yearsToRetirement;
+        merged.investmentScore = derived4.investmentScore || merged.investmentScore;
+        merged.multiplyPercent = derived4.multiplyPercent || merged.multiplyPercent;
+        merged.hasCriticalData = derived4.monthlyBudget > 0;
+        merged.hasBackupTool4 = true;
+        Logger.log('Merged backup Tool 4 data into toolStatus');
+      }
+    }
+
+    // Derive and merge Tool 2 data if missing
+    if (!toolStatus.hasTool2 || !toolStatus.age) {
+      const derived2 = this.deriveTool2FromBackup(preSurveyData);
+      if (derived2) {
+        merged.age = derived2.age || merged.age;
+        merged.grossIncome = derived2.grossIncome || merged.grossIncome;
+        merged.employmentType = derived2.employmentType || merged.employmentType;
+        merged.filingStatus = derived2.filingStatus || merged.filingStatus;
+        merged.hsaCoverageType = derived2.hsaCoverageType || merged.hsaCoverageType;
+        merged.businessOwner = derived2.businessOwner || merged.businessOwner;
+        merged.hasBackupTool2 = true;
+        Logger.log('Merged backup Tool 2 data into toolStatus');
+      }
+    }
+
+    // Derive and merge trauma pattern if missing
+    if (!toolStatus.hasTool1 || !toolStatus.traumaPattern) {
+      const derivedPattern = this.deriveTraumaPatternFromBackup(preSurveyData);
+      if (derivedPattern) {
+        merged.traumaPattern = derivedPattern;
+        merged.hasBackupTool1 = true;
+        Logger.log('Merged backup trauma pattern into toolStatus: ' + derivedPattern);
+      }
+    }
+
+    return merged;
+  },
+
+  /**
    * Get data availability status for UI display
    * Returns status badges (green/yellow/red) for each data category
    */
@@ -330,8 +503,13 @@ const Tool6 = {
       Logger.log(`Pre-survey saved for client: ${clientId}`);
 
       // Recalculate with new data
-      const toolStatus = this.checkToolCompletion(clientId);
+      let toolStatus = this.checkToolCompletion(clientId);
       const savedPreSurvey = this.getPreSurvey(clientId);
+
+      // Sprint 10.1: Merge backup data if user answered backup questions
+      if (savedPreSurvey) {
+        toolStatus = this.mergeBackupData(toolStatus, savedPreSurvey);
+      }
 
       let allocation = null;
       let profile = null;
@@ -3551,6 +3729,192 @@ const Tool6 = {
       text-decoration: underline;
     }
 
+    /* Sprint 10.1: Backup Questions Section */
+    .backup-questions-section {
+      background: linear-gradient(135deg, rgba(251, 191, 36, 0.1), rgba(251, 191, 36, 0.05));
+      border: 2px solid rgba(251, 191, 36, 0.3);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 32px;
+    }
+
+    .backup-intro {
+      margin-bottom: 24px;
+    }
+
+    .backup-intro-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--color-text-primary);
+      margin-bottom: 16px;
+    }
+
+    .backup-explanation {
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 10px;
+      padding: 16px 20px;
+      margin-bottom: 16px;
+    }
+
+    .backup-explanation-text {
+      color: var(--color-text-primary);
+      font-size: 1rem;
+      margin-bottom: 12px;
+    }
+
+    .backup-recommendation {
+      color: var(--color-text-secondary);
+      font-size: 0.95rem;
+      margin-bottom: 16px;
+    }
+
+    .backup-tool-buttons {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .backup-tool-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      padding: 12px 20px;
+      background: linear-gradient(135deg, var(--color-primary), #6366f1);
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .backup-tool-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+    }
+
+    .backup-tool-btn-name {
+      font-weight: 700;
+      font-size: 1rem;
+      color: white;
+    }
+
+    .backup-tool-btn-desc {
+      font-size: 0.8rem;
+      opacity: 0.85;
+      color: white;
+    }
+
+    .backup-continue-text {
+      font-size: 1rem;
+      color: var(--color-text-secondary);
+      font-style: italic;
+    }
+
+    .backup-tier {
+      background: rgba(0, 0, 0, 0.15);
+      border-radius: 10px;
+      padding: 20px;
+      margin-top: 20px;
+    }
+
+    .backup-tier-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .backup-tier-icon {
+      font-size: 1.5rem;
+    }
+
+    .backup-tier-title {
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: var(--color-text-primary);
+    }
+
+    .backup-tier-description {
+      font-size: 0.9rem;
+      color: var(--color-text-muted);
+      margin-bottom: 20px;
+    }
+
+    .backup-slider {
+      margin-top: 8px;
+    }
+
+    .backup-score-buttons {
+      display: flex;
+      gap: 8px;
+      margin: 12px 0 8px 0;
+    }
+
+    .backup-score-buttons .score-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 8px;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--color-text-secondary);
+      font-size: 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .backup-score-buttons .score-btn:hover {
+      border-color: var(--color-primary);
+      background: rgba(79, 70, 229, 0.1);
+    }
+
+    .backup-score-buttons .score-btn.selected {
+      border-color: var(--color-primary);
+      background: var(--color-primary);
+      color: white;
+    }
+
+    .score-label-display {
+      font-size: 0.9rem;
+      color: var(--color-text-secondary);
+      text-align: center;
+      margin-top: 4px;
+    }
+
+    .backup-statement-group {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .backup-statement-group .statement-card {
+      display: flex;
+      align-items: center;
+      padding: 14px 18px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 2px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-size: 0.95rem;
+      color: var(--color-text-secondary);
+    }
+
+    .backup-statement-group .statement-card:hover {
+      border-color: rgba(251, 191, 36, 0.4);
+      background: rgba(251, 191, 36, 0.05);
+    }
+
+    .backup-statement-group .statement-card.selected {
+      border-color: #fbbf24;
+      background: rgba(251, 191, 36, 0.15);
+      color: var(--color-text-primary);
+    }
+
+    .backup-statement-group .statement-card input[type="radio"] {
+      display: none;
+    }
+
     /* Sprint 5.5: Vehicle Sliders */
     .vehicle-allocation-section {
       margin-top: 24px;
@@ -4788,7 +5152,7 @@ const Tool6 = {
         </div>
 
         <!-- Questionnaire Form -->
-        ${this.buildQuestionnaireHtml(preSurveyData, prefillData, profile)}
+        ${this.buildQuestionnaireHtml(preSurveyData, prefillData, profile, toolStatus)}
       </div>
     </div>
 
@@ -5014,6 +5378,128 @@ const Tool6 = {
         toggle.classList.toggle('collapsed');
         if (header) header.classList.toggle('expanded');
       }
+    }
+
+    // ========================================================================
+    // BACKUP QUESTIONS HANDLERS (Sprint 10.1)
+    // ========================================================================
+
+    // Update backup slider display
+    function updateBackupSlider(fieldName, value) {
+      var display = document.getElementById('backup_' + fieldName + 'Display');
+      var track = document.getElementById('backup_' + fieldName + 'Track');
+      var input = document.getElementById('backup_' + fieldName);
+
+      if (display) {
+        if (fieldName === 'yearsToRetirement') {
+          display.textContent = value + ' years';
+        } else {
+          display.textContent = value;
+        }
+      }
+
+      // Update track fill
+      if (track && input) {
+        var min = parseFloat(input.min) || 0;
+        var max = parseFloat(input.max) || 100;
+        var pct = ((value - min) / (max - min)) * 100;
+        track.style.width = pct + '%';
+      }
+
+      // Store in formData
+      formData['backup_' + fieldName] = value;
+    }
+
+    // Select backup score button (1-7 scale)
+    function selectBackupScore(fieldName, value) {
+      var buttons = document.querySelectorAll('#backup_' + fieldName + 'Buttons .score-btn');
+      var hidden = document.getElementById('backup_' + fieldName);
+      var label = document.getElementById('backup_' + fieldName + 'Label');
+
+      buttons.forEach(function(btn) {
+        btn.classList.remove('selected');
+        if (parseInt(btn.dataset.value) === value) {
+          btn.classList.add('selected');
+        }
+      });
+
+      if (hidden) hidden.value = value;
+
+      // Update label
+      if (label) {
+        var labels = {
+          1: 'Very Conservative (6% return)',
+          2: 'Conservative (8% return)',
+          3: 'Moderately Conservative (10% return)',
+          4: 'Moderate (12% return)',
+          5: 'Moderately Aggressive (14% return)',
+          6: 'Aggressive (17% return)',
+          7: 'Very Aggressive (20% return)'
+        };
+        label.textContent = labels[value] || 'Moderate (12% return)';
+      }
+
+      formData['backup_' + fieldName] = value;
+    }
+
+    // Select backup statement card (radio buttons)
+    function selectBackupStatement(card, fieldName) {
+      var group = card.closest('.statement-group');
+      if (!group) return;
+
+      // Deselect all in group
+      group.querySelectorAll('.statement-card').forEach(function(c) {
+        c.classList.remove('selected');
+        var radio = c.querySelector('input[type="radio"]');
+        if (radio) radio.checked = false;
+      });
+
+      // Select this one
+      card.classList.add('selected');
+      var radio = card.querySelector('input[type="radio"]');
+      if (radio) {
+        radio.checked = true;
+        formData[fieldName] = radio.value;
+      }
+    }
+
+    // Navigate to another tool (Sprint 10.1: from backup questions)
+    function navigateToTool(toolName) {
+      // Show a loading state
+      var loadingMsg = document.createElement('div');
+      loadingMsg.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:9999;';
+      loadingMsg.innerHTML = '<div style="text-align:center;color:white;"><div style="font-size:1.5rem;margin-bottom:8px;">Loading ' + toolName.replace('tool', 'Tool ') + '...</div><div style="opacity:0.7;">Please wait</div></div>';
+      document.body.appendChild(loadingMsg);
+
+      google.script.run
+        .withSuccessHandler(function(html) {
+          if (html) {
+            document.open();
+            document.write(html);
+            document.close();
+            window.scrollTo(0, 0);
+          } else {
+            document.body.removeChild(loadingMsg);
+            alert('Error loading tool');
+          }
+        })
+        .withFailureHandler(function(error) {
+          document.body.removeChild(loadingMsg);
+          console.error('Navigation error:', error);
+          alert('Error loading tool: ' + error.message);
+        })
+        .getToolPageHtml(toolName, clientId, 1);
+    }
+
+    // Initialize backup sliders on page load
+    function initBackupSliders() {
+      var sliders = ['yearsToRetirement'];
+      sliders.forEach(function(name) {
+        var input = document.getElementById('backup_' + name);
+        if (input) {
+          updateBackupSlider(name, input.value);
+        }
+      });
     }
 
     // ========================================================================
@@ -6394,6 +6880,9 @@ const Tool6 = {
     // ========================================================================
 
     document.addEventListener('DOMContentLoaded', function() {
+      // Sprint 10.1: Initialize backup sliders
+      initBackupSliders();
+
       // If profile already determined, show Phase B
       if (classifiedProfile) {
         updateAllocationVisibility();
@@ -7309,16 +7798,438 @@ const Tool6 = {
   },
 
   /**
+   * Sprint 10.1: Build Backup Questions HTML
+   * Shows when Tool 1, 2, or 4 data is missing
+   * Allows users to proceed without completing prerequisite tools
+   *
+   * @param {Object} savedAnswers - Previously saved form data
+   * @param {boolean} hasTool1 - Whether Tool 1 is complete
+   * @param {boolean} hasTool2 - Whether Tool 2 is complete
+   * @param {boolean} hasTool4 - Whether Tool 4 is complete
+   * @returns {string} HTML for backup questions section
+   */
+  buildBackupQuestionsHtml(savedAnswers, hasTool1, hasTool2, hasTool4) {
+    // Helper to get saved value
+    const getValue = (fieldId) => savedAnswers[fieldId] || '';
+
+    // Build list of missing tools for display
+    const missingTools = [];
+    if (!hasTool4) missingTools.push('Tool 4 (Financial Freedom Framework)');
+    if (!hasTool2) missingTools.push('Tool 2 (Financial Clarity)');
+    if (!hasTool1) missingTools.push('Tool 1 (Money Pattern Discovery)');
+
+    const missingToolsText = missingTools.length === 1
+      ? missingTools[0]
+      : missingTools.length === 2
+        ? missingTools.join(' and ')
+        : missingTools.slice(0, -1).join(', ') + ', and ' + missingTools[missingTools.length - 1];
+
+    let html = `
+      <div class="backup-questions-section" id="backupQuestionsSection">
+        <div class="backup-intro">
+          <div class="backup-intro-title">📋 Additional Information Needed</div>
+
+          <div class="backup-explanation">
+            <div class="backup-explanation-text">
+              Because you have not completed ${missingToolsText}, we need to gather some additional information from you.
+            </div>
+            <div class="backup-recommendation">
+              For deeper insights and more personalized recommendations, we recommend completing those tools first.
+            </div>
+            <div class="backup-tool-buttons">
+              ${!hasTool4 ? `
+              <button type="button" class="btn-primary backup-tool-btn" onclick="navigateToTool('tool4')">
+                <span class="backup-tool-btn-name">Go to Tool 4</span>
+                <span class="backup-tool-btn-desc">Financial Freedom Framework</span>
+              </button>
+              ` : ''}
+              ${!hasTool2 ? `
+              <button type="button" class="btn-primary backup-tool-btn" onclick="navigateToTool('tool2')">
+                <span class="backup-tool-btn-name">Go to Tool 2</span>
+                <span class="backup-tool-btn-desc">Financial Clarity</span>
+              </button>
+              ` : ''}
+              ${!hasTool1 ? `
+              <button type="button" class="btn-primary backup-tool-btn" onclick="navigateToTool('tool1')">
+                <span class="backup-tool-btn-name">Go to Tool 1</span>
+                <span class="backup-tool-btn-desc">Money Pattern Discovery</span>
+              </button>
+              ` : ''}
+            </div>
+          </div>
+
+          <div class="backup-continue-text">
+            Or, answer the questions below and we will use your responses to personalize your recommendations.
+          </div>
+        </div>
+    `;
+
+    // ========================================================================
+    // TIER 1: Tool 4 Backup Questions (CRITICAL - needed for allocation)
+    // ========================================================================
+    if (!hasTool4) {
+      html += `
+        <div class="backup-tier" id="backupTier1">
+          <div class="backup-tier-header">
+            <span class="backup-tier-icon">💰</span>
+            <span class="backup-tier-title">Financial Foundation</span>
+          </div>
+          <div class="backup-tier-description">These questions help us understand your savings capacity and timeline.</div>
+
+          <!-- Monthly Take-Home Income -->
+          <div class="form-group">
+            <label class="form-label" for="backup_monthlyIncome">
+              What is your monthly take-home income (after taxes)?
+              <span class="required-star">*</span>
+            </label>
+            <div class="form-help">Your net monthly income after all taxes and deductions.</div>
+            <div class="currency-input-wrapper">
+              <span class="currency-symbol">$</span>
+              <input type="number"
+                     id="backup_monthlyIncome"
+                     name="backup_monthlyIncome"
+                     class="form-input currency-input"
+                     value="${getValue('backup_monthlyIncome')}"
+                     placeholder="5000"
+                     min="0"
+                     step="100"
+                     required>
+            </div>
+          </div>
+
+          <!-- Monthly Budget for Future Building -->
+          <div class="form-group">
+            <label class="form-label" for="backup_monthlyBudget">
+              How much can you allocate monthly toward future building (retirement, education, health savings)?
+              <span class="required-star">*</span>
+            </label>
+            <div class="form-help">This is your "Multiply" bucket from Tool 4 - money dedicated to growing your future wealth.</div>
+            <div class="currency-input-wrapper">
+              <span class="currency-symbol">$</span>
+              <input type="number"
+                     id="backup_monthlyBudget"
+                     name="backup_monthlyBudget"
+                     class="form-input currency-input"
+                     value="${getValue('backup_monthlyBudget')}"
+                     placeholder="1000"
+                     min="0"
+                     step="50"
+                     required>
+            </div>
+          </div>
+
+          <!-- Years to Retirement -->
+          <div class="form-group">
+            <label class="form-label" for="backup_yearsToRetirement">
+              How many years until you plan to retire?
+              <span class="required-star">*</span>
+            </label>
+            <div class="form-help">Your target retirement timeline affects vehicle recommendations and projections.</div>
+            <div class="slider-container backup-slider">
+              <div class="slider-value-display" id="backup_yearsToRetirementDisplay">${getValue('backup_yearsToRetirement') || 25} years</div>
+              <div class="slider-track-container">
+                <div class="slider-track" id="backup_yearsToRetirementTrack"></div>
+                <input type="range"
+                       id="backup_yearsToRetirement"
+                       name="backup_yearsToRetirement"
+                       class="slider-input"
+                       min="1"
+                       max="45"
+                       value="${getValue('backup_yearsToRetirement') || 25}"
+                       oninput="updateBackupSlider('yearsToRetirement', this.value)">
+              </div>
+              <div class="slider-scale">
+                <span>1</span><span>15</span><span>30</span><span>45</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Investment Risk Score -->
+          <div class="form-group">
+            <label class="form-label" for="backup_investmentScore">
+              What is your investment risk tolerance?
+              <span class="required-star">*</span>
+            </label>
+            <div class="form-help">1 = Very Conservative (prefer safety), 7 = Very Aggressive (maximize growth)</div>
+            <div class="score-buttons backup-score-buttons" id="backup_investmentScoreButtons">
+              ${[1, 2, 3, 4, 5, 6, 7].map(i => {
+                const currentVal = parseInt(getValue('backup_investmentScore')) || 4;
+                const selected = i === currentVal ? 'selected' : '';
+                return '<button type="button" class="score-btn ' + selected + '" data-value="' + i + '" onclick="selectBackupScore(\'investmentScore\', ' + i + ')">' + i + '</button>';
+              }).join('')}
+            </div>
+            <div class="score-label-display" id="backup_investmentScoreLabel">
+              ${this.getInvestmentScoreLabel(parseInt(getValue('backup_investmentScore')) || 4)}
+            </div>
+            <input type="hidden" id="backup_investmentScore" name="backup_investmentScore" value="${getValue('backup_investmentScore') || 4}">
+          </div>
+        </div>
+      `;
+    }
+
+    // ========================================================================
+    // TIER 2: Tool 2 Backup Questions (CRITICAL - needed for limits/eligibility)
+    // ========================================================================
+    if (!hasTool2) {
+      html += `
+        <div class="backup-tier" id="backupTier2">
+          <div class="backup-tier-header">
+            <span class="backup-tier-icon">👤</span>
+            <span class="backup-tier-title">Personal & Financial Details</span>
+          </div>
+          <div class="backup-tier-description">These questions help us determine your eligibility and contribution limits.</div>
+
+          <!-- Age -->
+          <div class="form-group">
+            <label class="form-label" for="backup_age">
+              What is your current age?
+              <span class="required-star">*</span>
+            </label>
+            <div class="form-help">Your age affects catch-up contribution eligibility and retirement timeline.</div>
+            <input type="number"
+                   id="backup_age"
+                   name="backup_age"
+                   class="form-input"
+                   value="${getValue('backup_age')}"
+                   placeholder="40"
+                   min="18"
+                   max="100"
+                   required>
+          </div>
+
+          <!-- Gross Annual Income -->
+          <div class="form-group">
+            <label class="form-label" for="backup_grossIncome">
+              What is your gross annual income (before taxes)?
+              <span class="required-star">*</span>
+            </label>
+            <div class="form-help">Used to determine Roth IRA eligibility and tax bracket estimates.</div>
+            <div class="currency-input-wrapper">
+              <span class="currency-symbol">$</span>
+              <input type="number"
+                     id="backup_grossIncome"
+                     name="backup_grossIncome"
+                     class="form-input currency-input"
+                     value="${getValue('backup_grossIncome')}"
+                     placeholder="75000"
+                     min="0"
+                     step="1000"
+                     required>
+            </div>
+          </div>
+
+          <!-- Employment Type -->
+          <div class="form-group">
+            <label class="form-label" for="backup_employmentType">
+              What best describes your employment situation?
+              <span class="required-star">*</span>
+            </label>
+            <div class="form-help">Determines which retirement vehicles are available to you.</div>
+            <div class="statement-group backup-statement-group">
+              <label class="statement-card ${getValue('backup_employmentType') === 'W-2 Employee' ? 'selected' : ''}" onclick="selectBackupStatement(this, 'backup_employmentType')">
+                <input type="radio" name="backup_employmentType" value="W-2 Employee" ${getValue('backup_employmentType') === 'W-2 Employee' ? 'checked' : ''}>
+                W-2 Employee - I work for an employer
+              </label>
+              <label class="statement-card ${getValue('backup_employmentType') === 'Self-Employed' ? 'selected' : ''}" onclick="selectBackupStatement(this, 'backup_employmentType')">
+                <input type="radio" name="backup_employmentType" value="Self-Employed" ${getValue('backup_employmentType') === 'Self-Employed' ? 'checked' : ''}>
+                Self-Employed - I work for myself (1099, freelance, contractor)
+              </label>
+              <label class="statement-card ${getValue('backup_employmentType') === 'Business Owner' ? 'selected' : ''}" onclick="selectBackupStatement(this, 'backup_employmentType')">
+                <input type="radio" name="backup_employmentType" value="Business Owner" ${getValue('backup_employmentType') === 'Business Owner' ? 'checked' : ''}>
+                Business Owner - I own a business with or without employees
+              </label>
+              <label class="statement-card ${getValue('backup_employmentType') === 'Retired' ? 'selected' : ''}" onclick="selectBackupStatement(this, 'backup_employmentType')">
+                <input type="radio" name="backup_employmentType" value="Retired" ${getValue('backup_employmentType') === 'Retired' ? 'checked' : ''}>
+                Retired - I am no longer working
+              </label>
+            </div>
+          </div>
+
+          <!-- Filing Status -->
+          <div class="form-group">
+            <label class="form-label" for="backup_filingStatus">
+              What is your tax filing status?
+              <span class="required-star">*</span>
+            </label>
+            <div class="form-help">Affects contribution limits and Roth IRA phase-out thresholds.</div>
+            <div class="statement-group backup-statement-group">
+              <label class="statement-card ${getValue('backup_filingStatus') === 'Single' ? 'selected' : ''}" onclick="selectBackupStatement(this, 'backup_filingStatus')">
+                <input type="radio" name="backup_filingStatus" value="Single" ${getValue('backup_filingStatus') === 'Single' ? 'checked' : ''}>
+                Single
+              </label>
+              <label class="statement-card ${getValue('backup_filingStatus') === 'MFJ' ? 'selected' : ''}" onclick="selectBackupStatement(this, 'backup_filingStatus')">
+                <input type="radio" name="backup_filingStatus" value="MFJ" ${getValue('backup_filingStatus') === 'MFJ' ? 'checked' : ''}>
+                Married Filing Jointly
+              </label>
+              <label class="statement-card ${getValue('backup_filingStatus') === 'MFS' ? 'selected' : ''}" onclick="selectBackupStatement(this, 'backup_filingStatus')">
+                <input type="radio" name="backup_filingStatus" value="MFS" ${getValue('backup_filingStatus') === 'MFS' ? 'checked' : ''}>
+                Married Filing Separately
+              </label>
+              <label class="statement-card ${getValue('backup_filingStatus') === 'HoH' ? 'selected' : ''}" onclick="selectBackupStatement(this, 'backup_filingStatus')">
+                <input type="radio" name="backup_filingStatus" value="HoH" ${getValue('backup_filingStatus') === 'HoH' ? 'checked' : ''}>
+                Head of Household
+              </label>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // ========================================================================
+    // TIER 3: Tool 1 Backup Questions (IMPORTANT - for trauma insights)
+    // ========================================================================
+    if (!hasTool1) {
+      html += `
+        <div class="backup-tier" id="backupTier3">
+          <div class="backup-tier-header">
+            <span class="backup-tier-icon">🧠</span>
+            <span class="backup-tier-title">Money Mindset</span>
+          </div>
+          <div class="backup-tier-description">These questions help us understand your psychological relationship with money.</div>
+
+          <!-- Backup Q1: Stress Response -->
+          <div class="form-group">
+            <label class="form-label">When money stress hits, what is your typical first response?</label>
+            <div class="form-help">Think about your automatic reaction when finances feel tight or uncertain.</div>
+            <div class="statement-group backup-statement-group">
+              <label class="statement-card ${getValue('backup_stressResponse') === 'FSV' ? 'selected' : ''}" onclick="selectBackupStatement(this, 'backup_stressResponse')">
+                <input type="radio" name="backup_stressResponse" value="FSV" ${getValue('backup_stressResponse') === 'FSV' ? 'checked' : ''}>
+                I create confusion or ignore the numbers to avoid seeing how bad things are
+              </label>
+              <label class="statement-card ${getValue('backup_stressResponse') === 'ExVal' ? 'selected' : ''}" onclick="selectBackupStatement(this, 'backup_stressResponse')">
+                <input type="radio" name="backup_stressResponse" value="ExVal" ${getValue('backup_stressResponse') === 'ExVal' ? 'checked' : ''}>
+                I worry about what others will think or hide my situation from people
+              </label>
+              <label class="statement-card ${getValue('backup_stressResponse') === 'Showing' ? 'selected' : ''}" onclick="selectBackupStatement(this, 'backup_stressResponse')">
+                <input type="radio" name="backup_stressResponse" value="Showing" ${getValue('backup_stressResponse') === 'Showing' ? 'checked' : ''}>
+                I find ways to help others anyway, even if it hurts my own finances
+              </label>
+              <label class="statement-card ${getValue('backup_stressResponse') === 'Receiving' ? 'selected' : ''}" onclick="selectBackupStatement(this, 'backup_stressResponse')">
+                <input type="radio" name="backup_stressResponse" value="Receiving" ${getValue('backup_stressResponse') === 'Receiving' ? 'checked' : ''}>
+                I look to others to fix it or take over my financial decisions
+              </label>
+              <label class="statement-card ${getValue('backup_stressResponse') === 'Control' ? 'selected' : ''}" onclick="selectBackupStatement(this, 'backup_stressResponse')">
+                <input type="radio" name="backup_stressResponse" value="Control" ${getValue('backup_stressResponse') === 'Control' ? 'checked' : ''}>
+                I tighten control on everything, even going without things I need
+              </label>
+              <label class="statement-card ${getValue('backup_stressResponse') === 'Fear' ? 'selected' : ''}" onclick="selectBackupStatement(this, 'backup_stressResponse')">
+                <input type="radio" name="backup_stressResponse" value="Fear" ${getValue('backup_stressResponse') === 'Fear' ? 'checked' : ''}>
+                I freeze up or make decisions that seem to make things worse
+              </label>
+            </div>
+          </div>
+
+          <!-- Backup Q2: Core Belief -->
+          <div class="form-group">
+            <label class="form-label">Which statement feels most true about money for you?</label>
+            <div class="form-help">Choose the one that resonates most deeply, even if uncomfortable.</div>
+            <div class="statement-group backup-statement-group">
+              <label class="statement-card ${getValue('backup_coreBelief') === 'FSV' ? 'selected' : ''}" onclick="selectBackupStatement(this, 'backup_coreBelief')">
+                <input type="radio" name="backup_coreBelief" value="FSV" ${getValue('backup_coreBelief') === 'FSV' ? 'checked' : ''}>
+                If I had more money, I would finally feel safe
+              </label>
+              <label class="statement-card ${getValue('backup_coreBelief') === 'ExVal' ? 'selected' : ''}" onclick="selectBackupStatement(this, 'backup_coreBelief')">
+                <input type="radio" name="backup_coreBelief" value="ExVal" ${getValue('backup_coreBelief') === 'ExVal' ? 'checked' : ''}>
+                How much money I have affects how others see me
+              </label>
+              <label class="statement-card ${getValue('backup_coreBelief') === 'Showing' ? 'selected' : ''}" onclick="selectBackupStatement(this, 'backup_coreBelief')">
+                <input type="radio" name="backup_coreBelief" value="Showing" ${getValue('backup_coreBelief') === 'Showing' ? 'checked' : ''}>
+                Giving to others, even when it hurts me, is how I show love
+              </label>
+              <label class="statement-card ${getValue('backup_coreBelief') === 'Receiving' ? 'selected' : ''}" onclick="selectBackupStatement(this, 'backup_coreBelief')">
+                <input type="radio" name="backup_coreBelief" value="Receiving" ${getValue('backup_coreBelief') === 'Receiving' ? 'checked' : ''}>
+                I need others to help with my finances because I cannot handle it alone
+              </label>
+              <label class="statement-card ${getValue('backup_coreBelief') === 'Control' ? 'selected' : ''}" onclick="selectBackupStatement(this, 'backup_coreBelief')">
+                <input type="radio" name="backup_coreBelief" value="Control" ${getValue('backup_coreBelief') === 'Control' ? 'checked' : ''}>
+                I must control every dollar or things will fall apart
+              </label>
+              <label class="statement-card ${getValue('backup_coreBelief') === 'Fear' ? 'selected' : ''}" onclick="selectBackupStatement(this, 'backup_coreBelief')">
+                <input type="radio" name="backup_coreBelief" value="Fear" ${getValue('backup_coreBelief') === 'Fear' ? 'checked' : ''}>
+                No matter what I do, something bad will probably happen with money
+              </label>
+            </div>
+          </div>
+
+          <!-- Backup Q3: Consequence Pattern -->
+          <div class="form-group">
+            <label class="form-label">What financial pattern do you notice repeating in your life?</label>
+            <div class="form-help">Look at the outcomes that keep showing up, not what you intend to happen.</div>
+            <div class="statement-group backup-statement-group">
+              <label class="statement-card ${getValue('backup_consequence') === 'FSV' ? 'selected' : ''}" onclick="selectBackupStatement(this, 'backup_consequence')">
+                <input type="radio" name="backup_consequence" value="FSV" ${getValue('backup_consequence') === 'FSV' ? 'checked' : ''}>
+                I never seem to have money when I need it, even when I earn enough
+              </label>
+              <label class="statement-card ${getValue('backup_consequence') === 'ExVal' ? 'selected' : ''}" onclick="selectBackupStatement(this, 'backup_consequence')">
+                <input type="radio" name="backup_consequence" value="ExVal" ${getValue('backup_consequence') === 'ExVal' ? 'checked' : ''}>
+                I spend money on image or hide my situation to manage how others see me
+              </label>
+              <label class="statement-card ${getValue('backup_consequence') === 'Showing' ? 'selected' : ''}" onclick="selectBackupStatement(this, 'backup_consequence')">
+                <input type="radio" name="backup_consequence" value="Showing" ${getValue('backup_consequence') === 'Showing' ? 'checked' : ''}>
+                I take on other people's financial burdens or refuse repayment when offered
+              </label>
+              <label class="statement-card ${getValue('backup_consequence') === 'Receiving' ? 'selected' : ''}" onclick="selectBackupStatement(this, 'backup_consequence')">
+                <input type="radio" name="backup_consequence" value="Receiving" ${getValue('backup_consequence') === 'Receiving' ? 'checked' : ''}>
+                I become dependent on others or rack up debt that creates obligation
+              </label>
+              <label class="statement-card ${getValue('backup_consequence') === 'Control' ? 'selected' : ''}" onclick="selectBackupStatement(this, 'backup_consequence')">
+                <input type="radio" name="backup_consequence" value="Control" ${getValue('backup_consequence') === 'Control' ? 'checked' : ''}>
+                I have money but do not charge my worth, collect what I am owed, or spend on myself
+              </label>
+              <label class="statement-card ${getValue('backup_consequence') === 'Fear' ? 'selected' : ''}" onclick="selectBackupStatement(this, 'backup_consequence')">
+                <input type="radio" name="backup_consequence" value="Fear" ${getValue('backup_consequence') === 'Fear' ? 'checked' : ''}>
+                I trust the wrong people or skip protections, and then bad things happen
+              </label>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // Close backup questions section
+    html += `
+      </div>
+    `;
+
+    return html;
+  },
+
+  /**
+   * Helper: Get investment score label
+   */
+  getInvestmentScoreLabel(score) {
+    const labels = {
+      1: 'Very Conservative (6% return)',
+      2: 'Conservative (8% return)',
+      3: 'Moderately Conservative (10% return)',
+      4: 'Moderate (12% return)',
+      5: 'Moderately Aggressive (14% return)',
+      6: 'Aggressive (17% return)',
+      7: 'Very Aggressive (20% return)'
+    };
+    return labels[score] || 'Moderate (12% return)';
+  },
+
+  /**
    * Build questionnaire form HTML - TWO-PHASE APPROACH
    *
    * Phase A: Classification - Progressive questions, short-circuit on profile match
    * Phase B: Allocation - Profile-specific inputs after classification
    *
    * If profile is already determined (from preSurveyData), skip to Phase B
+   *
+   * Sprint 10.1: Backup Questions
+   * Shows backup questions when Tool 1, 2, or 4 data is missing
    */
-  buildQuestionnaireHtml(preSurveyData, prefillData, profile = null) {
+  buildQuestionnaireHtml(preSurveyData, prefillData, profile = null, toolStatus = {}) {
     const savedAnswers = preSurveyData || {};
     const hasProfile = !!profile;
+
+    // Sprint 10.1: Check which tools are missing for backup questions
+    const hasTool1 = toolStatus.hasTool1 || false;
+    const hasTool2 = toolStatus.hasTool2 || false;
+    const hasTool4 = toolStatus.hasTool4 || false;
+    const needsBackupQuestions = !hasTool1 || !hasTool2 || !hasTool4;
 
     // Helper to get value (saved > prefill > empty)
     const getValue = (fieldId, prefillKey) => {
@@ -7477,6 +8388,14 @@ const Tool6 = {
     };
 
     let html = '<form id="questionnaireForm" onsubmit="return false;">';
+
+    // ========================================================================
+    // BACKUP QUESTIONS SECTION (Sprint 10.1)
+    // Shown when Tool 1, 2, or 4 data is missing
+    // ========================================================================
+    if (needsBackupQuestions) {
+      html += this.buildBackupQuestionsHtml(savedAnswers, hasTool1, hasTool2, hasTool4);
+    }
 
     // ========================================================================
     // PHASE A: CLASSIFICATION (Progressive short-circuit flow)

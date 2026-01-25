@@ -236,7 +236,7 @@ google.script.run
 - [x] Sprint 9.2: Fallbacks - ✅ **MERGED** into Sprint 7.4 (Tool6Fallbacks.js)
 
 ### Phase 10: Polish
-- [ ] Sprint 10.1: Error Handling
+- [x] Sprint 10.1: Backup Questions System - ✅ **COMPLETE** (Jan 24, 2026) - Fallback questions for missing tool data
 - [ ] Sprint 10.2: Edge Cases
 - [x] Sprint 10.3: UI Polish - ✅ **COMPLETE** (Jan 19, 2026) - Tool 4 styling alignment
 
@@ -430,21 +430,31 @@ When ending a session, update this section:
 ### Last Session Summary
 - **Date:** January 24, 2026
 - **What was done:**
-  - ✅ **Sprint 8.1: Trauma Integration - Trauma Insights Display**
-  - Added trauma insight section to calculator UI displaying Tool 1 money patterns:
-    - **6 trauma patterns mapped:** FSV, ExVal, Showing, Receiving, Control, Fear
-    - **Retirement-specific messaging:** How pattern shows up, what to watch for, healing direction
-    - **Secondary pattern support:** Shows secondary pattern when scores available
-    - **Collapsible UI:** Purple-gradient card with toggle expand/collapse
-    - **Graceful fallback:** Prompts user to complete Tool 1 if no data available
-  - New method: `buildTraumaInsightSection(toolStatus)`
-  - New JS function: `toggleTraumaInsight()`
-  - New CSS: `.trauma-insight-*` styles matching Tool 6 design language
-- **Current state:** Phase 8 Complete. Trauma insights now visible in calculator UI.
-- **Next task:** Phase 10 (Polish) - Error Handling (10.1) and Edge Cases (10.2)
+  - ✅ **Sprint 10.1: Backup Questions System**
+  - Implemented 3-tier backup questions when prerequisite tool data is missing:
+    - **Tier 1 (Tool 4 missing):** Monthly income, monthly budget, years to retirement, investment risk
+    - **Tier 2 (Tool 2 missing):** Age, gross income, employment type, filing status
+    - **Tier 3 (Tool 1 missing):** 3 trauma pattern questions (majority voting)
+  - New method: `buildBackupQuestionsHtml(savedAnswers, hasTool1, hasTool2, hasTool4)`
+  - New derivation functions:
+    - `deriveTool4FromBackup()` - Extracts financial data from backup answers
+    - `deriveTool2FromBackup()` - Extracts demographics from backup answers
+    - `deriveTraumaPatternFromBackup()` - Majority voting across 3 questions
+    - `mergeBackupData()` - Integrates derived data into toolStatus
+  - New CSS: `.backup-questions-section`, `.backup-tier`, `.backup-statement-group` styles
+  - New JS functions: `updateBackupSlider()`, `selectBackupScore()`, `selectBackupStatement()`, `navigateToTool()`
+  - Updated `buildQuestionnaireHtml()` to accept toolStatus parameter
+  - Updated `render()` and `savePreSurvey()` to call `mergeBackupData()`
+- **Current state:** Sprint 10.1 Complete. Users can now proceed without Tool 1, 2, or 4 by answering backup questions.
+- **Next task:** Sprint 10.2 - Edge Cases
 - **Blockers:** None
 
-### Previous Session (January 19, 2026)
+### Previous Session (January 24, 2026 AM)
+- ✅ Sprint 8.1: Trauma Integration - Trauma Insights Display
+- Added trauma insight section with 6 patterns, retirement-specific messaging
+- New methods: `buildTraumaInsightSection()`, `toggleTraumaInsight()`
+
+### Earlier Session (January 19, 2026)
 - ✅ Sprint 10.3: UI Polish - Tool 4 Styling Alignment
 - Applied Tool 4 styling (gold buttons, card layout, larger sliders)
 
@@ -555,29 +565,49 @@ The `docs/Middleware/middleware-mapping.md` document is the **canonical referenc
 
 ### Notes for Next Session
 
-## Phase 8 - Trauma Integration Complete
+## Sprint 10.1 - Backup Questions System Complete
 
-**Sprint 8.1 Complete:** Trauma insights now display in the calculator UI.
+**Sprint 10.1 Complete:** Users can now proceed without Tool 1, 2, or 4 by answering backup questions.
 
-### Trauma Integration Features (Jan 24, 2026)
-- **6 trauma patterns:** FSV, ExVal, Showing, Receiving, Control, Fear
-- **Retirement-specific insights:** Pattern manifestation, watch-for tendencies, healing direction
-- **Secondary pattern:** Shows when Tool 1 scores available
-- **Collapsible card:** Purple gradient, matches Tool 6 design language
-- **Graceful fallback:** Prompts Tool 1 completion if no data
+### Backup Questions Architecture (Jan 24, 2026)
+- **3-tier approach:** Tool 4 (critical), Tool 2 (important), Tool 1 (trauma insights)
+- **UI Pattern:** Yellow gradient section at top of questionnaire, similar to Tool 4 approach
+- **Navigate buttons:** Users can go complete the original tools instead
+- **Derivation functions:** Process backup answers into toolStatus-compatible data
 
-### New Code Added
-- `buildTraumaInsightSection(toolStatus)` - Builds trauma insight HTML
-- `toggleTraumaInsight()` - Client-side toggle function
-- CSS: `.trauma-insight-*` styles
+### New Server-Side Functions
+| Function | Purpose |
+|----------|---------|
+| `buildBackupQuestionsHtml()` | Builds backup questions UI |
+| `deriveTool4FromBackup()` | Extracts: monthlyIncome, monthlyBudget, yearsToRetirement, investmentScore |
+| `deriveTool2FromBackup()` | Extracts: age, grossIncome, employmentType, filingStatus |
+| `deriveTraumaPatternFromBackup()` | Majority voting across 3 questions |
+| `mergeBackupData()` | Integrates derived data into toolStatus |
+| `getInvestmentScoreLabel()` | Returns score description |
 
-## Next Steps Options
+### New Client-Side Functions
+| Function | Purpose |
+|----------|---------|
+| `updateBackupSlider()` | Updates slider display and track fill |
+| `selectBackupScore()` | Handles 1-7 score button selection |
+| `selectBackupStatement()` | Handles radio button cards |
+| `navigateToTool()` | Redirects to Tool 1, 2, or 4 |
+| `initBackupSliders()` | Initializes slider states on page load |
 
-**Phase 10 - Polish (Remaining)**
-- Sprint 10.1: Error handling improvements
-- Sprint 10.2: Edge case testing
+### New CSS Classes
+- `.backup-questions-section` - Yellow gradient container
+- `.backup-tier` - Individual tier section
+- `.backup-statement-group` - Radio button cards
+- `.backup-score-buttons` - Investment score buttons
 
-**Recommendation:** Complete Phase 10.1/10.2 for production robustness.
+## Next Steps
+
+**Sprint 10.2: Edge Cases**
+- Test backup questions with various missing tool combinations
+- Verify allocation calculations with backup-derived data
+- Test navigation between tools
+
+**Recommendation:** Test the backup questions system thoroughly before production.
 
 ## Projection Functions Reference
 
