@@ -240,6 +240,31 @@ google.script.run
 - [ ] Sprint 10.2: Edge Cases
 - [x] Sprint 10.3: UI Polish - ✅ **COMPLETE** (Jan 19, 2026) - Tool 4 styling alignment
 
+### Phase 11: UX Improvements (Student-Friendly)
+> **Reference:** `docs/Tool6/Tool6-UI-Improvements.md` for full details and reasoning
+
+#### Sprint 11.1: Critical Fixes & Guided Flow
+- [ ] **BUG FIX:** Solo 401(k) Roth not updating tax treatment graph
+- [ ] Implement Tool 4-style guided walkthrough (auto-open/close sections)
+- [ ] Separate profile classification into its own section with persistent banner
+- [ ] Skip Phase C (Ambition Quotient) when only Retirement domain applies
+
+#### Sprint 11.2: Educational Content
+- [ ] Add tax strategy explanation (Roth vs Traditional decision)
+- [ ] Add investment score explanation (what 1-7 means, how it affects projections)
+- [ ] Add scenario management instructions
+- [ ] Clarify or remove "Recalculate Allocation" button
+
+#### Sprint 11.3: UI Restructure
+- [ ] Move action buttons to top of calculator section (like Tool 4)
+- [ ] Add progress indicator (Step 1/2/3)
+- [ ] Add welcome/orientation screen
+
+#### Sprint 11.4: Polish & Refinement
+- [ ] Add jargon tooltips (ROBS, HSA, 401k, Roth, Traditional, etc.)
+- [ ] Consider wizard-style Phase B option (one question at a time)
+- [ ] Plain English results summary ("What This Means")
+
 ---
 
 ## Current Status & Next Steps
@@ -655,6 +680,7 @@ var allocationState = {
 | Resource | Location |
 |----------|----------|
 | Main Spec | `docs/Tool6/Tool6-Consolidated-Specification.md` |
+| **UI Improvements** | `docs/Tool6/Tool6-UI-Improvements.md` |
 | **Data Structures** | `docs/Middleware/middleware-mapping.md` |
 | Constants | `tools/tool6/Tool6Constants.js` |
 | Main Tool | `tools/tool6/Tool6.js` |
