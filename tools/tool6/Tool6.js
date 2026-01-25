@@ -1967,6 +1967,9 @@ const Tool6 = {
         </div>
         ` : ''}
 
+        <!-- Sprint 8.1: Trauma Insight Display -->
+        ${this.buildTraumaInsightSection(toolStatus)}
+
       </div>
 
       <!-- Sprint 5.5: Vehicle Allocation Sliders -->
@@ -2370,6 +2373,150 @@ const Tool6 = {
     `;
 
     return html;
+  },
+
+  /**
+   * Sprint 8.1: Build trauma insight section for calculator
+   * Displays Tool 1 trauma pattern with retirement-specific implications
+   *
+   * @param {Object} toolStatus - Tool status with traumaPattern and traumaScores
+   * @returns {string} HTML for trauma insight section
+   */
+  buildTraumaInsightSection(toolStatus) {
+    const traumaPattern = toolStatus.traumaPattern;
+    const traumaScores = toolStatus.traumaScores || {};
+
+    // If no Tool 1 data, show prompt to complete it
+    if (!traumaPattern) {
+      return `
+        <div class="calc-subsection trauma-insight-section">
+          <div class="trauma-no-data">
+            <p>Complete <strong>Tool 1: Money Pattern Discovery</strong> to see how your psychological patterns affect retirement planning.</p>
+          </div>
+        </div>
+      `;
+    }
+
+    // Trauma pattern definitions with retirement-specific insights
+    // Mirrors Tool6GPTAnalysis.js traumaRetirementContext
+    const traumaInsights = {
+      'FSV': {
+        name: 'False Self-View',
+        icon: '🎭',
+        type: 'Disconnection from Self (Active)',
+        pattern: 'You may under-save for yourself while over-providing for others. There can be a tendency to feel undeserving of a comfortable retirement, or to avoid looking at retirement numbers altogether.',
+        watchFor: 'Under-allocation to personal retirement accounts, over-prioritizing education funding for children, difficulty increasing contribution rates even when affordable.',
+        healing: 'Recognize that building retirement security is self-care, not selfishness. Your future self deserves the same care you give others. Each contribution is an act of self-worth.'
+      },
+      'ExVal': {
+        name: 'External Validation',
+        icon: '👥',
+        type: 'Disconnection from Self (Passive)',
+        pattern: 'You may make retirement decisions based on what others think rather than your personal needs. Comparing retirement savings to peers or seeking validation for every financial decision is common.',
+        watchFor: 'Changing allocations based on external opinions, difficulty committing to a strategy, comparing projected balances to others instead of focusing on your own goals.',
+        healing: 'Build internal confidence in your retirement plan. Your financial path is unique - what matters is alignment with YOUR values and goals, not anyone else\'s approval.'
+      },
+      'Showing': {
+        name: 'Issues Showing Love',
+        icon: '💝',
+        type: 'Disconnection from Others (Active)',
+        pattern: 'You may deprioritize your own retirement to fund education or help family members. Feeling guilty about Roth contributions (no immediate tax benefit for others) or difficulty accepting employer match as deserved.',
+        watchFor: 'Minimal allocation to retirement domains, over-funding education/529s at the expense of your own future, guilt about tax-advantaged contributions that benefit you.',
+        healing: 'Securing your retirement IS showing love - it means your family will not need to support you later. Self-care enables sustainable generosity over a lifetime.'
+      },
+      'Receiving': {
+        name: 'Issues Receiving Love',
+        icon: '🛡️',
+        type: 'Disconnection from Others (Passive)',
+        pattern: 'You may hoard retirement savings for security without a clear purpose. Difficulty accepting employer match or HSA employer contributions, and isolation in retirement planning decisions.',
+        watchFor: 'Over-emphasis on security without growth orientation, avoiding family financial discussions, resistance to advisor input or collaborative planning.',
+        healing: 'Learn to receive support in retirement planning. Accepting employer match is not dependency - it is wise stewardship. Allow others to contribute to your wellbeing.'
+      },
+      'Control': {
+        name: 'Control Leading to Isolation',
+        icon: '🎯',
+        type: 'Disconnection from Greater Purpose (Active)',
+        pattern: 'You may obsessively monitor retirement accounts or be rigid about allocation percentages. Difficulty adapting strategy as circumstances change and analysis paralysis with vehicle selection.',
+        watchFor: 'Excessive checking of balances, difficulty adjusting allocations when life changes, paralysis when market volatility occurs, perfectionism preventing action.',
+        healing: 'Develop trust in your systematic approach. Having a solid retirement plan means you do not need to control every variable. Set it, review periodically, and trust the process.'
+      },
+      'Fear': {
+        name: 'Fear Leading to Isolation',
+        icon: '😰',
+        type: 'Disconnection from Greater Purpose (Passive)',
+        pattern: 'You may under-invest due to market fears, catastrophize retirement scenarios, avoid checking retirement accounts, or over-allocate to conservative vehicles despite a long time horizon.',
+        watchFor: 'Under-allocation to growth vehicles, excessive focus on worst-case projections, avoidance of retirement conversations, keeping too much in cash or bonds.',
+        healing: 'Build courage to invest for long-term growth. Your time horizon is your greatest asset - fear-based under-investing is its own risk. Small, consistent steps build confidence.'
+      }
+    };
+
+    const insight = traumaInsights[traumaPattern];
+    if (!insight) {
+      return `
+        <div class="calc-subsection trauma-insight-section">
+          <div class="trauma-no-data">
+            <p>Your money pattern could not be identified. Consider retaking Tool 1.</p>
+          </div>
+        </div>
+      `;
+    }
+
+    // Check for secondary pattern (second highest score)
+    let secondaryHtml = '';
+    if (traumaScores && Object.keys(traumaScores).length > 1) {
+      const sortedScores = Object.entries(traumaScores)
+        .filter(([key]) => key !== traumaPattern)
+        .sort((a, b) => b[1] - a[1]);
+
+      if (sortedScores.length > 0 && sortedScores[0][1] > 0) {
+        const secondaryPattern = sortedScores[0][0];
+        const secondaryInsight = traumaInsights[secondaryPattern];
+        if (secondaryInsight) {
+          secondaryHtml = `
+            <div class="trauma-insight-card" style="opacity: 0.8;">
+              <div class="trauma-insight-card-title">Secondary Pattern: ${secondaryInsight.name}</div>
+              <div class="trauma-insight-card-content">
+                This pattern may also influence your retirement decisions. Be aware of ${secondaryInsight.watchFor.split(',')[0].toLowerCase()}.
+              </div>
+            </div>
+          `;
+        }
+      }
+    }
+
+    return `
+      <div class="calc-subsection trauma-insight-section">
+        <div class="trauma-insight-header" onclick="toggleTraumaInsight()" id="traumaHeader">
+          <div class="trauma-insight-title">
+            <span class="trauma-insight-icon">${insight.icon}</span>
+            <div>
+              <div class="trauma-insight-name">Your Money Pattern: ${insight.name}</div>
+              <div class="trauma-insight-type">${insight.type}</div>
+            </div>
+          </div>
+          <span class="trauma-insight-toggle" id="traumaToggle">▼</span>
+        </div>
+
+        <div class="trauma-insight-body" id="traumaBody">
+          <div class="trauma-insight-card">
+            <div class="trauma-insight-card-title">How This Shows Up in Retirement Planning</div>
+            <div class="trauma-insight-card-content">${insight.pattern}</div>
+          </div>
+
+          <div class="trauma-insight-card">
+            <div class="trauma-insight-card-title">Watch For These Tendencies</div>
+            <div class="trauma-insight-card-content">${insight.watchFor}</div>
+          </div>
+
+          ${secondaryHtml}
+
+          <div class="trauma-insight-card trauma-insight-healing">
+            <div class="trauma-insight-card-title">Your Healing Direction</div>
+            <div class="trauma-insight-card-content">${insight.healing}</div>
+          </div>
+        </div>
+      </div>
+    `;
   },
 
   /**
@@ -3290,6 +3437,118 @@ const Tool6 = {
       padding: 8px 16px;
       background: rgba(255, 255, 255, 0.1);
       border-radius: 8px;
+    }
+
+    /* Sprint 8.1: Trauma Insight Section */
+    .trauma-insight-section {
+      background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(139, 92, 246, 0.05));
+      border: 1px solid rgba(139, 92, 246, 0.3);
+      border-radius: 12px;
+      padding: 20px;
+      margin-top: 16px;
+    }
+
+    .trauma-insight-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      margin-bottom: 0;
+    }
+
+    .trauma-insight-header.expanded {
+      margin-bottom: 16px;
+    }
+
+    .trauma-insight-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .trauma-insight-icon {
+      font-size: 1.5rem;
+    }
+
+    .trauma-insight-name {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--color-text-primary);
+    }
+
+    .trauma-insight-type {
+      font-size: 0.85rem;
+      color: rgba(139, 92, 246, 0.9);
+      font-weight: 500;
+    }
+
+    .trauma-insight-toggle {
+      font-size: 1rem;
+      color: var(--color-text-muted);
+      transition: transform 0.3s ease;
+    }
+
+    .trauma-insight-toggle.collapsed {
+      transform: rotate(-90deg);
+    }
+
+    .trauma-insight-body {
+      display: block;
+    }
+
+    .trauma-insight-body.collapsed {
+      display: none;
+    }
+
+    .trauma-insight-card {
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+
+    .trauma-insight-card:last-child {
+      margin-bottom: 0;
+    }
+
+    .trauma-insight-card-title {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: rgba(139, 92, 246, 0.9);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+
+    .trauma-insight-card-content {
+      font-size: 0.95rem;
+      color: var(--color-text-secondary);
+      line-height: 1.6;
+    }
+
+    .trauma-insight-healing {
+      background: linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(34, 197, 94, 0.05));
+      border: 1px solid rgba(34, 197, 94, 0.3);
+    }
+
+    .trauma-insight-healing .trauma-insight-card-title {
+      color: #22c55e;
+    }
+
+    .trauma-no-data {
+      text-align: center;
+      padding: 16px;
+      color: var(--color-text-muted);
+      font-style: italic;
+    }
+
+    .trauma-no-data a {
+      color: var(--color-primary);
+      text-decoration: none;
+    }
+
+    .trauma-no-data a:hover {
+      text-decoration: underline;
     }
 
     /* Sprint 5.5: Vehicle Sliders */
@@ -4742,6 +5001,19 @@ const Tool6 = {
       body.classList.toggle('collapsed');
       toggle.classList.toggle('collapsed');
       if (summary) summary.classList.toggle('show');
+    }
+
+    // Sprint 8.1: Toggle trauma insight section
+    function toggleTraumaInsight() {
+      var body = document.getElementById('traumaBody');
+      var toggle = document.getElementById('traumaToggle');
+      var header = document.getElementById('traumaHeader');
+
+      if (body && toggle) {
+        body.classList.toggle('collapsed');
+        toggle.classList.toggle('collapsed');
+        if (header) header.classList.toggle('expanded');
+      }
     }
 
     // ========================================================================

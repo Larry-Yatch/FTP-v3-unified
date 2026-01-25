@@ -228,8 +228,8 @@ google.script.run
 - [x] Sprint 7.3: Compare Scenarios - ✅ **COMPLETE** (Jan 18, 2026) - Side-by-side comparison with comprehensive insights
 - [x] Sprint 7.4: PDF Generation - ✅ **COMPLETE** (Jan 18, 2026) - Single + Comparison reports with GPT integration
 
-### Phase 8: Trauma Integration
-- [ ] Sprint 8.1: Trauma Insights Display
+### Phase 8: Trauma Integration ✅ COMPLETE
+- [x] Sprint 8.1: Trauma Insights Display - ✅ **COMPLETE** (Jan 24, 2026)
 
 ### Phase 9: GPT Integration ✅ MERGED INTO PHASE 7.4
 - [x] Sprint 9.1: GPT Analysis - ✅ **MERGED** into Sprint 7.4 (Tool6GPTAnalysis.js)
@@ -428,25 +428,27 @@ This startup doc serves as persistent memory across sessions. **Always update th
 When ending a session, update this section:
 
 ### Last Session Summary
-- **Date:** January 19, 2026
+- **Date:** January 24, 2026
 - **What was done:**
-  - ✅ **Sprint 10.3: UI Polish - Tool 4 Styling Alignment**
-  - Applied Tool 4 styling to Tool 6 for consistency across the application:
-    - **Gold pill buttons:** btn-primary, btn-secondary with hover effects
-    - **Vehicle slider containers:** Card-style with padding (20px), border-radius (10px)
-    - **Slider header layout:** New vehicle-slider-header, vehicle-slider-title, vehicle-slider-value structure
-    - **Larger slider thumb:** 24px (vs 18px) with 3px border
-    - **Gradient fill:** linear-gradient(90deg, #4f46e5, #7c3aed)
-    - **Locked state:** Gold gradient fill, gold thumb, "🔒 Locked" text
-    - **Lock button:** Tool 4 style with text (Locked/Unlocked)
-    - **Vehicle descriptions:** Italic helper text explaining tax treatment for each vehicle
-  - Removed conflicting duplicate CSS definitions that were causing layout issues
-  - Updated responsive styling for new card-based layout
-- **Current state:** Phase 10 Polish in progress. UI now matches Tool 4 styling.
-- **Next task:** Continue Phase 10 (Polish) or Phase 8 (Trauma Integration)
+  - ✅ **Sprint 8.1: Trauma Integration - Trauma Insights Display**
+  - Added trauma insight section to calculator UI displaying Tool 1 money patterns:
+    - **6 trauma patterns mapped:** FSV, ExVal, Showing, Receiving, Control, Fear
+    - **Retirement-specific messaging:** How pattern shows up, what to watch for, healing direction
+    - **Secondary pattern support:** Shows secondary pattern when scores available
+    - **Collapsible UI:** Purple-gradient card with toggle expand/collapse
+    - **Graceful fallback:** Prompts user to complete Tool 1 if no data available
+  - New method: `buildTraumaInsightSection(toolStatus)`
+  - New JS function: `toggleTraumaInsight()`
+  - New CSS: `.trauma-insight-*` styles matching Tool 6 design language
+- **Current state:** Phase 8 Complete. Trauma insights now visible in calculator UI.
+- **Next task:** Phase 10 (Polish) - Error Handling (10.1) and Edge Cases (10.2)
 - **Blockers:** None
 
-### Previous Session (January 18, 2026 PM)
+### Previous Session (January 19, 2026)
+- ✅ Sprint 10.3: UI Polish - Tool 4 Styling Alignment
+- Applied Tool 4 styling (gold buttons, card layout, larger sliders)
+
+### Earlier Session (January 18, 2026 PM)
 - ✅ Phase 7 Complete - Sprint 7.4 PDF Generation
 - Created Tool6GPTAnalysis.js, Tool6Fallbacks.js, Tool6Report.js
 - GPT integration with trauma-informed context and 3-tier fallback
@@ -553,30 +555,29 @@ The `docs/Middleware/middleware-mapping.md` document is the **canonical referenc
 
 ### Notes for Next Session
 
-## Phase 10 - UI Polish Complete
+## Phase 8 - Trauma Integration Complete
 
-**Sprint 10.3 Complete:** Tool 4 styling alignment applied to Tool 6.
+**Sprint 8.1 Complete:** Trauma insights now display in the calculator UI.
 
-### Styling Changes Applied (Jan 19, 2026)
-- **Gold pill buttons:** btn-primary, btn-secondary with hover lift effects
-- **Vehicle slider containers:** Card-style layout (padding: 20px, border-radius: 10px)
-- **Slider header:** New structure with vehicle-slider-header, title, value
-- **Larger slider thumb:** 24px (vs 18px) with 3px border
-- **Gradient fill:** Purple gradient, gold when locked
-- **Lock button:** Shows "🔒 Locked" / "🔓 Unlocked" text
-- **Vehicle descriptions:** Italic helper text explaining tax treatment
+### Trauma Integration Features (Jan 24, 2026)
+- **6 trauma patterns:** FSV, ExVal, Showing, Receiving, Control, Fear
+- **Retirement-specific insights:** Pattern manifestation, watch-for tendencies, healing direction
+- **Secondary pattern:** Shows when Tool 1 scores available
+- **Collapsible card:** Purple gradient, matches Tool 6 design language
+- **Graceful fallback:** Prompts Tool 1 completion if no data
+
+### New Code Added
+- `buildTraumaInsightSection(toolStatus)` - Builds trauma insight HTML
+- `toggleTraumaInsight()` - Client-side toggle function
+- CSS: `.trauma-insight-*` styles
 
 ## Next Steps Options
 
-**Option A: Phase 8 - Trauma Integration**
-- Sprint 8.1: Display trauma-informed messaging in the UI (not just reports)
-- Pull Tool 1 pattern and show specific guidance
-
-**Option B: Continue Phase 10 - Polish**
+**Phase 10 - Polish (Remaining)**
 - Sprint 10.1: Error handling improvements
 - Sprint 10.2: Edge case testing
 
-**Recommendation:** Phase 10.1/10.2 for robustness, or Phase 8 for feature completeness.
+**Recommendation:** Complete Phase 10.1/10.2 for production robustness.
 
 ## Projection Functions Reference
 
