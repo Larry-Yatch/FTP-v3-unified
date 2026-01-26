@@ -3948,7 +3948,7 @@ const Tool6 = {
     .settings-actions {
       display: flex;
       align-items: center;
-      gap: 12px;
+      justify-content: space-between;
       margin-top: 20px;
       padding-top: 16px;
       border-top: 1px solid rgba(255, 255, 255, 0.1);
@@ -3956,8 +3956,7 @@ const Tool6 = {
 
     .settings-hints {
       display: flex;
-      flex-wrap: wrap;
-      gap: 8px 24px;
+      justify-content: space-between;
       margin-top: 8px;
     }
 
