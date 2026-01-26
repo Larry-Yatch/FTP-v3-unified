@@ -270,12 +270,19 @@ google.script.run
   - Section 4: Saved Scenarios count (updates when scenarios load)
 - [x] ~~Separate profile classification into distinct section~~ - **SKIPPED** (profile banner provides sufficient context)
 
-#### Sprint 11.3: Educational Content
+#### Sprint 11.3: Educational Content ✅ COMPLETE
 - [x] Add welcome/intro section (explain tool purpose, time estimate, data sources) - ✅ **COMPLETE** (Jan 24, 2026) - Added as part of Sprint 11.1
-- [ ] Add tax strategy explanation (Roth vs Traditional - THE key decision)
-- [ ] Add investment score explanation (what 1-7 means, 8%-20% returns)
-- [ ] Add scenario management instructions
-- [ ] Add slider behavior explanation (coupled limits, lock buttons)
+- [x] Add tax strategy explanation (Roth vs Traditional - THE key decision) - ✅ **COMPLETE** (Jan 26, 2026)
+  - Collapsible "Learn More" section with Roth vs Traditional comparison grid
+  - Key factors: current vs future tax rate, years to retirement, tax diversification
+- [x] Add investment score explanation (what 1-7 means, 8%-20% returns) - ✅ **COMPLETE** (Jan 26, 2026)
+  - Table showing score 1-7, risk level, expected return (8%-20%), best use cases
+- [x] Add scenario management instructions - ✅ **COMPLETE** (Jan 26, 2026)
+  - How to save, compare, and load scenarios
+  - Suggested scenarios to try
+- [x] Add slider behavior explanation (coupled limits, lock buttons) - ✅ **COMPLETE** (Jan 26, 2026)
+  - IRS limits, coupled limits (401k Traditional+Roth, IRA Traditional+Roth)
+  - Lock button and reset button functionality
 
 #### Sprint 11.4: Progress & Actions
 - [ ] Add progress indicator (Step 1/2/3 with visual bar like Tool 5)
@@ -478,29 +485,24 @@ This startup doc serves as persistent memory across sessions. **Always update th
 When ending a session, update this section:
 
 ### Last Session Summary
-- **Date:** January 26, 2026 (Session 2)
+- **Date:** January 26, 2026 (Session 3)
 - **What was done:**
-  - ✅ **Sprint 11.2: Profile & Flow Improvements** - COMPLETE
-  - **Persistent Profile Banner:**
-    - Added banner below navigation that shows profile icon, name, budget, years to retire, risk score
-    - New CSS class `.profile-banner` with gradient styling
-    - New functions: `updateProfileBanner()`, `updateBannerStats()`
-    - Banner shows/hides via `show` class, updates when settings change
-    - "Change Profile" button restarts classification and hides banner
-  - **Skip Phase C for Single Domain:**
-    - Modified `continueToPhaseC()` to check if `hasChildren=No` AND `hsaEligible=No`
-    - When only Retirement domain applies, skip directly to `submitQuestionnaire()`
-    - Sets default ambition values (weighting is meaningless with single domain)
-  - **Collapsible Section Summaries:**
-    - Section 2 summary: Total Allocated, Tax Strategy, Active Vehicles count
-    - Section 3 summary: Projected Balance, Monthly Income, Return Rate
-    - Section 4 summary: Saved Scenarios count (updates via `renderScenariosList`)
-    - Summaries toggle when sections expand/collapse via `toggleSection()`
-  - **Banner Stats Updates:**
-    - Added `updateBannerStats()` calls to `updateBudget()`, `updateYearsToRetirement()`, `updateInvestmentScore()`
-- **Current state:** Sprint 11.2 COMPLETE. Ready for Sprint 11.3 (Educational Content).
-- **Next task:** Sprint 11.3 - Tax strategy explanation, investment score explanation
+  - ✅ **Sprint 11.3: Educational Content** - COMPLETE
+  - **Collapsible Help Sections** (new `.edu-help` CSS pattern):
+    - Tax Strategy: Roth vs Traditional comparison grid, key factors, pro tips
+    - Investment Score: Table showing 1-7 scale, expected returns (8%-20%), best use cases
+    - Scenario Management: How to save/compare/load, suggested scenarios to try
+    - Slider Behavior: IRS limits, coupled limits, lock buttons, reset button
+  - **New function:** `toggleEduHelp(helpId)` for toggling educational content visibility
+  - **Bug fixes this session:** Filing status reallocation, slider drag behavior
+- **Current state:** Sprint 11.3 COMPLETE. Ready for Sprint 11.4 (Progress & Actions).
+- **Next task:** Sprint 11.4 - Progress indicator, action buttons, plain English summary
 - **Blockers:** None
+
+### Previous Session (January 26, 2026 Session 2)
+- ✅ **Sprint 11.2: Profile & Flow Improvements** - COMPLETE
+- Persistent Profile Banner, Skip Phase C for single domain, Collapsible Section Summaries
+- Filing status display in banner and settings panel (selectable)
 
 ### Previous Session (January 26, 2026 Session 1)
 - ✅ **Sprint 11.2: Settings Panel & Section Reorder** (partial)
