@@ -284,11 +284,21 @@ google.script.run
   - IRS limits, coupled limits (401k Traditional+Roth, IRA Traditional+Roth)
   - Lock button and reset button functionality
 
-#### Sprint 11.4: Progress & Actions
-- [ ] Add progress indicator (Step 1/2/3 with visual bar like Tool 5)
-- [ ] Move action buttons to top of calculator section
-- [ ] Investigate/clarify recalculate button purpose
-- [ ] Add plain English results summary ("What This Means")
+#### Sprint 11.4: Progress & Actions ✅ COMPLETE
+- [x] ~~Add progress indicator~~ - **SKIPPED** (user decision - not needed for this tool)
+- [x] Move action buttons to top of calculator section - ✅ **COMPLETE** (Jan 26, 2026)
+  - Added `.calc-actions-bar` after Settings panel with primary Recalculate button
+  - Kept secondary Recalculate at bottom for convenience
+  - New CSS: `.btn-recalc-primary`, `.action-hint`
+- [x] Investigate/clarify recalculate button purpose - ✅ **COMPLETE** (Jan 26, 2026)
+  - Top button hint: "Changed your settings above? Click to re-optimize your vehicle allocation."
+  - Bottom button hint: "Re-runs the optimization algorithm with your current slider values and settings."
+- [x] Add plain English results summary ("What This Means") - ✅ **COMPLETE** (Jan 26, 2026)
+  - New `.results-summary` section with green gradient background
+  - Shows monthly/annual savings, employer match, tax strategy in plain English
+  - 10-year projection based on current return rate
+  - Points to Section 3 for full projections
+  - New function: `updateResultsSummary()` - updates when sliders or investment score changes
 
 #### Sprint 11.5: SKIP (Not Implementing)
 - ~~Jargon tooltips~~ - Time-consuming, minimal value
@@ -485,19 +495,30 @@ This startup doc serves as persistent memory across sessions. **Always update th
 When ending a session, update this section:
 
 ### Last Session Summary
-- **Date:** January 26, 2026 (Session 3)
+- **Date:** January 26, 2026 (Session 4)
 - **What was done:**
-  - ✅ **Sprint 11.3: Educational Content** - COMPLETE
-  - **Collapsible Help Sections** (new `.edu-help` CSS pattern):
-    - Tax Strategy: Roth vs Traditional comparison grid, key factors, pro tips
-    - Investment Score: Table showing 1-7 scale, expected returns (8%-20%), best use cases
-    - Scenario Management: How to save/compare/load, suggested scenarios to try
-    - Slider Behavior: IRS limits, coupled limits, lock buttons, reset button
-  - **New function:** `toggleEduHelp(helpId)` for toggling educational content visibility
-  - **Bug fixes this session:** Filing status reallocation, slider drag behavior
-- **Current state:** Sprint 11.3 COMPLETE. Ready for Sprint 11.4 (Progress & Actions).
-- **Next task:** Sprint 11.4 - Progress indicator, action buttons, plain English summary
+  - ✅ **Sprint 11.4: Progress & Actions** - COMPLETE
+  - **Quick Actions Bar** (`.calc-actions-bar`):
+    - Added after Settings panel with primary Recalculate button
+    - Hint text: "Changed your settings above? Click to re-optimize your vehicle allocation."
+  - **Recalculate Button Clarification**:
+    - Top button in new action bar with explanation
+    - Bottom button kept as secondary convenience with hint text
+  - **Plain English Results Summary** (`.results-summary`):
+    - Green gradient background section after vehicle sliders
+    - Shows: monthly/annual savings, employer match, tax strategy in plain English
+    - 10-year projection based on current investment score/return rate
+    - Points to Section 3 for full projections
+    - New function: `updateResultsSummary()` updates dynamically
+  - **Skipped:** Progress indicator (user decided not needed)
+- **Current state:** Sprint 11.4 COMPLETE. Sprint 11.5 marked as SKIP.
+- **Next task:** All UI improvement sprints complete! Future work could be Sprint 12+ if defined.
 - **Blockers:** None
+
+### Previous Session (January 26, 2026 Session 3)
+- ✅ **Sprint 11.3: Educational Content** - COMPLETE
+- Collapsible help sections for Tax Strategy, Investment Score, Scenario Management, Slider Behavior
+- New function: `toggleEduHelp(helpId)`
 
 ### Previous Session (January 26, 2026 Session 2)
 - ✅ **Sprint 11.2: Profile & Flow Improvements** - COMPLETE

@@ -2290,6 +2290,16 @@ const Tool6 = {
           </div>
         </div>
 
+        <!-- Sprint 11.4: Quick Actions Bar -->
+        <div class="calc-actions-bar">
+          <button type="button" class="btn-recalc-primary" onclick="recalculateAllocation()">
+            <span class="btn-icon">&#128260;</span> Recalculate Allocation
+          </button>
+          <div class="action-hint">
+            Changed your settings above? Click to re-optimize your vehicle allocation.
+          </div>
+        </div>
+
         <!-- Sprint 5.4: Employer Match Display -->
         ${employerMatch > 0 ? `
         <div class="calc-subsection employer-match-section">
@@ -2489,17 +2499,63 @@ const Tool6 = {
       `;
     }
 
+    // Calculate values for plain English summary
+    const annualSavings = (allocation.totalAllocated || 0) * 12;
+    const totalWithMatch = (allocation.totalAllocated || 0) + (employerMatch || 0);
+    const annualReturn = this.calculatePersonalizedRate(investmentScore);
+    const returnPercent = (annualReturn * 100).toFixed(0);
+
+    // Rough 10-year projection (simplified compound interest)
+    const tenYearProjection = Math.round(totalWithMatch * 12 * (Math.pow(1 + annualReturn, 10) - 1) / annualReturn);
+
+    // Tax strategy in plain English
+    let taxStrategyPlain = '';
+    if (taxPreference === 'Now') {
+      taxStrategyPlain = 'paying taxes now (Roth) for tax-free retirement income';
+    } else if (taxPreference === 'Later') {
+      taxStrategyPlain = 'deferring taxes (Traditional) to reduce your current tax bill';
+    } else {
+      taxStrategyPlain = 'balancing both tax strategies for maximum flexibility';
+    }
+
     html += `
+        </div>
+
+        <!-- Sprint 11.4: Plain English Results Summary -->
+        <div class="results-summary" id="resultsSummary">
+          <h4 class="results-summary-title">&#128161; What This Means</h4>
+          <div class="results-summary-content">
+            <div class="summary-stat main">
+              <span class="stat-label">You are saving</span>
+              <span class="stat-value" id="summaryMonthly">$${(allocation.totalAllocated || 0).toLocaleString()}/month</span>
+              <span class="stat-detail">($${annualSavings.toLocaleString()}/year${employerMatch > 0 ? ' + $' + (employerMatch * 12).toLocaleString() + ' employer match' : ''})</span>
+            </div>
+            <div class="summary-insights">
+              <div class="insight-item">
+                <span class="insight-icon">&#128176;</span>
+                <span class="insight-text">Your tax strategy is <strong>${taxStrategyPlain}</strong>.</span>
+              </div>
+              <div class="insight-item">
+                <span class="insight-icon">&#128200;</span>
+                <span class="insight-text">At ${returnPercent}% annual return, this could grow to <strong>~$${tenYearProjection.toLocaleString()}</strong> in 10 years.</span>
+              </div>
+              <div class="insight-item">
+                <span class="insight-icon">&#127919;</span>
+                <span class="insight-text">After ${yearsToRetirement} years, see your full projections in <strong>Section 3</strong> below.</span>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- Allocation warnings -->
         <div class="allocation-warnings" id="allocationWarnings"></div>
 
-        <!-- Recalculate button -->
+        <!-- Recalculate button (secondary - also at top) -->
         <div class="calc-actions">
           <button type="button" class="btn-recalc" onclick="recalculateAllocation()">
-            <span class="btn-icon">🔄</span> Recalculate Allocation
+            <span class="btn-icon">&#128260;</span> Recalculate Allocation
           </button>
+          <p class="recalc-hint">Re-runs the optimization algorithm with your current slider values and settings.</p>
         </div>
 
         <!-- Sprint 8.1: Trauma Insight Display (Your Money Pattern) -->
@@ -5080,6 +5136,12 @@ const Tool6 = {
       text-align: center;
     }
 
+    .recalc-hint {
+      margin-top: 8px;
+      font-size: 0.8rem;
+      color: var(--color-text-muted);
+    }
+
     .btn-recalc {
       display: inline-flex;
       align-items: center;
@@ -5102,6 +5164,126 @@ const Tool6 = {
 
     .btn-icon {
       font-size: 1.1rem;
+    }
+
+    /* Sprint 11.4: Quick Actions Bar */
+    .calc-actions-bar {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-top: 20px;
+      padding: 16px 20px;
+      background: rgba(79, 70, 229, 0.06);
+      border-radius: 10px;
+      border: 1px dashed rgba(79, 70, 229, 0.3);
+    }
+
+    .btn-recalc-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 24px;
+      background: var(--color-primary);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+
+    .btn-recalc-primary:hover {
+      background: var(--color-primary-dark, #4338ca);
+      transform: translateY(-1px);
+    }
+
+    .action-hint {
+      font-size: 0.85rem;
+      color: var(--color-text-muted);
+      line-height: 1.4;
+    }
+
+    @media (max-width: 600px) {
+      .calc-actions-bar {
+        flex-direction: column;
+        text-align: center;
+      }
+    }
+
+    /* Sprint 11.4: Plain English Results Summary */
+    .results-summary {
+      margin-top: 24px;
+      padding: 20px;
+      background: linear-gradient(135deg, rgba(34, 197, 94, 0.08), rgba(79, 70, 229, 0.08));
+      border: 1px solid rgba(34, 197, 94, 0.2);
+      border-radius: 12px;
+    }
+
+    .results-summary-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--color-text-primary);
+      margin: 0 0 16px 0;
+    }
+
+    .results-summary-content {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .summary-stat.main {
+      text-align: center;
+      padding: 16px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+    }
+
+    .summary-stat .stat-label {
+      display: block;
+      font-size: 0.9rem;
+      color: var(--color-text-muted);
+      margin-bottom: 4px;
+    }
+
+    .summary-stat .stat-value {
+      display: block;
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--color-success, #22c55e);
+    }
+
+    .summary-stat .stat-detail {
+      display: block;
+      font-size: 0.85rem;
+      color: var(--color-text-secondary);
+      margin-top: 4px;
+    }
+
+    .summary-insights {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .insight-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 0.9rem;
+      color: var(--color-text-secondary);
+      line-height: 1.5;
+    }
+
+    .insight-icon {
+      flex-shrink: 0;
+      font-size: 1rem;
+    }
+
+    .insight-text strong {
+      color: var(--color-text-primary);
     }
 
     /* ============================================
@@ -7158,6 +7340,13 @@ const Tool6 = {
       // Update projections with new rate
       updateProjectionDisplay();
 
+      // Sprint 11.4: Update plain English summary (return rate changed)
+      var currentTotal = 0;
+      for (var id in allocationState.vehicles) {
+        currentTotal += allocationState.vehicles[id] || 0;
+      }
+      updateResultsSummary(currentTotal);
+
       // Trigger recalculation if calculator is active
       markCalculatorDirty();
 
@@ -7820,12 +8009,53 @@ const Tool6 = {
       var warningsEl = document.getElementById('allocationWarnings');
       if (warningsEl) {
         if (total > budget + 1) {  // +1 for rounding tolerance
-          warningsEl.innerHTML = '<div class="allocation-warning"><span class="warning-icon">⚠️</span> Total allocation ($' + Math.round(total).toLocaleString() + ') exceeds your budget ($' + budget.toLocaleString() + ')</div>';
+          warningsEl.innerHTML = '<div class="allocation-warning"><span class="warning-icon">&#9888;</span> Total allocation ($' + Math.round(total).toLocaleString() + ') exceeds your budget ($' + budget.toLocaleString() + ')</div>';
         } else if (total < budget - 10) {
           var remaining = budget - total;
-          warningsEl.innerHTML = '<div class="allocation-info"><span class="info-icon">💡</span> $' + Math.round(remaining).toLocaleString() + ' remaining in your budget</div>';
+          warningsEl.innerHTML = '<div class="allocation-info"><span class="info-icon">&#128161;</span> $' + Math.round(remaining).toLocaleString() + ' remaining in your budget</div>';
         } else {
           warningsEl.innerHTML = '';
+        }
+      }
+
+      // Sprint 11.4: Update plain English results summary
+      updateResultsSummary(total);
+    }
+
+    // Sprint 11.4: Update the plain English results summary
+    function updateResultsSummary(totalMonthly) {
+      var summaryMonthly = document.getElementById('summaryMonthly');
+      if (!summaryMonthly) return;
+
+      var annualSavings = totalMonthly * 12;
+      var employerMatch = allocationState.employerMatch || 0;
+      var totalWithMatch = totalMonthly + employerMatch;
+      var annualReturn = calculatePersonalizedRate(currentInvestmentScore);
+      var returnPercent = (annualReturn * 100).toFixed(0);
+
+      // Rough 10-year projection
+      var tenYearProjection = Math.round(totalWithMatch * 12 * (Math.pow(1 + annualReturn, 10) - 1) / annualReturn);
+
+      // Update the monthly/annual display
+      var detailText = '($' + annualSavings.toLocaleString() + '/year';
+      if (employerMatch > 0) {
+        detailText += ' + $' + (employerMatch * 12).toLocaleString() + ' employer match';
+      }
+      detailText += ')';
+
+      summaryMonthly.textContent = '$' + Math.round(totalMonthly).toLocaleString() + '/month';
+
+      var statDetail = summaryMonthly.parentElement.querySelector('.stat-detail');
+      if (statDetail) {
+        statDetail.textContent = detailText;
+      }
+
+      // Update the 10-year projection insight
+      var insightItems = document.querySelectorAll('.insight-item');
+      if (insightItems.length >= 2) {
+        var projectionText = insightItems[1].querySelector('.insight-text');
+        if (projectionText) {
+          projectionText.innerHTML = 'At ' + returnPercent + '% annual return, this could grow to <strong>~$' + tenYearProjection.toLocaleString() + '</strong> in 10 years.';
         }
       }
     }

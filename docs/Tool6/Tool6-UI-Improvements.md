@@ -410,11 +410,19 @@
 - [x] Add scenario management instructions ✅ COMPLETE
 - [x] Add slider behavior explanation (coupled limits, lock buttons) ✅ COMPLETE
 
-### Sprint 11.4: Progress & Actions
-- [ ] Add progress indicator (Step 1/2/3 with visual bar)
-- [ ] Move action buttons to top of calculator section
-- [ ] Investigate/clarify recalculate button purpose
-- [ ] Add plain English results summary ("What This Means")
+### Sprint 11.4: Progress & Actions ✅ COMPLETE (Jan 26, 2026)
+- [x] ~~Add progress indicator~~ SKIPPED (user decision - not needed)
+- [x] Move action buttons to top of calculator section ✅ COMPLETE
+  - Added Quick Actions bar after Settings panel with Recalculate button
+  - Kept secondary Recalculate at bottom for convenience after slider adjustments
+- [x] Investigate/clarify recalculate button purpose ✅ COMPLETE
+  - Added hint text explaining what Recalculate does
+  - Top: "Changed your settings above? Click to re-optimize your vehicle allocation."
+  - Bottom: "Re-runs the optimization algorithm with your current slider values and settings."
+- [x] Add plain English results summary ("What This Means") ✅ COMPLETE
+  - New `.results-summary` section with green gradient border
+  - Shows: monthly/annual savings, tax strategy in plain English, 10-year projection
+  - Updates dynamically when sliders or investment score changes
 
 ### Sprint 11.5: SKIP (Not Implementing)
 - ~~Jargon tooltips~~ - Time-consuming, minimal value
