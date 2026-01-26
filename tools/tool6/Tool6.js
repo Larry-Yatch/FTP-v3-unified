@@ -1460,10 +1460,10 @@ const Tool6 = {
     const inputs = {
       ...toolStatus,
       ...preSurveyData,
-      // Ensure we have key fields
+      // Ensure we have key fields (preSurveyData overrides toolStatus for user-adjustable settings)
       age: preSurveyData.age || toolStatus.age || 35,
       grossIncome: preSurveyData.a1_grossIncome || preSurveyData.grossIncome || toolStatus.grossIncome || 0,
-      filingStatus: toolStatus.filingStatus || 'Single',
+      filingStatus: preSurveyData.filingStatus || toolStatus.filingStatus || 'Single',
       // Education fields
       numChildren: parseInt(preSurveyData.a9_numChildren) || 1,
       educationVehicle: preSurveyData.a11_educationVehicle || '529'
@@ -2031,8 +2031,8 @@ const Tool6 = {
     // Tax preference
     const taxPreference = preSurveyData.a2b_taxPreference || allocation.taxPreference || 'Both';
 
-    // Filing status (from Tool 2 or backup questions)
-    const filingStatus = toolStatus.filingStatus || 'Single';
+    // Filing status (user selection overrides Tool 2/backup data)
+    const filingStatus = preSurveyData.filingStatus || toolStatus.filingStatus || 'Single';
 
     // Has children/education domain
     const hasChildren = preSurveyData.a8_hasChildren === 'Yes';
@@ -7224,10 +7224,16 @@ const Tool6 = {
       // Update banner stats
       updateBannerStats();
 
-      // Mark as dirty
-      markCalculatorDirty();
+      // Update formData so it gets saved with new filing status
+      if (typeof formData !== 'undefined') {
+        formData.filingStatus = newStatus;
+        formData.hsaCoverageType = hsaCoverageType;
+      }
 
       console.log('Filing status updated to:', newStatus, '- HSA coverage:', hsaCoverageType);
+
+      // Trigger full reallocation since filing status affects limits and phase-outs
+      recalculateAllocation();
     }
 
     // Sprint 5.5: Update single vehicle display
