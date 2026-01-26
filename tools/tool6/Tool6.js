@@ -2031,6 +2031,9 @@ const Tool6 = {
     // Tax preference
     const taxPreference = preSurveyData.a2b_taxPreference || allocation.taxPreference || 'Both';
 
+    // Filing status (from Tool 2 or backup questions)
+    const filingStatus = toolStatus.filingStatus || 'Single';
+
     // Has children/education domain
     const hasChildren = preSurveyData.a8_hasChildren === 'Yes';
     const hasHSA = preSurveyData.a7_hsaEligible === 'Yes';
@@ -2157,6 +2160,22 @@ const Tool6 = {
                 <div class="tax-recommendation" id="taxRecommendation">
                   ${this.getTaxRecommendation(grossIncome, age)}
                 </div>
+              </div>
+            </div>
+
+            <!-- Row 4: Filing Status -->
+            <div class="settings-row">
+              <div class="settings-field">
+                <label class="settings-label">Filing Status</label>
+                <select id="filingStatusSelect" class="settings-select" onchange="updateFilingStatus(this.value)">
+                  <option value="Single" ${filingStatus === 'Single' ? 'selected' : ''}>Single</option>
+                  <option value="MFJ" ${filingStatus === 'MFJ' ? 'selected' : ''}>Married Filing Jointly</option>
+                  <option value="MFS" ${filingStatus === 'MFS' ? 'selected' : ''}>Married Filing Separately</option>
+                  <option value="HoH" ${filingStatus === 'HoH' ? 'selected' : ''}>Head of Household</option>
+                </select>
+              </div>
+              <div class="settings-field">
+                <span class="settings-hint-inline">Affects HSA limits and Roth phase-out thresholds</span>
               </div>
             </div>
           </div>
@@ -2380,6 +2399,21 @@ const Tool6 = {
     }
 
     return `<span class="recommendation-label">Recommendation:</span> <strong>${recommendation}</strong> - ${reason}`;
+  },
+
+  /**
+   * Convert filing status code to display name
+   * @param {string} filingStatus - 'Single', 'MFJ', 'MFS', 'HoH'
+   * @returns {string} Display name
+   */
+  getFilingStatusDisplay(filingStatus) {
+    const displayNames = {
+      'Single': 'Single',
+      'MFJ': 'Married (Joint)',
+      'MFS': 'Married (Sep)',
+      'HoH': 'Head of House'
+    };
+    return displayNames[filingStatus] || 'Single';
   },
 
   /**
@@ -3640,6 +3674,31 @@ const Tool6 = {
     .input-prefix, .input-suffix {
       font-size: 0.9rem;
       color: var(--color-text-muted);
+    }
+
+    .settings-select {
+      padding: 10px 12px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--color-text-primary);
+      font-size: 1rem;
+      min-width: 200px;
+      cursor: pointer;
+    }
+
+    .settings-select:focus {
+      outline: none;
+      border-color: var(--color-primary);
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .settings-hint-inline {
+      font-size: 0.85rem;
+      color: var(--color-text-muted);
+      font-style: italic;
+      display: flex;
+      align-items: center;
     }
 
     .score-buttons-row {
@@ -5631,6 +5690,10 @@ const Tool6 = {
           <span class="profile-banner-stat-value" id="profileBannerScore">${preSurveyData?.investmentScore || toolStatus.investmentScore || 4}/7</span>
           <span class="profile-banner-stat-label">Risk Score</span>
         </div>
+        <div class="profile-banner-stat">
+          <span class="profile-banner-stat-value" id="profileBannerFiling">${this.getFilingStatusDisplay(toolStatus.filingStatus)}</span>
+          <span class="profile-banner-stat-label">Filing Status</span>
+        </div>
       </div>
       <button type="button" class="profile-banner-change" onclick="restartClassification()">
         Change Profile
@@ -6352,6 +6415,7 @@ const Tool6 = {
       var budgetEl = document.getElementById('profileBannerBudget');
       var yearsEl = document.getElementById('profileBannerYears');
       var scoreEl = document.getElementById('profileBannerScore');
+      var filingEl = document.getElementById('profileBannerFiling');
 
       if (budgetEl && allocationState.budget) {
         budgetEl.textContent = '$' + allocationState.budget.toLocaleString();
@@ -6363,6 +6427,18 @@ const Tool6 = {
       var scoreInput = document.getElementById('investmentScore');
       if (scoreEl && scoreInput) {
         scoreEl.textContent = scoreInput.value + '/7';
+      }
+      // Update filing status display
+      if (filingEl) {
+        var filingSelect = document.getElementById('filingStatusSelect');
+        var filingStatus = filingSelect ? filingSelect.value : (allocationState.filingStatus || 'Single');
+        var displayNames = {
+          'Single': 'Single',
+          'MFJ': 'Married (Joint)',
+          'MFS': 'Married (Sep)',
+          'HoH': 'Head of House'
+        };
+        filingEl.textContent = displayNames[filingStatus] || 'Single';
       }
     }
 
@@ -6837,7 +6913,9 @@ const Tool6 = {
       irsLimits: {},          // True IRS limits per vehicle (does not change with budget)
       locked: {},             // Which vehicles are locked
       budget: 0,              // Total monthly budget
-      originalBudget: 0       // Original budget from Tool 4
+      originalBudget: 0,      // Original budget from Tool 4
+      filingStatus: 'Single', // Tax filing status (Single, MFJ, MFS, HoH)
+      hsaCoverageType: 'Individual' // HSA coverage type (Individual or Family)
     };
 
     // Initialize state from DOM on page load
@@ -6847,6 +6925,13 @@ const Tool6 = {
       if (budgetInput) {
         allocationState.budget = parseFloat(budgetInput.value) || 0;
         allocationState.originalBudget = allocationState.budget;
+      }
+
+      // Get filing status from select
+      var filingSelect = document.getElementById('filingStatusSelect');
+      if (filingSelect) {
+        allocationState.filingStatus = filingSelect.value || 'Single';
+        allocationState.hsaCoverageType = (allocationState.filingStatus === 'MFJ') ? 'Family' : 'Individual';
       }
 
       // Initialize each vehicle from slider values
@@ -7088,6 +7173,61 @@ const Tool6 = {
       updateBannerStats();
 
       console.log('Years to retirement updated to:', newYears);
+    }
+
+    // Update filing status and recalculate affected values
+    function updateFilingStatus(newStatus) {
+      if (!['Single', 'MFJ', 'MFS', 'HoH'].includes(newStatus)) {
+        newStatus = 'Single';
+      }
+
+      // Update allocationState
+      allocationState.filingStatus = newStatus;
+
+      // Update HSA coverage type based on filing status
+      var hsaCoverageType = (newStatus === 'MFJ') ? 'Family' : 'Individual';
+      allocationState.hsaCoverageType = hsaCoverageType;
+
+      // Update HSA limits if HSA slider exists
+      var hsaSlider = document.getElementById('slider_hsa');
+      if (hsaSlider) {
+        var hsaLimits = {
+          'Individual': 4300,  // 2025 limits
+          'Family': 8550
+        };
+        var catchUpAge = 55;
+        var age = parseInt(document.getElementById('yearsToRetirementInput')?.dataset?.age) || 35;
+
+        var baseLimit = hsaLimits[hsaCoverageType] || 4300;
+        var monthlyLimit = Math.round(baseLimit / 12);
+
+        // Update the slider max
+        hsaSlider.max = monthlyLimit;
+        allocationState.limits['hsa'] = monthlyLimit;
+        allocationState.irsLimits['hsa'] = monthlyLimit;
+
+        // If current value exceeds new limit, cap it
+        var currentValue = parseFloat(hsaSlider.value) || 0;
+        if (currentValue > monthlyLimit) {
+          hsaSlider.value = monthlyLimit;
+          allocationState.vehicles['hsa'] = monthlyLimit;
+          updateSingleVehicleDisplay('hsa', monthlyLimit);
+        }
+
+        // Update limit display
+        var limitEl = document.getElementById('limit_hsa');
+        if (limitEl) {
+          limitEl.textContent = '$' + monthlyLimit.toLocaleString() + '/mo';
+        }
+      }
+
+      // Update banner stats
+      updateBannerStats();
+
+      // Mark as dirty
+      markCalculatorDirty();
+
+      console.log('Filing status updated to:', newStatus, '- HSA coverage:', hsaCoverageType);
     }
 
     // Sprint 5.5: Update single vehicle display
