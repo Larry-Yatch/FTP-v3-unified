@@ -4708,7 +4708,7 @@ const Tool6 = {
       background: linear-gradient(90deg, #f59e0b, #ffc107);
     }
 
-    /* Range input - Tool 4 style (exact copy) */
+    /* Range input - positioned to overlay the track */
     .vehicle-slider {
       width: 100%;
       -webkit-appearance: none;
@@ -4719,6 +4719,7 @@ const Tool6 = {
       position: relative;
       z-index: 2;
       cursor: pointer;
+      margin-top: -20px; /* Overlay the slider-track above */
     }
 
     .vehicle-slider:disabled {
