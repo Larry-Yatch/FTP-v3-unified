@@ -6124,8 +6124,22 @@ const Tool6 = {
       ` : ''}
 
       <div class="section-body ${hasPreSurvey ? 'collapsed' : ''}" id="profileBody">
-        <!-- Intro Section -->
+        <!-- Intro Section - Conditional based on first vs return visit -->
         <div class="intro-section">
+          ${hasPreSurvey ? `
+          <div class="intro-title">&#128075; Welcome Back!</div>
+          <div class="intro-text">
+            Your previous settings have been loaded. You are classified as a <strong>${profile?.name || 'Custom'}</strong> investor.
+            <br><br>
+            <strong>What you can do now:</strong>
+            <ul style="margin: 8px 0 0 20px; line-height: 1.6;">
+              <li>Adjust your settings in <strong>Section 2</strong> (budget, years, risk, tax strategy)</li>
+              <li>Fine-tune vehicle allocations with the sliders</li>
+              <li>Save and compare different scenarios in <strong>Section 4</strong></li>
+              <li>Click <strong>Change Profile</strong> to restart the questionnaire</li>
+            </ul>
+          </div>
+          ` : `
           <div class="intro-title">Welcome to Your Retirement Blueprint Calculator</div>
           <div class="intro-text">
             This tool helps you optimize your retirement savings across different account types (401k, IRA, HSA, etc.) for maximum tax efficiency. Based on your financial situation and goals, we will recommend the best allocation strategy for you.
@@ -6135,6 +6149,7 @@ const Tool6 = {
             <strong>Time needed:</strong> 3-5 minutes
             ${toolStatus.hasTool4 ? '<br><br><strong>Data imported:</strong> Your monthly retirement budget and investment score from Tool 4.' : ''}
           </div>
+          `}
         </div>
 
         <!-- Data Summary from Tools 1-5 -->
