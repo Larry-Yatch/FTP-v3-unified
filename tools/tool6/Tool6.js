@@ -3461,6 +3461,29 @@ const Tool6 = {
       font-size: 0.95rem;
     }
 
+    /* Welcome Message - Top level, always visible */
+    .welcome-message {
+      background: linear-gradient(135deg, rgba(79, 70, 229, 0.1), rgba(99, 102, 241, 0.05));
+      border: 1px solid rgba(79, 70, 229, 0.2);
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin-bottom: 24px;
+      text-align: center;
+    }
+
+    .welcome-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--color-text-primary);
+      margin-bottom: 8px;
+    }
+
+    .welcome-text {
+      color: var(--color-text-secondary);
+      line-height: 1.6;
+      font-size: 0.95rem;
+    }
+
     /* Submit Button - matches Tool 4 style */
     .submit-btn {
       background: var(--gold, #ffc107);
@@ -6053,11 +6076,22 @@ const Tool6 = {
       <div style="width: 180px;"></div> <!-- Spacer for centering -->
     </div>
 
-    <!-- Tool Description -->
-    <div style="text-align: center; margin-bottom: 32px;">
-      <p style="color: var(--color-text-secondary); font-size: 1.1rem; margin: 0;">
-        Optimize your retirement vehicle allocations for maximum tax efficiency
-      </p>
+    <!-- Welcome Message - Always visible at top -->
+    <div class="welcome-message">
+      ${hasPreSurvey ? `
+      <div class="welcome-title">&#128075; Welcome Back!</div>
+      <div class="welcome-text">
+        Your previous settings are loaded. You are classified as a <strong>${profile?.name || 'Custom'}</strong> investor.
+        Adjust your settings below, compare scenarios, or click <strong>Change Profile</strong> to start fresh.
+      </div>
+      ` : `
+      <div class="welcome-title">Welcome to Your Retirement Blueprint Calculator</div>
+      <div class="welcome-text">
+        This tool optimizes your retirement savings across different account types (401k, IRA, HSA, etc.) for maximum tax efficiency.
+        Answer a few questions below to get your personalized allocation. <strong>Time needed:</strong> 3-5 minutes.
+        ${toolStatus.hasTool4 ? '<br><strong>Data imported:</strong> Your budget and investment score from Tool 4.' : ''}
+      </div>
+      `}
     </div>
 
     <!-- Sprint 11.2: Persistent Profile Banner -->
@@ -6124,34 +6158,6 @@ const Tool6 = {
       ` : ''}
 
       <div class="section-body ${hasPreSurvey ? 'collapsed' : ''}" id="profileBody">
-        <!-- Intro Section - Conditional based on first vs return visit -->
-        <div class="intro-section">
-          ${hasPreSurvey ? `
-          <div class="intro-title">&#128075; Welcome Back!</div>
-          <div class="intro-text">
-            Your previous settings have been loaded. You are classified as a <strong>${profile?.name || 'Custom'}</strong> investor.
-            <br><br>
-            <strong>What you can do now:</strong>
-            <ul style="margin: 8px 0 0 20px; line-height: 1.6;">
-              <li>Adjust your settings in <strong>Section 2</strong> (budget, years, risk, tax strategy)</li>
-              <li>Fine-tune vehicle allocations with the sliders</li>
-              <li>Save and compare different scenarios in <strong>Section 4</strong></li>
-              <li>Click <strong>Change Profile</strong> to restart the questionnaire</li>
-            </ul>
-          </div>
-          ` : `
-          <div class="intro-title">Welcome to Your Retirement Blueprint Calculator</div>
-          <div class="intro-text">
-            This tool helps you optimize your retirement savings across different account types (401k, IRA, HSA, etc.) for maximum tax efficiency. Based on your financial situation and goals, we will recommend the best allocation strategy for you.
-            <br><br>
-            <strong>How it works:</strong> Answer a few questions about your employment, retirement goals, and tax preferences. We will classify your investor profile and calculate the optimal allocation of your retirement budget across tax-advantaged accounts.
-            <br><br>
-            <strong>Time needed:</strong> 3-5 minutes
-            ${toolStatus.hasTool4 ? '<br><br><strong>Data imported:</strong> Your monthly retirement budget and investment score from Tool 4.' : ''}
-          </div>
-          `}
-        </div>
-
         <!-- Data Summary from Tools 1-5 -->
         <div style="margin-bottom: 24px;">
           <h4 style="color: var(--color-text-secondary); margin-bottom: 12px;">Your Tool 4 Allocation</h4>
