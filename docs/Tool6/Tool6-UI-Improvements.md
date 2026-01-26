@@ -431,6 +431,31 @@
 - ~~Domain weight transparency~~ - Could confuse more than help
 - ~~Auto-save draft~~ - Single-page tool, less needed
 
+### Sprint 11.6: Flow Guidance ✅ COMPLETE (Jan 26, 2026)
+- [x] Add exploration prompt in "What This Means" section ✅ COMPLETE
+  - 4th insight item: "Want to compare strategies? Save this scenario in Section 4..."
+  - Subtle dashed border separator marks transition from linear to exploratory phase
+- [x] Add "Done exploring?" footer after Section 4 ✅ COMPLETE
+  - Centered prompt with Return to Dashboard inline button
+  - New CSS: `.explore-prompt`, `.done-exploring-prompt`, `.btn-nav-inline`
+
+### Sprint 11.7: UI Polish & Welcome Message ✅ COMPLETE (Jan 26, 2026)
+- [x] Move Recalculate button into Settings panel ✅ COMPLETE
+  - Both buttons (Change Profile, Recalculate Allocation) side-by-side
+  - Matching `.btn-secondary` gold pill style
+  - Justified to opposite edges (`justify-content: space-between`)
+  - Hints row below explaining each button
+  - Removed separate Quick Actions bar and unused CSS
+- [x] Add conditional welcome message (first vs return visit) ✅ COMPLETE
+  - Moved to top level - always visible above profile banner
+  - First visit: "Welcome to Your Retirement Blueprint Calculator"
+    - Tool explanation, how it works, time estimate (3-5 min)
+    - Shows imported data note if Tool 4 data available
+  - Return visit: "👋 Welcome Back!"
+    - Shows profile name, quick action hints
+    - Detects via `hasPreSurvey` flag
+  - New CSS: `.welcome-message`, `.welcome-title`, `.welcome-text`
+
 ---
 
 ## Reference: Tool 4 & Tool 5 Patterns to Mirror

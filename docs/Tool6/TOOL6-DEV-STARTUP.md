@@ -307,6 +307,27 @@ google.script.run
 - ~~Domain weight transparency~~ - Could confuse more than help
 - ~~Auto-save draft~~ - Single-page tool, less needed
 
+#### Sprint 11.6: Flow Guidance ✅ COMPLETE (Jan 26, 2026)
+- [x] Add exploration prompt in "What This Means" section - ✅ **COMPLETE**
+  - 4th insight item: "Want to compare strategies? Save this scenario..."
+  - Subtle dashed border separator marks transition to explore phase
+- [x] Add "Done exploring?" footer after Section 4 - ✅ **COMPLETE**
+  - Return to Dashboard inline button
+  - CSS: `.explore-prompt`, `.done-exploring-prompt`, `.btn-nav-inline`
+
+#### Sprint 11.7: UI Polish & Welcome Message ✅ COMPLETE (Jan 26, 2026)
+- [x] Move Recalculate button into Settings panel - ✅ **COMPLETE**
+  - Both buttons (Change Profile, Recalculate) use `.btn-secondary` gold style
+  - Justified to opposite edges with `justify-content: space-between`
+  - Hints displayed below each button
+  - Removed separate Quick Actions bar and unused CSS
+- [x] Add conditional welcome message - ✅ **COMPLETE**
+  - Moved to top level (always visible, above profile banner)
+  - First visit: Tool explanation, how it works, time estimate (3-5 min)
+  - Return visit: "Welcome Back!" with profile name, quick action hints
+  - Detects return visit via `hasPreSurvey` flag
+  - CSS: `.welcome-message`, `.welcome-title`, `.welcome-text`
+
 ---
 
 ## Current Status & Next Steps
@@ -495,25 +516,27 @@ This startup doc serves as persistent memory across sessions. **Always update th
 When ending a session, update this section:
 
 ### Last Session Summary
-- **Date:** January 26, 2026 (Session 4)
+- **Date:** January 26, 2026 (Session 5)
 - **What was done:**
-  - ✅ **Sprint 11.4: Progress & Actions** - COMPLETE
-  - **Quick Actions Bar** (`.calc-actions-bar`):
-    - Added after Settings panel with primary Recalculate button
-    - Hint text: "Changed your settings above? Click to re-optimize your vehicle allocation."
-  - **Recalculate Button Clarification**:
-    - Top button in new action bar with explanation
-    - Bottom button kept as secondary convenience with hint text
-  - **Plain English Results Summary** (`.results-summary`):
-    - Green gradient background section after vehicle sliders
-    - Shows: monthly/annual savings, employer match, tax strategy in plain English
-    - 10-year projection based on current investment score/return rate
-    - Points to Section 3 for full projections
-    - New function: `updateResultsSummary()` updates dynamically
-  - **Skipped:** Progress indicator (user decided not needed)
-- **Current state:** Sprint 11.4 COMPLETE. Sprint 11.5 marked as SKIP.
-- **Next task:** All UI improvement sprints complete! Future work could be Sprint 12+ if defined.
+  - ✅ **Sprint 11.7: UI Polish & Welcome Message** - COMPLETE
+  - **Settings Panel Button Layout**:
+    - Moved Recalculate button into Settings panel next to Change Profile
+    - Both buttons use matching `.btn-secondary` gold style
+    - Buttons justified to opposite edges (`justify-content: space-between`)
+    - Removed separate Quick Actions bar
+  - **Conditional Welcome Message** (`.welcome-message`):
+    - Moved to top level (always visible, not inside collapsible section)
+    - First visit: "Welcome to Your Retirement Blueprint Calculator" + explanation + time estimate
+    - Return visit: "Welcome Back!" + profile name + quick action hints
+    - Detects return visit via `hasPreSurvey` flag
+- **Current state:** All UI improvement sprints complete.
+- **Next task:** Future work could be Sprint 12+ if defined.
 - **Blockers:** None
+
+### Previous Session (January 26, 2026 Session 4)
+- ✅ **Sprint 11.4: Progress & Actions** - COMPLETE
+- Quick Actions Bar, Plain English Results Summary, Recalculate button hints
+- New function: `updateResultsSummary()`
 
 ### Previous Session (January 26, 2026 Session 3)
 - ✅ **Sprint 11.3: Educational Content** - COMPLETE
