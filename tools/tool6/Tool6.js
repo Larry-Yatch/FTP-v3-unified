@@ -2543,6 +2543,10 @@ const Tool6 = {
                 <span class="insight-icon">&#127919;</span>
                 <span class="insight-text">After ${yearsToRetirement} years, see your full projections in <strong>Section 3</strong> below.</span>
               </div>
+              <div class="insight-item explore-prompt">
+                <span class="insight-icon">&#128269;</span>
+                <span class="insight-text">Want to compare strategies? Save this scenario in <strong>Section 4</strong>, then try different settings.</span>
+              </div>
             </div>
           </div>
         </div>
@@ -5242,6 +5246,47 @@ const Tool6 = {
       color: var(--color-text-primary);
     }
 
+    /* Sprint 11.6: Exploration prompt styling */
+    .insight-item.explore-prompt {
+      margin-top: 8px;
+      padding-top: 10px;
+      border-top: 1px dashed rgba(255, 255, 255, 0.1);
+    }
+
+    .done-exploring-prompt {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 24px;
+      padding: 16px;
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 8px;
+      font-size: 0.9rem;
+      color: var(--color-text-muted);
+    }
+
+    .done-icon {
+      font-size: 1.1rem;
+    }
+
+    .btn-nav-inline {
+      display: inline;
+      padding: 4px 12px;
+      background: transparent;
+      color: var(--color-primary);
+      border: 1px solid var(--color-primary);
+      border-radius: 4px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-nav-inline:hover {
+      background: var(--color-primary);
+      color: white;
+    }
+
     /* ============================================
        Sprint 6.2: Projections Section Styles
        ============================================ */
@@ -6315,6 +6360,14 @@ const Tool6 = {
         </div>
         `}
       </div>
+    </div>
+
+    <!-- Sprint 11.6: Done Exploring Prompt -->
+    <div class="done-exploring-prompt">
+      <span class="done-icon">&#9989;</span>
+      <span class="done-text">Done exploring? </span>
+      <button type="button" class="btn-nav-inline" onclick="returnToDashboard()">Return to Dashboard</button>
+      <span class="done-text"> to continue your TruPath journey.</span>
     </div>
 
   </div>
