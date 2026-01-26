@@ -2281,22 +2281,18 @@ const Tool6 = {
             </div>
           </div>
 
-          <!-- Change Profile Button -->
+          <!-- Settings Action Buttons -->
           <div class="settings-actions">
             <button type="button" class="btn-secondary" onclick="restartClassification()">
               &#128260; Change Profile
             </button>
-            <span class="settings-hint">Go through the profile questions again</span>
+            <button type="button" class="btn-secondary" onclick="recalculateAllocation()">
+              &#128257; Recalculate Allocation
+            </button>
           </div>
-        </div>
-
-        <!-- Sprint 11.4: Quick Actions Bar -->
-        <div class="calc-actions-bar">
-          <button type="button" class="btn-recalc-primary" onclick="recalculateAllocation()">
-            <span class="btn-icon">&#128260;</span> Recalculate Allocation
-          </button>
-          <div class="action-hint">
-            Changed your settings above? Click to re-optimize your vehicle allocation.
+          <div class="settings-hints">
+            <span class="settings-hint">Change Profile: Go through profile questions again</span>
+            <span class="settings-hint">Recalculate: Re-optimize allocation with current settings</span>
           </div>
         </div>
 
@@ -3958,8 +3954,15 @@ const Tool6 = {
       border-top: 1px solid rgba(255, 255, 255, 0.1);
     }
 
+    .settings-hints {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 24px;
+      margin-top: 8px;
+    }
+
     .settings-hint {
-      font-size: 0.85rem;
+      font-size: 0.8rem;
       color: var(--color-text-muted);
     }
 
@@ -3982,7 +3985,15 @@ const Tool6 = {
       }
       .settings-actions {
         flex-direction: column;
-        align-items: flex-start;
+        align-items: stretch;
+      }
+      .settings-actions .btn-secondary {
+        width: 100%;
+        justify-content: center;
+      }
+      .settings-hints {
+        flex-direction: column;
+        gap: 4px;
       }
     }
 
@@ -5124,52 +5135,6 @@ const Tool6 = {
 
     .warning-icon {
       font-size: 1.2rem;
-    }
-
-    /* Sprint 11.4: Quick Actions Bar */
-    .calc-actions-bar {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      margin-top: 20px;
-      padding: 16px 20px;
-      background: rgba(79, 70, 229, 0.06);
-      border-radius: 10px;
-      border: 1px dashed rgba(79, 70, 229, 0.3);
-    }
-
-    .btn-recalc-primary {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 12px 24px;
-      background: var(--color-primary);
-      color: white;
-      border: none;
-      border-radius: 8px;
-      font-size: 0.95rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      white-space: nowrap;
-    }
-
-    .btn-recalc-primary:hover {
-      background: var(--color-primary-dark, #4338ca);
-      transform: translateY(-1px);
-    }
-
-    .action-hint {
-      font-size: 0.85rem;
-      color: var(--color-text-muted);
-      line-height: 1.4;
-    }
-
-    @media (max-width: 600px) {
-      .calc-actions-bar {
-        flex-direction: column;
-        text-align: center;
-      }
     }
 
     /* Sprint 11.4: Plain English Results Summary */
