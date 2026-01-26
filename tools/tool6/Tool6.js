@@ -2133,6 +2133,63 @@ const Tool6 = {
                   </div>
                 </div>
                 <input type="hidden" id="investmentScore" name="investmentScore" value="${investmentScore}">
+
+                <!-- Sprint 11.3: Investment Score Educational Content -->
+                <div class="edu-help">
+                  <button type="button" class="edu-help-toggle" onclick="toggleEduHelp('investmentScore')">
+                    <span class="edu-icon">&#9432;</span>
+                    <span>What do these scores mean?</span>
+                  </button>
+                  <div class="edu-help-content" id="eduHelp-investmentScore">
+                    <h5>Investment Risk Score (1-7)</h5>
+                    <p>Your risk score determines the <strong>expected return rate</strong> used in projections. Higher risk = higher potential returns, but also more volatility.</p>
+
+                    <table style="width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 0.85rem;">
+                      <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                        <th style="text-align: left; padding: 8px; color: var(--color-text-muted);">Score</th>
+                        <th style="text-align: left; padding: 8px; color: var(--color-text-muted);">Risk Level</th>
+                        <th style="text-align: left; padding: 8px; color: var(--color-text-muted);">Expected Return</th>
+                        <th style="text-align: left; padding: 8px; color: var(--color-text-muted);">Best For</th>
+                      </tr>
+                      <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                        <td style="padding: 8px;">1</td>
+                        <td style="padding: 8px;">Ultra Conservative</td>
+                        <td style="padding: 8px; color: #22c55e;">8%</td>
+                        <td style="padding: 8px;">Near retirement, low risk tolerance</td>
+                      </tr>
+                      <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                        <td style="padding: 8px;">2-3</td>
+                        <td style="padding: 8px;">Conservative</td>
+                        <td style="padding: 8px; color: #22c55e;">9-10%</td>
+                        <td style="padding: 8px;">10-15 years to retirement</td>
+                      </tr>
+                      <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                        <td style="padding: 8px;">4</td>
+                        <td style="padding: 8px;">Moderate</td>
+                        <td style="padding: 8px; color: #eab308;">12%</td>
+                        <td style="padding: 8px;">15-25 years, balanced approach</td>
+                      </tr>
+                      <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                        <td style="padding: 8px;">5-6</td>
+                        <td style="padding: 8px;">Aggressive</td>
+                        <td style="padding: 8px; color: #f97316;">14-16%</td>
+                        <td style="padding: 8px;">25+ years, comfortable with swings</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 8px;">7</td>
+                        <td style="padding: 8px;">Very Aggressive</td>
+                        <td style="padding: 8px; color: #ef4444;">20%</td>
+                        <td style="padding: 8px;">30+ years, max growth focus</td>
+                      </tr>
+                    </table>
+
+                    <p><strong>What determines your score?</strong> Tool 4 calculates this based on your age, years to retirement, income stability, and risk tolerance answers.</p>
+
+                    <div class="edu-tip">
+                      <strong>Pro Tip:</strong> These returns are <em>averages</em>. Aggressive portfolios can lose 30-40% in a bad year but historically recover. Make sure your score matches your actual comfort with volatility!
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -2159,6 +2216,50 @@ const Tool6 = {
                 </div>
                 <div class="tax-recommendation" id="taxRecommendation">
                   ${this.getTaxRecommendation(grossIncome, age)}
+                </div>
+
+                <!-- Sprint 11.3: Tax Strategy Educational Content -->
+                <div class="edu-help">
+                  <button type="button" class="edu-help-toggle" onclick="toggleEduHelp('taxStrategy')">
+                    <span class="edu-icon">&#9432;</span>
+                    <span>Learn about Roth vs Traditional</span>
+                  </button>
+                  <div class="edu-help-content" id="eduHelp-taxStrategy">
+                    <h5>The Most Important Retirement Decision</h5>
+                    <p>Roth vs Traditional is about <strong>when you pay taxes</strong> on your retirement savings:</p>
+
+                    <div class="edu-comparison-grid">
+                      <div class="edu-comparison-card">
+                        <h6>Traditional (Pay Taxes Later)</h6>
+                        <ul>
+                          <li>Contributions reduce your taxable income <strong>now</strong></li>
+                          <li>Money grows tax-deferred</li>
+                          <li>Pay income tax when you withdraw in retirement</li>
+                          <li>Best if you expect <strong>lower taxes in retirement</strong></li>
+                        </ul>
+                      </div>
+                      <div class="edu-comparison-card">
+                        <h6>Roth (Pay Taxes Now)</h6>
+                        <ul>
+                          <li>Contributions are made with after-tax dollars</li>
+                          <li>Money grows <strong>completely tax-free</strong></li>
+                          <li>Withdrawals in retirement are tax-free</li>
+                          <li>Best if you expect <strong>higher taxes later</strong></li>
+                        </ul>
+                      </div>
+                    </div>
+
+                    <p><strong>Key Factors to Consider:</strong></p>
+                    <ul>
+                      <li><strong>Current vs. Future Tax Rate:</strong> If you are in a high bracket now, Traditional saves more today. If you are in a low bracket, Roth locks in that low rate forever.</li>
+                      <li><strong>Years to Retirement:</strong> Longer time horizons favor Roth (more years of tax-free growth).</li>
+                      <li><strong>Tax Diversification:</strong> Having both gives flexibility to manage taxes in retirement.</li>
+                    </ul>
+
+                    <div class="edu-tip">
+                      <strong>Pro Tip:</strong> The "Balanced" strategy is often best because it hedges against future tax uncertainty. You cannot predict what tax rates will be in 20-30 years!
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -2209,6 +2310,38 @@ const Tool6 = {
       <!-- Sprint 5.5: Vehicle Allocation Sliders -->
       <div class="vehicle-allocation-section">
         <h4 class="calc-subsection-title">Your Recommended Allocation</h4>
+
+        <!-- Sprint 11.3: Slider Behavior Educational Content -->
+        <div class="edu-help" style="margin-bottom: 16px;">
+          <button type="button" class="edu-help-toggle" onclick="toggleEduHelp('sliders')">
+            <span class="edu-icon">&#9432;</span>
+            <span>How to use the sliders</span>
+          </button>
+          <div class="edu-help-content" id="eduHelp-sliders">
+            <h5>Adjusting Your Allocation</h5>
+            <p>Drag the sliders to customize how your retirement budget is distributed across different accounts.</p>
+
+            <p><strong>Key behaviors:</strong></p>
+            <ul>
+              <li><strong>IRS Limits:</strong> Each vehicle has annual contribution limits set by the IRS. You cannot exceed these limits.</li>
+              <li><strong>Coupled Limits:</strong> Some accounts share a combined limit. For example, Traditional 401(k) and Roth 401(k) share the same $23,500/year limit - if you put $15,000 in Traditional, you can only put $8,500 in Roth.</li>
+              <li><strong>Lock Buttons (&#128274;):</strong> Click the lock icon to freeze a slider. Locked vehicles will not change when you adjust other sliders or when the algorithm reallocates.</li>
+              <li><strong>Reset Button:</strong> Click "Reset" to restore the algorithm's recommended allocation based on your profile and settings.</li>
+            </ul>
+
+            <p><strong>Common coupled limits:</strong></p>
+            <ul>
+              <li>Traditional 401(k) + Roth 401(k) = $23,500/year combined</li>
+              <li>Traditional IRA + Roth IRA = $7,000/year combined</li>
+              <li>HSA Family vs Individual depends on your filing status</li>
+            </ul>
+
+            <div class="edu-tip">
+              <strong>Pro Tip:</strong> The algorithm maximizes tax-advantaged space first. "Family Bank" (taxable brokerage) only appears when you have maxed out all other vehicles - this is a good problem to have!
+            </div>
+          </div>
+        </div>
+
         <div class="allocation-summary">
           <span class="allocated-label">Total Allocated:</span>
           <span class="allocated-amount" id="totalAllocated">$${(allocation.totalAllocated || 0).toLocaleString()}</span>
@@ -3798,6 +3931,117 @@ const Tool6 = {
       .settings-actions {
         flex-direction: column;
         align-items: flex-start;
+      }
+    }
+
+    /* Sprint 11.3: Educational Help Sections */
+    .edu-help {
+      margin-top: 12px;
+    }
+
+    .edu-help-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.85rem;
+      color: var(--color-primary);
+      cursor: pointer;
+      padding: 4px 0;
+      border: none;
+      background: none;
+      transition: color 0.2s;
+    }
+
+    .edu-help-toggle:hover {
+      color: var(--color-primary-light, #818cf8);
+    }
+
+    .edu-help-toggle .edu-icon {
+      font-size: 1rem;
+    }
+
+    .edu-help-content {
+      display: none;
+      margin-top: 12px;
+      padding: 16px;
+      background: rgba(79, 70, 229, 0.08);
+      border: 1px solid rgba(79, 70, 229, 0.2);
+      border-radius: 8px;
+      font-size: 0.9rem;
+      line-height: 1.6;
+      color: var(--color-text-secondary);
+    }
+
+    .edu-help-content.show {
+      display: block;
+    }
+
+    .edu-help-content h5 {
+      color: var(--color-text-primary);
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin: 0 0 8px 0;
+    }
+
+    .edu-help-content p {
+      margin: 0 0 12px 0;
+    }
+
+    .edu-help-content p:last-child {
+      margin-bottom: 0;
+    }
+
+    .edu-help-content ul {
+      margin: 8px 0;
+      padding-left: 20px;
+    }
+
+    .edu-help-content li {
+      margin-bottom: 6px;
+    }
+
+    .edu-comparison-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin: 12px 0;
+    }
+
+    .edu-comparison-card {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+      padding: 12px;
+    }
+
+    .edu-comparison-card h6 {
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin: 0 0 8px 0;
+      color: var(--color-text-primary);
+    }
+
+    .edu-comparison-card ul {
+      margin: 0;
+      padding-left: 16px;
+      font-size: 0.85rem;
+    }
+
+    .edu-tip {
+      background: rgba(234, 179, 8, 0.1);
+      border-left: 3px solid #eab308;
+      padding: 10px 12px;
+      margin-top: 12px;
+      border-radius: 0 6px 6px 0;
+      font-size: 0.85rem;
+    }
+
+    .edu-tip strong {
+      color: #eab308;
+    }
+
+    @media (max-width: 600px) {
+      .edu-comparison-grid {
+        grid-template-columns: 1fr;
       }
     }
 
@@ -5843,6 +6087,38 @@ const Tool6 = {
 
       <div class="section-body ${hasAllocation ? '' : 'collapsed'}" id="scenariosBody">
         ${hasAllocation ? `
+        <!-- Sprint 11.3: Scenario Management Instructions -->
+        <div class="edu-help" style="margin-bottom: 20px;">
+          <button type="button" class="edu-help-toggle" onclick="toggleEduHelp('scenarios')">
+            <span class="edu-icon">&#9432;</span>
+            <span>How to use Scenario Management</span>
+          </button>
+          <div class="edu-help-content" id="eduHelp-scenarios">
+            <h5>Explore Different Retirement Strategies</h5>
+            <p>Scenarios let you save and compare different allocation strategies to find your optimal approach.</p>
+
+            <p><strong>How to use scenarios:</strong></p>
+            <ul>
+              <li><strong>Adjust your settings</strong> above (budget, tax strategy, sliders) to create different allocation mixes</li>
+              <li><strong>Save each version</strong> with a descriptive name like "Aggressive Roth" or "Max 401k Match"</li>
+              <li><strong>Compare scenarios</strong> side-by-side to see differences in projected balances and tax treatment</li>
+              <li><strong>Load a scenario</strong> to restore all its settings and continue adjusting</li>
+            </ul>
+
+            <p><strong>Good scenarios to try:</strong></p>
+            <ul>
+              <li>One with maximum Roth contributions (tax-free growth)</li>
+              <li>One with maximum Traditional contributions (tax deduction now)</li>
+              <li>One with balanced approach (tax diversification)</li>
+              <li>One with higher/lower risk tolerance to see impact on projections</li>
+            </ul>
+
+            <div class="edu-tip">
+              <strong>Pro Tip:</strong> Your final scenario can be saved as your "master" allocation and will be reflected in your Financial TruPath summary.
+            </div>
+          </div>
+        </div>
+
         <!-- Save Scenario Section -->
         <div class="scenario-actions">
           <div class="scenario-save-section">
@@ -6009,6 +6285,16 @@ const Tool6 = {
       body.classList.toggle('collapsed');
       toggle.classList.toggle('collapsed');
       if (summary) summary.classList.toggle('show');
+    }
+
+    /**
+     * Toggle educational help sections (Sprint 11.3)
+     */
+    function toggleEduHelp(helpId) {
+      var content = document.getElementById('eduHelp-' + helpId);
+      if (content) {
+        content.classList.toggle('show');
+      }
     }
 
     // ========================================================================
