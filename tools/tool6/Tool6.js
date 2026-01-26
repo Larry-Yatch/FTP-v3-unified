@@ -2550,14 +2550,6 @@ const Tool6 = {
         <!-- Allocation warnings -->
         <div class="allocation-warnings" id="allocationWarnings"></div>
 
-        <!-- Recalculate button (secondary - also at top) -->
-        <div class="calc-actions">
-          <button type="button" class="btn-recalc" onclick="recalculateAllocation()">
-            <span class="btn-icon">&#128260;</span> Recalculate Allocation
-          </button>
-          <p class="recalc-hint">Re-runs the optimization algorithm with your current slider values and settings.</p>
-        </div>
-
         <!-- Sprint 8.1: Trauma Insight Display (Your Money Pattern) -->
         ${this.buildTraumaInsightSection(toolStatus)}
       </div>
@@ -5130,42 +5122,6 @@ const Tool6 = {
       font-size: 1.2rem;
     }
 
-    /* Calculate Button */
-    .calc-actions {
-      margin-top: 24px;
-      text-align: center;
-    }
-
-    .recalc-hint {
-      margin-top: 8px;
-      font-size: 0.8rem;
-      color: var(--color-text-muted);
-    }
-
-    .btn-recalc {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 14px 32px;
-      background: var(--color-primary);
-      color: white;
-      border: none;
-      border-radius: 8px;
-      font-size: 1rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-
-    .btn-recalc:hover {
-      background: var(--color-primary-dark, #4338ca);
-      transform: translateY(-2px);
-    }
-
-    .btn-icon {
-      font-size: 1.1rem;
-    }
-
     /* Sprint 11.4: Quick Actions Bar */
     .calc-actions-bar {
       display: flex;
@@ -7476,7 +7432,7 @@ const Tool6 = {
       updateAllLockButtons();
 
       // Clear dirty state
-      var recalcBtn = document.querySelector('.btn-recalc');
+      var recalcBtn = document.querySelector('.btn-recalc-primary');
       if (recalcBtn) {
         recalcBtn.style.animation = '';
       }
@@ -8064,7 +8020,7 @@ const Tool6 = {
     var calculatorDirty = false;
     function markCalculatorDirty() {
       calculatorDirty = true;
-      var recalcBtn = document.querySelector('.btn-recalc');
+      var recalcBtn = document.querySelector('.btn-recalc-primary');
       if (recalcBtn) {
         recalcBtn.style.animation = 'pulse 1s infinite';
       }
@@ -8134,7 +8090,7 @@ const Tool6 = {
         .savePreSurveyTool6(clientId, currentData);
 
       calculatorDirty = false;
-      var recalcBtn = document.querySelector('.btn-recalc');
+      var recalcBtn = document.querySelector('.btn-recalc-primary');
       if (recalcBtn) {
         recalcBtn.style.animation = '';
       }
@@ -8738,7 +8694,7 @@ const Tool6 = {
 
       // 6. Clear calculator dirty state
       calculatorDirty = false;
-      var recalcBtn = document.querySelector('.btn-recalc');
+      var recalcBtn = document.querySelector('.btn-recalc-primary');
       if (recalcBtn) {
         recalcBtn.style.animation = '';
       }
