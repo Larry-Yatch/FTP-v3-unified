@@ -389,11 +389,19 @@
 - [x] Add section headers with icons (📊 Profile, 💼 Details, ⚖️ Priorities, 💰 Allocation) ✅ COMPLETE - Already had icons
 - [x] Apply transparent card backgrounds (`rgba(255, 255, 255, 0.03)`) ✅ COMPLETE - Already applied
 
-### Sprint 11.2: Profile & Flow Improvements
-- [ ] Create persistent profile banner (shows after classification)
-- [ ] Separate profile classification into distinct section
-- [ ] Skip Phase C when only Retirement domain applies
-- [ ] Add collapsible section summaries (show values when collapsed)
+### Sprint 11.2: Profile & Flow Improvements ✅ COMPLETE (Jan 26, 2026)
+- [x] Create "Your Settings" panel consolidating all adjustable inputs ✅ COMPLETE
+  - Monthly Budget, Years to Retirement, Risk Profile, Tax Strategy, Change Profile button
+- [x] Reorder Section 2: Current State → Settings → Sliders → Trauma Insights ✅ COMPLETE
+- [x] Create persistent profile banner (shows after classification) ✅ COMPLETE
+  - Shows profile icon, name, budget, years, risk score; updates dynamically
+- [x] Skip Phase C when only Retirement domain applies ✅ COMPLETE
+  - Skips directly to submit when hasChildren=No AND hsaEligible=No
+- [x] Add collapsible section summaries (show values when collapsed) ✅ COMPLETE
+  - Section 2: Total Allocated, Tax Strategy, Vehicle count
+  - Section 3: Projected Balance, Monthly Income, Return Rate
+  - Section 4: Saved Scenarios count
+- [x] ~~Separate profile classification into distinct section~~ SKIPPED (banner provides context)
 
 ### Sprint 11.3: Educational Content
 - [x] Add welcome/intro section (explain tool purpose, time estimate, data sources) ✅ COMPLETE (Jan 24, 2026)

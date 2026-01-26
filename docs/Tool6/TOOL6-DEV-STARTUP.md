@@ -252,11 +252,23 @@ google.script.run
 - [x] Add section headers with icons (📊 Profile, 💼 Details, ⚖️ Priorities, 💰 Allocation) - ✅ **COMPLETE** (Jan 24, 2026) - Already had icons
 - [x] Apply transparent card backgrounds (`rgba(255, 255, 255, 0.03)`) - ✅ **COMPLETE** (Jan 24, 2026) - Already applied
 
-#### Sprint 11.2: Profile & Flow Improvements
-- [ ] Create persistent profile banner (shows after classification)
-- [ ] Separate profile classification into distinct section
-- [ ] Skip Phase C (Ambition Quotient) when only Retirement domain applies
-- [ ] Add collapsible section summaries (show values when collapsed, like Tool 4)
+#### Sprint 11.2: Profile & Flow Improvements ✅ COMPLETE
+- [x] Create "Your Settings" panel consolidating all adjustable inputs - ✅ **COMPLETE** (Jan 26, 2026)
+  - Monthly Budget, Years to Retirement, Risk Profile, Tax Strategy, Change Profile button
+  - New function: `updateYearsToRetirement()`
+- [x] Reorder Section 2: Current State → Settings → Sliders → Trauma Insights - ✅ **COMPLETE** (Jan 26, 2026)
+- [x] Create persistent profile banner (shows after classification) - ✅ **COMPLETE** (Jan 26, 2026)
+  - Banner shows profile icon, name, budget, years to retire, and risk score
+  - Updates dynamically when settings change via `updateBannerStats()`
+  - "Change Profile" button restarts classification flow
+- [x] Skip Phase C (Ambition Quotient) when only Retirement domain applies - ✅ **COMPLETE** (Jan 26, 2026)
+  - When `hasChildren=No` AND `hsaEligible=No`, skip directly to `submitQuestionnaire()`
+  - Sets default Retirement ambition values (domain weighting is meaningless with single domain)
+- [x] Add collapsible section summaries (show values when collapsed, like Tool 4) - ✅ **COMPLETE** (Jan 26, 2026)
+  - Section 2: Total Allocated, Tax Strategy, Active Vehicles count
+  - Section 3: Projected Balance, Monthly Income, Return Rate
+  - Section 4: Saved Scenarios count (updates when scenarios load)
+- [x] ~~Separate profile classification into distinct section~~ - **SKIPPED** (profile banner provides sufficient context)
 
 #### Sprint 11.3: Educational Content
 - [x] Add welcome/intro section (explain tool purpose, time estimate, data sources) - ✅ **COMPLETE** (Jan 24, 2026) - Added as part of Sprint 11.1
@@ -466,18 +478,37 @@ This startup doc serves as persistent memory across sessions. **Always update th
 When ending a session, update this section:
 
 ### Last Session Summary
-- **Date:** January 24, 2026
+- **Date:** January 26, 2026 (Session 2)
 - **What was done:**
-  - ✅ **Sprint 11.1: Foundation & Navigation** - UX improvements for student-friendly experience
-  - Updated Return to Dashboard button text ("← Return to Dashboard")
-  - Verified FeedbackWidget (Get Help button) already integrated
-  - Added welcome/intro section explaining tool purpose, time estimate, and data sources
-  - Added intro section CSS (matches Tool 4 pattern)
-  - Verified section headers already have emoji icons
-  - Verified transparent card backgrounds already applied
-- **Current state:** Sprint 11.1 Complete. Tool 6 now has better navigation, intro section, and help button.
-- **Next task:** Sprint 11.2 - Profile & Flow Improvements
+  - ✅ **Sprint 11.2: Profile & Flow Improvements** - COMPLETE
+  - **Persistent Profile Banner:**
+    - Added banner below navigation that shows profile icon, name, budget, years to retire, risk score
+    - New CSS class `.profile-banner` with gradient styling
+    - New functions: `updateProfileBanner()`, `updateBannerStats()`
+    - Banner shows/hides via `show` class, updates when settings change
+    - "Change Profile" button restarts classification and hides banner
+  - **Skip Phase C for Single Domain:**
+    - Modified `continueToPhaseC()` to check if `hasChildren=No` AND `hsaEligible=No`
+    - When only Retirement domain applies, skip directly to `submitQuestionnaire()`
+    - Sets default ambition values (weighting is meaningless with single domain)
+  - **Collapsible Section Summaries:**
+    - Section 2 summary: Total Allocated, Tax Strategy, Active Vehicles count
+    - Section 3 summary: Projected Balance, Monthly Income, Return Rate
+    - Section 4 summary: Saved Scenarios count (updates via `renderScenariosList`)
+    - Summaries toggle when sections expand/collapse via `toggleSection()`
+  - **Banner Stats Updates:**
+    - Added `updateBannerStats()` calls to `updateBudget()`, `updateYearsToRetirement()`, `updateInvestmentScore()`
+- **Current state:** Sprint 11.2 COMPLETE. Ready for Sprint 11.3 (Educational Content).
+- **Next task:** Sprint 11.3 - Tax strategy explanation, investment score explanation
 - **Blockers:** None
+
+### Previous Session (January 26, 2026 Session 1)
+- ✅ **Sprint 11.2: Settings Panel & Section Reorder** (partial)
+- Created "Your Settings" panel, added `updateYearsToRetirement()`, reordered Section 2
+
+### Previous Session (January 24, 2026 Evening)
+- ✅ **Sprint 11.1: Foundation & Navigation** - UX improvements for student-friendly experience
+- Updated Return to Dashboard button, verified FeedbackWidget, added intro section
 
 ### Previous Session (January 24, 2026 PM)
 - ✅ **Sprint 10.1: Backup Questions System**

@@ -2011,6 +2011,7 @@ const Tool6 = {
     const employerMatch = allocation.employerMatch || 0;
     const investmentScore = toolStatus.investmentScore || 4;
     const age = preSurveyData.age || toolStatus.age || 35;
+    const yearsToRetirement = parseInt(preSurveyData.a2_yearsToRetirement || toolStatus.yearsToRetirement) || 25;
     const grossIncome = parseFloat(preSurveyData.a1_grossIncome || toolStatus.grossIncome) || 0;
 
     // Get current balances and contributions from preSurveyData
@@ -2046,13 +2047,20 @@ const Tool6 = {
       7: 'Ultra-Aggressive (16%)'
     };
 
+    // Build investment score buttons
+    let scoreButtonsHtml = '';
+    for (let i = 1; i <= 7; i++) {
+      const selected = i === investmentScore ? 'selected' : '';
+      scoreButtonsHtml += `<button type="button" class="score-btn ${selected}" data-score="${i}" onclick="updateInvestmentScore(${i})" title="${scoreLabels[i]}">${i}</button>`;
+    }
+
     let html = `
       <!-- Calculator Controls -->
       <div class="calculator-controls">
 
         <!-- Sprint 5.1: Current State Summary -->
         <div class="calc-subsection">
-          <h4 class="calc-subsection-title">Current State</h4>
+          <h4 class="calc-subsection-title">&#128176; Your Current State</h4>
           <div class="current-state-grid">
             <div class="state-card">
               <div class="state-label">Total Balance</div>
@@ -2075,7 +2083,7 @@ const Tool6 = {
               </div>
             </div>
             <div class="state-card highlight">
-              <div class="state-label">Recommended Monthly Budget</div>
+              <div class="state-label">Your Monthly Budget</div>
               <div class="state-value">$${monthlyBudget.toLocaleString()}/mo</div>
               <div class="state-breakdown">
                 <span>From Tool 4 allocation</span>
@@ -2084,61 +2092,81 @@ const Tool6 = {
           </div>
         </div>
 
-        <!-- Sprint 5.2: Investment Score Display -->
-        <div class="calc-subsection">
-          <h4 class="calc-subsection-title">Investment Risk Profile</h4>
-          <div class="investment-score-display">
-            <div class="score-selector">
-              <label class="score-label">Risk Tolerance (from Tool 4):</label>
-              <div class="score-buttons" id="investmentScoreButtons">
-    `;
+        <!-- Sprint 11.2: Your Settings Panel - All adjustable inputs in one place -->
+        <div class="calc-subsection settings-panel">
+          <h4 class="calc-subsection-title">&#9881; Your Settings</h4>
+          <p class="settings-description">Adjust these values to see how different scenarios affect your allocation.</p>
 
-    // Render investment score buttons 1-7
-    for (let i = 1; i <= 7; i++) {
-      const selected = i === investmentScore ? 'selected' : '';
-      html += `<button type="button" class="score-btn ${selected}" data-score="${i}" onclick="updateInvestmentScore(${i})" title="${scoreLabels[i]}">${i}</button>`;
-    }
-
-    html += `
+          <div class="settings-grid">
+            <!-- Row 1: Budget and Years -->
+            <div class="settings-row">
+              <div class="settings-field">
+                <label class="settings-label">Monthly Budget</label>
+                <div class="settings-input-group">
+                  <span class="input-prefix">$</span>
+                  <input type="number" id="budgetInput" class="settings-input" value="${monthlyBudget}" min="100" step="50" onchange="updateBudget(this.value)">
+                  <span class="input-suffix">/mo</span>
+                </div>
               </div>
-              <div class="score-description" id="scoreDescription">
-                ${scoreLabels[investmentScore] || 'Moderate (10%)'}
+              <div class="settings-field">
+                <label class="settings-label">Years to Retirement</label>
+                <div class="settings-input-group">
+                  <input type="number" id="yearsToRetirementInput" class="settings-input" value="${yearsToRetirement}" min="1" max="50" onchange="updateYearsToRetirement(this.value)">
+                  <span class="input-suffix">years</span>
+                </div>
               </div>
             </div>
-            <input type="hidden" id="investmentScore" name="investmentScore" value="${investmentScore}">
+
+            <!-- Row 2: Risk Profile -->
+            <div class="settings-row">
+              <div class="settings-field full-width">
+                <label class="settings-label">Risk Tolerance</label>
+                <div class="score-buttons-row">
+                  <div class="score-buttons" id="investmentScoreButtons">
+                    ${scoreButtonsHtml}
+                  </div>
+                  <div class="score-description" id="scoreDescription">
+                    ${scoreLabels[investmentScore] || 'Moderate (10%)'}
+                  </div>
+                </div>
+                <input type="hidden" id="investmentScore" name="investmentScore" value="${investmentScore}">
+              </div>
+            </div>
+
+            <!-- Row 3: Tax Strategy -->
+            <div class="settings-row">
+              <div class="settings-field full-width">
+                <label class="settings-label">Tax Strategy</label>
+                <div class="tax-options-compact">
+                  <label class="tax-option-compact ${taxPreference === 'Later' ? 'selected' : ''}">
+                    <input type="radio" name="taxStrategy" value="Later" ${taxPreference === 'Later' ? 'checked' : ''} onchange="updateTaxStrategy('Later')">
+                    <span class="tax-option-label">Traditional-Heavy</span>
+                    <span class="tax-option-hint">Lower taxes now</span>
+                  </label>
+                  <label class="tax-option-compact ${taxPreference === 'Both' ? 'selected' : ''}">
+                    <input type="radio" name="taxStrategy" value="Both" ${taxPreference === 'Both' ? 'checked' : ''} onchange="updateTaxStrategy('Both')">
+                    <span class="tax-option-label">Balanced</span>
+                    <span class="tax-option-hint">Mix of both</span>
+                  </label>
+                  <label class="tax-option-compact ${taxPreference === 'Now' ? 'selected' : ''}">
+                    <input type="radio" name="taxStrategy" value="Now" ${taxPreference === 'Now' ? 'checked' : ''} onchange="updateTaxStrategy('Now')">
+                    <span class="tax-option-label">Roth-Heavy</span>
+                    <span class="tax-option-hint">Tax-free later</span>
+                  </label>
+                </div>
+                <div class="tax-recommendation" id="taxRecommendation">
+                  ${this.getTaxRecommendation(grossIncome, age)}
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
 
-        <!-- Sprint 5.3: Tax Strategy Toggle -->
-        <div class="calc-subsection">
-          <h4 class="calc-subsection-title">Tax Strategy</h4>
-          <div class="tax-strategy-toggle">
-            <div class="tax-options">
-              <label class="tax-option ${taxPreference === 'Later' ? 'selected' : ''}">
-                <input type="radio" name="taxStrategy" value="Later" ${taxPreference === 'Later' ? 'checked' : ''} onchange="updateTaxStrategy('Later')">
-                <span class="tax-option-content">
-                  <span class="tax-option-title">Traditional-Heavy</span>
-                  <span class="tax-option-desc">Lower taxes now, taxable in retirement</span>
-                </span>
-              </label>
-              <label class="tax-option ${taxPreference === 'Both' ? 'selected' : ''}">
-                <input type="radio" name="taxStrategy" value="Both" ${taxPreference === 'Both' ? 'checked' : ''} onchange="updateTaxStrategy('Both')">
-                <span class="tax-option-content">
-                  <span class="tax-option-title">Balanced</span>
-                  <span class="tax-option-desc">Mix of Traditional and Roth accounts</span>
-                </span>
-              </label>
-              <label class="tax-option ${taxPreference === 'Now' ? 'selected' : ''}">
-                <input type="radio" name="taxStrategy" value="Now" ${taxPreference === 'Now' ? 'checked' : ''} onchange="updateTaxStrategy('Now')">
-                <span class="tax-option-content">
-                  <span class="tax-option-title">Roth-Heavy</span>
-                  <span class="tax-option-desc">Pay taxes now, tax-free in retirement</span>
-                </span>
-              </label>
-            </div>
-            <div class="tax-recommendation" id="taxRecommendation">
-              ${this.getTaxRecommendation(grossIncome, age)}
-            </div>
+          <!-- Change Profile Button -->
+          <div class="settings-actions">
+            <button type="button" class="btn-secondary" onclick="restartClassification()">
+              &#128260; Change Profile
+            </button>
+            <span class="settings-hint">Go through the profile questions again</span>
           </div>
         </div>
 
@@ -2147,7 +2175,7 @@ const Tool6 = {
         <div class="calc-subsection employer-match-section">
           <h4 class="calc-subsection-title">Employer Match</h4>
           <div class="employer-match-display">
-            <div class="match-icon">🎁</div>
+            <div class="match-icon">&#127873;</div>
             <div class="match-info">
               <div class="match-amount">+$${employerMatch.toLocaleString()}/month</div>
               <div class="match-label">Free money from your employer (not deducted from your budget)</div>
@@ -2157,31 +2185,17 @@ const Tool6 = {
         </div>
         ` : ''}
 
-        <!-- Sprint 8.1: Trauma Insight Display -->
-        ${this.buildTraumaInsightSection(toolStatus)}
-
       </div>
 
       <!-- Sprint 5.5: Vehicle Allocation Sliders -->
       <div class="vehicle-allocation-section">
         <h4 class="calc-subsection-title">Your Recommended Allocation</h4>
         <div class="allocation-summary">
-          <span class="budget-label">Monthly Budget:</span>
-          <div class="budget-editor">
-            <span class="budget-currency">$</span>
-            <input type="number"
-                   id="budgetInput"
-                   class="budget-input"
-                   value="${monthlyBudget}"
-                   min="100"
-                   step="50"
-                   onchange="updateBudget(this.value)">
-            <span class="budget-display">/ month</span>
-          </div>
-          <span class="allocated-label">Allocated:</span>
+          <span class="allocated-label">Total Allocated:</span>
           <span class="allocated-amount" id="totalAllocated">$${(allocation.totalAllocated || 0).toLocaleString()}</span>
+          <span class="budget-reference">of $${monthlyBudget.toLocaleString()}/mo</span>
           <button type="button" class="btn-reset" onclick="resetToRecommended()" title="Reset to algorithm recommendation">
-            ↻ Reset
+            &#8635; Reset
           </button>
         </div>
 
@@ -2335,6 +2349,9 @@ const Tool6 = {
             <span class="btn-icon">🔄</span> Recalculate Allocation
           </button>
         </div>
+
+        <!-- Sprint 8.1: Trauma Insight Display (Your Money Pattern) -->
+        ${this.buildTraumaInsightSection(toolStatus)}
       </div>
     `;
 
@@ -3553,6 +3570,317 @@ const Tool6 = {
       letter-spacing: 0.5px;
     }
 
+    /* Sprint 11.2: Settings Panel */
+    .settings-panel {
+      background: rgba(79, 70, 229, 0.08);
+      border: 1px solid rgba(79, 70, 229, 0.2);
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    .settings-description {
+      font-size: 0.9rem;
+      color: var(--color-text-muted);
+      margin: -8px 0 20px 0;
+    }
+
+    .settings-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .settings-row {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .settings-field {
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .settings-field.full-width {
+      flex: 100%;
+      min-width: 100%;
+    }
+
+    .settings-label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--color-text-secondary);
+      margin-bottom: 8px;
+    }
+
+    .settings-input-group {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .settings-input {
+      flex: 1;
+      padding: 10px 12px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--color-text-primary);
+      font-size: 1rem;
+      max-width: 120px;
+    }
+
+    .settings-input:focus {
+      outline: none;
+      border-color: var(--color-primary);
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .input-prefix, .input-suffix {
+      font-size: 0.9rem;
+      color: var(--color-text-muted);
+    }
+
+    .score-buttons-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .score-buttons-row .score-buttons {
+      flex: 1;
+    }
+
+    .score-buttons-row .score-description {
+      min-width: 180px;
+    }
+
+    /* Compact Tax Options for Settings Panel */
+    .tax-options-compact {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .tax-option-compact {
+      flex: 1;
+      min-width: 140px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 12px 16px;
+      border: 2px solid rgba(255, 255, 255, 0.15);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.03);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: center;
+    }
+
+    .tax-option-compact:hover {
+      border-color: rgba(79, 70, 229, 0.4);
+      background: rgba(79, 70, 229, 0.1);
+    }
+
+    .tax-option-compact.selected {
+      border-color: var(--color-primary);
+      background: rgba(79, 70, 229, 0.15);
+    }
+
+    .tax-option-compact input[type="radio"] {
+      display: none;
+    }
+
+    .tax-option-label {
+      font-weight: 600;
+      color: var(--color-text-primary);
+      font-size: 0.95rem;
+    }
+
+    .tax-option-hint {
+      font-size: 0.8rem;
+      color: var(--color-text-muted);
+      margin-top: 4px;
+    }
+
+    .settings-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 20px;
+      padding-top: 16px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .settings-hint {
+      font-size: 0.85rem;
+      color: var(--color-text-muted);
+    }
+
+    @media (max-width: 600px) {
+      .settings-row {
+        flex-direction: column;
+      }
+      .settings-field {
+        min-width: 100%;
+      }
+      .score-buttons-row {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .score-buttons-row .score-description {
+        text-align: center;
+      }
+      .tax-options-compact {
+        flex-direction: column;
+      }
+      .settings-actions {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+    }
+
+    /* Sprint 11.2: Persistent Profile Banner */
+    .profile-banner {
+      display: none;
+      background: linear-gradient(135deg, rgba(79, 70, 229, 0.15) 0%, rgba(139, 92, 246, 0.1) 100%);
+      border: 1px solid rgba(79, 70, 229, 0.3);
+      border-radius: 12px;
+      padding: 16px 24px;
+      margin-bottom: 24px;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .profile-banner.show {
+      display: flex;
+    }
+
+    .profile-banner-info {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .profile-banner-icon {
+      font-size: 2.5rem;
+    }
+
+    .profile-banner-details {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .profile-banner-label {
+      font-size: 0.75rem;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .profile-banner-name {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--color-text-primary);
+    }
+
+    .profile-banner-stats {
+      display: flex;
+      gap: 24px;
+      align-items: center;
+    }
+
+    .profile-banner-stat {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 8px 16px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+    }
+
+    .profile-banner-stat-value {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--gold, #ad9168);
+    }
+
+    .profile-banner-stat-label {
+      font-size: 0.7rem;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+    }
+
+    .profile-banner-change {
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: var(--color-text-secondary);
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .profile-banner-change:hover {
+      border-color: var(--color-primary);
+      color: var(--color-primary);
+      background: rgba(79, 70, 229, 0.1);
+    }
+
+    @media (max-width: 768px) {
+      .profile-banner {
+        flex-direction: column;
+        text-align: center;
+      }
+      .profile-banner-info {
+        flex-direction: column;
+      }
+      .profile-banner-stats {
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+    }
+
+    /* Sprint 11.2: Section Summaries */
+    .section-summary {
+      display: none;
+      padding: 12px 24px;
+      background: rgba(255, 255, 255, 0.02);
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      font-size: 0.9rem;
+      color: var(--color-text-secondary);
+    }
+
+    .section-summary.show {
+      display: block;
+    }
+
+    .section-summary-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px 32px;
+    }
+
+    .section-summary-item {
+      display: flex;
+      gap: 6px;
+    }
+
+    .section-summary-item strong {
+      color: var(--color-text-muted);
+      font-weight: 500;
+    }
+
+    .section-summary-item span {
+      color: var(--gold, #ad9168);
+      font-weight: 600;
+    }
+
     /* Sprint 5.1: Current State Grid */
     .current-state-grid {
       display: grid;
@@ -4084,6 +4412,10 @@ const Tool6 = {
     /* Sprint 5.5: Vehicle Sliders */
     .vehicle-allocation-section {
       margin-top: 24px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 20px;
     }
 
     .allocation-summary {
@@ -4106,6 +4438,11 @@ const Tool6 = {
       font-size: 1.2rem;
       font-weight: 700;
       color: var(--color-text-primary);
+    }
+
+    .budget-reference {
+      font-size: 0.9rem;
+      color: var(--color-text-muted);
     }
 
     /* Budget Editor */
@@ -5272,6 +5609,34 @@ const Tool6 = {
       </p>
     </div>
 
+    <!-- Sprint 11.2: Persistent Profile Banner -->
+    <div class="profile-banner ${hasPreSurvey ? 'show' : ''}" id="profileBanner">
+      <div class="profile-banner-info">
+        <div class="profile-banner-icon" id="profileBannerIcon">${profile?.icon || '👤'}</div>
+        <div class="profile-banner-details">
+          <span class="profile-banner-label">Your Profile</span>
+          <span class="profile-banner-name" id="profileBannerName">${profile?.name || 'Not Set'}</span>
+        </div>
+      </div>
+      <div class="profile-banner-stats">
+        <div class="profile-banner-stat">
+          <span class="profile-banner-stat-value" id="profileBannerBudget">$${(preSurveyData?.monthlyBudget || toolStatus.monthlyBudget || 0).toLocaleString()}</span>
+          <span class="profile-banner-stat-label">Monthly Budget</span>
+        </div>
+        <div class="profile-banner-stat">
+          <span class="profile-banner-stat-value" id="profileBannerYears">${preSurveyData?.a2_yearsToRetirement || toolStatus.yearsToRetirement || '--'}</span>
+          <span class="profile-banner-stat-label">Years to Retire</span>
+        </div>
+        <div class="profile-banner-stat">
+          <span class="profile-banner-stat-value" id="profileBannerScore">${preSurveyData?.investmentScore || toolStatus.investmentScore || 4}/7</span>
+          <span class="profile-banner-stat-label">Risk Score</span>
+        </div>
+      </div>
+      <button type="button" class="profile-banner-change" onclick="restartClassification()">
+        Change Profile
+      </button>
+    </div>
+
     ${!dataStatus.overall.canProceed ? `
     <!-- Blocker Message - Tool 4 Required -->
     <div class="section-card" style="margin-bottom: 16px;">
@@ -5295,15 +5660,10 @@ const Tool6 = {
 
       ${hasPreSurvey ? `
       <div class="section-summary show" id="profileSummary">
-        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
-          <div>
-            <strong>Monthly Budget:</strong> $${(preSurveyData.monthlyBudget || 0).toLocaleString()} |
-            <strong>Age:</strong> ${preSurveyData.age || prefillData.age || 'Not set'} |
-            <strong>Filing Status:</strong> ${preSurveyData.filingStatus || 'Single'}
-          </div>
-          <button type="button" class="btn-link" onclick="event.stopPropagation(); toggleSection('profile'); setTimeout(restartClassification, 100);">
-            Change Profile
-          </button>
+        <div>
+          <strong>Profile:</strong> ${profile?.name || 'Calculating...'} |
+          <strong>Budget:</strong> $${(preSurveyData.monthlyBudget || 0).toLocaleString()}/mo |
+          <strong>Age:</strong> ${preSurveyData.age || prefillData.age || 'Not set'}
         </div>
       </div>
       ` : ''}
@@ -5357,6 +5717,16 @@ const Tool6 = {
         <span class="section-toggle ${hasAllocation ? '' : 'collapsed'}" id="calculatorToggle">&#9660;</span>
       </div>
 
+      ${hasAllocation ? `
+      <div class="section-summary" id="calculatorSummary">
+        <div class="section-summary-grid">
+          <div class="section-summary-item"><strong>Total Allocated:</strong> <span id="summaryTotalAllocated">$${(allocation.totalAllocated || 0).toLocaleString()}/mo</span></div>
+          <div class="section-summary-item"><strong>Tax Strategy:</strong> <span>${preSurveyData?.a2b_taxPreference === 'Now' ? 'Roth-Heavy' : preSurveyData?.a2b_taxPreference === 'Later' ? 'Traditional-Heavy' : 'Balanced'}</span></div>
+          <div class="section-summary-item"><strong>Vehicles:</strong> <span>${Object.keys(allocation.vehicles || {}).filter(v => allocation.vehicles[v] > 0).length} active</span></div>
+        </div>
+      </div>
+      ` : ''}
+
       <div class="section-body ${hasAllocation ? '' : 'collapsed'}" id="calculatorBody">
         ${hasAllocation
           ? this.buildCalculatorSection(preSurveyData, profile, allocation, toolStatus)
@@ -5379,6 +5749,16 @@ const Tool6 = {
         <span class="section-toggle ${hasProjections ? '' : 'collapsed'}" id="projectionsToggle">&#9660;</span>
       </div>
 
+      ${hasProjections ? `
+      <div class="section-summary" id="projectionsSummary">
+        <div class="section-summary-grid">
+          <div class="section-summary-item"><strong>Projected Balance:</strong> <span id="summaryProjectedBalance">$${(projections?.retirement?.projectedBalance || 0).toLocaleString()}</span></div>
+          <div class="section-summary-item"><strong>Monthly Income:</strong> <span id="summaryMonthlyIncome">$${(projections?.retirement?.monthlyIncome || 0).toLocaleString()}/mo</span></div>
+          <div class="section-summary-item"><strong>Return Rate:</strong> <span>${projections?.retirement?.annualReturn || 12}%</span></div>
+        </div>
+      </div>
+      ` : ''}
+
       <div class="section-body ${hasProjections ? '' : 'collapsed'}" id="projectionsBody">
         ${this.buildProjectionsSection(projections, preSurveyData)}
       </div>
@@ -5389,6 +5769,12 @@ const Tool6 = {
       <div class="section-header" onclick="toggleSection('scenarios')">
         <div class="section-title">&#128190; 4. Scenario Management</div>
         <span class="section-toggle ${hasAllocation ? '' : 'collapsed'}" id="scenariosToggle">&#9660;</span>
+      </div>
+
+      <div class="section-summary" id="scenariosSummary">
+        <div class="section-summary-grid">
+          <div class="section-summary-item"><strong>Saved Scenarios:</strong> <span id="summarySavedCount">Loading...</span></div>
+        </div>
       </div>
 
       <div class="section-body ${hasAllocation ? '' : 'collapsed'}" id="scenariosBody">
@@ -5941,6 +6327,43 @@ const Tool6 = {
         document.getElementById('profileReason').textContent = classifiedProfile.matchReason || classifiedProfile.description;
         result.classList.remove('hidden');
       }
+
+      // Sprint 11.2: Update persistent profile banner
+      updateProfileBanner(classifiedProfile);
+    }
+
+    // Sprint 11.2: Update the persistent profile banner
+    function updateProfileBanner(profile) {
+      var banner = document.getElementById('profileBanner');
+      if (!banner) return;
+
+      // Update banner content
+      var iconEl = document.getElementById('profileBannerIcon');
+      var nameEl = document.getElementById('profileBannerName');
+      if (iconEl) iconEl.textContent = profile.icon || '';
+      if (nameEl) nameEl.textContent = profile.name || 'Not Set';
+
+      // Show the banner
+      banner.classList.add('show');
+    }
+
+    // Sprint 11.2: Update banner stats (called when settings change)
+    function updateBannerStats() {
+      var budgetEl = document.getElementById('profileBannerBudget');
+      var yearsEl = document.getElementById('profileBannerYears');
+      var scoreEl = document.getElementById('profileBannerScore');
+
+      if (budgetEl && allocationState.budget) {
+        budgetEl.textContent = '$' + allocationState.budget.toLocaleString();
+      }
+      var yearsInput = document.getElementById('yearsToRetirementInput');
+      if (yearsEl && yearsInput) {
+        yearsEl.textContent = yearsInput.value || '--';
+      }
+      var scoreInput = document.getElementById('investmentScore');
+      if (scoreEl && scoreInput) {
+        scoreEl.textContent = scoreInput.value + '/7';
+      }
     }
 
     // Continue to Phase B (allocation inputs)
@@ -5995,10 +6418,41 @@ const Tool6 = {
       // Hide Phase C
       var phaseC = document.getElementById('phaseC');
       if (phaseC) phaseC.classList.add('hidden');
+
+      // Sprint 11.2: Hide profile banner
+      var banner = document.getElementById('profileBanner');
+      if (banner) banner.classList.remove('show');
+
+      // Expand Section 1 if collapsed
+      var profileBody = document.getElementById('profileBody');
+      var profileToggle = document.getElementById('profileToggle');
+      if (profileBody && profileBody.classList.contains('collapsed')) {
+        profileBody.classList.remove('collapsed');
+        if (profileToggle) profileToggle.classList.remove('collapsed');
+      }
     }
 
     // Continue to Phase C (ambition quotient)
+    // Sprint 11.2: Skip Phase C when only Retirement domain applies
     function continueToPhaseC() {
+      var hasChildren = formData.a8_hasChildren === 'Yes';
+      var hasHSA = formData.a7_hsaEligible === 'Yes';
+
+      // If only Retirement domain applies (no children, no HSA), skip Phase C entirely
+      // The Ambition Quotient is meaningless with only one domain - 100% goes to Retirement
+      if (!hasChildren && !hasHSA) {
+        console.log('Skipping Phase C - only Retirement domain applies');
+
+        // Set default Retirement ambition values (they do not affect allocation when single domain)
+        formData.aq_ret_importance = formData.aq_ret_importance || 5;
+        formData.aq_ret_anxiety = formData.aq_ret_anxiety || 4;
+        formData.aq_ret_motivation = formData.aq_ret_motivation || 5;
+
+        // Go directly to submit
+        submitQuestionnaire();
+        return;
+      }
+
       // Hide Phase B
       var phaseB = document.getElementById('phaseB');
       if (phaseB) phaseB.classList.add('hidden');
@@ -6343,6 +6797,9 @@ const Tool6 = {
 
       // Trigger recalculation if calculator is active
       markCalculatorDirty();
+
+      // Sprint 11.2: Update banner stats
+      updateBannerStats();
     }
 
     // Sprint 5.3: Update tax strategy
@@ -6568,6 +7025,9 @@ const Tool6 = {
       updateSliderFills();
       updateBudgetDisplay();
       markCalculatorDirty();
+
+      // Sprint 11.2: Update banner stats
+      updateBannerStats();
     }
 
     // Update all slider fills after budget/limit change
@@ -6599,6 +7059,35 @@ const Tool6 = {
       if (budgetInput) {
         budgetInput.value = allocationState.budget;
       }
+    }
+
+    // Sprint 11.2: Update years to retirement
+    function updateYearsToRetirement(newYears) {
+      newYears = parseInt(newYears) || 25;
+      if (newYears < 1) newYears = 1;
+      if (newYears > 50) newYears = 50;
+
+      // Update global variable
+      yearsToRetirement = newYears;
+
+      // Update input display
+      var input = document.getElementById('yearsToRetirementInput');
+      if (input && input.value !== String(newYears)) {
+        input.value = newYears;
+      }
+
+      // Recalculate projections if function exists
+      if (typeof recalculateProjections === 'function') {
+        recalculateProjections();
+      }
+
+      // Mark as dirty to prompt save
+      markCalculatorDirty();
+
+      // Sprint 11.2: Update banner stats
+      updateBannerStats();
+
+      console.log('Years to retirement updated to:', newYears);
     }
 
     // Sprint 5.5: Update single vehicle display
@@ -7457,6 +7946,13 @@ const Tool6 = {
     function renderScenariosList(scenarios) {
       var listContainer = document.getElementById('savedScenariosList');
       if (!listContainer) return;
+
+      // Sprint 11.2: Update scenario count in summary
+      var summaryCount = document.getElementById('summarySavedCount');
+      if (summaryCount) {
+        var count = scenarios ? scenarios.length : 0;
+        summaryCount.textContent = count + (count === 1 ? ' scenario' : ' scenarios');
+      }
 
       if (!scenarios || scenarios.length === 0) {
         listContainer.innerHTML = '<div class="empty-scenarios">' +
