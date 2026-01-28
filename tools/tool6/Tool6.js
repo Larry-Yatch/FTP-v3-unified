@@ -5185,7 +5185,24 @@ const Tool6 = {
       opacity: 0.5;
     }
 
-    /* Slider track - WebKit - required for draggable thumb */
+    /* ========================================================================
+     * CRITICAL: SLIDER DRAG FUNCTIONALITY - DO NOT REMOVE OR MODIFY
+     * ========================================================================
+     * These styles are REQUIRED for the slider thumb to be draggable.
+     * Without them, users can only click on the track (not grab the thumb).
+     *
+     * This has been fixed 5+ times. If you are refactoring slider CSS:
+     * 1. KEEP all ::-webkit-slider-runnable-track rules
+     * 2. KEEP all ::-moz-range-track rules
+     * 3. KEEP margin-top on thumb (centers it on track)
+     * 4. KEEP cursor: grab/grabbing for UX feedback
+     *
+     * Why this happens: When using appearance:none on range inputs,
+     * browsers require EXPLICIT track styling or the thumb will not drag.
+     * See: docs/Tool6/Sprint-12-Tax-Logic-Improvements.md
+     * ======================================================================== */
+
+    /* Slider track - WebKit - REQUIRED for draggable thumb */
     .vehicle-slider::-webkit-slider-runnable-track {
       width: 100%;
       height: 10px;
@@ -5194,7 +5211,7 @@ const Tool6 = {
       cursor: pointer;
     }
 
-    /* Slider thumb - WebKit - Tool 4 style (no margin-top) */
+    /* Slider thumb - WebKit */
     .vehicle-slider::-webkit-slider-thumb {
       -webkit-appearance: none;
       appearance: none;
@@ -5205,7 +5222,7 @@ const Tool6 = {
       border-radius: 50%;
       cursor: grab;
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
-      margin-top: -7px; /* Center thumb on track: (track height - thumb height) / 2 */
+      margin-top: -7px; /* REQUIRED: Center thumb on track (track height - thumb height) / 2 */
     }
 
     .vehicle-slider::-webkit-slider-thumb:active {
@@ -5216,7 +5233,7 @@ const Tool6 = {
       background: #ffc107;
     }
 
-    /* Slider track - Firefox - required for draggable thumb */
+    /* Slider track - Firefox - REQUIRED for draggable thumb */
     .vehicle-slider::-moz-range-track {
       width: 100%;
       height: 10px;
@@ -5225,7 +5242,7 @@ const Tool6 = {
       cursor: pointer;
     }
 
-    /* Slider thumb - Firefox - Tool 4 style */
+    /* Slider thumb - Firefox */
     .vehicle-slider::-moz-range-thumb {
       width: 24px;
       height: 24px;
@@ -5243,6 +5260,8 @@ const Tool6 = {
     .vehicle-slider.locked::-moz-range-thumb {
       background: #ffc107;
     }
+
+    /* END CRITICAL SLIDER SECTION */
 
     /* Vehicle description - Tool 4 style */
     .vehicle-description {
@@ -9156,7 +9175,13 @@ const Tool6 = {
             downloadBase64PDF(result.pdf, result.fileName);
             showScenarioFeedback('PDF downloaded successfully!', 'success');
           } else {
-            showScenarioFeedback('Error generating PDF: ' + (result.error || 'Unknown error'), 'error');
+            // Show missing data errors more prominently with an alert
+            if (result.missingFields && result.missingFields.length > 0) {
+              alert('Cannot Generate PDF\\n\\nMissing required information:\\n• ' + result.missingFields.join('\\n• ') + '\\n\\nPlease complete the questionnaire with the missing information and save your scenario again.');
+              showScenarioFeedback('Missing required data - see alert for details', 'error');
+            } else {
+              showScenarioFeedback('Error generating PDF: ' + (result.error || 'Unknown error'), 'error');
+            }
           }
         })
         .withFailureHandler(function(error) {
@@ -10860,52 +10885,55 @@ const Tool6 = {
       const profileId = scenarioData.profileId || 7;
       const profile = PROFILE_DEFINITIONS[profileId] || PROFILE_DEFINITIONS[7];
 
-      // Sprint 14 Fix: Always get toolStatus for fallback data (old scenarios may be missing fields)
+      // Get toolStatus for upstream data (Tool 2 has age/income, Tool 4 has yearsToRetirement)
       const toolStatus = this.checkToolCompletion(clientId);
       Logger.log(`[Tool6.generatePDF] ToolStatus - age: ${toolStatus.age}, yearsToRetirement: ${toolStatus.yearsToRetirement}, grossIncome: ${toolStatus.grossIncome}`);
+      Logger.log(`[Tool6.generatePDF] ScenarioData - age: ${scenarioData.age}, yearsToRetirement: ${scenarioData.yearsToRetirement}, grossIncome: ${scenarioData.grossIncome}`);
 
-      // Sprint 13: Get income from grossIncome field (added to scenario save)
-      // Fallback chain: scenarioData.grossIncome → scenarioData.income → toolStatus
-      let grossIncome = 0;
-      let incomeSource = 'scenario.grossIncome';
+      // ========================================================================
+      // CRITICAL DATA VALIDATION - No hardcoded defaults for financial data
+      // These values directly impact projections and must come from actual data
+      // ========================================================================
 
-      if (scenarioData.grossIncome) {
-        grossIncome = scenarioData.grossIncome;
-      } else if (scenarioData.income) {
-        grossIncome = scenarioData.income;
-        incomeSource = 'scenario.income (fallback)';
-        Logger.log(`[Tool6.generatePDF] WARNING: Using scenarioData.income fallback (old scenario format)`);
-      } else if (toolStatus.grossIncome || toolStatus.income) {
-        grossIncome = toolStatus.grossIncome || toolStatus.income || 0;
-        incomeSource = 'toolStatus (fallback)';
-        Logger.log(`[Tool6.generatePDF] WARNING: Using toolStatus income fallback - scenario missing income data`);
+      // Resolve age: scenario → toolStatus (Tool 2) → MISSING
+      const age = scenarioData.age || toolStatus.age || null;
+
+      // Resolve yearsToRetirement: scenario → toolStatus (Tool 4) → MISSING
+      const yearsToRetirement = scenarioData.yearsToRetirement || toolStatus.yearsToRetirement || null;
+
+      // Resolve grossIncome: scenario.grossIncome → scenario.income → toolStatus → MISSING
+      const grossIncome = scenarioData.grossIncome || scenarioData.income || toolStatus.grossIncome || toolStatus.income || null;
+
+      // Resolve monthlyBudget: scenario → toolStatus → MISSING
+      const monthlyBudget = scenarioData.monthlyBudget || toolStatus.monthlyBudget || null;
+
+      // Collect missing critical fields
+      const missingFields = [];
+      if (!age) missingFields.push('Age (complete Tool 2 or enter in questionnaire)');
+      if (!yearsToRetirement) missingFields.push('Years to Retirement (complete Tool 4 or enter in questionnaire)');
+      if (!grossIncome) missingFields.push('Annual Income (complete Tool 2 or enter in questionnaire)');
+      if (!monthlyBudget) missingFields.push('Monthly Retirement Budget (complete Tool 4 or set allocation)');
+
+      // If critical data is missing, return error - do NOT use defaults
+      if (missingFields.length > 0) {
+        const errorMsg = `Missing required data: ${missingFields.join('; ')}. Please complete the questionnaire or re-save your scenario.`;
+        Logger.log(`[Tool6.generatePDF] ERROR: Missing critical data - ${missingFields.join(', ')}`);
+        return {
+          success: false,
+          error: errorMsg,
+          missingFields: missingFields
+        };
       }
 
-      if (!grossIncome || grossIncome <= 0) {
-        Logger.log(`[Tool6.generatePDF] WARNING: grossIncome is ${grossIncome} - savings rate and income-based calculations will be affected`);
-      } else {
-        Logger.log(`[Tool6.generatePDF] Using grossIncome=${grossIncome} from ${incomeSource}`);
-      }
+      Logger.log(`[Tool6.generatePDF] Validated inputs - age: ${age}, yearsToRetirement: ${yearsToRetirement}, grossIncome: ${grossIncome}, monthlyBudget: ${monthlyBudget}`);
 
-      // Sprint 14 Fix: Use toolStatus as fallback for age/yearsToRetirement (old scenarios may not have these)
-      const age = scenarioData.age || toolStatus.age || 40;
-      const yearsToRetirement = scenarioData.yearsToRetirement || toolStatus.yearsToRetirement || 25;
-
-      // Log if using fallbacks
-      if (!scenarioData.age && toolStatus.age) {
-        Logger.log(`[Tool6.generatePDF] Using toolStatus.age fallback: ${toolStatus.age}`);
-      }
-      if (!scenarioData.yearsToRetirement && toolStatus.yearsToRetirement) {
-        Logger.log(`[Tool6.generatePDF] Using toolStatus.yearsToRetirement fallback: ${toolStatus.yearsToRetirement}`);
-      }
-
-      // Build inputs object with proper fallback chain
+      // Build inputs object - all critical fields are now validated
       const inputs = {
         age: age,
         yearsToRetirement: yearsToRetirement,
         income: grossIncome,
         grossIncome: grossIncome,
-        monthlyBudget: scenarioData.monthlyBudget || 0,
+        monthlyBudget: monthlyBudget,
         investmentScore: scenarioData.investmentScore || toolStatus.investmentScore || 4,
         taxPreference: scenarioData.taxStrategy || 'Balanced',
         hasChildren: scenarioData.hasChildren || false,
@@ -10918,8 +10946,6 @@ const Tool6 = {
         workSituation: scenarioData.workSituation || toolStatus.employmentType || 'W-2 Employee',
         filingStatus: scenarioData.filingStatus || toolStatus.filingStatus || 'Single'
       };
-
-      Logger.log(`[Tool6.generatePDF] Final inputs - age: ${inputs.age}, yearsToRetirement: ${inputs.yearsToRetirement}, grossIncome: ${inputs.grossIncome}, monthlyBudget: ${inputs.monthlyBudget}`);
 
       // Sprint 13: Calculate current balance from saved balances
       let currentBalance = scenarioData.currentBalance || 0;
