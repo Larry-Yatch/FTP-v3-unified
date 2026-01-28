@@ -148,3 +148,38 @@ message: "You're at " + value + "%. Don't exceed 50%."
 ```
 
 **Golden Rule:** If the JavaScript code lives inside backticks (\`\`) and will be output to HTML, treat apostrophes like SQL injection vulnerabilities - sanitize or avoid them entirely.
+
+---
+
+## 🚨 Tool 6 Slider CSS - NEVER REMOVE
+
+**CRITICAL:** The vehicle sliders in Tool 6 require specific CSS for the thumb to be draggable. This has been broken and fixed 5+ times.
+
+### Required CSS (in Tool6.js around line 5188):
+
+```css
+/* These MUST exist or sliders will not be draggable */
+.vehicle-slider::-webkit-slider-runnable-track { ... }
+.vehicle-slider::-moz-range-track { ... }
+.vehicle-slider::-webkit-slider-thumb { margin-top: -7px; ... }
+```
+
+### Why This Breaks:
+
+When using `appearance: none` on range inputs, browsers require **explicit track styling** (`::-webkit-slider-runnable-track` and `::-moz-range-track`). Without these rules, the slider thumb cannot be grabbed and dragged - users can only click on the track.
+
+### Before Refactoring Tool 6 Slider CSS:
+
+1. Look for the comment block: `CRITICAL: SLIDER DRAG FUNCTIONALITY`
+2. **DO NOT** remove or reorganize the track/thumb CSS rules
+3. **DO NOT** remove `margin-top: -7px` from the thumb (centers it on track)
+4. Test that sliders can be dragged (not just clicked) after any CSS changes
+
+### Pre-Commit Check:
+
+```bash
+# Verify critical slider CSS exists
+grep -n "webkit-slider-runnable-track\|moz-range-track" tools/tool6/Tool6.js
+```
+
+If this returns no results, the slider drag fix has been accidentally removed.
