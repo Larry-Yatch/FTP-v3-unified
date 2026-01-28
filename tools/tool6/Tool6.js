@@ -2537,7 +2537,7 @@ const Tool6 = {
             <div class="vehicle-slider-title">
               <span class="vehicle-slider-name">${domainIcon} ${vehicleName}</span>
               <span class="vehicle-slider-value">
-                <span id="amount_${safeId}">$${amount.toLocaleString()}</span>
+                <span id="amount_${safeId}">$${Math.round(amount).toLocaleString()}</span>
                 <span class="dollar-amount" id="percent_${safeId}">(${percentage}%)</span>
               </span>
             </div>
@@ -5185,6 +5185,15 @@ const Tool6 = {
       opacity: 0.5;
     }
 
+    /* Slider track - WebKit - required for draggable thumb */
+    .vehicle-slider::-webkit-slider-runnable-track {
+      width: 100%;
+      height: 10px;
+      background: transparent;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
     /* Slider thumb - WebKit - Tool 4 style (no margin-top) */
     .vehicle-slider::-webkit-slider-thumb {
       -webkit-appearance: none;
@@ -5194,12 +5203,26 @@ const Tool6 = {
       background: var(--color-primary);
       border: 3px solid rgba(0, 0, 0, 0.3);
       border-radius: 50%;
-      cursor: pointer;
+      cursor: grab;
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+      margin-top: -7px; /* Center thumb on track: (track height - thumb height) / 2 */
+    }
+
+    .vehicle-slider::-webkit-slider-thumb:active {
+      cursor: grabbing;
     }
 
     .vehicle-slider.locked::-webkit-slider-thumb {
       background: #ffc107;
+    }
+
+    /* Slider track - Firefox - required for draggable thumb */
+    .vehicle-slider::-moz-range-track {
+      width: 100%;
+      height: 10px;
+      background: transparent;
+      border-radius: 5px;
+      cursor: pointer;
     }
 
     /* Slider thumb - Firefox - Tool 4 style */
@@ -5209,8 +5232,12 @@ const Tool6 = {
       background: var(--color-primary);
       border: 3px solid rgba(0, 0, 0, 0.3);
       border-radius: 50%;
-      cursor: pointer;
+      cursor: grab;
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    }
+
+    .vehicle-slider::-moz-range-thumb:active {
+      cursor: grabbing;
     }
 
     .vehicle-slider.locked::-moz-range-thumb {
@@ -10833,6 +10860,10 @@ const Tool6 = {
       const profileId = scenarioData.profileId || 7;
       const profile = PROFILE_DEFINITIONS[profileId] || PROFILE_DEFINITIONS[7];
 
+      // Sprint 14 Fix: Always get toolStatus for fallback data (old scenarios may be missing fields)
+      const toolStatus = this.checkToolCompletion(clientId);
+      Logger.log(`[Tool6.generatePDF] ToolStatus - age: ${toolStatus.age}, yearsToRetirement: ${toolStatus.yearsToRetirement}, grossIncome: ${toolStatus.grossIncome}`);
+
       // Sprint 13: Get income from grossIncome field (added to scenario save)
       // Fallback chain: scenarioData.grossIncome → scenarioData.income → toolStatus
       let grossIncome = 0;
@@ -10844,8 +10875,7 @@ const Tool6 = {
         grossIncome = scenarioData.income;
         incomeSource = 'scenario.income (fallback)';
         Logger.log(`[Tool6.generatePDF] WARNING: Using scenarioData.income fallback (old scenario format)`);
-      } else {
-        const toolStatus = this.checkToolCompletion(clientId);
+      } else if (toolStatus.grossIncome || toolStatus.income) {
         grossIncome = toolStatus.grossIncome || toolStatus.income || 0;
         incomeSource = 'toolStatus (fallback)';
         Logger.log(`[Tool6.generatePDF] WARNING: Using toolStatus income fallback - scenario missing income data`);
@@ -10857,14 +10887,26 @@ const Tool6 = {
         Logger.log(`[Tool6.generatePDF] Using grossIncome=${grossIncome} from ${incomeSource}`);
       }
 
-      // Build inputs object
+      // Sprint 14 Fix: Use toolStatus as fallback for age/yearsToRetirement (old scenarios may not have these)
+      const age = scenarioData.age || toolStatus.age || 40;
+      const yearsToRetirement = scenarioData.yearsToRetirement || toolStatus.yearsToRetirement || 25;
+
+      // Log if using fallbacks
+      if (!scenarioData.age && toolStatus.age) {
+        Logger.log(`[Tool6.generatePDF] Using toolStatus.age fallback: ${toolStatus.age}`);
+      }
+      if (!scenarioData.yearsToRetirement && toolStatus.yearsToRetirement) {
+        Logger.log(`[Tool6.generatePDF] Using toolStatus.yearsToRetirement fallback: ${toolStatus.yearsToRetirement}`);
+      }
+
+      // Build inputs object with proper fallback chain
       const inputs = {
-        age: scenarioData.age || 40,
-        yearsToRetirement: scenarioData.yearsToRetirement || 25,
+        age: age,
+        yearsToRetirement: yearsToRetirement,
         income: grossIncome,
         grossIncome: grossIncome,
         monthlyBudget: scenarioData.monthlyBudget || 0,
-        investmentScore: scenarioData.investmentScore || 4,
+        investmentScore: scenarioData.investmentScore || toolStatus.investmentScore || 4,
         taxPreference: scenarioData.taxStrategy || 'Balanced',
         hasChildren: scenarioData.hasChildren || false,
         numChildren: scenarioData.numChildren || scenarioData.educationInputs?.numChildren || 0,
@@ -10873,9 +10915,11 @@ const Tool6 = {
         domainWeights: scenarioData.domainWeights || null,
         hasEmployerMatch: scenarioData.hasEmployerMatch || false,
         employerMatchAmount: scenarioData.employerMatchAmount || 0,
-        workSituation: scenarioData.workSituation || 'W-2 Employee',
-        filingStatus: scenarioData.filingStatus || 'Single'
+        workSituation: scenarioData.workSituation || toolStatus.employmentType || 'W-2 Employee',
+        filingStatus: scenarioData.filingStatus || toolStatus.filingStatus || 'Single'
       };
+
+      Logger.log(`[Tool6.generatePDF] Final inputs - age: ${inputs.age}, yearsToRetirement: ${inputs.yearsToRetirement}, grossIncome: ${inputs.grossIncome}, monthlyBudget: ${inputs.monthlyBudget}`);
 
       // Sprint 13: Calculate current balance from saved balances
       let currentBalance = scenarioData.currentBalance || 0;
@@ -10888,16 +10932,16 @@ const Tool6 = {
 
       // Sprint 13: Calculate derived projections if not saved
       // Get return rate from investment score (same formula as Tool6Report.getReturnRate)
-      const investmentScore = inputs.investmentScore || 4;
+      const calcInvestmentScore = inputs.investmentScore || 4;
       const returnRates = { 1: 0.08, 2: 0.10, 3: 0.12, 4: 0.14, 5: 0.16, 6: 0.18, 7: 0.20 };
-      const annualReturnRate = returnRates[investmentScore] || 0.14;
-      const yearsToRetirement = inputs.yearsToRetirement;
+      const annualReturnRate = returnRates[calcInvestmentScore] || 0.14;
+      const calcYearsToRetirement = inputs.yearsToRetirement;
       const inflationRate = 0.025; // 2.5% annual inflation
 
       // Sprint 13 Fix: ALWAYS recalculate projectedBalance for consistency with milestone section
       // Old scenarios may have saved incorrect values; recalculating ensures accuracy
       const monthlyRate = annualReturnRate / 12;
-      const months = yearsToRetirement * 12;
+      const months = calcYearsToRetirement * 12;
       const monthlyContribution = inputs.monthlyBudget || 0;
 
       // FV = PV(1+r)^n + PMT * (((1+r)^n - 1) / r)
@@ -10913,7 +10957,7 @@ const Tool6 = {
       }
 
       // Sprint 13 Fix: ALWAYS recalculate derived values for consistency
-      const inflationAdjusted = Math.round(projectedBalance / Math.pow(1 + inflationRate, yearsToRetirement));
+      const inflationAdjusted = Math.round(projectedBalance / Math.pow(1 + inflationRate, calcYearsToRetirement));
       const monthlyRetirementIncome = Math.round((inflationAdjusted * 0.04) / 12); // 4% rule
 
       // Sprint 13: Calculate tax percentages from allocations if not saved (for old scenarios)
