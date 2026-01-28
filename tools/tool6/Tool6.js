@@ -440,8 +440,10 @@ const Tool6 = {
                             mergedToolStatus.investmentScore ||
                             4;
 
-    // Filing status: from Tool 6 questionnaire (a6) OR Tool 2 derived
+    // Filing status: from Tool 6 questionnaire (a6) OR user selection (filingStatus) OR Tool 2 derived
+    // Note: preSurveyData.filingStatus is set when user changes filing status in "Your Settings"
     const filingStatus = preSurveyData.a6_filingStatus ||
+                         preSurveyData.filingStatus ||
                          preSurveyData.backup_filingStatus ||
                          mergedToolStatus.filingStatus ||
                          'Single';
@@ -659,13 +661,21 @@ const Tool6 = {
   savePreSurvey(clientId, preSurveyData) {
     try {
       const preSurveyKey = `tool6_presurvey_${clientId}`;
+
+      // DEBUG: Log specific fields being received
+      Logger.log(`[savePreSurvey] RECEIVED - backup_monthlyBudget: ${preSurveyData.backup_monthlyBudget}, backup_investmentScore: ${preSurveyData.backup_investmentScore}, a2_yearsToRetirement: ${preSurveyData.a2_yearsToRetirement}`);
       Logger.log(`Saving pre-survey data: ${JSON.stringify(preSurveyData)}`);
+
       PropertiesService.getUserProperties().setProperty(preSurveyKey, JSON.stringify(preSurveyData));
       Logger.log(`Pre-survey saved for client: ${clientId}`);
 
       // SINGLE SOURCE OF TRUTH: Resolve all client data after saving
       const resolvedData = this.resolveClientData(clientId);
       const savedPreSurvey = resolvedData._preSurveyData;
+
+      // DEBUG: Log what was read back
+      Logger.log(`[savePreSurvey] READ BACK - savedPreSurvey.backup_monthlyBudget: ${savedPreSurvey?.backup_monthlyBudget}, savedPreSurvey.backup_investmentScore: ${savedPreSurvey?.backup_investmentScore}, savedPreSurvey.a2_yearsToRetirement: ${savedPreSurvey?.a2_yearsToRetirement}`);
+      Logger.log(`[savePreSurvey] RESOLVED - monthlyBudget: ${resolvedData.monthlyBudget}, investmentScore: ${resolvedData.investmentScore}, yearsToRetirement: ${resolvedData.yearsToRetirement}`);
       const toolStatus = resolvedData._mergedToolStatus;
 
       let allocation = null;
@@ -740,6 +750,22 @@ const Tool6 = {
    */
   classifyProfile(clientId, preSurveyData, toolStatus) {
     const profiles = PROFILE_DEFINITIONS;
+
+    // ========================================================================
+    // CHECK FOR PRE-SET PROFILE (from loaded scenario)
+    // If useProfileIdDirectly flag is set (from loading old scenario without
+    // classification answers), use the saved profileId directly
+    // ========================================================================
+    const savedProfileId = parseInt(preSurveyData.classifiedProfile);
+    const useDirectly = preSurveyData.useProfileIdDirectly === true;
+
+    if (savedProfileId && savedProfileId >= 1 && savedProfileId <= 9 && useDirectly) {
+      Logger.log(`[classifyProfile] Using saved profileId directly: ${savedProfileId}`);
+      return {
+        ...profiles[savedProfileId],
+        matchReason: 'Profile restored from saved scenario'
+      };
+    }
 
     // ========================================================================
     // EXTRACT UPSTREAM DATA (for derived checks)
@@ -2239,9 +2265,11 @@ const Tool6 = {
 
     const vehicles = allocation.vehicles;
     const eligibleVehicles = allocation.eligibleVehicles || {};
-    const monthlyBudget = allocation.totalBudget || 0;
+    // Sprint 13.4 FIX: Prioritize preSurveyData (freshly saved values) over allocation/toolStatus
+    // This ensures user changes to "Your Settings" persist after recalculate
+    const monthlyBudget = parseFloat(preSurveyData.backup_monthlyBudget) || allocation.totalBudget || 0;
     const employerMatch = allocation.employerMatch || 0;
-    const investmentScore = toolStatus.investmentScore || 4;
+    const investmentScore = parseInt(preSurveyData.backup_investmentScore) || toolStatus.investmentScore || 4;
     const age = preSurveyData.age || toolStatus.age || 35;
     const yearsToRetirement = parseInt(preSurveyData.a2_yearsToRetirement || toolStatus.yearsToRetirement) || 25;
     const grossIncome = parseFloat(preSurveyData.a1_grossIncome || toolStatus.grossIncome) || 0;
@@ -2264,7 +2292,11 @@ const Tool6 = {
     const taxPreference = preSurveyData.a2b_taxPreference || allocation.taxPreference || 'Both';
 
     // Filing status (user selection overrides Tool 2/backup data)
-    const filingStatus = preSurveyData.filingStatus || toolStatus.filingStatus || 'Single';
+    // Check both field names: filingStatus (from Your Settings) and a6_filingStatus (from loadScenario)
+    const filingStatus = preSurveyData.filingStatus ||
+                         preSurveyData.a6_filingStatus ||
+                         toolStatus.filingStatus ||
+                         'Single';
 
     // Has children/education domain
     const hasChildren = preSurveyData.a8_hasChildren === 'Yes';
@@ -7794,6 +7826,12 @@ const Tool6 = {
 
     // Sprint 5.2: Update investment score
     function updateInvestmentScore(score) {
+      console.log('updateInvestmentScore called with:', score);
+      // Normalize score to integer to handle string/number type mismatch
+      score = parseInt(score) || 4;
+      if (score < 1) score = 1;
+      if (score > 7) score = 7;
+
       // Update hidden input
       var input = document.getElementById('investmentScore');
       if (input) input.value = score;
@@ -7813,8 +7851,10 @@ const Tool6 = {
         desc.textContent = scoreLabels[score] || 'Moderate (10%)';
       }
 
-      // Store in formData for submission
+      // Store in formData for submission - use backup_investmentScore to match server expectations
       formData.investmentScore = score;
+      formData.backup_investmentScore = score;  // Server resolveClientData looks for this field
+      console.log('Investment score updated to:', score, '| formData.backup_investmentScore:', formData.backup_investmentScore);
 
       // Sprint 6.2: Update global variable for projection calculations
       currentInvestmentScore = score;
@@ -8038,13 +8078,21 @@ const Tool6 = {
 
     // Handle budget change
     function updateBudget(newBudget) {
+      console.log('updateBudget called with:', newBudget);
       newBudget = parseFloat(newBudget) || 0;
-      if (newBudget <= 0) return;
+      if (newBudget <= 0) {
+        console.log('updateBudget: invalid budget, returning early');
+        return;
+      }
 
       var oldBudget = allocationState.budget;
       var ratio = newBudget / oldBudget;
 
       allocationState.budget = newBudget;
+
+      // Persist to formData so it survives page re-renders (recalculate, etc.)
+      formData.backup_monthlyBudget = newBudget;
+      console.log('Budget updated to:', newBudget, '| formData.backup_monthlyBudget:', formData.backup_monthlyBudget);
 
       // Recalculate effective limits based on new budget
       for (var id in allocationState.irsLimits) {
@@ -8117,6 +8165,9 @@ const Tool6 = {
 
       // Update global variable
       yearsToRetirement = newYears;
+
+      // Persist to formData so it survives page re-renders (recalculate, etc.)
+      formData.a2_yearsToRetirement = newYears;
 
       // Update input display
       var input = document.getElementById('yearsToRetirementInput');
@@ -8571,6 +8622,12 @@ const Tool6 = {
       // Gather current form data
       var currentData = Object.assign({}, formData);
 
+      // DEBUG: Log what's being sent to server
+      console.log('=== RECALCULATE DEBUG ===');
+      console.log('formData.backup_monthlyBudget:', formData.backup_monthlyBudget);
+      console.log('formData.backup_investmentScore:', formData.backup_investmentScore);
+      console.log('formData.a2_yearsToRetirement:', formData.a2_yearsToRetirement);
+
       // Get current slider values as overrides
       var sliderValues = {};
       document.querySelectorAll('.vehicle-slider').forEach(function(slider) {
@@ -8578,6 +8635,12 @@ const Tool6 = {
         sliderValues[slider.dataset.vehicleId] = parseFloat(slider.value);
       });
       currentData.vehicleOverrides = sliderValues;
+
+      console.log('currentData being sent to server:', JSON.stringify({
+        backup_monthlyBudget: currentData.backup_monthlyBudget,
+        backup_investmentScore: currentData.backup_investmentScore,
+        a2_yearsToRetirement: currentData.a2_yearsToRetirement
+      }));
 
       // Call server to recalculate
       google.script.run
@@ -8943,9 +9006,11 @@ const Tool6 = {
                                  upstreamGrossIncome ||
                                  null;
 
-      // Filing status: form field → resolved upstream value
-      var filingStatusEl = document.getElementById('a6_filingStatus');
-      var scenarioFilingStatus = (filingStatusEl && filingStatusEl.value) ||
+      // Filing status: dropdown → formData → resolved upstream value
+      // Note: The dropdown is 'filingStatusSelect', NOT 'a6_filingStatus'
+      var filingStatusSelect = document.getElementById('filingStatusSelect');
+      var scenarioFilingStatus = (filingStatusSelect && filingStatusSelect.value) ||
+                                  formData.filingStatus ||
                                   upstreamFilingStatus ||
                                   'Single';
 
@@ -9000,7 +9065,19 @@ const Tool6 = {
           numChildren: numChildren || 0,
           yearsToEducation: yearsToEducation || 99
         },
-        educationProjection: getProjectedEducationBalance()
+        educationProjection: getProjectedEducationBalance(),
+        // Sprint 13.5: Classification answers (needed to restore profile on load)
+        classificationAnswers: {
+          c1_robsStatus: formData.c1_robsStatus || null,
+          c5_workSituation: formData.c5_workSituation || scenarioWorkSituation || null,
+          c6_hasTradIRA: formData.c6_hasTradIRA || null,
+          c7_taxFocus: formData.c7_taxFocus || null,
+          // Also save the questionnaire phase B answers that affect profile
+          a3_has401k: formData.a3_has401k || null,
+          a4_hasEmployerMatch: formData.a4_hasEmployerMatch || null,
+          a5_matchPercent: formData.a5_matchPercent || null,
+          a7_hasHSA: formData.a7_hasHSA || null
+        }
       };
 
       // Show loading overlay (like Tool 4)
@@ -9258,11 +9335,13 @@ const Tool6 = {
 
       var scenario = window.savedScenarios[index];
 
-      // DEBUG: Log scenario data to help diagnose investmentScore issue
+      // DEBUG: Log scenario data to help diagnose issues
       console.log('=== LOADING SCENARIO DEBUG ===');
       console.log('Scenario name:', scenario.name);
+      console.log('Scenario monthlyBudget:', scenario.monthlyBudget);
       console.log('Scenario investmentScore:', scenario.investmentScore);
-      console.log('Current page investmentScore:', currentInvestmentScore);
+      console.log('Scenario yearsToRetirement:', scenario.yearsToRetirement);
+      console.log('Scenario taxStrategy:', scenario.taxStrategy);
       console.log('Full scenario data:', JSON.stringify(scenario, null, 2));
 
       // Confirm before loading (will overwrite current allocations)
@@ -9270,124 +9349,189 @@ const Tool6 = {
         return;
       }
 
-      console.log('Loading scenario:', scenario);
+      console.log('Loading scenario - syncing all values to formData first...');
 
-      // 1. Update budget if stored
+      // ========================================================================
+      // PHASE 1: Sync ALL values to formData FIRST (before any page refresh)
+      // This is critical because recalculateAllocation will send formData to server
+      // ========================================================================
+
+      // 1.1 Sync budget to formData
       if (scenario.monthlyBudget && scenario.monthlyBudget > 0) {
+        formData.backup_monthlyBudget = scenario.monthlyBudget;
         allocationState.budget = scenario.monthlyBudget;
-        var budgetInput = document.getElementById('budgetInput');
-        if (budgetInput) {
-          budgetInput.value = scenario.monthlyBudget;
-        }
+        console.log('Synced budget to formData:', scenario.monthlyBudget);
       }
 
-      // 2. Update allocations
+      // 1.2 Sync investment score to formData
+      if (scenario.investmentScore !== undefined) {
+        var score = parseInt(scenario.investmentScore) || 4;
+        formData.investmentScore = score;
+        formData.backup_investmentScore = score;
+        currentInvestmentScore = score;
+        console.log('Synced investmentScore to formData:', score);
+      }
+
+      // 1.3 Sync years to retirement to formData
+      if (scenario.yearsToRetirement !== undefined && scenario.yearsToRetirement !== null) {
+        var years = parseInt(scenario.yearsToRetirement) || 25;
+        formData.a2_yearsToRetirement = years;
+        yearsToRetirement = years;
+        console.log('Synced yearsToRetirement to formData:', years);
+      }
+
+      // 1.4 Sync tax strategy to formData
+      if (scenario.taxStrategy) {
+        formData.a2b_taxPreference = scenario.taxStrategy;
+        console.log('Synced taxStrategy to formData:', scenario.taxStrategy);
+      }
+
+      // 1.5 Sync gross income if available
+      if (scenario.grossIncome) {
+        formData.a1_grossIncome = scenario.grossIncome;
+        console.log('Synced grossIncome to formData:', scenario.grossIncome);
+      }
+
+      // 1.6 Sync filing status if available
+      // Note: Set BOTH field names for compatibility:
+      // - formData.filingStatus is used by buildCalculatorSection (Your Settings dropdown)
+      // - formData.a6_filingStatus is used by resolveClientData (profile header)
+      if (scenario.filingStatus) {
+        formData.filingStatus = scenario.filingStatus;
+        formData.a6_filingStatus = scenario.filingStatus;
+        console.log('Synced filingStatus to formData (both fields):', scenario.filingStatus);
+      }
+
+      // 1.7 Sync work situation if available
+      if (scenario.workSituation) {
+        formData.c5_workSituation = scenario.workSituation;
+        console.log('Synced workSituation to formData:', scenario.workSituation);
+      }
+
+      // 1.8 Sync current balances to formData
+      if (scenario.currentBalances) {
+        formData.a12_current401kBalance = scenario.currentBalances['401k'] || 0;
+        formData.a13_currentIRABalance = scenario.currentBalances.ira || 0;
+        formData.a14_currentHSABalance = scenario.currentBalances.hsa || 0;
+        formData.a15_currentEducationBalance = scenario.currentBalances.education || 0;
+
+        // Also update the global currentBalances
+        var retirement = (scenario.currentBalances['401k'] || 0) +
+                         (scenario.currentBalances.ira || 0) +
+                         (scenario.currentBalances.hsa || 0);
+        var education = scenario.currentBalances.education || 0;
+        currentBalances = { retirement: retirement, education: education };
+        console.log('Synced currentBalances to formData');
+      }
+
+      // 1.9 Sync current contributions to formData
+      if (scenario.currentContributions) {
+        formData.a16_monthly401kContribution = scenario.currentContributions['401k'] || 0;
+        formData.a17_monthlyIRAContribution = scenario.currentContributions.ira || 0;
+        formData.a18_monthlyHSAContribution = scenario.currentContributions.hsa || 0;
+        formData.a19_monthlyEducationContribution = scenario.currentContributions.education || 0;
+        console.log('Synced currentContributions to formData');
+      }
+
+      // 1.10 Sync education inputs
+      var eduInputs = scenario.educationInputs || {};
+      if (scenario.hasChildren !== undefined) {
+        formData.a8_hasChildren = scenario.hasChildren ? 'Yes' : 'No';
+        hasChildren = scenario.hasChildren;
+      }
+      if (scenario.numChildren !== undefined || eduInputs.numChildren !== undefined) {
+        var num = eduInputs.numChildren || scenario.numChildren || 0;
+        formData.a9_numChildren = num;
+        numChildren = num;
+      }
+      if (eduInputs.yearsToEducation !== undefined || scenario.yearsToEducation !== undefined) {
+        var eduYears = eduInputs.yearsToEducation || scenario.yearsToEducation || 99;
+        formData.a10_yearsToEducation = eduYears;
+        yearsToEducation = eduYears;
+      }
+
+      // 1.11 Sync domain weights
+      if (scenario.domainWeights) {
+        allocationState.domainWeights = scenario.domainWeights;
+      }
+
+      // 1.12 Sync classification answers (needed to restore profile)
+      if (scenario.classificationAnswers && Object.keys(scenario.classificationAnswers).length > 0) {
+        var ca = scenario.classificationAnswers;
+        if (ca.c1_robsStatus) formData.c1_robsStatus = ca.c1_robsStatus;
+        if (ca.c5_workSituation) formData.c5_workSituation = ca.c5_workSituation;
+        if (ca.c6_hasTradIRA) formData.c6_hasTradIRA = ca.c6_hasTradIRA;
+        if (ca.c7_taxFocus) formData.c7_taxFocus = ca.c7_taxFocus;
+        if (ca.a3_has401k) formData.a3_has401k = ca.a3_has401k;
+        if (ca.a4_hasEmployerMatch) formData.a4_hasEmployerMatch = ca.a4_hasEmployerMatch;
+        if (ca.a5_matchPercent) formData.a5_matchPercent = ca.a5_matchPercent;
+        if (ca.a7_hasHSA) formData.a7_hasHSA = ca.a7_hasHSA;
+        console.log('Synced classificationAnswers to formData:', ca);
+      } else if (scenario.profileId) {
+        // OLD SCENARIO: No classification answers saved, use profileId directly
+        formData.useProfileIdDirectly = true;
+        console.log('Old scenario - will use profileId directly:', scenario.profileId);
+      }
+
+      // 1.13 Sync profile ID (for server to use)
+      if (scenario.profileId) {
+        formData.classifiedProfile = scenario.profileId;
+        console.log('Synced profileId to formData:', scenario.profileId);
+      }
+
+      // ========================================================================
+      // PHASE 2: Update local UI state (allocations, locks, etc.)
+      // ========================================================================
+
+      // 2.1 Update allocations
       if (scenario.allocations) {
-        // First, reset all vehicle allocations to 0
         for (var id in allocationState.vehicles) {
           allocationState.vehicles[id] = 0;
         }
-
-        // Then apply saved allocations
         for (var vehicleId in scenario.allocations) {
           if (allocationState.vehicles.hasOwnProperty(vehicleId)) {
             allocationState.vehicles[vehicleId] = scenario.allocations[vehicleId] || 0;
           }
         }
-
-        // Also update originalAllocation for proper slider behavior
         for (var id in allocationState.vehicles) {
           allocationState.originalAllocation[id] = allocationState.vehicles[id];
         }
       }
 
-      // 3. Update tax strategy radio buttons
-      if (scenario.taxStrategy) {
-        var taxRadio = document.querySelector('input[name="taxStrategy"][value="' + scenario.taxStrategy + '"]');
-        if (taxRadio) {
-          taxRadio.checked = true;
-          // Call updateTaxStrategy if it exists
-          if (typeof updateTaxStrategy === 'function') {
-            updateTaxStrategy(scenario.taxStrategy);
-          }
-        }
-      }
-
-      // 4. Clear all locks (start fresh)
+      // 2.2 Clear all locks
       for (var id in allocationState.locked) {
         allocationState.locked[id] = false;
       }
       updateAllLockButtons();
 
-      // 4.5. Restore investment score if stored in scenario
-      if (scenario.investmentScore && typeof updateInvestmentScore === 'function') {
-        console.log('Restoring investmentScore to:', scenario.investmentScore);
-        updateInvestmentScore(scenario.investmentScore);
+      // 2.3 Update tax strategy radio buttons (UI only, no recalculate yet)
+      if (scenario.taxStrategy) {
+        var taxRadio = document.querySelector('input[name="taxStrategy"][value="' + scenario.taxStrategy + '"]');
+        if (taxRadio) {
+          taxRadio.checked = true;
+          // Update visual state without triggering recalculate
+          var options = document.querySelectorAll('.tax-option, .tax-option-compact');
+          options.forEach(function(opt) {
+            var input = opt.querySelector('input[type="radio"]');
+            if (input && input.value === scenario.taxStrategy) {
+              opt.classList.add('selected');
+            } else {
+              opt.classList.remove('selected');
+            }
+          });
+        }
       }
 
-      // 4.6. Restore current balances (affects projection calculations)
-      if (scenario.currentBalances) {
-        var retirement = (scenario.currentBalances['401k'] || 0) +
-                         (scenario.currentBalances.ira || 0) +
-                         (scenario.currentBalances.hsa || 0);
-        var education = scenario.currentBalances.education || 0;
-        currentBalances = {
-          retirement: retirement,
-          education: education
-        };
-        console.log('Restored currentBalances:', currentBalances);
-      }
+      console.log('All values synced to formData. Triggering recalculate...');
 
-      // 4.7. Restore years to retirement and education inputs
-      if (scenario.yearsToRetirement !== undefined && scenario.yearsToRetirement !== null) {
-        yearsToRetirement = scenario.yearsToRetirement;
-        console.log('Restored yearsToRetirement:', yearsToRetirement);
-      }
+      // ========================================================================
+      // PHASE 3: Trigger ONE recalculate which will refresh page with all values
+      // ========================================================================
+      recalculateAllocation();
 
-      // Education inputs can be in educationInputs object or directly on scenario
-      var eduInputs = scenario.educationInputs || {};
-      if (eduInputs.yearsToEducation !== undefined || scenario.yearsToEducation !== undefined) {
-        yearsToEducation = eduInputs.yearsToEducation || scenario.yearsToEducation || 99;
-        console.log('Restored yearsToEducation:', yearsToEducation);
-      }
-
-      // 4.8. Restore children info (affects education projections)
-      if (eduInputs.numChildren !== undefined || scenario.numChildren !== undefined) {
-        numChildren = eduInputs.numChildren || scenario.numChildren || 0;
-        hasChildren = numChildren > 0 || scenario.hasChildren || false;
-        console.log('Restored numChildren:', numChildren, 'hasChildren:', hasChildren);
-      }
-
-      // 4.9. Restore domain weights (affects budget distribution)
-      if (scenario.domainWeights) {
-        allocationState.domainWeights = scenario.domainWeights;
-        console.log('Restored domainWeights:', scenario.domainWeights);
-      }
-
-      // 5. Update all vehicle displays
-      updateAllVehicleDisplays();
-
-      // 6. Recalculate projections with restored values
-      if (typeof updateProjectionDisplay === 'function') {
-        updateProjectionDisplay();
-        console.log('Projections recalculated with restored values');
-      }
-
-      // 7. Clear calculator dirty state (projections are now current)
-      calculatorDirty = false;
-      var recalcBtn = document.querySelector('.btn-recalc-primary');
-      if (recalcBtn) {
-        recalcBtn.style.animation = '';
-      }
-
-      // 8. Show success feedback
-      showScenarioFeedback('Scenario "' + scenario.name + '" loaded successfully!', 'success');
-
-      // 9. Scroll to allocation section so user can see the changes
-      var allocationSection = document.querySelector('.section-card:has(.allocation-controls)');
-      if (allocationSection) {
-        allocationSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
+      // Note: Everything after this point will not execute because
+      // recalculateAllocation does a document.write() page refresh.
+      // The page will re-render with all the correct values from formData.
     }
 
     /**
@@ -10883,7 +11027,10 @@ const Tool6 = {
         yearsToEducation: 99
       });
 
-      // Build row data (20 columns A-T)
+      // Sprint 13.5: Classification answers for profile restoration
+      const classificationAnswersJson = JSON.stringify(scenario.classificationAnswers || {});
+
+      // Build row data (21 columns A-U)
       const row = [
         new Date(),                                      // A: Timestamp
         clientId,                                        // B: Client_ID
@@ -10904,7 +11051,8 @@ const Tool6 = {
         scenario.age || null,                            // Q: Age
         scenario.grossIncome || null,                    // R: Gross_Income
         scenario.filingStatus || 'Single',               // S: Filing_Status
-        scenario.workSituation || 'W-2 Employee'         // T: Work_Situation
+        scenario.workSituation || 'W-2 Employee',        // T: Work_Situation
+        classificationAnswersJson                        // U: Classification_Answers (JSON)
       ];
 
       // Detailed logging like Tool 4
@@ -11043,7 +11191,8 @@ const Tool6 = {
         AGE: 16,           // Q
         GROSS_INCOME: 17,  // R
         FILING_STATUS: 18, // S
-        WORK_SITUATION: 19 // T
+        WORK_SITUATION: 19, // T
+        CLASSIFICATION_ANSWERS: 20 // U (JSON) - Sprint 13.5
       };
 
       const scenarios = [];
@@ -11080,7 +11229,9 @@ const Tool6 = {
             age: row[COL.AGE] || null,
             grossIncome: row[COL.GROSS_INCOME] || null,
             filingStatus: row[COL.FILING_STATUS] || null,
-            workSituation: row[COL.WORK_SITUATION] || null
+            workSituation: row[COL.WORK_SITUATION] || null,
+            // Sprint 13.5: Classification answers for profile restoration
+            classificationAnswers: this.safeJsonParse(row[COL.CLASSIFICATION_ANSWERS], null)
           });
         }
       }
