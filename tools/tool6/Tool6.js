@@ -6602,6 +6602,7 @@ const Tool6 = {
     var classifiedProfile = ${profile ? JSON.stringify(profile) : 'null'};
     var upstreamAge = ${toolStatus.age || 'null'};
     var upstreamYearsToRetirement = ${toolStatus.yearsToRetirement || 'null'};
+    var upstreamGrossIncome = ${parseFloat(preSurveyData?.a1_grossIncome || toolStatus.grossIncome) || 0};
 
     // ========================================================================
     // PROJECTION CONFIG (Sprint 6.1)
@@ -8688,9 +8689,12 @@ const Tool6 = {
         }
       }
 
-      // Sprint 13: Get grossIncome from form element or formData
+      // Sprint 13: Get grossIncome from form element, formData, or upstream
       var grossIncomeEl = document.getElementById('a1_grossIncome');
-      var scenarioGrossIncome = grossIncomeEl ? parseFloat(grossIncomeEl.value) || 0 : (parseFloat(formData.a1_grossIncome) || 0);
+      var scenarioGrossIncome = (grossIncomeEl ? parseFloat(grossIncomeEl.value) : 0) ||
+                                 parseFloat(formData.a1_grossIncome) ||
+                                 upstreamGrossIncome ||
+                                 0;
 
       // Get filing status from form
       var filingStatusEl = document.getElementById('a6_filingStatus');
@@ -10875,27 +10879,27 @@ const Tool6 = {
       const yearsToRetirement = inputs.yearsToRetirement;
       const inflationRate = 0.025; // 2.5% annual inflation
 
-      // Calculate projectedBalance if not saved (for old scenarios)
-      let projectedBalance = scenarioData.projectedBalance || 0;
-      if (projectedBalance === 0 && (currentBalance > 0 || inputs.monthlyBudget > 0)) {
-        // Recalculate using same formula as buildMilestoneSection for consistency
-        const monthlyRate = annualReturnRate / 12;
-        const months = yearsToRetirement * 12;
-        const monthlyContribution = inputs.monthlyBudget || 0;
+      // Sprint 13 Fix: ALWAYS recalculate projectedBalance for consistency with milestone section
+      // Old scenarios may have saved incorrect values; recalculating ensures accuracy
+      const monthlyRate = annualReturnRate / 12;
+      const months = yearsToRetirement * 12;
+      const monthlyContribution = inputs.monthlyBudget || 0;
 
-        // FV = PV(1+r)^n + PMT * (((1+r)^n - 1) / r)
-        const fvPrincipal = currentBalance * Math.pow(1 + monthlyRate, months);
-        const fvContributions = monthlyRate > 0
-          ? monthlyContribution * ((Math.pow(1 + monthlyRate, months) - 1) / monthlyRate)
-          : monthlyContribution * months;
-        projectedBalance = Math.round(fvPrincipal + fvContributions);
-        Logger.log(`[Tool6.generatePDF] Recalculated projectedBalance: $${projectedBalance.toLocaleString()}`);
+      // FV = PV(1+r)^n + PMT * (((1+r)^n - 1) / r)
+      const fvPrincipal = currentBalance * Math.pow(1 + monthlyRate, months);
+      const fvContributions = monthlyRate > 0
+        ? monthlyContribution * ((Math.pow(1 + monthlyRate, months) - 1) / monthlyRate)
+        : monthlyContribution * months;
+      const projectedBalance = Math.round(fvPrincipal + fvContributions);
+
+      const savedBalance = scenarioData.projectedBalance || 0;
+      if (savedBalance !== projectedBalance) {
+        Logger.log(`[Tool6.generatePDF] Recalculated projectedBalance: saved=$${savedBalance.toLocaleString()}, calculated=$${projectedBalance.toLocaleString()}`);
       }
 
-      const inflationAdjusted = scenarioData.inflationAdjusted ||
-                                 Math.round(projectedBalance / Math.pow(1 + inflationRate, yearsToRetirement));
-      const monthlyRetirementIncome = scenarioData.monthlyRetirementIncome ||
-                                       Math.round((inflationAdjusted * 0.04) / 12); // 4% rule
+      // Sprint 13 Fix: ALWAYS recalculate derived values for consistency
+      const inflationAdjusted = Math.round(projectedBalance / Math.pow(1 + inflationRate, yearsToRetirement));
+      const monthlyRetirementIncome = Math.round((inflationAdjusted * 0.04) / 12); // 4% rule
 
       // Sprint 13: Calculate tax percentages from allocations if not saved (for old scenarios)
       let taxFreePercent = scenarioData.taxFreePercent || 0;
@@ -11051,25 +11055,20 @@ const Tool6 = {
                        (scenario.currentBalances.education || 0);
     }
 
-    // Calculate projectedBalance if missing
-    let projectedBalance = scenario.projectedBalance || 0;
-    if (projectedBalance === 0 && (currentBalance > 0 || scenario.monthlyBudget > 0)) {
-      const monthlyRate = annualReturnRate / 12;
-      const months = yearsToRetirement * 12;
-      const monthlyContribution = scenario.monthlyBudget || 0;
+    // Sprint 13 Fix: ALWAYS recalculate projectedBalance for consistency
+    const monthlyRate = annualReturnRate / 12;
+    const months = yearsToRetirement * 12;
+    const monthlyContribution = scenario.monthlyBudget || 0;
 
-      const fvPrincipal = currentBalance * Math.pow(1 + monthlyRate, months);
-      const fvContributions = monthlyRate > 0
-        ? monthlyContribution * ((Math.pow(1 + monthlyRate, months) - 1) / monthlyRate)
-        : monthlyContribution * months;
-      projectedBalance = Math.round(fvPrincipal + fvContributions);
-    }
+    const fvPrincipal = currentBalance * Math.pow(1 + monthlyRate, months);
+    const fvContributions = monthlyRate > 0
+      ? monthlyContribution * ((Math.pow(1 + monthlyRate, months) - 1) / monthlyRate)
+      : monthlyContribution * months;
+    const projectedBalance = Math.round(fvPrincipal + fvContributions);
 
-    // Calculate derived values
-    const inflationAdjusted = scenario.inflationAdjusted ||
-                               Math.round(projectedBalance / Math.pow(1 + inflationRate, yearsToRetirement));
-    const monthlyRetirementIncome = scenario.monthlyRetirementIncome ||
-                                     Math.round((inflationAdjusted * 0.04) / 12);
+    // Sprint 13 Fix: ALWAYS recalculate derived values for consistency
+    const inflationAdjusted = Math.round(projectedBalance / Math.pow(1 + inflationRate, yearsToRetirement));
+    const monthlyRetirementIncome = Math.round((inflationAdjusted * 0.04) / 12);
 
     return {
       ...scenario,
