@@ -789,8 +789,6 @@ const Tool6Report = {
       this.buildAllocationSection(allocation, inputs),
       this.buildGPTSection(gptInsights),
       this.buildProjectionsSection(projections, inputs),
-      // Sprint 13: Gap Analysis - how they compare to benchmarks
-      this.buildGapAnalysisSection(inputs, projections, enhancedInsights),
       this.buildEducationSection(projections, inputs),
       // Sprint 13: Milestone Timeline - balance at key ages
       this.buildMilestoneSection(inputs, projections, enhancedInsights),
