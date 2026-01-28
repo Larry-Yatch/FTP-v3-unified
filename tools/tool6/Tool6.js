@@ -10834,12 +10834,27 @@ const Tool6 = {
       const profile = PROFILE_DEFINITIONS[profileId] || PROFILE_DEFINITIONS[7];
 
       // Sprint 13: Get income from grossIncome field (added to scenario save)
-      // Fallback to toolStatus if not in scenario (for old scenarios)
-      let grossIncome = scenarioData.grossIncome || scenarioData.income || 0;
-      if (!grossIncome) {
+      // Fallback chain: scenarioData.grossIncome → scenarioData.income → toolStatus
+      let grossIncome = 0;
+      let incomeSource = 'scenario.grossIncome';
+
+      if (scenarioData.grossIncome) {
+        grossIncome = scenarioData.grossIncome;
+      } else if (scenarioData.income) {
+        grossIncome = scenarioData.income;
+        incomeSource = 'scenario.income (fallback)';
+        Logger.log(`[Tool6.generatePDF] WARNING: Using scenarioData.income fallback (old scenario format)`);
+      } else {
         const toolStatus = this.checkToolCompletion(clientId);
         grossIncome = toolStatus.grossIncome || toolStatus.income || 0;
-        Logger.log(`[Tool6.generatePDF] Using toolStatus grossIncome fallback: ${grossIncome}`);
+        incomeSource = 'toolStatus (fallback)';
+        Logger.log(`[Tool6.generatePDF] WARNING: Using toolStatus income fallback - scenario missing income data`);
+      }
+
+      if (!grossIncome || grossIncome <= 0) {
+        Logger.log(`[Tool6.generatePDF] WARNING: grossIncome is ${grossIncome} - savings rate and income-based calculations will be affected`);
+      } else {
+        Logger.log(`[Tool6.generatePDF] Using grossIncome=${grossIncome} from ${incomeSource}`);
       }
 
       // Build inputs object
@@ -10906,10 +10921,16 @@ const Tool6 = {
       let traditionalPercent = scenarioData.traditionalPercent || 0;
       let taxablePercent = scenarioData.taxablePercent || 0;
 
-      // If all tax percentages are 0 but we have allocations, calculate from allocations
+      // Recalculate tax percentages if they look invalid:
+      // - All three are 0 (old scenario without saved percentages)
+      // - Sum doesn't approximate 100% (corrupted or partial data)
       const allocations = scenarioData.allocations || {};
-      if (taxFreePercent === 0 && traditionalPercent === 0 && taxablePercent === 0 && Object.keys(allocations).length > 0) {
-        Logger.log('[Tool6.generatePDF] Calculating tax percentages from allocations...');
+      const taxPercentSum = taxFreePercent + traditionalPercent + taxablePercent;
+      const needsTaxRecalc = Object.keys(allocations).length > 0 &&
+        (taxPercentSum === 0 || taxPercentSum < 95 || taxPercentSum > 105);
+
+      if (needsTaxRecalc) {
+        Logger.log(`[Tool6.generatePDF] Tax percentages invalid (sum=${taxPercentSum}%), recalculating from allocations...`);
         let taxFree = 0, traditional = 0, taxable = 0, total = 0;
 
         for (const [vehicle, amount] of Object.entries(allocations)) {
@@ -10957,11 +10978,20 @@ const Tool6 = {
       };
 
       // Get GPT insights (3-tier fallback)
+      // Validate allocations before GPT call - warn if empty (unusual state)
+      const allocationData = scenarioData.allocations || {};
+      const allocationCount = Object.keys(allocationData).length;
+      if (allocationCount === 0) {
+        Logger.log('[Tool6.generatePDF] WARNING: No allocations found in scenario data - PDF will have empty allocation section');
+      } else {
+        Logger.log(`[Tool6.generatePDF] Processing ${allocationCount} vehicle allocations`);
+      }
+
       Logger.log('[Tool6.generatePDF] Generating GPT insights...');
       const gptInsights = Tool6GPTAnalysis.generateSingleReportInsights({
         clientId,
         profile,
-        allocation: scenarioData.allocations || {},
+        allocation: allocationData,
         projections,
         inputs,
         tool1Data,
@@ -10977,7 +11007,7 @@ const Tool6 = {
       const enhancedInsights = Tool6GPTAnalysis.generateEnhancedReportInsights({
         clientId,
         profile,
-        allocations: scenarioData.allocations || {},
+        allocations: allocationData,
         userInputs: inputs,
         projections: {
           projectedBalance: projectedBalance,
@@ -10998,7 +11028,7 @@ const Tool6 = {
       const htmlContent = Tool6Report.generateSingleReportHTML({
         clientName,
         profile,
-        allocation: scenarioData.allocations || {},
+        allocation: allocationData,
         projections,
         inputs,
         gptInsights,
@@ -11196,15 +11226,24 @@ const Tool6 = {
   },
 
   /**
-   * Get client name from DataService or return default
+   * Get client name from DataService or return default with clientId for uniqueness
    */
   getClientName(clientId) {
     try {
       const tool2Data = DataService.getLatestResponse(clientId, 'tool2');
       const formData = tool2Data?.data?.data || {};
-      return formData.name || formData.firstName || 'Client';
+      const name = formData.name || formData.firstName;
+      if (name) {
+        return name;
+      }
+      // Fallback: use "Client" with last 6 chars of clientId for uniqueness
+      Logger.log(`[Tool6.getClientName] WARNING: No name found in Tool 2 data for client ${clientId}`);
+      const shortId = clientId ? clientId.slice(-6) : 'Unknown';
+      return `Client_${shortId}`;
     } catch (e) {
-      return 'Client';
+      Logger.log(`[Tool6.getClientName] Error getting client name: ${e.message}`);
+      const shortId = clientId ? clientId.slice(-6) : 'Unknown';
+      return `Client_${shortId}`;
     }
   }
 };

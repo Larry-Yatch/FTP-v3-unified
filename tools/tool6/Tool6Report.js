@@ -1086,13 +1086,29 @@ const Tool6Report = {
 
   /**
    * Build education section (conditional)
+   * Validates education projection data before rendering
    */
   buildEducationSection(projections, inputs) {
+    // Skip if no children or no education projection data
     if (!inputs?.hasChildren || !projections?.educationProjection) {
       return '';
     }
 
     const eduProj = projections.educationProjection;
+
+    // Validate educationProjection is an object with expected properties
+    // It could be a number (old format) or an object (new format)
+    let projectedBalance = 0;
+    if (typeof eduProj === 'object' && eduProj !== null) {
+      projectedBalance = eduProj.projectedBalance || eduProj.balance || 0;
+    } else if (typeof eduProj === 'number') {
+      projectedBalance = eduProj;
+    }
+
+    // Skip section if projected balance is 0 or invalid
+    if (!projectedBalance || projectedBalance <= 0) {
+      return '';
+    }
 
     return `
       <h2>Education Planning</h2>
@@ -1100,7 +1116,7 @@ const Tool6Report = {
         <p><strong>Children:</strong> ${inputs.numChildren || 1}</p>
         <p><strong>Years to Education:</strong> ${inputs.yearsToEducation || 18}</p>
         <p><strong>Education Vehicle:</strong> ${inputs.educationVehicle || '529 Plan'}</p>
-        <p><strong>Projected Education Fund:</strong> $${(eduProj.projectedBalance || 0).toLocaleString()}</p>
+        <p><strong>Projected Education Fund:</strong> $${projectedBalance.toLocaleString()}</p>
       </div>
     `;
   },
@@ -1986,8 +2002,11 @@ const Tool6Report = {
 
   /**
    * Sprint 13: Get setup instructions for a vehicle, handling name normalization
+   * Uses priority-based matching to avoid false positives (e.g., "IRA" matching "SIMPLE IRA")
    */
   getVehicleSetupInstructions(vehicleName) {
+    if (!vehicleName) return null;
+
     // Try exact match first
     if (VEHICLE_SETUP_INSTRUCTIONS[vehicleName]) {
       return VEHICLE_SETUP_INSTRUCTIONS[vehicleName];
@@ -1999,17 +2018,65 @@ const Tool6Report = {
       return VEHICLE_SETUP_INSTRUCTIONS[normalized];
     }
 
-    // Try partial matching for common vehicles
-    const keys = Object.keys(VEHICLE_SETUP_INSTRUCTIONS);
-    for (const key of keys) {
-      // Check if normalized name contains key or vice versa
-      if (normalized.toLowerCase().includes(key.toLowerCase()) ||
-          key.toLowerCase().includes(normalized.toLowerCase())) {
-        return VEHICLE_SETUP_INSTRUCTIONS[key];
+    // Canonical name mapping for common variations
+    // More specific patterns listed first to match before generic ones
+    const vehicleAliases = {
+      // 401(k) variations - most specific first
+      'mega backdoor roth': 'Mega Backdoor Roth',
+      'solo 401(k) employer': 'Solo 401(k) Employer',
+      'solo 401(k) employee': 'Solo 401(k) Employee',
+      'solo 401k employer': 'Solo 401(k) Employer',
+      'solo 401k employee': 'Solo 401(k) Employee',
+      '401(k) employer match': '401(k) Employer Match',
+      '401(k) traditional': '401(k) Traditional',
+      '401(k) roth': '401(k) Roth',
+      '401k employer match': '401(k) Employer Match',
+      '401k traditional': '401(k) Traditional',
+      '401k roth': '401(k) Roth',
+      'employer match': '401(k) Employer Match',
+      // IRA variations - most specific first
+      'backdoor roth ira': 'Backdoor Roth IRA',
+      'backdoor roth': 'Backdoor Roth IRA',
+      'sep-ira': 'SEP-IRA',
+      'sep ira': 'SEP-IRA',
+      'simple ira': 'SIMPLE IRA',
+      'ira traditional': 'IRA Traditional',
+      'traditional ira': 'IRA Traditional',
+      'ira roth': 'IRA Roth',
+      'roth ira': 'IRA Roth',
+      // Other accounts
+      'health savings account': 'HSA',
+      'hsa': 'HSA',
+      '529 plan': '529 Plan',
+      '529': '529 Plan',
+      'coverdell esa': 'Coverdell ESA',
+      'coverdell': 'Coverdell ESA',
+      'family bank': 'Family Bank',
+      'taxable brokerage': 'Family Bank'
+    };
+
+    // Try alias matching (case-insensitive)
+    const normalizedLower = normalized.toLowerCase();
+    if (vehicleAliases[normalizedLower]) {
+      const canonicalName = vehicleAliases[normalizedLower];
+      if (VEHICLE_SETUP_INSTRUCTIONS[canonicalName]) {
+        return VEHICLE_SETUP_INSTRUCTIONS[canonicalName];
       }
     }
 
-    // Return null if no match found
+    // Try partial alias matching - check if normalized name contains any alias
+    // Sorted by key length descending to match most specific first
+    const sortedAliases = Object.keys(vehicleAliases).sort((a, b) => b.length - a.length);
+    for (const alias of sortedAliases) {
+      if (normalizedLower.includes(alias)) {
+        const canonicalName = vehicleAliases[alias];
+        if (VEHICLE_SETUP_INSTRUCTIONS[canonicalName]) {
+          return VEHICLE_SETUP_INSTRUCTIONS[canonicalName];
+        }
+      }
+    }
+
+    // Return null if no match found - safer than guessing wrong
     return null;
   }
 };
