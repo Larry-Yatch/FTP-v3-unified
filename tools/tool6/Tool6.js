@@ -10830,7 +10830,13 @@ const Tool6 = {
       const profile = PROFILE_DEFINITIONS[profileId] || PROFILE_DEFINITIONS[7];
 
       // Sprint 13: Get income from grossIncome field (added to scenario save)
-      const grossIncome = scenarioData.grossIncome || scenarioData.income || 0;
+      // Fallback to toolStatus if not in scenario (for old scenarios)
+      let grossIncome = scenarioData.grossIncome || scenarioData.income || 0;
+      if (!grossIncome) {
+        const toolStatus = this.checkToolCompletion(clientId);
+        grossIncome = toolStatus.grossIncome || toolStatus.income || 0;
+        Logger.log(`[Tool6.generatePDF] Using toolStatus grossIncome fallback: ${grossIncome}`);
+      }
 
       // Build inputs object
       const inputs = {
@@ -10870,15 +10876,58 @@ const Tool6 = {
       const monthlyRetirementIncome = scenarioData.monthlyRetirementIncome ||
                                        Math.round((inflationAdjusted * 0.04) / 12); // 4% rule
 
+      // Sprint 13: Calculate tax percentages from allocations if not saved (for old scenarios)
+      let taxFreePercent = scenarioData.taxFreePercent || 0;
+      let traditionalPercent = scenarioData.traditionalPercent || 0;
+      let taxablePercent = scenarioData.taxablePercent || 0;
+
+      // If all tax percentages are 0 but we have allocations, calculate from allocations
+      const allocations = scenarioData.allocations || {};
+      if (taxFreePercent === 0 && traditionalPercent === 0 && taxablePercent === 0 && Object.keys(allocations).length > 0) {
+        Logger.log('[Tool6.generatePDF] Calculating tax percentages from allocations...');
+        let taxFree = 0, traditional = 0, taxable = 0, total = 0;
+
+        for (const [vehicle, amount] of Object.entries(allocations)) {
+          if (amount <= 0) continue;
+          total += amount;
+          const vLower = vehicle.toLowerCase();
+
+          // Tax-Free: Roth, HSA, 529, Coverdell, Backdoor Roth
+          if (vLower.includes('roth') || vLower.includes('hsa') ||
+              vLower.includes('529') || vLower.includes('coverdell') ||
+              vLower.includes('backdoor')) {
+            taxFree += amount;
+          }
+          // Tax-Deferred: Traditional 401(k), Traditional IRA, SEP, SIMPLE, Solo 401(k) Employer
+          else if (vLower.includes('traditional') || vLower.includes('trad') ||
+                   vLower.includes('sep') || vLower.includes('simple') ||
+                   (vLower.includes('solo') && vLower.includes('employer')) ||
+                   (vLower.includes('401') && !vLower.includes('roth'))) {
+            traditional += amount;
+          }
+          // Taxable: Everything else (Family Bank, taxable brokerage, etc.)
+          else {
+            taxable += amount;
+          }
+        }
+
+        if (total > 0) {
+          taxFreePercent = Math.round((taxFree / total) * 100);
+          traditionalPercent = Math.round((traditional / total) * 100);
+          taxablePercent = Math.round((taxable / total) * 100);
+          Logger.log(`[Tool6.generatePDF] Tax breakdown: Free=${taxFreePercent}%, Deferred=${traditionalPercent}%, Taxable=${taxablePercent}%`);
+        }
+      }
+
       // Build projections object
       const projections = {
         projectedBalance: projectedBalance,
         inflationAdjusted: inflationAdjusted,
         monthlyRetirementIncome: monthlyRetirementIncome,
         currentBalance: currentBalance,
-        taxFreePercent: scenarioData.taxFreePercent || 0,
-        traditionalPercent: scenarioData.traditionalPercent || 0,
-        taxablePercent: scenarioData.taxablePercent || 0,
+        taxFreePercent: taxFreePercent,
+        traditionalPercent: traditionalPercent,
+        taxablePercent: taxablePercent,
         educationProjection: scenarioData.educationProjection || null
       };
 

@@ -965,9 +965,9 @@ THEIR ALLOCATION:
 ${allocationList}
 
 PROJECTIONS:
-- Projected Balance at Retirement: $${(projections?.balance || 0).toLocaleString()}
+- Projected Balance at Retirement: $${(projections?.projectedBalance || projections?.balance || 0).toLocaleString()}
 - Inflation-Adjusted Value: $${(projections?.inflationAdjusted || 0).toLocaleString()}
-- Monthly Retirement Income (4% rule): $${(projections?.monthlyIncome || 0).toLocaleString()}
+- Monthly Retirement Income (4% rule): $${(projections?.monthlyRetirementIncome || projections?.monthlyIncome || 0).toLocaleString()}
 
 WRITING GUIDELINES:
 - Use THEIR exact numbers and vehicle names
