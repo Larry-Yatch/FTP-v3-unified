@@ -1521,9 +1521,10 @@ const Tool6 = {
    * @param {Object} params.seeds - Non-discretionary seeds from getNonDiscretionarySeeds()
    * @param {Array} params.vehicleOrder - Priority order from getVehiclePriorityOrder()
    * @param {Object} params.eligibleVehicles - Map from getEligibleVehicles()
+   * @param {string} params.taxPreference - 'Now' (Roth), 'Later' (Traditional), or 'Both' (balanced)
    * @returns {Object} Final allocations by vehicle name
    */
-  coreAllocate({ domainWeights, monthlyBudget, seeds, vehicleOrder, eligibleVehicles }) {
+  coreAllocate({ domainWeights, monthlyBudget, seeds, vehicleOrder, eligibleVehicles, taxPreference }) {
     const allocations = {};
     const cumulativeAllocations = {};  // Track cross-domain usage
 
@@ -1605,7 +1606,6 @@ const Tool6 = {
 
         // Check if this vehicle shares a limit with another eligible vehicle
         if (sharedWith && eligibleVehicles[sharedWith] && domainVehicles.includes(sharedWith)) {
-          // Split allocation 50/50 between the two vehicles
           processedVehicles.add(vehicle);
           processedVehicles.add(sharedWith);
 
@@ -1615,17 +1615,26 @@ const Tool6 = {
 
           if (effectiveSharedLimit <= 0) continue;
 
-          // Split: allocate half to each, up to the shared limit
           const totalToAllocate = Math.min(remaining, effectiveSharedLimit);
-          const halfAllocation = totalToAllocate / 2;
 
-          if (halfAllocation > 0) {
-            allocations[vehicle] = (allocations[vehicle] || 0) + halfAllocation;
-            cumulativeAllocations[vehicle] = (cumulativeAllocations[vehicle] || 0) + halfAllocation;
-
-            allocations[sharedWith] = (allocations[sharedWith] || 0) + halfAllocation;
-            cumulativeAllocations[sharedWith] = (cumulativeAllocations[sharedWith] || 0) + halfAllocation;
-
+          if (totalToAllocate > 0) {
+            // Tax preference determines how to allocate between shared-limit vehicles:
+            // - 'Now' (Roth-heavy) or 'Later' (Traditional-heavy): Fill first vehicle in priority order
+            //   (priority order is already sorted by prioritizeRothAccounts/prioritizeTraditionalAccounts)
+            // - 'Both' (Balanced): Split 50/50 between the two vehicles
+            if (taxPreference === 'Both') {
+              // Balanced: split 50/50
+              const halfAllocation = totalToAllocate / 2;
+              allocations[vehicle] = (allocations[vehicle] || 0) + halfAllocation;
+              cumulativeAllocations[vehicle] = (cumulativeAllocations[vehicle] || 0) + halfAllocation;
+              allocations[sharedWith] = (allocations[sharedWith] || 0) + halfAllocation;
+              cumulativeAllocations[sharedWith] = (cumulativeAllocations[sharedWith] || 0) + halfAllocation;
+            } else {
+              // 'Now' or 'Later': Fill the priority vehicle first (already first in order)
+              allocations[vehicle] = (allocations[vehicle] || 0) + totalToAllocate;
+              cumulativeAllocations[vehicle] = (cumulativeAllocations[vehicle] || 0) + totalToAllocate;
+              // Shared vehicle gets $0 (it's lower priority)
+            }
             remaining -= totalToAllocate;
           }
         } else {
@@ -1728,7 +1737,8 @@ const Tool6 = {
       monthlyBudget,
       seeds,
       vehicleOrder,
-      eligibleVehicles
+      eligibleVehicles,
+      taxPreference
     });
 
     // Calculate totals by domain
