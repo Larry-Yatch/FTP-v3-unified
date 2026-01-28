@@ -770,6 +770,23 @@ const Tool6 = {
     }
 
     // ========================================================================
+    // CHECK IF CLASSIFICATION QUESTIONS ANSWERED
+    // If user has not answered any classification questions yet, return null
+    // to force them through the classification flow before assigning a profile.
+    // This prevents auto-assignment of default Profile 7 when only backup
+    // questions (age, income, etc.) have been saved.
+    // ========================================================================
+    const hasClassificationAnswers =
+      preSurveyData.c1_robsStatus ||      // First classification question (new format)
+      preSurveyData.q6_robsInUse ||       // Legacy: ROBS in use
+      preSurveyData.q3_workSituation;     // Legacy: work situation
+
+    if (!hasClassificationAnswers) {
+      Logger.log('[classifyProfile] No classification questions answered yet - returning null');
+      return null;
+    }
+
+    // ========================================================================
     // EXTRACT UPSTREAM DATA (for derived checks)
     // ========================================================================
     const age = parseInt(preSurveyData.age) ||
@@ -3303,6 +3320,99 @@ const Tool6 = {
   },
 
   /**
+   * Build page header section
+   * Phase 2b extraction: Loading overlay, navigation, welcome message, profile banner, blocker
+   *
+   * @param {Object} params - Header parameters
+   * @param {boolean} params.hasPreSurvey - Whether user has completed questionnaire
+   * @param {Object} params.profile - Classified investor profile (name, icon)
+   * @param {Object} params.resolvedData - Resolved client data
+   * @param {Object} params.dataStatus - Data availability status
+   * @returns {string} HTML for page header
+   */
+  buildHeader({ hasPreSurvey, profile, resolvedData, dataStatus }) {
+    return `
+    <!-- Loading Overlay - matches Tool 4 structure -->
+    <div class="loading-overlay" id="loadingOverlay">
+      <div class="loading-content">
+        <div class="spinner"></div>
+        <div class="loading-text" id="loadingText">Calculating Your Allocation...</div>
+        <div class="loading-subtext" id="loadingSubtext">Analyzing your retirement profile</div>
+      </div>
+    </div>
+
+    <div class="tool6-container">
+      <!-- Navigation Header -->
+      <div class="tool-navigation">
+        <button type="button" class="btn-nav" onclick="returnToDashboard()">
+          &#8592; Return to Dashboard
+        </button>
+        <span class="tool-title">Retirement Blueprint Calculator</span>
+        <div style="width: 180px;"></div> <!-- Spacer for centering -->
+      </div>
+
+      <!-- Welcome Message - Always visible at top -->
+      <div class="welcome-message">
+        ${hasPreSurvey ? `
+        <div class="welcome-title">&#128075; Welcome Back!</div>
+        <div class="welcome-text">
+          Your previous settings are loaded. You are classified as a <strong>${profile?.name || 'Custom'}</strong> investor.
+          Adjust your settings below, compare scenarios, or click <strong>Change Profile</strong> to start fresh.
+        </div>
+        ` : `
+        <div class="welcome-title">Welcome to Your Retirement Blueprint Calculator</div>
+        <div class="welcome-text">
+          This tool optimizes your retirement savings across different account types (401k, IRA, HSA, etc.) for maximum tax efficiency.
+          Answer a few questions below to get your personalized allocation. <strong>Time needed:</strong> 3-5 minutes.
+          ${resolvedData.hasTool4 ? '<br><strong>Data imported:</strong> Your budget and investment score from Tool 4.' : ''}
+        </div>
+        `}
+      </div>
+
+      <!-- Sprint 11.2: Persistent Profile Banner -->
+      <div class="profile-banner ${hasPreSurvey ? 'show' : ''}" id="profileBanner">
+        <div class="profile-banner-info">
+          <div class="profile-banner-icon" id="profileBannerIcon">${profile?.icon || '👤'}</div>
+          <div class="profile-banner-details">
+            <span class="profile-banner-label">Your Profile</span>
+            <span class="profile-banner-name" id="profileBannerName">${profile?.name || 'Not Set'}</span>
+          </div>
+        </div>
+        <div class="profile-banner-stats">
+          <div class="profile-banner-stat">
+            <span class="profile-banner-stat-value" id="profileBannerBudget">$${(resolvedData.monthlyBudget || 0).toLocaleString()}</span>
+            <span class="profile-banner-stat-label">Monthly Budget</span>
+          </div>
+          <div class="profile-banner-stat">
+            <span class="profile-banner-stat-value" id="profileBannerYears">${resolvedData.yearsToRetirement || '--'}</span>
+            <span class="profile-banner-stat-label">Years to Retire</span>
+          </div>
+          <div class="profile-banner-stat">
+            <span class="profile-banner-stat-value" id="profileBannerScore">${resolvedData.investmentScore || 4}/7</span>
+            <span class="profile-banner-stat-label">Risk Score</span>
+          </div>
+          <div class="profile-banner-stat">
+            <span class="profile-banner-stat-value" id="profileBannerFiling">${this.getFilingStatusDisplay(resolvedData.filingStatus)}</span>
+            <span class="profile-banner-stat-label">Filing Status</span>
+          </div>
+        </div>
+        <button type="button" class="profile-banner-change" onclick="restartClassification()">
+          Change Profile
+        </button>
+      </div>
+
+      ${!dataStatus.overall.canProceed ? `
+      <!-- Blocker Message - Tool 4 Required -->
+      <div class="section-card" style="margin-bottom: 16px;">
+        <div class="blocker-message">
+          <strong>Action Required:</strong> ${dataStatus.overall.blockerMessage}
+        </div>
+      </div>
+      ` : ''}
+    `;
+  },
+
+  /**
    * Build unified page with questionnaire + calculator
    * @param {string} clientId - Client ID
    * @param {Object} resolvedData - SINGLE SOURCE OF TRUTH from resolveClientData()
@@ -3378,6 +3488,9 @@ const Tool6 = {
       `;
     }
 
+    // Build header section (Phase 2b extraction)
+    const headerHtml = this.buildHeader({ hasPreSurvey, profile, resolvedData, dataStatus });
+
     return `
 <!DOCTYPE html>
 <html>
@@ -3389,83 +3502,7 @@ const Tool6 = {
   ${tool6Styles}
 </head>
 <body>
-  <!-- Loading Overlay - matches Tool 4 structure -->
-  <div class="loading-overlay" id="loadingOverlay">
-    <div class="loading-content">
-      <div class="spinner"></div>
-      <div class="loading-text" id="loadingText">Calculating Your Allocation...</div>
-      <div class="loading-subtext" id="loadingSubtext">Analyzing your retirement profile</div>
-    </div>
-  </div>
-
-  <div class="tool6-container">
-    <!-- Navigation Header -->
-    <div class="tool-navigation">
-      <button type="button" class="btn-nav" onclick="returnToDashboard()">
-        &#8592; Return to Dashboard
-      </button>
-      <span class="tool-title">Retirement Blueprint Calculator</span>
-      <div style="width: 180px;"></div> <!-- Spacer for centering -->
-    </div>
-
-    <!-- Welcome Message - Always visible at top -->
-    <div class="welcome-message">
-      ${hasPreSurvey ? `
-      <div class="welcome-title">&#128075; Welcome Back!</div>
-      <div class="welcome-text">
-        Your previous settings are loaded. You are classified as a <strong>${profile?.name || 'Custom'}</strong> investor.
-        Adjust your settings below, compare scenarios, or click <strong>Change Profile</strong> to start fresh.
-      </div>
-      ` : `
-      <div class="welcome-title">Welcome to Your Retirement Blueprint Calculator</div>
-      <div class="welcome-text">
-        This tool optimizes your retirement savings across different account types (401k, IRA, HSA, etc.) for maximum tax efficiency.
-        Answer a few questions below to get your personalized allocation. <strong>Time needed:</strong> 3-5 minutes.
-        ${resolvedData.hasTool4 ? '<br><strong>Data imported:</strong> Your budget and investment score from Tool 4.' : ''}
-      </div>
-      `}
-    </div>
-
-    <!-- Sprint 11.2: Persistent Profile Banner -->
-    <div class="profile-banner ${hasPreSurvey ? 'show' : ''}" id="profileBanner">
-      <div class="profile-banner-info">
-        <div class="profile-banner-icon" id="profileBannerIcon">${profile?.icon || '👤'}</div>
-        <div class="profile-banner-details">
-          <span class="profile-banner-label">Your Profile</span>
-          <span class="profile-banner-name" id="profileBannerName">${profile?.name || 'Not Set'}</span>
-        </div>
-      </div>
-      <div class="profile-banner-stats">
-        <div class="profile-banner-stat">
-          <span class="profile-banner-stat-value" id="profileBannerBudget">$${(resolvedData.monthlyBudget || 0).toLocaleString()}</span>
-          <span class="profile-banner-stat-label">Monthly Budget</span>
-        </div>
-        <div class="profile-banner-stat">
-          <span class="profile-banner-stat-value" id="profileBannerYears">${resolvedData.yearsToRetirement || '--'}</span>
-          <span class="profile-banner-stat-label">Years to Retire</span>
-        </div>
-        <div class="profile-banner-stat">
-          <span class="profile-banner-stat-value" id="profileBannerScore">${resolvedData.investmentScore || 4}/7</span>
-          <span class="profile-banner-stat-label">Risk Score</span>
-        </div>
-        <div class="profile-banner-stat">
-          <span class="profile-banner-stat-value" id="profileBannerFiling">${this.getFilingStatusDisplay(resolvedData.filingStatus)}</span>
-          <span class="profile-banner-stat-label">Filing Status</span>
-        </div>
-      </div>
-      <button type="button" class="profile-banner-change" onclick="restartClassification()">
-        Change Profile
-      </button>
-    </div>
-
-    ${!dataStatus.overall.canProceed ? `
-    <!-- Blocker Message - Tool 4 Required -->
-    <div class="section-card" style="margin-bottom: 16px;">
-      <div class="blocker-message">
-        <strong>Action Required:</strong> ${dataStatus.overall.blockerMessage}
-      </div>
-    </div>
-    ` : ''}
+  ${headerHtml}
 
     ${backupSectionHtml}
 
