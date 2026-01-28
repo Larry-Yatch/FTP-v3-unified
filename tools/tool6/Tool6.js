@@ -10868,9 +10868,30 @@ const Tool6 = {
       }
 
       // Sprint 13: Calculate derived projections if not saved
-      const projectedBalance = scenarioData.projectedBalance || 0;
+      // Get return rate from investment score (same formula as Tool6Report.getReturnRate)
+      const investmentScore = inputs.investmentScore || 4;
+      const returnRates = { 1: 0.08, 2: 0.10, 3: 0.12, 4: 0.14, 5: 0.16, 6: 0.18, 7: 0.20 };
+      const annualReturnRate = returnRates[investmentScore] || 0.14;
       const yearsToRetirement = inputs.yearsToRetirement;
       const inflationRate = 0.025; // 2.5% annual inflation
+
+      // Calculate projectedBalance if not saved (for old scenarios)
+      let projectedBalance = scenarioData.projectedBalance || 0;
+      if (projectedBalance === 0 && (currentBalance > 0 || inputs.monthlyBudget > 0)) {
+        // Recalculate using same formula as buildMilestoneSection for consistency
+        const monthlyRate = annualReturnRate / 12;
+        const months = yearsToRetirement * 12;
+        const monthlyContribution = inputs.monthlyBudget || 0;
+
+        // FV = PV(1+r)^n + PMT * (((1+r)^n - 1) / r)
+        const fvPrincipal = currentBalance * Math.pow(1 + monthlyRate, months);
+        const fvContributions = monthlyRate > 0
+          ? monthlyContribution * ((Math.pow(1 + monthlyRate, months) - 1) / monthlyRate)
+          : monthlyContribution * months;
+        projectedBalance = Math.round(fvPrincipal + fvContributions);
+        Logger.log(`[Tool6.generatePDF] Recalculated projectedBalance: $${projectedBalance.toLocaleString()}`);
+      }
+
       const inflationAdjusted = scenarioData.inflationAdjusted ||
                                  Math.round(projectedBalance / Math.pow(1 + inflationRate, yearsToRetirement));
       const monthlyRetirementIncome = scenarioData.monthlyRetirementIncome ||
@@ -11008,6 +11029,58 @@ const Tool6 = {
   },
 
   /**
+   * Helper to fill in missing projection values for a scenario
+   * Sprint 13: Ensures consistent projections for old scenarios
+   */
+  ensureScenarioProjections(scenario) {
+    if (!scenario) return scenario;
+
+    // Get return rate from investment score
+    const investmentScore = scenario.investmentScore || 4;
+    const returnRates = { 1: 0.08, 2: 0.10, 3: 0.12, 4: 0.14, 5: 0.16, 6: 0.18, 7: 0.20 };
+    const annualReturnRate = returnRates[investmentScore] || 0.14;
+    const yearsToRetirement = scenario.yearsToRetirement || 25;
+    const inflationRate = 0.025;
+
+    // Calculate currentBalance if not present
+    let currentBalance = scenario.currentBalance || 0;
+    if (!currentBalance && scenario.currentBalances) {
+      currentBalance = (scenario.currentBalances['401k'] || 0) +
+                       (scenario.currentBalances.ira || 0) +
+                       (scenario.currentBalances.hsa || 0) +
+                       (scenario.currentBalances.education || 0);
+    }
+
+    // Calculate projectedBalance if missing
+    let projectedBalance = scenario.projectedBalance || 0;
+    if (projectedBalance === 0 && (currentBalance > 0 || scenario.monthlyBudget > 0)) {
+      const monthlyRate = annualReturnRate / 12;
+      const months = yearsToRetirement * 12;
+      const monthlyContribution = scenario.monthlyBudget || 0;
+
+      const fvPrincipal = currentBalance * Math.pow(1 + monthlyRate, months);
+      const fvContributions = monthlyRate > 0
+        ? monthlyContribution * ((Math.pow(1 + monthlyRate, months) - 1) / monthlyRate)
+        : monthlyContribution * months;
+      projectedBalance = Math.round(fvPrincipal + fvContributions);
+    }
+
+    // Calculate derived values
+    const inflationAdjusted = scenario.inflationAdjusted ||
+                               Math.round(projectedBalance / Math.pow(1 + inflationRate, yearsToRetirement));
+    const monthlyRetirementIncome = scenario.monthlyRetirementIncome ||
+                                     Math.round((inflationAdjusted * 0.04) / 12);
+
+    return {
+      ...scenario,
+      currentBalance,
+      projectedBalance,
+      inflationAdjusted,
+      monthlyRetirementIncome
+    };
+  },
+
+  /**
    * Generate PDF comparison report for two scenarios
    * Sprint 7.4: Comparison Report PDF
    *
@@ -11019,6 +11092,10 @@ const Tool6 = {
   generateComparisonPDF(clientId, scenario1, scenario2) {
     try {
       Logger.log(`[Tool6.generateComparisonPDF] Generating comparison PDF for client ${clientId}`);
+
+      // Ensure both scenarios have complete projection data
+      scenario1 = this.ensureScenarioProjections(scenario1);
+      scenario2 = this.ensureScenarioProjections(scenario2);
 
       // Get client name
       const clientName = this.getClientName(clientId);
