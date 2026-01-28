@@ -31,25 +31,20 @@ const Tool6 = {
     console.log('=== Tool6.render START for client: ' + clientId + ' ===');
 
     try {
-      // Check Tools 1-5 completion status
-      console.log('Calling checkToolCompletion...');
-      let toolStatus = this.checkToolCompletion(clientId);
-      console.log('checkToolCompletion returned. hasTool4: ' + toolStatus.hasTool4);
+      // SINGLE SOURCE OF TRUTH: Resolve all client data from all sources
+      console.log('Calling resolveClientData...');
+      const resolvedData = this.resolveClientData(clientId);
+      console.log('resolveClientData returned. hasCriticalData: ' + resolvedData.hasCriticalData);
 
-      // Check if pre-survey completed (questionnaire answers)
-      const preSurveyData = this.getPreSurvey(clientId);
-
-      // Sprint 10.1: Merge backup data if user answered backup questions
-      if (preSurveyData) {
-        toolStatus = this.mergeBackupData(toolStatus, preSurveyData);
-        console.log('After mergeBackupData. hasCriticalData: ' + toolStatus.hasCriticalData);
-      }
+      // Extract raw data for backward compatibility with classifyProfile/calculateAllocation
+      const preSurveyData = resolvedData._preSurveyData;
+      const toolStatus = resolvedData._mergedToolStatus;
 
       // Calculate allocation if pre-survey exists
       let allocation = null;
       let profile = null;
 
-      if (preSurveyData) {
+      if (preSurveyData && Object.keys(preSurveyData).length > 0) {
         try {
           // Classify into investor profile
           profile = this.classifyProfile(clientId, preSurveyData, toolStatus);
@@ -63,8 +58,8 @@ const Tool6 = {
         }
       }
 
-      // Build unified page (questionnaire + calculator)
-      const htmlContent = this.buildUnifiedPage(clientId, toolStatus, preSurveyData, profile, allocation);
+      // Build unified page with RESOLVED data as single source of truth
+      const htmlContent = this.buildUnifiedPage(clientId, resolvedData, preSurveyData, profile, allocation);
 
       return HtmlService.createHtmlOutput(htmlContent)
         .setTitle('TruPath - Retirement Blueprint Calculator')
@@ -388,6 +383,169 @@ const Tool6 = {
   },
 
   /**
+   * SINGLE SOURCE OF TRUTH: Resolve all client data from all sources
+   *
+   * This function is the ONLY place where data resolution logic should live.
+   * Both page rendering and PDF generation should use this function.
+   *
+   * Priority order (highest to lowest):
+   * 1. preSurveyData (Tool 6 questionnaire - most recent user input)
+   * 2. toolStatus (upstream tools merged with backup data)
+   *
+   * @param {string} clientId - Client ID
+   * @returns {Object} Resolved data with all critical fields, plus metadata
+   */
+  resolveClientData(clientId) {
+    // Step 1: Get upstream tool data
+    const toolStatus = this.checkToolCompletion(clientId);
+
+    // Step 2: Get Tool 6 questionnaire data
+    const preSurveyData = this.getPreSurvey(clientId) || {};
+
+    // Step 3: Merge backup data into toolStatus (for users who skipped upstream tools)
+    const mergedToolStatus = this.mergeBackupData(toolStatus, preSurveyData);
+
+    // Step 4: Resolve all critical fields with clear priority
+    // For each field: preSurvey questionnaire answer → merged toolStatus → null (never use hardcoded defaults)
+
+    // Age: from Tool 6 backup question OR Tool 2
+    const age = parseInt(preSurveyData.backup_age) ||
+                mergedToolStatus.age ||
+                null;
+
+    // Years to retirement: from Tool 6 timeline question (a2) OR backup OR Tool 4
+    const yearsToRetirement = parseInt(preSurveyData.a2_yearsToRetirement) ||
+                               parseInt(preSurveyData.backup_yearsToRetirement) ||
+                               mergedToolStatus.yearsToRetirement ||
+                               null;
+
+    // Gross income: from Tool 6 income question (a1) OR backup OR Tool 2
+    const grossIncome = parseFloat(preSurveyData.a1_grossIncome) ||
+                        parseFloat(preSurveyData.backup_grossIncome) ||
+                        mergedToolStatus.grossIncome ||
+                        null;
+
+    // Monthly budget: from Tool 6 backup question OR Tool 4 calculated value
+    const monthlyBudget = parseFloat(preSurveyData.backup_monthlyBudget) ||
+                          mergedToolStatus.monthlyBudget ||
+                          null;
+
+    // Monthly take-home: from Tool 6 backup OR Tool 4
+    const monthlyTakeHome = parseFloat(preSurveyData.backup_monthlyIncome) ||
+                            mergedToolStatus.monthlyTakeHome ||
+                            null;
+
+    // Investment score: from Tool 6 backup OR Tool 4 (default to 4/Moderate if missing)
+    const investmentScore = parseInt(preSurveyData.backup_investmentScore) ||
+                            mergedToolStatus.investmentScore ||
+                            4;
+
+    // Filing status: from Tool 6 questionnaire (a6) OR Tool 2 derived
+    const filingStatus = preSurveyData.a6_filingStatus ||
+                         preSurveyData.backup_filingStatus ||
+                         mergedToolStatus.filingStatus ||
+                         'Single';
+
+    // Employment type / work situation: from Tool 6 classification (c5) OR Tool 2
+    const workSituation = preSurveyData.c5_workSituation ||
+                          preSurveyData.backup_employmentType ||
+                          mergedToolStatus.employmentType ||
+                          'W-2 Employee';
+
+    // HSA coverage type: derived from filing status
+    const hsaCoverageType = filingStatus === 'MFJ' ? 'Family' : 'Individual';
+
+    // Trauma pattern: from backup questions OR Tool 1
+    const traumaPattern = mergedToolStatus.traumaPattern || null;
+
+    // Children info: from Tool 6 questionnaire
+    const hasChildren = preSurveyData.a8_hasChildren === 'Yes';
+    const numChildren = parseInt(preSurveyData.a9_numChildren) || 0;
+    const yearsToEducation = parseInt(preSurveyData.a10_yearsToEducation) || 99;
+
+    // Current balances: from Tool 6 questionnaire
+    const currentBalances = {
+      '401k': parseFloat(preSurveyData.a12_current401kBalance) || 0,
+      ira: parseFloat(preSurveyData.a13_currentIRABalance) || 0,
+      hsa: parseFloat(preSurveyData.a14_currentHSABalance) || 0,
+      education: parseFloat(preSurveyData.a15_currentEducationBalance) || 0
+    };
+
+    const currentTotalBalance = currentBalances['401k'] + currentBalances.ira +
+                                currentBalances.hsa + currentBalances.education;
+
+    // Current contributions: from Tool 6 questionnaire
+    const currentContributions = {
+      '401k': parseFloat(preSurveyData.a16_monthly401kContribution) || 0,
+      ira: parseFloat(preSurveyData.a17_monthlyIRAContribution) || 0,
+      hsa: parseFloat(preSurveyData.a18_monthlyHSAContribution) || 0,
+      education: parseFloat(preSurveyData.a19_monthlyEducationContribution) || 0
+    };
+
+    // Step 5: Track which critical fields are missing
+    const missingFields = [];
+    if (!age) missingFields.push('Age (complete Tool 2 or enter in questionnaire)');
+    if (!yearsToRetirement) missingFields.push('Years to Retirement (complete Tool 4 or enter in questionnaire)');
+    if (!grossIncome) missingFields.push('Annual Income (complete Tool 2 or enter in questionnaire)');
+    if (!monthlyBudget) missingFields.push('Monthly Retirement Budget (complete Tool 4 or set allocation)');
+
+    const resolved = {
+      // Critical fields (must not be null for PDF generation)
+      age,
+      yearsToRetirement,
+      grossIncome,
+      income: grossIncome, // Alias for compatibility
+      monthlyBudget,
+      monthlyTakeHome,
+
+      // Important fields (have sensible defaults)
+      investmentScore,
+      filingStatus,
+      workSituation,
+      hsaCoverageType,
+      traumaPattern,
+
+      // Children/Education fields
+      hasChildren,
+      numChildren,
+      yearsToEducation,
+
+      // Balances
+      currentBalances,
+      currentTotalBalance,
+      currentContributions,
+
+      // Upstream tool completion flags (for UI)
+      hasTool1: mergedToolStatus.hasTool1,
+      hasTool2: mergedToolStatus.hasTool2,
+      hasTool3: mergedToolStatus.hasTool3,
+      hasTool4: mergedToolStatus.hasTool4,
+      hasTool5: mergedToolStatus.hasTool5,
+
+      // Upstream subdomain scores (for GPT insights)
+      identitySubdomainScores: mergedToolStatus.identitySubdomainScores,
+      connectionSubdomainScores: mergedToolStatus.connectionSubdomainScores,
+
+      // Metadata
+      missingFields,
+      hasCriticalData: missingFields.length === 0,
+      hasMinimumData: age && yearsToRetirement, // At least age and timeline for projections
+
+      // Raw sources (for debugging)
+      _preSurveyData: preSurveyData,
+      _mergedToolStatus: mergedToolStatus
+    };
+
+    Logger.log(`[resolveClientData] Resolved for ${clientId}:`);
+    Logger.log(`  age=${age}, yearsToRetirement=${yearsToRetirement}, grossIncome=${grossIncome}, monthlyBudget=${monthlyBudget}`);
+    if (missingFields.length > 0) {
+      Logger.log(`  Missing: ${missingFields.join(', ')}`);
+    }
+
+    return resolved;
+  },
+
+  /**
    * Get data availability status for UI display
    * Returns status badges (green/yellow/red) for each data category
    */
@@ -505,19 +663,15 @@ const Tool6 = {
       PropertiesService.getUserProperties().setProperty(preSurveyKey, JSON.stringify(preSurveyData));
       Logger.log(`Pre-survey saved for client: ${clientId}`);
 
-      // Recalculate with new data
-      let toolStatus = this.checkToolCompletion(clientId);
-      const savedPreSurvey = this.getPreSurvey(clientId);
-
-      // Sprint 10.1: Merge backup data if user answered backup questions
-      if (savedPreSurvey) {
-        toolStatus = this.mergeBackupData(toolStatus, savedPreSurvey);
-      }
+      // SINGLE SOURCE OF TRUTH: Resolve all client data after saving
+      const resolvedData = this.resolveClientData(clientId);
+      const savedPreSurvey = resolvedData._preSurveyData;
+      const toolStatus = resolvedData._mergedToolStatus;
 
       let allocation = null;
       let profile = null;
 
-      if (savedPreSurvey) {
+      if (savedPreSurvey && Object.keys(savedPreSurvey).length > 0) {
         try {
           profile = this.classifyProfile(clientId, savedPreSurvey, toolStatus);
           allocation = this.calculateAllocation(clientId, savedPreSurvey, profile, toolStatus);
@@ -526,7 +680,7 @@ const Tool6 = {
         }
       }
 
-      const htmlContent = this.buildUnifiedPage(clientId, toolStatus, savedPreSurvey, profile, allocation);
+      const htmlContent = this.buildUnifiedPage(clientId, resolvedData, savedPreSurvey, profile, allocation);
       return { success: true, nextPageHtml: htmlContent };
     } catch (error) {
       Logger.log(`Error saving pre-survey: ${error}`);
@@ -3070,11 +3224,19 @@ const Tool6 = {
 
   /**
    * Build unified page with questionnaire + calculator
+   * @param {string} clientId - Client ID
+   * @param {Object} resolvedData - SINGLE SOURCE OF TRUTH from resolveClientData()
+   * @param {Object} preSurveyData - Raw questionnaire data (for form prefilling)
+   * @param {Object} profile - Classified investor profile
+   * @param {Object} allocation - Calculated vehicle allocation
    */
-  buildUnifiedPage(clientId, toolStatus, preSurveyData, profile, allocation) {
+  buildUnifiedPage(clientId, resolvedData, preSurveyData, profile, allocation) {
     const styles = HtmlService.createHtmlOutputFromFile('shared/styles').getContent();
     const hasPreSurvey = !!preSurveyData;
     const hasAllocation = !!allocation && allocation.totalBudget > 0;
+
+    // Extract merged toolStatus for backward compatibility with helper functions
+    const toolStatus = resolvedData._mergedToolStatus || resolvedData;
 
     // Get data availability status for badges
     const dataStatus = this.getDataStatus(toolStatus);
@@ -3089,7 +3251,7 @@ const Tool6 = {
     const hasProjections = !!projections;
 
     // Build Section 0: Backup Questions (if needed)
-    const needsBackup = !toolStatus.hasTool1 || !toolStatus.hasTool2 || !toolStatus.hasTool4;
+    const needsBackup = !resolvedData.hasTool1 || !resolvedData.hasTool2 || !resolvedData.hasTool4;
     let backupSectionHtml = '';
     if (needsBackup) {
       // Check for backup answers from ANY tier
@@ -6374,7 +6536,7 @@ const Tool6 = {
       <div class="welcome-text">
         This tool optimizes your retirement savings across different account types (401k, IRA, HSA, etc.) for maximum tax efficiency.
         Answer a few questions below to get your personalized allocation. <strong>Time needed:</strong> 3-5 minutes.
-        ${toolStatus.hasTool4 ? '<br><strong>Data imported:</strong> Your budget and investment score from Tool 4.' : ''}
+        ${resolvedData.hasTool4 ? '<br><strong>Data imported:</strong> Your budget and investment score from Tool 4.' : ''}
       </div>
       `}
     </div>
@@ -6390,19 +6552,19 @@ const Tool6 = {
       </div>
       <div class="profile-banner-stats">
         <div class="profile-banner-stat">
-          <span class="profile-banner-stat-value" id="profileBannerBudget">$${(preSurveyData?.monthlyBudget || toolStatus.monthlyBudget || 0).toLocaleString()}</span>
+          <span class="profile-banner-stat-value" id="profileBannerBudget">$${(resolvedData.monthlyBudget || 0).toLocaleString()}</span>
           <span class="profile-banner-stat-label">Monthly Budget</span>
         </div>
         <div class="profile-banner-stat">
-          <span class="profile-banner-stat-value" id="profileBannerYears">${preSurveyData?.a2_yearsToRetirement || toolStatus.yearsToRetirement || '--'}</span>
+          <span class="profile-banner-stat-value" id="profileBannerYears">${resolvedData.yearsToRetirement || '--'}</span>
           <span class="profile-banner-stat-label">Years to Retire</span>
         </div>
         <div class="profile-banner-stat">
-          <span class="profile-banner-stat-value" id="profileBannerScore">${preSurveyData?.investmentScore || toolStatus.investmentScore || 4}/7</span>
+          <span class="profile-banner-stat-value" id="profileBannerScore">${resolvedData.investmentScore || 4}/7</span>
           <span class="profile-banner-stat-label">Risk Score</span>
         </div>
         <div class="profile-banner-stat">
-          <span class="profile-banner-stat-value" id="profileBannerFiling">${this.getFilingStatusDisplay(toolStatus.filingStatus)}</span>
+          <span class="profile-banner-stat-value" id="profileBannerFiling">${this.getFilingStatusDisplay(resolvedData.filingStatus)}</span>
           <span class="profile-banner-stat-label">Filing Status</span>
         </div>
       </div>
@@ -6443,24 +6605,24 @@ const Tool6 = {
       ` : ''}
 
       <div class="section-body ${hasPreSurvey ? 'collapsed' : ''}" id="profileBody">
-        <!-- Data Summary from Tools 1-5 -->
+        <!-- Data Summary from Tools 1-5 (uses resolvedData for consistency) -->
         <div style="margin-bottom: 24px;">
           <h4 style="color: var(--color-text-secondary); margin-bottom: 12px;">Your Tool 4 Allocation</h4>
           <div class="data-summary">
             <div class="data-summary-item">
               <div class="data-summary-label">Monthly Retirement Budget</div>
-              <div class="data-summary-value ${!toolStatus.monthlyBudget ? 'missing' : ''}">
-                ${toolStatus.monthlyBudget ? '$' + Number(toolStatus.monthlyBudget).toLocaleString() + '/mo' : 'Not available'}
+              <div class="data-summary-value ${!resolvedData.monthlyBudget ? 'missing' : ''}">
+                ${resolvedData.monthlyBudget ? '$' + Number(resolvedData.monthlyBudget).toLocaleString() + '/mo' : 'Not available'}
               </div>
             </div>
             <div class="data-summary-item">
               <div class="data-summary-label">Investment Score</div>
-              <div class="data-summary-value">${toolStatus.investmentScore}/7 (${INVESTMENT_SCORE_LABELS[toolStatus.investmentScore] || 'Moderate'})</div>
+              <div class="data-summary-value">${resolvedData.investmentScore}/7 (${INVESTMENT_SCORE_LABELS[resolvedData.investmentScore] || 'Moderate'})</div>
             </div>
-            ${toolStatus.age ? `
+            ${resolvedData.age ? `
             <div class="data-summary-item">
               <div class="data-summary-label">Age</div>
-              <div class="data-summary-value">${toolStatus.age}</div>
+              <div class="data-summary-value">${resolvedData.age}</div>
             </div>
             ` : ''}
           </div>
@@ -6646,9 +6808,17 @@ const Tool6 = {
     var clientId = '${clientId}';
     var formData = ${JSON.stringify(preSurveyData || {})};
     var classifiedProfile = ${profile ? JSON.stringify(profile) : 'null'};
-    var upstreamAge = ${toolStatus.age || 'null'};
-    var upstreamYearsToRetirement = ${toolStatus.yearsToRetirement || 'null'};
-    var upstreamGrossIncome = ${parseFloat(preSurveyData?.a1_grossIncome || toolStatus.grossIncome) || 0};
+
+    // ========================================================================
+    // SINGLE SOURCE OF TRUTH: All resolved values come from resolveClientData()
+    // These values are consistent between page display and PDF generation
+    // ========================================================================
+    var upstreamAge = ${resolvedData.age || 'null'};
+    var upstreamYearsToRetirement = ${resolvedData.yearsToRetirement || 'null'};
+    var upstreamGrossIncome = ${resolvedData.grossIncome || 0};
+    var upstreamMonthlyBudget = ${resolvedData.monthlyBudget || 0};
+    var upstreamFilingStatus = '${resolvedData.filingStatus || 'Single'}';
+    var upstreamWorkSituation = '${resolvedData.workSituation || 'W-2 Employee'}';
 
     // ========================================================================
     // PROJECTION CONFIG (Sprint 6.1)
@@ -6668,20 +6838,20 @@ const Tool6 = {
     // Initial projections data from server
     var initialProjections = ${projections ? JSON.stringify(projections) : 'null'};
 
-    // Investment score (for return rate calculation)
-    var currentInvestmentScore = ${preSurveyData?.investmentScore || toolStatus.investmentScore || 4};
+    // Investment score (for return rate calculation) - from resolved data
+    var currentInvestmentScore = ${resolvedData.investmentScore || 4};
 
-    // Current balances from form data
+    // Current balances from resolved data
     var currentBalances = {
-      retirement: ${(parseFloat(preSurveyData?.a12_current401kBalance) || 0) + (parseFloat(preSurveyData?.a13_currentIRABalance) || 0) + (parseFloat(preSurveyData?.a14_currentHSABalance) || 0)},
-      education: ${parseFloat(preSurveyData?.a15_currentEducationBalance) || 0}
+      retirement: ${(resolvedData.currentBalances?.['401k'] || 0) + (resolvedData.currentBalances?.ira || 0) + (resolvedData.currentBalances?.hsa || 0)},
+      education: ${resolvedData.currentBalances?.education || 0}
     };
 
-    // Years to retirement/education
-    var yearsToRetirement = ${parseInt(preSurveyData?.a2_yearsToRetirement || toolStatus.yearsToRetirement) || 25};
-    var yearsToEducation = ${parseInt(preSurveyData?.a10_yearsToEducation) || 99};
-    var numChildren = ${parseInt(preSurveyData?.a9_numChildren) || 0};
-    var hasChildren = ${preSurveyData?.a8_hasChildren === 'Yes'};
+    // Years to retirement/education - from resolved data
+    var yearsToRetirement = ${resolvedData.yearsToRetirement || 'null'};
+    var yearsToEducation = ${resolvedData.yearsToEducation || 99};
+    var numChildren = ${resolvedData.numChildren || 0};
+    var hasChildren = ${resolvedData.hasChildren || false};
 
     // Education vehicle names for filtering
     var educationVehicles = ['529_Plan', 'Coverdell_ESA'];
@@ -7281,6 +7451,24 @@ const Tool6 = {
         if (impInput) impInput.value = formData.aq_retirement_importance;
         if (anxInput) anxInput.value = formData.aq_retirement_anxiety;
         if (motInput) motInput.value = formData.aq_retirement_motivation;
+
+        // Validate before submitting - show errors in Phase B since Phase C is skipped
+        var errors = validateForm();
+        var phaseBError = document.getElementById('phaseBError');
+
+        if (errors.length > 0) {
+          if (phaseBError) {
+            phaseBError.innerHTML = errors.join('<br>');
+            phaseBError.classList.add('show');
+          }
+          return;
+        }
+
+        // Clear any previous errors
+        if (phaseBError) {
+          phaseBError.innerHTML = '';
+          phaseBError.classList.remove('show');
+        }
 
         // Go directly to submit
         submitQuestionnaire();
@@ -7926,10 +8114,8 @@ const Tool6 = {
         input.value = newYears;
       }
 
-      // Recalculate projections if function exists
-      if (typeof recalculateProjections === 'function') {
-        recalculateProjections();
-      }
+      // Recalculate projections with new years value
+      updateProjectionDisplay();
 
       // Mark as dirty to prompt save
       markCalculatorDirty();
@@ -8735,47 +8921,54 @@ const Tool6 = {
         }
       }
 
-      // Sprint 13: Get grossIncome from form element, formData, or upstream
+      // ========================================================================
+      // SINGLE SOURCE OF TRUTH: Use resolved values from server
+      // Form elements override resolved values only if user explicitly entered new values
+      // CRITICAL: No hardcoded defaults - PDF generation will validate
+      // ========================================================================
+
+      // GrossIncome: form field → resolved upstream value (NO hardcoded default)
       var grossIncomeEl = document.getElementById('a1_grossIncome');
-      var scenarioGrossIncome = (grossIncomeEl ? parseFloat(grossIncomeEl.value) : 0) ||
-                                 parseFloat(formData.a1_grossIncome) ||
+      var scenarioGrossIncome = (grossIncomeEl && grossIncomeEl.value ? parseFloat(grossIncomeEl.value) : 0) ||
                                  upstreamGrossIncome ||
-                                 0;
+                                 null;
 
-      // Get filing status from form
+      // Filing status: form field → resolved upstream value
       var filingStatusEl = document.getElementById('a6_filingStatus');
-      var scenarioFilingStatus = filingStatusEl ? filingStatusEl.value : (formData.a6_filingStatus || 'Single');
+      var scenarioFilingStatus = (filingStatusEl && filingStatusEl.value) ||
+                                  upstreamFilingStatus ||
+                                  'Single';
 
-      // Get work situation
+      // Work situation: form field → resolved upstream value
       var workSituationEl = document.getElementById('c5_workSituation');
-      var scenarioWorkSituation = workSituationEl ? workSituationEl.value : (formData.c5_workSituation || 'W-2 Employee');
+      var scenarioWorkSituation = (workSituationEl && workSituationEl.value) ||
+                                   upstreamWorkSituation ||
+                                   'W-2 Employee';
 
-      // Calculate current total balance
-      var currentTotalBalance = (parseFloat(formData.a12_current401kBalance) || 0) +
-                                 (parseFloat(formData.a13_currentIRABalance) || 0) +
-                                 (parseFloat(formData.a14_currentHSABalance) || 0) +
-                                 (parseFloat(formData.a15_currentEducationBalance) || 0);
+      // Calculate current total balance from current balances object
+      var currentTotalBalance = currentBalances.retirement + currentBalances.education;
 
       // Calculate tax percentages from allocations
       var taxPercentages = calculateTaxPercentages(allocationState.vehicles || {});
 
       // Build scenario object matching the schema
+      // CRITICAL: Use resolved values directly - NO hardcoded defaults for age/yearsToRetirement
       var scenario = {
         name: scenarioName,
         profileId: classifiedProfile ? classifiedProfile.id : 7,
-        monthlyBudget: allocationState.budget || 0,
+        monthlyBudget: allocationState.budget || upstreamMonthlyBudget || 0,
         domainWeights: allocationState.domainWeights || { Retirement: 1, Education: 0, Health: 0 },
         allocations: allocationState.vehicles || {},
         investmentScore: currentInvestmentScore || 4,
         taxStrategy: getCurrentTaxStrategy(),
         projectedBalance: getProjectedRetirementBalance(),
-        // Sprint 13: Added fields for enhanced PDF report
+        // Sprint 13: Critical fields from resolved data (NO hardcoded defaults)
         grossIncome: scenarioGrossIncome,
-        age: upstreamAge || 40,
-        yearsToRetirement: yearsToRetirement || 25,
+        age: upstreamAge,  // null if not resolved - PDF will validate
+        yearsToRetirement: yearsToRetirement,  // null if not resolved - PDF will validate
         filingStatus: scenarioFilingStatus,
         workSituation: scenarioWorkSituation,
-        hasChildren: (numChildren > 0) || (formData.a8_hasChildren === 'Yes'),
+        hasChildren: hasChildren || (numChildren > 0),
         numChildren: numChildren || 0,
         currentBalance: currentTotalBalance,
         taxFreePercent: taxPercentages.taxFree,
@@ -9055,6 +9248,13 @@ const Tool6 = {
 
       var scenario = window.savedScenarios[index];
 
+      // DEBUG: Log scenario data to help diagnose investmentScore issue
+      console.log('=== LOADING SCENARIO DEBUG ===');
+      console.log('Scenario name:', scenario.name);
+      console.log('Scenario investmentScore:', scenario.investmentScore);
+      console.log('Current page investmentScore:', currentInvestmentScore);
+      console.log('Full scenario data:', JSON.stringify(scenario, null, 2));
+
       // Confirm before loading (will overwrite current allocations)
       if (!confirm('Load scenario "' + scenario.name + '"?\\n\\nThis will replace your current allocations.')) {
         return;
@@ -9109,20 +9309,71 @@ const Tool6 = {
       }
       updateAllLockButtons();
 
+      // 4.5. Restore investment score if stored in scenario
+      if (scenario.investmentScore && typeof updateInvestmentScore === 'function') {
+        console.log('Restoring investmentScore to:', scenario.investmentScore);
+        updateInvestmentScore(scenario.investmentScore);
+      }
+
+      // 4.6. Restore current balances (affects projection calculations)
+      if (scenario.currentBalances) {
+        var retirement = (scenario.currentBalances['401k'] || 0) +
+                         (scenario.currentBalances.ira || 0) +
+                         (scenario.currentBalances.hsa || 0);
+        var education = scenario.currentBalances.education || 0;
+        currentBalances = {
+          retirement: retirement,
+          education: education
+        };
+        console.log('Restored currentBalances:', currentBalances);
+      }
+
+      // 4.7. Restore years to retirement and education inputs
+      if (scenario.yearsToRetirement !== undefined && scenario.yearsToRetirement !== null) {
+        yearsToRetirement = scenario.yearsToRetirement;
+        console.log('Restored yearsToRetirement:', yearsToRetirement);
+      }
+
+      // Education inputs can be in educationInputs object or directly on scenario
+      var eduInputs = scenario.educationInputs || {};
+      if (eduInputs.yearsToEducation !== undefined || scenario.yearsToEducation !== undefined) {
+        yearsToEducation = eduInputs.yearsToEducation || scenario.yearsToEducation || 99;
+        console.log('Restored yearsToEducation:', yearsToEducation);
+      }
+
+      // 4.8. Restore children info (affects education projections)
+      if (eduInputs.numChildren !== undefined || scenario.numChildren !== undefined) {
+        numChildren = eduInputs.numChildren || scenario.numChildren || 0;
+        hasChildren = numChildren > 0 || scenario.hasChildren || false;
+        console.log('Restored numChildren:', numChildren, 'hasChildren:', hasChildren);
+      }
+
+      // 4.9. Restore domain weights (affects budget distribution)
+      if (scenario.domainWeights) {
+        allocationState.domainWeights = scenario.domainWeights;
+        console.log('Restored domainWeights:', scenario.domainWeights);
+      }
+
       // 5. Update all vehicle displays
       updateAllVehicleDisplays();
 
-      // 6. Clear calculator dirty state
+      // 6. Recalculate projections with restored values
+      if (typeof updateProjectionDisplay === 'function') {
+        updateProjectionDisplay();
+        console.log('Projections recalculated with restored values');
+      }
+
+      // 7. Clear calculator dirty state (projections are now current)
       calculatorDirty = false;
       var recalcBtn = document.querySelector('.btn-recalc-primary');
       if (recalcBtn) {
         recalcBtn.style.animation = '';
       }
 
-      // 7. Show success feedback
+      // 8. Show success feedback
       showScenarioFeedback('Scenario "' + scenario.name + '" loaded successfully!', 'success');
 
-      // 8. Scroll to allocation section so user can see the changes
+      // 9. Scroll to allocation section so user can see the changes
       var allocationSection = document.querySelector('.section-card:has(.allocation-controls)');
       if (allocationSection) {
         allocationSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -9166,6 +9417,16 @@ const Tool6 = {
       }
 
       var scenario = window.savedScenarios[index];
+
+      // DEBUG: Log what we're sending to PDF generation
+      console.log('=== PDF GENERATION DEBUG ===');
+      console.log('Scenario name:', scenario.name);
+      console.log('Scenario investmentScore:', scenario.investmentScore);
+      console.log('Scenario age:', scenario.age);
+      console.log('Scenario yearsToRetirement:', scenario.yearsToRetirement);
+      console.log('Scenario grossIncome:', scenario.grossIncome);
+      console.log('Current page values - investmentScore:', currentInvestmentScore, 'age:', upstreamAge, 'yearsToRetirement:', yearsToRetirement);
+
       showScenarioFeedback('Generating PDF report for "' + scenario.name + '"...', 'info');
 
       google.script.run
@@ -10371,6 +10632,7 @@ const Tool6 = {
     // Phase B ends with continue button (not submit)
     html += `
         <div class="form-actions">
+          <div id="phaseBError" class="error-message"></div>
           <button type="button" class="btn-secondary" onclick="continueToPhaseC()" id="phaseBContinue">
             Continue to Priorities
           </button>
@@ -10542,7 +10804,7 @@ const Tool6 = {
         const ss = SpreadsheetCache.getSpreadsheet();
         scenariosSheet = ss.insertSheet(CONFIG.SHEETS.TOOL6_SCENARIOS);
 
-        // Add headers per spec (15 columns A-O)
+        // Add headers per spec (20 columns A-T)
         const headers = [
           'Timestamp',           // A
           'Client_ID',           // B
@@ -10558,12 +10820,17 @@ const Tool6 = {
           'Current_Contributions', // L (JSON)
           'Education_Inputs',    // M (JSON)
           'Education_Projection', // N
-          'Is_Latest'            // O
+          'Is_Latest',           // O
+          'Years_To_Retirement', // P
+          'Age',                 // Q
+          'Gross_Income',        // R
+          'Filing_Status',       // S
+          'Work_Situation'       // T
         ];
         scenariosSheet.appendRow(headers);
         scenariosSheet.getRange(1, 1, 1, headers.length).setFontWeight('bold');
         SpreadsheetApp.flush();
-        Logger.log('TOOL6_SCENARIOS sheet created with 15-column header');
+        Logger.log('TOOL6_SCENARIOS sheet created with 20-column header');
       }
 
       // Mark all previous scenarios for this client as not latest
@@ -10606,7 +10873,7 @@ const Tool6 = {
         yearsToEducation: 99
       });
 
-      // Build row data (15 columns)
+      // Build row data (20 columns A-T)
       const row = [
         new Date(),                                      // A: Timestamp
         clientId,                                        // B: Client_ID
@@ -10622,7 +10889,12 @@ const Tool6 = {
         currentContributionsJson,                        // L: Current_Contributions (JSON)
         educationInputsJson,                             // M: Education_Inputs (JSON)
         scenario.educationProjection || 0,               // N: Education_Projection
-        true                                             // O: Is_Latest
+        true,                                            // O: Is_Latest
+        scenario.yearsToRetirement || null,              // P: Years_To_Retirement
+        scenario.age || null,                            // Q: Age
+        scenario.grossIncome || null,                    // R: Gross_Income
+        scenario.filingStatus || 'Single',               // S: Filing_Status
+        scenario.workSituation || 'W-2 Employee'         // T: Work_Situation
       ];
 
       // Detailed logging like Tool 4
@@ -10740,7 +11012,7 @@ const Tool6 = {
         return [];
       }
 
-      // Column indices (0-indexed)
+      // Column indices (0-indexed) - 20 columns A-T
       const COL = {
         TIMESTAMP: 0,      // A
         CLIENT_ID: 1,      // B
@@ -10756,7 +11028,12 @@ const Tool6 = {
         CURRENT_CONTRIBUTIONS: 11, // L (JSON)
         EDUCATION_INPUTS: 12, // M (JSON)
         EDUCATION_PROJECTION: 13, // N
-        IS_LATEST: 14      // O
+        IS_LATEST: 14,     // O
+        YEARS_TO_RETIREMENT: 15, // P
+        AGE: 16,           // Q
+        GROSS_INCOME: 17,  // R
+        FILING_STATUS: 18, // S
+        WORK_SITUATION: 19 // T
       };
 
       const scenarios = [];
@@ -10787,7 +11064,13 @@ const Tool6 = {
             currentContributions: this.safeJsonParse(row[COL.CURRENT_CONTRIBUTIONS], {}),
             educationInputs: this.safeJsonParse(row[COL.EDUCATION_INPUTS], {}),
             educationProjection: row[COL.EDUCATION_PROJECTION],
-            isLatest: row[COL.IS_LATEST] === true
+            isLatest: row[COL.IS_LATEST] === true,
+            // New fields (columns P-T) - may be null for old scenarios
+            yearsToRetirement: row[COL.YEARS_TO_RETIREMENT] || null,
+            age: row[COL.AGE] || null,
+            grossIncome: row[COL.GROSS_INCOME] || null,
+            filingStatus: row[COL.FILING_STATUS] || null,
+            workSituation: row[COL.WORK_SITUATION] || null
           });
         }
       }
@@ -10885,50 +11168,25 @@ const Tool6 = {
       const profileId = scenarioData.profileId || 7;
       const profile = PROFILE_DEFINITIONS[profileId] || PROFILE_DEFINITIONS[7];
 
-      // Get toolStatus for upstream data (Tool 2 has age/income, Tool 4 has yearsToRetirement)
-      const toolStatus = this.checkToolCompletion(clientId);
-
-      // Get preSurveyData (Tool 6 questionnaire answers - may have data not in saved scenario)
-      const preSurveyData = this.getPreSurvey(clientId) || {};
+      // ========================================================================
+      // SINGLE SOURCE OF TRUTH: Use resolveClientData() for all client data
+      // Scenario data can override resolved values (for scenario-specific settings)
+      // ========================================================================
+      const resolvedData = this.resolveClientData(clientId);
 
       Logger.log(`[Tool6.generatePDF] Data sources:`);
       Logger.log(`  ScenarioData - age: ${scenarioData.age}, yearsToRetirement: ${scenarioData.yearsToRetirement}, grossIncome: ${scenarioData.grossIncome}, monthlyBudget: ${scenarioData.monthlyBudget}`);
-      Logger.log(`  PreSurveyData - a2_yearsToRetirement: ${preSurveyData.a2_yearsToRetirement}, a1_grossIncome: ${preSurveyData.a1_grossIncome}, backup_age: ${preSurveyData.backup_age}`);
-      Logger.log(`  ToolStatus - age: ${toolStatus.age}, yearsToRetirement: ${toolStatus.yearsToRetirement}, grossIncome: ${toolStatus.grossIncome}, monthlyBudget: ${toolStatus.monthlyBudget}`);
+      Logger.log(`  ResolvedData - age: ${resolvedData.age}, yearsToRetirement: ${resolvedData.yearsToRetirement}, grossIncome: ${resolvedData.grossIncome}, monthlyBudget: ${resolvedData.monthlyBudget}`);
 
       // ========================================================================
-      // CRITICAL DATA VALIDATION - No hardcoded defaults for financial data
-      // These values directly impact projections and must come from actual data
-      // Fallback chain: scenarioData → preSurveyData (questionnaire) → toolStatus (upstream tools) → ERROR
+      // PRIORITY: scenarioData (saved with scenario) → resolvedData (current state)
+      // This allows old scenarios to use their saved values while new scenarios
+      // get the latest resolved values from the single source of truth
       // ========================================================================
-
-      // Resolve age: scenario → preSurvey backup → toolStatus (Tool 2) → MISSING
-      const age = scenarioData.age ||
-                  parseInt(preSurveyData.backup_age) ||
-                  toolStatus.age ||
-                  null;
-
-      // Resolve yearsToRetirement: scenario → preSurvey (a2 or backup) → toolStatus (Tool 4) → MISSING
-      const yearsToRetirement = scenarioData.yearsToRetirement ||
-                                parseInt(preSurveyData.a2_yearsToRetirement) ||
-                                parseInt(preSurveyData.backup_yearsToRetirement) ||
-                                toolStatus.yearsToRetirement ||
-                                null;
-
-      // Resolve grossIncome: scenario → preSurvey (a1 or backup) → toolStatus → MISSING
-      const grossIncome = scenarioData.grossIncome ||
-                          scenarioData.income ||
-                          parseFloat(preSurveyData.a1_grossIncome) ||
-                          parseFloat(preSurveyData.backup_grossIncome) ||
-                          toolStatus.grossIncome ||
-                          toolStatus.income ||
-                          null;
-
-      // Resolve monthlyBudget: scenario → preSurvey backup → toolStatus → MISSING
-      const monthlyBudget = scenarioData.monthlyBudget ||
-                            parseFloat(preSurveyData.backup_monthlyBudget) ||
-                            toolStatus.monthlyBudget ||
-                            null;
+      const age = scenarioData.age || resolvedData.age;
+      const yearsToRetirement = scenarioData.yearsToRetirement || resolvedData.yearsToRetirement;
+      const grossIncome = scenarioData.grossIncome || scenarioData.income || resolvedData.grossIncome;
+      const monthlyBudget = scenarioData.monthlyBudget || resolvedData.monthlyBudget;
 
       // Collect missing critical fields
       const missingFields = [];
@@ -10951,23 +11209,24 @@ const Tool6 = {
       Logger.log(`[Tool6.generatePDF] Validated inputs - age: ${age}, yearsToRetirement: ${yearsToRetirement}, grossIncome: ${grossIncome}, monthlyBudget: ${monthlyBudget}`);
 
       // Build inputs object - all critical fields are now validated
+      // Use scenario-specific values with fallback to resolved data
       const inputs = {
         age: age,
         yearsToRetirement: yearsToRetirement,
         income: grossIncome,
         grossIncome: grossIncome,
         monthlyBudget: monthlyBudget,
-        investmentScore: scenarioData.investmentScore || toolStatus.investmentScore || 4,
+        investmentScore: scenarioData.investmentScore || resolvedData.investmentScore || 4,
         taxPreference: scenarioData.taxStrategy || 'Balanced',
-        hasChildren: scenarioData.hasChildren || false,
-        numChildren: scenarioData.numChildren || scenarioData.educationInputs?.numChildren || 0,
-        yearsToEducation: scenarioData.yearsToEducation || scenarioData.educationInputs?.yearsToEducation || 18,
+        hasChildren: scenarioData.hasChildren || resolvedData.hasChildren || false,
+        numChildren: scenarioData.numChildren || scenarioData.educationInputs?.numChildren || resolvedData.numChildren || 0,
+        yearsToEducation: scenarioData.yearsToEducation || scenarioData.educationInputs?.yearsToEducation || resolvedData.yearsToEducation || 18,
         educationVehicle: scenarioData.educationVehicle || '529 Plan',
         domainWeights: scenarioData.domainWeights || null,
         hasEmployerMatch: scenarioData.hasEmployerMatch || false,
         employerMatchAmount: scenarioData.employerMatchAmount || 0,
-        workSituation: scenarioData.workSituation || toolStatus.employmentType || 'W-2 Employee',
-        filingStatus: scenarioData.filingStatus || toolStatus.filingStatus || 'Single'
+        workSituation: scenarioData.workSituation || resolvedData.workSituation || 'W-2 Employee',
+        filingStatus: scenarioData.filingStatus || resolvedData.filingStatus || 'Single'
       };
 
       // Sprint 13: Calculate current balance from saved balances
