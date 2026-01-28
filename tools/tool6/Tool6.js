@@ -540,6 +540,7 @@ const Tool6 = {
 
     Logger.log(`[resolveClientData] Resolved for ${clientId}:`);
     Logger.log(`  age=${age}, yearsToRetirement=${yearsToRetirement}, grossIncome=${grossIncome}, monthlyBudget=${monthlyBudget}`);
+    Logger.log(`  filingStatus=${filingStatus} (from: a6=${preSurveyData.a6_filingStatus}, plain=${preSurveyData.filingStatus}, backup=${preSurveyData.backup_filingStatus}, toolStatus=${mergedToolStatus.filingStatus})`);
     if (missingFields.length > 0) {
       Logger.log(`  Missing: ${missingFields.join(', ')}`);
     }
@@ -664,6 +665,7 @@ const Tool6 = {
 
       // DEBUG: Log specific fields being received
       Logger.log(`[savePreSurvey] RECEIVED - backup_monthlyBudget: ${preSurveyData.backup_monthlyBudget}, backup_investmentScore: ${preSurveyData.backup_investmentScore}, a2_yearsToRetirement: ${preSurveyData.a2_yearsToRetirement}`);
+      Logger.log(`[savePreSurvey] RECEIVED - filingStatus: ${preSurveyData.filingStatus}, a6_filingStatus: ${preSurveyData.a6_filingStatus}`);
       Logger.log(`Saving pre-survey data: ${JSON.stringify(preSurveyData)}`);
 
       PropertiesService.getUserProperties().setProperty(preSurveyKey, JSON.stringify(preSurveyData));
@@ -8237,8 +8239,12 @@ const Tool6 = {
       updateBannerStats();
 
       // Update formData so it gets saved with new filing status
+      // Set BOTH field names for compatibility:
+      // - formData.filingStatus is used by buildCalculatorSection (Your Settings dropdown)
+      // - formData.a6_filingStatus is used by resolveClientData (profile header)
       if (typeof formData !== 'undefined') {
         formData.filingStatus = newStatus;
+        formData.a6_filingStatus = newStatus;
         formData.hsaCoverageType = hsaCoverageType;
       }
 
@@ -8627,6 +8633,8 @@ const Tool6 = {
       console.log('formData.backup_monthlyBudget:', formData.backup_monthlyBudget);
       console.log('formData.backup_investmentScore:', formData.backup_investmentScore);
       console.log('formData.a2_yearsToRetirement:', formData.a2_yearsToRetirement);
+      console.log('formData.filingStatus:', formData.filingStatus);
+      console.log('formData.a6_filingStatus:', formData.a6_filingStatus);
 
       // Get current slider values as overrides
       var sliderValues = {};
