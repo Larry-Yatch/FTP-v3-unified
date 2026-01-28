@@ -3425,6 +3425,7 @@ const Tool6 = {
     const tool6Styles = HtmlService.createHtmlOutputFromFile('tools/tool6/tool6-styles').getContent();
     const hasPreSurvey = !!preSurveyData;
     const hasAllocation = !!allocation && allocation.totalBudget > 0;
+    const hasProfile = !!profile;  // User has completed classification
 
     // Extract merged toolStatus for backward compatibility with helper functions
     const toolStatus = resolvedData._mergedToolStatus || resolvedData;
@@ -3509,14 +3510,14 @@ const Tool6 = {
     <!-- Section 1: Your Financial Profile (Questionnaire) -->
     <div class="section-card">
       <div class="section-header" onclick="toggleSection('profile')">
-        <div class="section-title">&#128202; 1. Your Financial Profile ${hasPreSurvey ? '' : '<span class="status-badge status-incomplete">Incomplete</span>'}</div>
+        <div class="section-title">&#128202; 1. Your Financial Profile ${hasProfile ? '' : '<span class="status-badge status-incomplete">Incomplete</span>'}</div>
         <div style="display: flex; align-items: center; gap: 12px;">
-          ${hasPreSurvey ? '<span class="profile-badge">Profile: ' + (profile?.name || 'Calculating...') + '</span>' : ''}
-          <span class="section-toggle ${hasPreSurvey ? 'collapsed' : ''}" id="profileToggle">&#9660;</span>
+          ${hasProfile ? '<span class="profile-badge">Profile: ' + (profile?.name || 'Calculating...') + '</span>' : ''}
+          <span class="section-toggle ${hasProfile ? 'collapsed' : ''}" id="profileToggle">&#9660;</span>
         </div>
       </div>
 
-      ${hasPreSurvey ? `
+      ${hasProfile ? `
       <div class="section-summary show" id="profileSummary">
         <div>
           <strong>Profile:</strong> ${profile?.name || 'Calculating...'} |
@@ -3526,7 +3527,7 @@ const Tool6 = {
       </div>
       ` : ''}
 
-      <div class="section-body ${hasPreSurvey ? 'collapsed' : ''}" id="profileBody">
+      <div class="section-body ${hasProfile ? 'collapsed' : ''}" id="profileBody">
         <!-- Data Summary from Tools 1-5 (uses resolvedData for consistency) -->
         <div style="margin-bottom: 24px;">
           <h4 style="color: var(--color-text-secondary); margin-bottom: 12px;">Your Tool 4 Allocation</h4>
