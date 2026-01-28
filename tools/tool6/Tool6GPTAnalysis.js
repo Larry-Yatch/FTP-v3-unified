@@ -794,6 +794,310 @@ Key Trade-offs:
   },
 
   // ============================================================
+  // SPRINT 13: ENHANCED REPORT INSIGHTS (Implementation Blueprint)
+  // ============================================================
+
+  /**
+   * Generate personalized implementation guidance for enhanced report
+   * Provides vehicle setup guidance, milestone insights, action plan, calendar reminders, gap analysis
+   *
+   * 3-Tier: GPT → Retry → Fallback
+   *
+   * @param {Object} params - { clientId, profile, allocations, userInputs, projections, tool1Data, tool3Data }
+   * @returns {Object} { vehicleGuidance, milestoneInsights, actionPlan, calendarReminders, gapAnalysis, source }
+   */
+  generateEnhancedReportInsights(params) {
+    const {
+      clientId,
+      profile,
+      allocations,
+      userInputs,
+      projections,
+      tool1Data,
+      tool3Data
+    } = params;
+
+    // Validate required params
+    if (!profile || !allocations || Object.keys(allocations).length === 0) {
+      Logger.log('[Tool6GPT] Missing required data for enhanced report');
+      return Tool6Fallbacks.getEnhancedReportFallback(profile, allocations, userInputs, projections);
+    }
+
+    // ============================================================
+    // TIER 1: Try GPT Analysis
+    // ============================================================
+    try {
+      Logger.log(`[TIER 1] Tool6 GPT: Enhanced report for ${clientId}`);
+
+      const systemPrompt = this.buildEnhancedReportSystemPrompt(profile, allocations, userInputs, projections, tool1Data, tool3Data);
+      const userPrompt = this.buildEnhancedReportUserPrompt(profile, allocations, userInputs, projections);
+
+      const result = this.callGPT({
+        systemPrompt,
+        userPrompt,
+        model: 'gpt-4o',
+        temperature: 0.3,
+        maxTokens: 1500  // Larger for comprehensive guidance
+      });
+
+      const parsed = this.parseEnhancedReportResponse(result);
+
+      if (this.isValidEnhancedInsight(parsed)) {
+        Logger.log('[TIER 1] Tool6 GPT success: Enhanced report');
+        return {
+          ...parsed,
+          source: 'gpt',
+          timestamp: new Date().toISOString()
+        };
+      } else {
+        throw new Error('Incomplete GPT response (missing required sections)');
+      }
+
+    } catch (error) {
+      Logger.log(`[TIER 1] Tool6 GPT failed: ${error.message}`);
+
+      // ============================================================
+      // TIER 2: Retry GPT Analysis
+      // ============================================================
+      try {
+        Utilities.sleep(2000);
+        Logger.log(`[TIER 2] Tool6 GPT retry: Enhanced report for ${clientId}`);
+
+        const systemPrompt = this.buildEnhancedReportSystemPrompt(profile, allocations, userInputs, projections, tool1Data, tool3Data);
+        const userPrompt = this.buildEnhancedReportUserPrompt(profile, allocations, userInputs, projections);
+
+        const result = this.callGPT({
+          systemPrompt,
+          userPrompt,
+          model: 'gpt-4o',
+          temperature: 0.3,
+          maxTokens: 1500
+        });
+
+        const parsed = this.parseEnhancedReportResponse(result);
+
+        if (this.isValidEnhancedInsight(parsed)) {
+          Logger.log('[TIER 2] Tool6 GPT retry success: Enhanced report');
+          return {
+            ...parsed,
+            source: 'gpt_retry',
+            timestamp: new Date().toISOString()
+          };
+        } else {
+          throw new Error('Incomplete GPT response on retry');
+        }
+
+      } catch (retryError) {
+        Logger.log(`[TIER 2] Tool6 GPT retry failed: ${retryError.message}`);
+
+        // ============================================================
+        // TIER 3: Use Profile-aware Fallback
+        // ============================================================
+        Logger.log('[TIER 3] Using fallback: Enhanced report');
+        this.logFallbackUsage(clientId, 'enhanced_report', retryError.message);
+
+        return {
+          ...Tool6Fallbacks.getEnhancedReportFallback(profile, allocations, userInputs, projections),
+          source: 'fallback',
+          timestamp: new Date().toISOString(),
+          gpt_error: retryError.message
+        };
+      }
+    }
+  },
+
+  /**
+   * Build system prompt for Enhanced Report
+   */
+  buildEnhancedReportSystemPrompt(profile, allocations, userInputs, projections, tool1Data, tool3Data) {
+    const age = userInputs?.age || 40;
+    const yearsToRetirement = userInputs?.yearsToRetirement || 25;
+    const grossIncome = userInputs?.income || userInputs?.grossIncome || 0;
+    const monthlyBudget = userInputs?.monthlyBudget || 0;
+    const filingStatus = userInputs?.filingStatus || 'Single';
+    const taxStrategy = userInputs?.taxPreference || 'Balanced';
+
+    // Build allocation list
+    const allocationList = Object.entries(allocations)
+      .filter(([_, amount]) => amount > 0)
+      .map(([vehicle, amount]) => `- ${vehicle}: $${amount.toLocaleString()}/month ($${(amount * 12).toLocaleString()}/year)`)
+      .join('\n');
+
+    // Savings rate
+    const savingsRate = grossIncome > 0 ? Math.round((monthlyBudget * 12 / grossIncome) * 100) : 0;
+
+    // Build trauma context if available
+    let traumaContext = '';
+    if (tool1Data?.data?.winner) {
+      const traumaTypes = {
+        'FSV': 'False Self-View - may take on excessive obligations to prove worth',
+        'ExVal': 'External Validation - may seek approval for financial decisions',
+        'Showing': 'Issues Showing Love - may over-give financially while neglecting self',
+        'Receiving': 'Issues Receiving Love - may hoard money for safety',
+        'Control': 'Control Leading to Isolation - may obsessively track every penny',
+        'Fear': 'Fear Leading to Isolation - may catastrophize financial situations'
+      };
+      traumaContext = `\nPrimary Defense Pattern: ${traumaTypes[tool1Data.data.winner] || tool1Data.data.winner}`;
+    }
+
+    if (tool3Data?.data?.scoring?.overallQuotient) {
+      const score = tool3Data.data.scoring.overallQuotient;
+      const level = score < 25 ? 'Well-Grounded' : score < 50 ? 'Moderately Grounded' : score < 75 ? 'Significant Disconnection' : 'Critical Disconnection';
+      traumaContext += `\nGrounding Level: ${level} (${Math.round(score)}/100)`;
+    }
+
+    return `You are a trauma-informed retirement planning expert creating a personalized implementation blueprint.
+
+IMPORTANT: This is for a student in the TruPath Financial program. Be specific, actionable, and reference their exact numbers.
+
+STUDENT PROFILE:
+- Investor Profile: ${profile?.name || 'Foundation Builder'}
+- Age: ${age}
+- Years to Retirement: ${yearsToRetirement}
+- Gross Income: $${grossIncome.toLocaleString()}/year
+- Filing Status: ${filingStatus}
+- Monthly Budget: $${monthlyBudget.toLocaleString()}
+- Current Savings Rate: ${savingsRate}%
+- Tax Strategy: ${taxStrategy}
+${traumaContext}
+
+THEIR ALLOCATION:
+${allocationList}
+
+PROJECTIONS:
+- Projected Balance at Retirement: $${(projections?.balance || 0).toLocaleString()}
+- Inflation-Adjusted Value: $${(projections?.inflationAdjusted || 0).toLocaleString()}
+- Monthly Retirement Income (4% rule): $${(projections?.monthlyIncome || 0).toLocaleString()}
+
+WRITING GUIDELINES:
+- Use THEIR exact numbers and vehicle names
+- Be specific: "Log into Equity Trust" not "Log into your brokerage"
+- For self-directed accounts, use Equity Trust as the provider
+- Connect advice to their psychological patterns where relevant
+- Do NOT use markdown formatting (no **, no *, no bullets with -)
+- Be actionable and concrete with specific dollar amounts
+
+Return PLAIN TEXT ONLY in this exact format:
+
+Vehicle Guidance:
+(2-3 sentences per vehicle in their allocation. Prioritize which to set up first and why. Include specific tips for their situation.)
+
+Milestone Insights:
+(3-4 sentences explaining what key ages mean for THIS person specifically. Reference their timeline and projected balances.)
+
+Action Plan:
+Immediate: (2 specific actions with their dollar amounts - what to do TODAY)
+Week 1: (2 specific actions for setting up accounts)
+Month 1: (2 specific actions for verifying contributions)
+Quarterly: (1-2 ongoing review actions)
+Annual: (1-2 annual review actions)
+
+Calendar Reminders:
+(3-4 most important deadlines for their specific vehicles. Be specific about dates and what action to take.)
+
+Gap Analysis:
+(2-3 sentences on their savings rate vs recommended 15-20%. If behind, give specific catch-up recommendation with dollar amounts. If on track, acknowledge and suggest optimization.)`;
+  },
+
+  /**
+   * Build user prompt for Enhanced Report
+   */
+  buildEnhancedReportUserPrompt(profile, allocations, userInputs, projections) {
+    let prompt = 'Please create personalized implementation guidance for this student.\n\n';
+
+    // Add vehicle details
+    prompt += 'VEHICLES IN THEIR PLAN:\n';
+    Object.entries(allocations)
+      .filter(([_, amount]) => amount > 0)
+      .forEach(([vehicle, amount]) => {
+        prompt += `- ${vehicle}: $${amount}/month\n`;
+      });
+    prompt += '\n';
+
+    // Add any special situations
+    if (userInputs?.a13b_tradIRABalance && userInputs.a13b_tradIRABalance !== 'none') {
+      prompt += 'NOTE: Student has existing Traditional IRA balance - pro-rata rule applies to Backdoor Roth.\n';
+    }
+
+    if (userInputs?.workSituation === 'Self-employed' || userInputs?.workSituation === 'Both') {
+      prompt += 'NOTE: Student is self-employed - consider SEP-IRA and Solo 401(k) deadlines.\n';
+    }
+
+    prompt += '\nProvide specific, actionable guidance they can follow immediately.';
+
+    return prompt;
+  },
+
+  /**
+   * Parse Enhanced Report GPT response
+   */
+  parseEnhancedReportResponse(text) {
+    return {
+      vehicleGuidance: this.extractSection(text, 'Vehicle Guidance:'),
+      milestoneInsights: this.extractSection(text, 'Milestone Insights:'),
+      actionPlan: this.extractActionPlanSections(text),
+      calendarReminders: this.extractSection(text, 'Calendar Reminders:'),
+      gapAnalysis: this.extractSection(text, 'Gap Analysis:')
+    };
+  },
+
+  /**
+   * Extract 5-tier action plan from response
+   */
+  extractActionPlanSections(text) {
+    const actionPlanSection = this.extractSection(text, 'Action Plan:');
+
+    return {
+      immediate: this.extractActionItems(actionPlanSection, 'Immediate:'),
+      week1: this.extractActionItems(actionPlanSection, 'Week 1:'),
+      month1: this.extractActionItems(actionPlanSection, 'Month 1:'),
+      quarterly: this.extractActionItems(actionPlanSection, 'Quarterly:'),
+      annual: this.extractActionItems(actionPlanSection, 'Annual:')
+    };
+  },
+
+  /**
+   * Extract action items from a subsection
+   */
+  extractActionItems(text, sectionName) {
+    const escapedName = sectionName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(escapedName + '\\s*([\\s\\S]*?)(?=\\n[A-Z][a-z\\s]*:|$)', 'i');
+    const match = text.match(regex);
+
+    if (!match) return null;
+
+    const sectionText = match[1].trim();
+
+    // Try to extract numbered items or sentences
+    const numberedItems = sectionText.split('\n')
+      .filter(line => line.trim().match(/^\d+\.|^-/))
+      .map(line => line.replace(/^\d+\.\s*|-\s*/, '').trim())
+      .filter(line => line.length > 5);
+
+    if (numberedItems.length > 0) return numberedItems;
+
+    // If no numbered items, split on periods and take first 2 sentences
+    const sentences = sectionText.split(/(?<=[.!?])\s+/)
+      .map(s => s.trim())
+      .filter(s => s.length > 10)
+      .slice(0, 2);
+
+    return sentences.length > 0 ? sentences : null;
+  },
+
+  /**
+   * Validate Enhanced Report insight completeness
+   */
+  isValidEnhancedInsight(insight) {
+    return (
+      insight &&
+      insight.vehicleGuidance && insight.vehicleGuidance.length > 50 &&
+      insight.actionPlan && (insight.actionPlan.immediate || insight.actionPlan.week1) &&
+      insight.gapAnalysis && insight.gapAnalysis.length > 30
+    );
+  },
+
+  // ============================================================
   // UTILITIES
   // ============================================================
 

@@ -400,5 +400,180 @@ const Tool6Fallbacks = {
     } else {
       return 'Your balanced tax approach provides flexibility. Having both pre-tax and after-tax retirement assets gives you options in retirement.';
     }
+  },
+
+  // ============================================================
+  // SPRINT 13: ENHANCED REPORT FALLBACK (Implementation Blueprint)
+  // ============================================================
+
+  /**
+   * Generate fallback insights for Enhanced Report
+   * Provides vehicle guidance, milestone insights, action plan, calendar, and gap analysis
+   *
+   * @param {Object} profile - User profile
+   * @param {Object} allocations - Vehicle allocations
+   * @param {Object} userInputs - User inputs
+   * @param {Object} projections - Projection data
+   * @returns {Object} { vehicleGuidance, milestoneInsights, actionPlan, calendarReminders, gapAnalysis }
+   */
+  getEnhancedReportFallback(profile, allocations, userInputs, projections) {
+    return {
+      vehicleGuidance: this.buildVehicleGuidanceFallback(allocations, userInputs),
+      milestoneInsights: this.buildMilestoneInsightsFallback(userInputs),
+      actionPlan: this.buildActionPlanFallback(profile, allocations),
+      calendarReminders: this.buildCalendarRemindersFallback(allocations, userInputs),
+      gapAnalysis: this.buildGapAnalysisFallback(userInputs, projections)
+    };
+  },
+
+  /**
+   * Build vehicle guidance fallback
+   */
+  buildVehicleGuidanceFallback(allocations, userInputs) {
+    if (!allocations || Object.keys(allocations).length === 0) {
+      return 'Review your vehicle allocation with your financial advisor to ensure it aligns with your retirement goals and tax situation.';
+    }
+
+    const vehicles = Object.entries(allocations)
+      .filter(([_, amount]) => amount > 0)
+      .sort((a, b) => b[1] - a[1]);
+
+    const topVehicle = vehicles[0]?.[0] || '401(k)';
+    const numVehicles = vehicles.length;
+
+    let guidance = `Your plan uses ${numVehicles} retirement vehicle${numVehicles > 1 ? 's' : ''}, with ${topVehicle} as your primary focus. `;
+
+    // Add vehicle-specific guidance
+    if (topVehicle.includes('401(k)')) {
+      guidance += 'Start by ensuring your 401(k) contributions are set up correctly through your employer portal. ';
+    } else if (topVehicle.includes('IRA')) {
+      guidance += 'Set up your IRA at Equity Trust and configure automatic monthly transfers from your bank. ';
+    } else if (topVehicle.includes('HSA')) {
+      guidance += 'Verify your HDHP enrollment and maximize HSA contributions through payroll deduction for FICA savings. ';
+    }
+
+    if (numVehicles > 1) {
+      guidance += 'Prioritize vehicles in order of tax efficiency and employer match availability.';
+    }
+
+    return guidance;
+  },
+
+  /**
+   * Build milestone insights fallback
+   */
+  buildMilestoneInsightsFallback(userInputs) {
+    const age = userInputs?.age || 40;
+    const yearsToRetirement = userInputs?.yearsToRetirement || 25;
+    const retirementAge = age + yearsToRetirement;
+
+    let insights = '';
+
+    // Age-specific milestone information
+    if (age < 50) {
+      const yearsTo50 = 50 - age;
+      insights = `In ${yearsTo50} years, you will reach age 50 and become eligible for catch-up contributions. This adds $8,500 or more to your annual contribution capacity. `;
+    } else if (age < 55) {
+      const yearsTo55 = 55 - age;
+      insights = `You are already eligible for IRA and 401(k) catch-up contributions. In ${yearsTo55} years at age 55, HSA catch-up also becomes available, adding another $1,000 annually. `;
+    } else if (age < 60) {
+      const yearsTo60 = 60 - age;
+      insights = `In ${yearsTo60} years at age 60, you may qualify for the SECURE 2.0 super catch-up, which allows an additional $11,250 in 401(k) contributions through age 63. `;
+    } else {
+      insights = `You are in the critical final stretch before retirement. Maximize every available catch-up contribution. `;
+    }
+
+    insights += `Your target retirement at age ${retirementAge} is ${yearsToRetirement} years away. Stay focused on consistent contributions and appropriate investment allocation for your timeline.`;
+
+    return insights;
+  },
+
+  /**
+   * Build action plan fallback (5-tier structure)
+   */
+  buildActionPlanFallback(profile, allocations) {
+    const profileId = profile?.id || 7;
+    const hasHSA = allocations && Object.keys(allocations).some(v => v.includes('HSA'));
+    const hasSolo401k = allocations && Object.keys(allocations).some(v => v.includes('Solo'));
+
+    return {
+      immediate: [
+        'Log into your employer benefits portal and verify your current 401(k) contribution rate',
+        'Review your most recent pay stub to confirm retirement deductions are correct'
+      ],
+      week1: [
+        'Update your contribution amounts to match your new allocation plan',
+        hasSolo401k ?
+          'Review your Solo 401(k) setup and calculate your maximum employer contribution' :
+          'Open or review your Roth IRA at Equity Trust'
+      ],
+      month1: [
+        'Verify your first updated contributions have been processed correctly',
+        'Review and select appropriate investment funds in each account'
+      ],
+      quarterly: [
+        'Review account balances and verify contributions are on track',
+        hasHSA ?
+          'Review HSA balance and ensure you are saving medical receipts' :
+          'Rebalance investments if allocation has drifted more than 5%'
+      ],
+      annual: [
+        'Check for new IRS contribution limits each January and increase accordingly',
+        'Review beneficiary designations on all retirement accounts',
+        'Consider meeting with a financial advisor to review your overall strategy'
+      ]
+    };
+  },
+
+  /**
+   * Build calendar reminders fallback
+   */
+  buildCalendarRemindersFallback(allocations, userInputs) {
+    const hasIRA = allocations && Object.keys(allocations).some(v => v.includes('IRA'));
+    const hasHSA = allocations && Object.keys(allocations).some(v => v.includes('HSA'));
+    const has401k = allocations && Object.keys(allocations).some(v => v.includes('401'));
+    const isSelfEmployed = userInputs?.workSituation === 'Self-employed' || userInputs?.workSituation === 'Both';
+
+    let reminders = [];
+
+    if (has401k) {
+      reminders.push('December 31: Deadline for 401(k) contributions. Ensure your final paycheck includes your contribution.');
+    }
+
+    if (hasIRA || hasHSA) {
+      reminders.push('April 15: Last day to make prior-year IRA and HSA contributions. Do not wait until the last minute.');
+    }
+
+    if (isSelfEmployed) {
+      reminders.push('October 15: Extended deadline for SEP-IRA and Solo 401(k) employer contributions if you filed an extension.');
+    }
+
+    reminders.push('January: Review new contribution limits and increase your contributions for the new year.');
+
+    return reminders.join(' ');
+  },
+
+  /**
+   * Build gap analysis fallback
+   */
+  buildGapAnalysisFallback(userInputs, projections) {
+    const income = userInputs?.income || userInputs?.grossIncome || 0;
+    const monthlyBudget = userInputs?.monthlyBudget || 0;
+    const savingsRate = income > 0 ? (monthlyBudget * 12 / income) : 0;
+
+    let analysis = '';
+
+    if (savingsRate >= 0.20) {
+      analysis = `At ${Math.round(savingsRate * 100)}%, your savings rate exceeds the recommended 15-20%. You are on an accelerated path to retirement. Consider optimizing tax efficiency and investment allocation.`;
+    } else if (savingsRate >= 0.15) {
+      analysis = `At ${Math.round(savingsRate * 100)}%, your savings rate meets the recommended 15-20% range. You are on track for a comfortable retirement. Look for opportunities to increase as your income grows.`;
+    } else if (savingsRate >= 0.10) {
+      analysis = `At ${Math.round(savingsRate * 100)}%, your savings rate is a solid start but below the recommended 15-20%. Consider increasing by 1-2% per year until you reach the target range.`;
+    } else {
+      const targetIncrease = Math.round((0.15 - savingsRate) * income / 12);
+      analysis = `At ${Math.round(savingsRate * 100)}%, your savings rate is below the recommended minimum of 10%. Try to increase your monthly contributions by $${targetIncrease.toLocaleString()} to reach the 15% target.`;
+    }
+
+    return analysis;
   }
 };

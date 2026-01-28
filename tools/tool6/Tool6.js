@@ -871,6 +871,13 @@ const Tool6 = {
     const hasRoth401k = inputs.hasRoth401k === 'Yes' || inputs.a6_hasRoth401k === 'Yes';
     const hasChildren = inputs.hasChildren === 'Yes' || inputs.a8_hasChildren === 'Yes';
 
+    // Sprint 12.1: Backdoor Roth pro-rata inputs
+    const tradIRABalance = inputs.tradIRABalance || inputs.a13b_tradIRABalance || 'none';
+    const has401kAcceptsRollovers = inputs.a13c_401kAcceptsRollovers === 'yes';
+
+    // Sprint 12.2: Self-employment income for Solo 401(k) calculation
+    const selfEmploymentIncome = parseFloat(inputs.selfEmploymentIncome || inputs.a13d_selfEmploymentIncome) || 0;
+
     const eligible = {};
 
     // Helper: Get monthly limit with catch-up
@@ -976,9 +983,39 @@ const Tool6 = {
       }
 
       // Employer contributions are always pre-tax
+      // Sprint 12.2: Calculate dynamic limit based on self-employment income
+      // Formula: MIN(25% of SE income, remaining room after employee deferrals)
+      const seIncome = selfEmploymentIncome > 0 ? selfEmploymentIncome : grossIncome;
+      const percentLimit = seIncome * SOLO_401K_EMPLOYER_NOTES.SOLE_PROP_LLC.percentOfCompensation;
+
+      // Calculate total 401(k) limit based on age (with catch-up)
+      let total401kLimit = IRS_LIMITS_2025.TOTAL_401K;
+      if (age >= 60 && age <= 63) {
+        total401kLimit = IRS_LIMITS_2025.TOTAL_401K_60;
+      } else if (age >= 50) {
+        total401kLimit = IRS_LIMITS_2025.TOTAL_401K_50;
+      }
+
+      // Remaining room after employee deferrals
+      const employeeDeferralLimit = getMonthlyLimit('Solo 401(k) Employee') * 12;
+      const remainingRoom = total401kLimit - employeeDeferralLimit;
+
+      // Employer limit is the lesser of percent-based or remaining room
+      const employerAnnualLimit = Math.min(percentLimit, remainingRoom, IRS_LIMITS_2025.TOTAL_401K - IRS_LIMITS_2025.EMPLOYEE_401K);
+      const employerMonthlyLimit = Math.max(0, employerAnnualLimit) / 12;
+
+      // Build note based on whether limit is income-constrained
+      let employerNote = SOLO_401K_EMPLOYER_NOTES.SOLE_PROP_LLC.note;
+      if (percentLimit < remainingRoom && selfEmploymentIncome > 0) {
+        const formattedLimit = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(employerAnnualLimit);
+        employerNote = 'Your limit: ' + formattedLimit + '/year (20% of $' + seIncome.toLocaleString() + ' SE income)';
+      }
+
       eligible['Solo 401(k) Employer'] = {
-        monthlyLimit: getMonthlyLimit('Solo 401(k) Employer'),
-        domain: 'Retirement'
+        monthlyLimit: employerMonthlyLimit,
+        domain: 'Retirement',
+        note: employerNote,
+        calculatedAnnualLimit: employerAnnualLimit
       };
     }
 
@@ -1049,13 +1086,44 @@ const Tool6 = {
     }
 
     // Backdoor Roth IRA - for high earners above phase-out
+    // Sprint 12.1: Add pro-rata warning based on Traditional IRA balance
     if (rothEligibility.useBackdoor) {
+      // Determine which warning/note to use based on tradIRABalance
+      let backdoorWarning = BACKDOOR_ROTH_WARNINGS.CLEAN;
+      let proRataWarning = null;
+
+      if (tradIRABalance === 'under10k' || tradIRABalance === 'over10k') {
+        // User has Traditional IRA balance - check if they can roll to 401(k)
+        if (has401k && has401kAcceptsRollovers) {
+          backdoorWarning = BACKDOOR_ROTH_WARNINGS.ROLLOVER_AVAILABLE;
+        } else {
+          backdoorWarning = BACKDOOR_ROTH_WARNINGS.PRO_RATA;
+        }
+        proRataWarning = backdoorWarning.warning;
+      } else if (tradIRABalance === 'unsure') {
+        backdoorWarning = BACKDOOR_ROTH_WARNINGS.UNSURE;
+        proRataWarning = backdoorWarning.warning;
+      }
+      // else: tradIRABalance === 'none' or empty - use CLEAN (no warning)
+
       eligible['Backdoor Roth IRA'] = {
         monthlyLimit: getMonthlyLimit('Backdoor Roth IRA'),
         domain: 'Retirement',
         sharesLimitWith: 'IRA Traditional',
-        note: 'Recommended due to income above Roth IRA limits'
+        note: backdoorWarning.note,
+        executionSteps: backdoorWarning.executionSteps,
+        warning: proRataWarning
       };
+
+      // If rollover is available and recommended, add the action item
+      if (backdoorWarning === BACKDOOR_ROTH_WARNINGS.ROLLOVER_AVAILABLE) {
+        eligible['IRA Rollover to 401k'] = {
+          monthlyLimit: 0,  // Action item, not a contribution vehicle
+          domain: 'Retirement',
+          isActionItem: true,
+          note: backdoorWarning.actionItem
+        };
+      }
     }
 
     // --- HSA (Requires HDHP enrollment) ---
@@ -2428,7 +2496,7 @@ const Tool6 = {
       };
       const domainIcon = domainIcons[domain] || '💰';
 
-      // Vehicle descriptions for each vehicle type
+      // Vehicle descriptions for each vehicle type (defaults)
       const vehicleDescriptions = {
         'Employer Match': 'Free money from your employer - always maximize this first',
         '401(k) Traditional': 'Pre-tax contributions reduce taxable income now, taxed in retirement',
@@ -2439,13 +2507,17 @@ const Tool6 = {
         'HSA': 'Triple tax advantage - deductible, grows tax-free, tax-free for medical',
         'Roth IRA': 'Tax-free growth and withdrawals, income limits apply',
         'Traditional IRA': 'Tax-deductible contributions, taxed in retirement',
-        'Backdoor Roth': 'Roth IRA access for high earners via conversion strategy',
+        'Backdoor Roth IRA': 'Roth IRA access for high earners via conversion strategy',
         '529 Plan': 'Tax-free growth for qualified education expenses',
         'Family Bank': 'Taxable brokerage account for flexible long-term investing',
         'SEP IRA': 'Simplified pension for self-employed, employer contributions only',
         'SIMPLE IRA': 'Retirement plan for small businesses with employer match'
       };
-      const vehicleDescription = vehicleDescriptions[vehicleName] || 'Tax-advantaged retirement savings';
+      // Sprint 12.1: Use custom note from eligibility check if available (e.g., pro-rata warnings)
+      const vehicleDescription = vehicleInfo.note || vehicleDescriptions[vehicleName] || 'Tax-advantaged retirement savings';
+
+      // Sprint 12.1: Check for warnings (e.g., Backdoor Roth pro-rata)
+      const vehicleWarning = vehicleInfo.warning || null;
 
       // Determine if this is a Roth or Traditional vehicle for styling
       const isRoth = vehicleName.includes('Roth');
@@ -2490,6 +2562,8 @@ const Tool6 = {
                  onchange="updateVehicleAllocation('${escapedName}', this.value)"
                  oninput="updateVehicleDisplay('${escapedName}', this.value)">
           <div class="vehicle-description">${vehicleDescription}</div>
+          ${vehicleWarning ? '<div class="vehicle-warning"><span class="warning-icon">&#9888;</span> ' + vehicleWarning + '</div>' : ''}
+          ${this.buildVehicleEducationHelp(vehicleName)}
           <div class="vehicle-limit-info">${annualLimit}</div>
         </div>
       `;
@@ -2795,6 +2869,59 @@ const Tool6 = {
     `;
 
     return html;
+  },
+
+  /**
+   * Sprint 12: Build collapsible educational help for Backdoor Roth
+   * Displays expandable explainer about Backdoor Roth strategy and pro-rata rules
+   *
+   * @param {string} vehicleName - Name of the vehicle
+   * @returns {string} HTML for collapsible help section (empty string if not applicable)
+   */
+  buildVehicleEducationHelp(vehicleName) {
+    // Only show education help for Backdoor Roth IRA
+    if (vehicleName !== 'Backdoor Roth IRA') {
+      return '';
+    }
+
+    // Check if BACKDOOR_ROTH_EDUCATION is available
+    if (typeof BACKDOOR_ROTH_EDUCATION === 'undefined') {
+      return '';
+    }
+
+    const edu = BACKDOOR_ROTH_EDUCATION;
+    let sectionsHtml = '';
+
+    for (const section of edu.sections) {
+      sectionsHtml += '<h5>' + section.heading + '</h5>';
+      sectionsHtml += '<p>' + section.content + '</p>';
+
+      if (section.formula) {
+        sectionsHtml += '<div class="formula-box">' + section.formula + '</div>';
+      }
+
+      if (section.example) {
+        sectionsHtml += '<p><em>' + section.example + '</em></p>';
+      }
+
+      if (section.tip) {
+        sectionsHtml += '<div class="tip-box">' + section.tip + '</div>';
+      }
+    }
+
+    return `
+      <div class="vehicle-help">
+        <details>
+          <summary>
+            <span class="help-icon">&#9656;</span>
+            ${edu.title}
+          </summary>
+          <div class="vehicle-help-content">
+            ${sectionsHtml}
+          </div>
+        </details>
+      </div>
+    `;
   },
 
   /**
@@ -5021,6 +5148,7 @@ const Tool6 = {
       background: rgba(255, 255, 255, 0.1);
       border-radius: 5px;
       margin-bottom: 10px;
+      pointer-events: none; /* Let mouse events pass through to the range input */
     }
 
     .slider-fill {
@@ -5031,6 +5159,7 @@ const Tool6 = {
       background: linear-gradient(90deg, #4f46e5, #7c3aed);
       border-radius: 5px;
       transition: width 0.15s ease-out;
+      pointer-events: none; /* Let mouse events pass through to the range input */
     }
 
     .slider-fill.locked {
@@ -5104,6 +5233,116 @@ const Tool6 = {
       background: rgba(255, 255, 255, 0.05);
       border-radius: 4px;
       display: inline-block;
+    }
+
+    /* Sprint 12.1: Vehicle-specific warning (e.g., Backdoor Roth pro-rata) */
+    .vehicle-warning {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 10px 12px;
+      margin-top: 8px;
+      background: rgba(251, 191, 36, 0.1);
+      border: 1px solid rgba(251, 191, 36, 0.3);
+      border-radius: 6px;
+      color: #fbbf24;
+      font-size: 0.85rem;
+      line-height: 1.4;
+    }
+
+    .vehicle-warning .warning-icon {
+      flex-shrink: 0;
+      font-size: 1rem;
+    }
+
+    /* Sprint 12: Collapsible educational help section */
+    .vehicle-help {
+      margin-top: 8px;
+    }
+
+    .vehicle-help details {
+      background: rgba(99, 102, 241, 0.08);
+      border: 1px solid rgba(99, 102, 241, 0.2);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .vehicle-help summary {
+      padding: 8px 12px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      color: var(--color-primary, #6366f1);
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      user-select: none;
+    }
+
+    .vehicle-help summary:hover {
+      background: rgba(99, 102, 241, 0.12);
+    }
+
+    .vehicle-help summary::marker {
+      content: '';
+    }
+
+    .vehicle-help summary .help-icon {
+      transition: transform 0.2s ease;
+    }
+
+    .vehicle-help details[open] summary .help-icon {
+      transform: rotate(90deg);
+    }
+
+    .vehicle-help-content {
+      padding: 12px;
+      font-size: 0.85rem;
+      color: var(--color-text-secondary);
+      line-height: 1.6;
+      border-top: 1px solid rgba(99, 102, 241, 0.15);
+    }
+
+    .vehicle-help-content h5 {
+      margin: 0 0 8px 0;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--color-text-primary);
+    }
+
+    .vehicle-help-content p {
+      margin: 0 0 10px 0;
+    }
+
+    .vehicle-help-content p:last-child {
+      margin-bottom: 0;
+    }
+
+    .vehicle-help-content ul {
+      margin: 8px 0;
+      padding-left: 20px;
+    }
+
+    .vehicle-help-content li {
+      margin-bottom: 4px;
+    }
+
+    .vehicle-help-content .formula-box {
+      background: rgba(0, 0, 0, 0.2);
+      padding: 10px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 0.8rem;
+      margin: 10px 0;
+      color: var(--color-text-primary);
+    }
+
+    .vehicle-help-content .tip-box {
+      background: rgba(34, 197, 94, 0.1);
+      border-left: 3px solid rgba(34, 197, 94, 0.5);
+      padding: 8px 12px;
+      margin: 10px 0;
+      border-radius: 0 4px 4px 0;
     }
 
     .vehicle-amount-display {
@@ -6505,7 +6744,7 @@ const Tool6 = {
           console.error('Navigation error:', error);
           alert('Error returning to dashboard: ' + error.message);
         })
-        .getDashboardHtml('${clientId}');
+        .getDashboardPage('${clientId}');
     }
 
     // ========================================================================
@@ -6983,9 +7222,18 @@ const Tool6 = {
         console.log('Skipping Phase C - only Retirement domain applies');
 
         // Set default Retirement ambition values (they do not affect allocation when single domain)
-        formData.aq_ret_importance = formData.aq_ret_importance || 5;
-        formData.aq_ret_anxiety = formData.aq_ret_anxiety || 4;
-        formData.aq_ret_motivation = formData.aq_ret_motivation || 5;
+        // Note: Field names must match AMBITION_QUESTIONS in Tool6Constants.js
+        formData.aq_retirement_importance = formData.aq_retirement_importance || 5;
+        formData.aq_retirement_anxiety = formData.aq_retirement_anxiety || 4;
+        formData.aq_retirement_motivation = formData.aq_retirement_motivation || 5;
+
+        // Also set the hidden input values so they get submitted
+        var impInput = document.getElementById('aq_retirement_importance');
+        var anxInput = document.getElementById('aq_retirement_anxiety');
+        var motInput = document.getElementById('aq_retirement_motivation');
+        if (impInput) impInput.value = formData.aq_retirement_importance;
+        if (anxInput) anxInput.value = formData.aq_retirement_anxiety;
+        if (motInput) motInput.value = formData.aq_retirement_motivation;
 
         // Go directly to submit
         submitQuestionnaire();
@@ -8440,6 +8688,27 @@ const Tool6 = {
         }
       }
 
+      // Sprint 13: Get grossIncome from form element or formData
+      var grossIncomeEl = document.getElementById('a1_grossIncome');
+      var scenarioGrossIncome = grossIncomeEl ? parseFloat(grossIncomeEl.value) || 0 : (parseFloat(formData.a1_grossIncome) || 0);
+
+      // Get filing status from form
+      var filingStatusEl = document.getElementById('a6_filingStatus');
+      var scenarioFilingStatus = filingStatusEl ? filingStatusEl.value : (formData.a6_filingStatus || 'Single');
+
+      // Get work situation
+      var workSituationEl = document.getElementById('c5_workSituation');
+      var scenarioWorkSituation = workSituationEl ? workSituationEl.value : (formData.c5_workSituation || 'W-2 Employee');
+
+      // Calculate current total balance
+      var currentTotalBalance = (parseFloat(formData.a12_current401kBalance) || 0) +
+                                 (parseFloat(formData.a13_currentIRABalance) || 0) +
+                                 (parseFloat(formData.a14_currentHSABalance) || 0) +
+                                 (parseFloat(formData.a15_currentEducationBalance) || 0);
+
+      // Calculate tax percentages from allocations
+      var taxPercentages = calculateTaxPercentages(allocationState.vehicles || {});
+
       // Build scenario object matching the schema
       var scenario = {
         name: scenarioName,
@@ -8450,6 +8719,18 @@ const Tool6 = {
         investmentScore: currentInvestmentScore || 4,
         taxStrategy: getCurrentTaxStrategy(),
         projectedBalance: getProjectedRetirementBalance(),
+        // Sprint 13: Added fields for enhanced PDF report
+        grossIncome: scenarioGrossIncome,
+        age: upstreamAge || 40,
+        yearsToRetirement: yearsToRetirement || 25,
+        filingStatus: scenarioFilingStatus,
+        workSituation: scenarioWorkSituation,
+        hasChildren: (numChildren > 0) || (formData.a8_hasChildren === 'Yes'),
+        numChildren: numChildren || 0,
+        currentBalance: currentTotalBalance,
+        taxFreePercent: taxPercentages.taxFree,
+        traditionalPercent: taxPercentages.traditional,
+        taxablePercent: taxPercentages.taxable,
         currentBalances: {
           '401k': parseFloat(formData.a12_current401kBalance) || 0,
           ira: parseFloat(formData.a13_currentIRABalance) || 0,
@@ -8557,6 +8838,57 @@ const Tool6 = {
         return parseFloat(text) || 0;
       }
       return 0;
+    }
+
+    /**
+     * Sprint 13: Calculate tax percentages from vehicle allocations
+     * Categorizes vehicles into Tax-Free (Roth/HSA), Tax-Deferred (Traditional), and Taxable
+     */
+    function calculateTaxPercentages(allocations) {
+      if (!allocations || Object.keys(allocations).length === 0) {
+        return { taxFree: 0, traditional: 0, taxable: 0 };
+      }
+
+      var taxFree = 0;      // Roth, HSA, 529 (tax-free growth)
+      var traditional = 0;  // Traditional 401(k), Traditional IRA, SEP, SIMPLE
+      var taxable = 0;      // Taxable brokerage, etc.
+      var total = 0;
+
+      Object.keys(allocations).forEach(function(vehicle) {
+        var amount = allocations[vehicle] || 0;
+        if (amount <= 0) return;
+
+        total += amount;
+        var vLower = vehicle.toLowerCase();
+
+        // Tax-Free: Roth, HSA, 529, Coverdell, Backdoor Roth
+        if (vLower.includes('roth') || vLower.includes('hsa') ||
+            vLower.includes('529') || vLower.includes('coverdell') ||
+            vLower.includes('backdoor')) {
+          taxFree += amount;
+        }
+        // Tax-Deferred: Traditional 401(k), Traditional IRA, SEP, SIMPLE, Solo 401(k) Employer
+        else if (vLower.includes('traditional') || vLower.includes('trad') ||
+                 vLower.includes('sep') || vLower.includes('simple') ||
+                 (vLower.includes('solo') && vLower.includes('employer')) ||
+                 (vLower.includes('401') && !vLower.includes('roth'))) {
+          traditional += amount;
+        }
+        // Taxable: Everything else (Family Bank, brokerage, etc.)
+        else {
+          taxable += amount;
+        }
+      });
+
+      if (total === 0) {
+        return { taxFree: 0, traditional: 0, taxable: 0 };
+      }
+
+      return {
+        taxFree: Math.round((taxFree / total) * 100),
+        traditional: Math.round((traditional / total) * 100),
+        taxable: Math.round((taxable / total) * 100)
+      };
     }
 
     /**
@@ -10497,28 +10829,53 @@ const Tool6 = {
       const profileId = scenarioData.profileId || 7;
       const profile = PROFILE_DEFINITIONS[profileId] || PROFILE_DEFINITIONS[7];
 
+      // Sprint 13: Get income from grossIncome field (added to scenario save)
+      const grossIncome = scenarioData.grossIncome || scenarioData.income || 0;
+
       // Build inputs object
       const inputs = {
         age: scenarioData.age || 40,
         yearsToRetirement: scenarioData.yearsToRetirement || 25,
-        income: scenarioData.income || 0,
+        income: grossIncome,
+        grossIncome: grossIncome,
         monthlyBudget: scenarioData.monthlyBudget || 0,
         investmentScore: scenarioData.investmentScore || 4,
         taxPreference: scenarioData.taxStrategy || 'Balanced',
         hasChildren: scenarioData.hasChildren || false,
-        numChildren: scenarioData.numChildren || 0,
-        yearsToEducation: scenarioData.yearsToEducation || 18,
+        numChildren: scenarioData.numChildren || scenarioData.educationInputs?.numChildren || 0,
+        yearsToEducation: scenarioData.yearsToEducation || scenarioData.educationInputs?.yearsToEducation || 18,
         educationVehicle: scenarioData.educationVehicle || '529 Plan',
         domainWeights: scenarioData.domainWeights || null,
         hasEmployerMatch: scenarioData.hasEmployerMatch || false,
-        employerMatchAmount: scenarioData.employerMatchAmount || 0
+        employerMatchAmount: scenarioData.employerMatchAmount || 0,
+        workSituation: scenarioData.workSituation || 'W-2 Employee',
+        filingStatus: scenarioData.filingStatus || 'Single'
       };
+
+      // Sprint 13: Calculate current balance from saved balances
+      let currentBalance = scenarioData.currentBalance || 0;
+      if (!currentBalance && scenarioData.currentBalances) {
+        currentBalance = (scenarioData.currentBalances['401k'] || 0) +
+                         (scenarioData.currentBalances.ira || 0) +
+                         (scenarioData.currentBalances.hsa || 0) +
+                         (scenarioData.currentBalances.education || 0);
+      }
+
+      // Sprint 13: Calculate derived projections if not saved
+      const projectedBalance = scenarioData.projectedBalance || 0;
+      const yearsToRetirement = inputs.yearsToRetirement;
+      const inflationRate = 0.025; // 2.5% annual inflation
+      const inflationAdjusted = scenarioData.inflationAdjusted ||
+                                 Math.round(projectedBalance / Math.pow(1 + inflationRate, yearsToRetirement));
+      const monthlyRetirementIncome = scenarioData.monthlyRetirementIncome ||
+                                       Math.round((inflationAdjusted * 0.04) / 12); // 4% rule
 
       // Build projections object
       const projections = {
-        projectedBalance: scenarioData.projectedBalance || 0,
-        inflationAdjusted: scenarioData.inflationAdjusted || 0,
-        monthlyRetirementIncome: scenarioData.monthlyRetirementIncome || 0,
+        projectedBalance: projectedBalance,
+        inflationAdjusted: inflationAdjusted,
+        monthlyRetirementIncome: monthlyRetirementIncome,
+        currentBalance: currentBalance,
         taxFreePercent: scenarioData.taxFreePercent || 0,
         traditionalPercent: scenarioData.traditionalPercent || 0,
         taxablePercent: scenarioData.taxablePercent || 0,
@@ -10539,6 +10896,26 @@ const Tool6 = {
 
       Logger.log(`[Tool6.generatePDF] GPT source: ${gptInsights.source}`);
 
+      // Sprint 13: Get enhanced implementation blueprint insights
+      Logger.log('[Tool6.generatePDF] Generating enhanced report insights...');
+      const enhancedInsights = Tool6GPTAnalysis.generateEnhancedReportInsights({
+        clientId,
+        profile,
+        allocations: scenarioData.allocations || {},
+        userInputs: inputs,
+        projections: {
+          balance: scenarioData.projectedBalance || 0,
+          inflationAdjusted: scenarioData.inflationAdjusted || 0,
+          monthlyIncome: scenarioData.monthlyRetirementIncome || 0,
+          currentBalance: scenarioData.currentBalance || 0,
+          savingsRate: inputs.income > 0 ? Math.round((inputs.monthlyBudget * 12 / inputs.income) * 100) : 0
+        },
+        tool1Data,
+        tool3Data
+      });
+
+      Logger.log(`[Tool6.generatePDF] Enhanced insights source: ${enhancedInsights.source}`);
+
       // Generate HTML report
       const htmlContent = Tool6Report.generateSingleReportHTML({
         clientName,
@@ -10546,7 +10923,8 @@ const Tool6 = {
         allocation: scenarioData.allocations || {},
         projections,
         inputs,
-        gptInsights
+        gptInsights,
+        enhancedInsights  // Sprint 13: Implementation blueprint content
       });
 
       // Convert to PDF

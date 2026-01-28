@@ -538,6 +538,103 @@ const TAX_STRATEGY_THRESHOLDS = {
 };
 
 // ============================================================================
+// BACKDOOR ROTH PRO-RATA WARNINGS (Sprint 12.1)
+// ============================================================================
+
+const BACKDOOR_ROTH_WARNINGS = {
+  // Clean Backdoor Roth - no Traditional IRA balance
+  CLEAN: {
+    note: 'Backdoor Roth: 1) Contribute to Trad IRA (non-deductible) → 2) Convert to Roth immediately (tax-free)',
+    executionSteps: [
+      'Contribute to Traditional IRA (non-deductible)',
+      'Convert to Roth IRA immediately',
+      'File Form 8606 with your tax return'
+    ],
+    warning: null
+  },
+  // Has Traditional IRA balance - pro-rata applies
+  PRO_RATA: {
+    note: 'Backdoor Roth with pro-rata tax: Conversion will be partially taxable due to existing Traditional IRA funds',
+    executionSteps: [
+      'Consult a tax advisor before proceeding',
+      'Pro-rata rule applies to all conversions',
+      'File Form 8606 - track basis carefully'
+    ],
+    warning: 'Pro-rata taxation applies to Backdoor Roth conversions when you have existing Traditional IRA funds. A portion of each conversion will be taxable.'
+  },
+  // Has Traditional IRA but 401(k) accepts rollovers - can clean up
+  ROLLOVER_AVAILABLE: {
+    note: 'Backdoor Roth: 1) Roll Trad IRA to 401(k) → 2) Contribute to Trad IRA (non-deductible) → 3) Convert to Roth tax-free',
+    executionSteps: [
+      'Roll your Traditional IRA balance into your 401(k) (if plan accepts rollovers)',
+      'Once IRA balance is $0, contribute to Traditional IRA (non-deductible)',
+      'Convert to Roth IRA immediately (now tax-free)',
+      'File Form 8606 with your tax return'
+    ],
+    warning: 'Consider rolling your Traditional IRA to your 401(k) first (if your plan accepts rollovers) to enable tax-free Backdoor Roth conversions.',
+    actionItem: 'IRA → 401(k) Rollover: Roll Traditional IRA to 401(k) to enable tax-free Backdoor Roth'
+  },
+  // Unsure about Traditional IRA balance
+  UNSURE: {
+    note: 'Backdoor Roth: Check your Traditional IRA balance before converting - pro-rata rules may apply',
+    executionSteps: [
+      'Check if you have any Traditional IRA balance (including SEP/SIMPLE IRAs)',
+      'If yes, pro-rata taxation applies to conversions',
+      'Consider consulting a tax advisor',
+      'File Form 8606 with your tax return'
+    ],
+    warning: 'Verify your Traditional IRA balance before proceeding. If you have pre-tax IRA funds, the pro-rata rule will make part of your conversion taxable.'
+  }
+};
+
+// Solo 401(k) employer contribution calculation notes (Sprint 12.2)
+const SOLO_401K_EMPLOYER_NOTES = {
+  SOLE_PROP_LLC: {
+    percentOfCompensation: 0.20,  // ~20% of net SE income (after 50% SE tax deduction)
+    note: 'Limited to approximately 20% of net self-employment income'
+  },
+  S_CORP_C_CORP: {
+    percentOfCompensation: 0.25,  // 25% of W-2 wages
+    note: 'Limited to 25% of W-2 wages from your corporation'
+  }
+};
+
+// Backdoor Roth educational content (Sprint 12 - collapsible help)
+const BACKDOOR_ROTH_EDUCATION = {
+  title: 'What is Backdoor Roth?',
+  sections: [
+    {
+      heading: 'The Strategy',
+      content: 'A Backdoor Roth is a two-step strategy that allows high-income earners to fund a Roth IRA even when their income exceeds the direct contribution limits. You contribute to a Traditional IRA (non-deductible), then immediately convert it to a Roth IRA.'
+    },
+    {
+      heading: 'Why It Works',
+      content: 'There are no income limits for Traditional IRA contributions (just no tax deduction at high incomes) and no income limits for Roth conversions. The "backdoor" connects these two rules.'
+    },
+    {
+      heading: 'The Pro-Rata Rule',
+      content: 'If you have existing pre-tax money in ANY Traditional, SEP, or SIMPLE IRA, the IRS treats ALL your IRA money as one pool. When you convert, a portion of the conversion becomes taxable based on the ratio of pre-tax to after-tax money.',
+      formula: 'Taxable % = Pre-tax IRA balance / Total IRA balance',
+      example: 'Example: $100k pre-tax IRA + $7k new contribution = $107k total. Converting $7k means $6,542 is taxable (93%).'
+    },
+    {
+      heading: 'How to Avoid Pro-Rata Tax',
+      content: 'Roll your Traditional IRA balance into your employer 401(k) before doing the Backdoor Roth (if your plan accepts rollovers). This zeros out your IRA balance, making conversions tax-free.',
+      tip: '401(k) balances do NOT count toward the pro-rata calculation - only IRA balances.'
+    },
+    {
+      heading: 'Required Tax Filing',
+      content: 'File Form 8606 with your tax return to report non-deductible Traditional IRA contributions and the Roth conversion. This tracks your basis and proves you already paid tax on the converted amount.'
+    }
+  ],
+  // Income thresholds (2025)
+  incomeThresholds: {
+    single: { phaseOutStart: 150000, phaseOutEnd: 165000 },
+    mfj: { phaseOutStart: 236000, phaseOutEnd: 246000 }
+  }
+};
+
+// ============================================================================
 // EMPLOYER MATCH FORMULAS
 // ============================================================================
 
@@ -925,6 +1022,58 @@ const ALLOCATION_QUESTIONS = {
     placeholder: 'e.g., 25000',
     category: 'balances'
   },
+
+  // --- Sprint 12.1: Backdoor Roth Pro-Rata Questions ---
+  a13b_tradIRABalance: {
+    id: 'a13b_tradIRABalance',
+    label: 'Do you have an existing Traditional IRA balance?',
+    type: 'select',
+    required: false,
+    options: [
+      { value: '', label: '-- Select --' },
+      { value: 'none', label: 'No Traditional IRA balance' },
+      { value: 'under10k', label: 'Yes, under $10,000' },
+      { value: 'over10k', label: 'Yes, $10,000 or more' },
+      { value: 'unsure', label: 'Not sure' }
+    ],
+    helpText: 'Important for Backdoor Roth strategy - affects pro-rata taxation',
+    category: 'balances'
+  },
+  a13c_401kAcceptsRollovers: {
+    id: 'a13c_401kAcceptsRollovers',
+    label: 'Does your 401(k) plan accept rollovers from IRAs?',
+    type: 'select',
+    required: false,
+    options: [
+      { value: '', label: '-- Select --' },
+      { value: 'yes', label: 'Yes, it accepts rollovers' },
+      { value: 'no', label: 'No, it does not' },
+      { value: 'unsure', label: 'Not sure' }
+    ],
+    helpText: 'Rolling your Traditional IRA to 401(k) can enable tax-free Backdoor Roth conversions',
+    category: 'balances',
+    showIf: (answers) => answers.a3_has401k === 'Yes' &&
+                         (answers.a13b_tradIRABalance === 'under10k' ||
+                          answers.a13b_tradIRABalance === 'over10k' ||
+                          answers.a13b_tradIRABalance === 'unsure'),
+    defaultWhenHidden: ''
+  },
+
+  // --- Sprint 12.2: Solo 401(k) Dynamic Limit Questions ---
+  a13d_selfEmploymentIncome: {
+    id: 'a13d_selfEmploymentIncome',
+    label: 'What is your estimated annual self-employment income?',
+    type: 'currency',
+    required: false,
+    placeholder: 'e.g., 100000',
+    helpText: 'Net self-employment income (after business expenses). Used to calculate Solo 401(k) employer contribution limit.',
+    category: 'balances',
+    showIf: (answers) => {
+      const workSituation = answers.c5_workSituation;
+      return workSituation === 'Self-employed' || workSituation === 'Both';
+    },
+    defaultWhenHidden: 0
+  },
   a14_currentHSABalance: {
     id: 'a14_currentHSABalance',
     label: 'Current HSA balance',
@@ -1020,7 +1169,7 @@ const ALLOCATION_SECTIONS = [
     id: 'balances',
     title: 'Current Balances',
     description: 'Your starting point for projections',
-    fields: ['a12_current401kBalance', 'a13_currentIRABalance', 'a14_currentHSABalance', 'a15_currentEducationBalance']
+    fields: ['a12_current401kBalance', 'a13_currentIRABalance', 'a13b_tradIRABalance', 'a13c_401kAcceptsRollovers', 'a13d_selfEmploymentIncome', 'a14_currentHSABalance', 'a15_currentEducationBalance']
   },
   {
     id: 'contributions',
@@ -1256,6 +1405,304 @@ const UI_CONFIG = {
 };
 
 // ============================================================================
+// SPRINT 13: VEHICLE SETUP INSTRUCTIONS (Implementation Blueprint)
+// ============================================================================
+
+const VEHICLE_SETUP_INSTRUCTIONS = {
+  '401(k) Employer Match': {
+    provider: 'Your employer benefits portal',
+    setupSteps: [
+      'Log into your employer benefits portal',
+      'Navigate to Retirement or 401(k) section',
+      'Set contribution percentage to capture full match',
+      'Verify your contribution will be deducted from next paycheck'
+    ],
+    autoTransfer: 'Automatic via payroll - no action after setup',
+    taxForms: ['W-2 Box 12 (shows total 401k contributions)'],
+    deadline: 'Ongoing - contribute each pay period',
+    priority: 'HIGHEST - This is free money from your employer'
+  },
+  '401(k) Traditional': {
+    provider: 'Your employer benefits portal',
+    setupSteps: [
+      'Log into your employer benefits portal',
+      'Navigate to Retirement or 401(k) section',
+      'Select contribution percentage or flat dollar amount',
+      'Choose Traditional 401(k) for pre-tax contributions',
+      'Verify investment fund selection'
+    ],
+    autoTransfer: 'Automatic via payroll - no action after setup',
+    taxForms: ['W-2 Box 12 Code D (shows Traditional contributions)'],
+    deadline: 'December 31 (last payroll of year)',
+    note: 'Combined with Roth 401(k), cannot exceed annual limit'
+  },
+  '401(k) Roth': {
+    provider: 'Your employer benefits portal',
+    setupSteps: [
+      'Log into your employer benefits portal',
+      'Navigate to Retirement or 401(k) section',
+      'Select contribution percentage or flat dollar amount',
+      'Choose Roth 401(k) for after-tax contributions',
+      'Verify investment fund selection'
+    ],
+    autoTransfer: 'Automatic via payroll - no action after setup',
+    taxForms: ['W-2 Box 12 Code AA (shows Roth contributions)'],
+    deadline: 'December 31 (last payroll of year)',
+    note: 'Combined with Traditional 401(k), cannot exceed annual limit'
+  },
+  'IRA Traditional': {
+    provider: 'Equity Trust (self-directed)',
+    setupSteps: [
+      'Open Traditional IRA at Equity Trust',
+      'Complete account application and funding authorization',
+      'Link your bank account for transfers',
+      'Set up contribution schedule or make lump sum contribution',
+      'Select investments within the account'
+    ],
+    autoTransfer: 'Set up recurring bank transfer on payday',
+    taxForms: ['Form 5498 (received from Equity Trust)', 'Form 8606 (if non-deductible)'],
+    deadline: 'April 15 of following year (for prior year contribution)',
+    note: 'Deductibility depends on income and workplace plan coverage'
+  },
+  'IRA Roth': {
+    provider: 'Equity Trust (self-directed)',
+    setupSteps: [
+      'Open Roth IRA at Equity Trust',
+      'Complete account application and funding authorization',
+      'Link your bank account for transfers',
+      'Set up contribution schedule or make lump sum contribution',
+      'Select investments within the account'
+    ],
+    autoTransfer: 'Set up recurring bank transfer on payday',
+    taxForms: ['Form 5498 (received from Equity Trust)'],
+    deadline: 'April 15 of following year (for prior year contribution)',
+    note: 'Income limits apply - verify eligibility'
+  },
+  'Backdoor Roth IRA': {
+    provider: 'Equity Trust (self-directed)',
+    setupSteps: [
+      'Verify you have no existing Traditional IRA balance (pro-rata rule)',
+      'Open Traditional IRA at Equity Trust (if needed)',
+      'Contribute to Traditional IRA as non-deductible',
+      'Request Roth conversion immediately (contact Equity Trust)',
+      'File Form 8606 with tax return to track basis'
+    ],
+    autoTransfer: 'Manual process - set calendar reminder annually',
+    taxForms: ['Form 8606 (CRITICAL - tracks non-deductible basis)', 'Form 5498'],
+    deadline: 'April 15 for contribution, convert in same calendar year',
+    warning: 'Pro-rata rule applies if you have Traditional IRA balance'
+  },
+  'HSA': {
+    provider: 'Employer plan or self-directed HSA custodian',
+    setupSteps: [
+      'Verify HDHP enrollment (required for HSA eligibility)',
+      'Enroll in HSA through employer benefits portal',
+      'Set contribution amount via payroll deduction',
+      'Keep all medical receipts for future reimbursement',
+      'Consider investing HSA funds for long-term growth'
+    ],
+    autoTransfer: 'Payroll deduction preferred (saves 7.65% FICA tax)',
+    taxForms: ['Form 5498-SA (contributions)', 'Form 1099-SA (distributions)', 'Form 8889 (required with tax return)'],
+    deadline: 'April 15 of following year (for prior year contribution)',
+    note: 'Triple tax advantage: deductible, grows tax-free, tax-free for medical'
+  },
+  'Solo 401(k) Employee': {
+    provider: 'Equity Trust or specialized Solo 401(k) provider',
+    setupSteps: [
+      'Establish Solo 401(k) plan with Equity Trust',
+      'Complete adoption agreement and plan documents',
+      'Set up contribution schedule from business account',
+      'Make employee deferrals by December 31',
+      'Select investments within the plan'
+    ],
+    autoTransfer: 'Set up recurring transfer from business checking',
+    taxForms: ['Form 5500-EZ (if balance exceeds $250k)', 'Schedule C or S-Corp return'],
+    deadline: 'December 31 for employee deferrals',
+    note: 'Same limit as regular 401(k) - can be Traditional or Roth'
+  },
+  'Solo 401(k) Employer': {
+    provider: 'Equity Trust or specialized Solo 401(k) provider',
+    setupSteps: [
+      'Ensure Solo 401(k) plan is established',
+      'Calculate maximum employer contribution (20% of net SE income)',
+      'Make employer profit-sharing contribution',
+      'Contribution can be made up to tax filing deadline'
+    ],
+    autoTransfer: 'Annual or quarterly lump sum from business account',
+    taxForms: ['Form 5500-EZ (if balance exceeds $250k)', 'Schedule C (deduction)'],
+    deadline: 'Tax filing deadline plus extensions (up to October 15)',
+    note: 'Limited to 20% of net self-employment income for sole proprietors'
+  },
+  'SEP-IRA': {
+    provider: 'Equity Trust (self-directed)',
+    setupSteps: [
+      'Establish SEP-IRA at Equity Trust',
+      'Complete SEP adoption agreement (IRS Form 5305-SEP)',
+      'Calculate maximum contribution (25% of net SE income)',
+      'Make contribution from business account',
+      'Must contribute same percentage for all eligible employees'
+    ],
+    autoTransfer: 'Annual lump sum contribution recommended',
+    taxForms: ['Form 5498 (received from custodian)', 'Schedule C or business return'],
+    deadline: 'Tax filing deadline plus extensions (up to October 15)',
+    note: 'Simpler than Solo 401(k) but employer contributions only'
+  },
+  'SIMPLE IRA': {
+    provider: 'Employer-sponsored plan',
+    setupSteps: [
+      'Enroll in employer SIMPLE IRA plan',
+      'Set salary deferral amount',
+      'Employer must contribute 2% or match up to 3%',
+      'Select investments within the plan'
+    ],
+    autoTransfer: 'Automatic via payroll',
+    taxForms: ['W-2 Box 12 Code S'],
+    deadline: 'December 31 for employee deferrals',
+    note: 'Lower limits than 401(k) - 2-year waiting period for rollovers'
+  },
+  '529 Plan': {
+    provider: 'State-sponsored plan (any state) or Equity Trust',
+    setupSteps: [
+      'Research state 529 plans for best options',
+      'Open 529 account naming beneficiary (child)',
+      'Link bank account for contributions',
+      'Set up automatic monthly contributions',
+      'Select age-based or static investment portfolio'
+    ],
+    autoTransfer: 'Set up recurring bank transfer',
+    taxForms: ['Form 1099-Q (when distributions taken)', 'State tax deduction may apply'],
+    deadline: 'No federal deadline - check state for tax benefits',
+    note: 'Tax-free for qualified education expenses including K-12 tuition'
+  },
+  'Coverdell ESA': {
+    provider: 'Equity Trust (self-directed)',
+    setupSteps: [
+      'Open Coverdell ESA at Equity Trust',
+      'Name beneficiary under age 18',
+      'Contribute up to $2,000 per year per beneficiary',
+      'Select investments within the account'
+    ],
+    autoTransfer: 'Set up recurring monthly transfer',
+    taxForms: ['Form 5498-ESA (contributions)', 'Form 1099-Q (distributions)'],
+    deadline: 'April 15 of following year',
+    note: 'Income limits apply - more flexible than 529 for K-12 expenses'
+  },
+  'Family Bank': {
+    provider: 'Whole life insurance carrier',
+    setupSteps: [
+      'Work with insurance professional to design policy',
+      'Complete underwriting and medical exam',
+      'Set up premium payment schedule',
+      'Access cash value via policy loans after buildup period'
+    ],
+    autoTransfer: 'Automatic premium payments',
+    taxForms: ['No annual tax forms - tax-free loans'],
+    deadline: 'Ongoing premium payments',
+    note: 'Long-term strategy - cash value builds over time'
+  },
+  'Mega Backdoor Roth': {
+    provider: 'Through employer 401(k) plan',
+    setupSteps: [
+      'Verify your 401(k) plan allows after-tax contributions',
+      'Verify plan allows in-service Roth conversions',
+      'Max out pre-tax/Roth 401(k) first',
+      'Contribute after-tax dollars up to combined limit',
+      'Convert after-tax contributions to Roth immediately'
+    ],
+    autoTransfer: 'Via payroll + periodic conversions',
+    taxForms: ['W-2 Box 12', 'Form 1099-R (for conversions)'],
+    deadline: 'December 31 for contributions',
+    note: 'Not all plans offer this - check with HR or plan administrator'
+  }
+};
+
+// ============================================================================
+// SPRINT 13: SAVINGS BENCHMARKS
+// ============================================================================
+
+const SAVINGS_BENCHMARKS = {
+  MINIMUM: 0.10,      // 10% - absolute minimum for retirement
+  RECOMMENDED: 0.15,  // 15% - Fidelity/Vanguard recommendation
+  AGGRESSIVE: 0.20,   // 20% - accelerated wealth building
+  FIRE: 0.50          // 50%+ - Financial Independence path
+};
+
+// ============================================================================
+// SPRINT 13: KEY AGES (Milestone Markers)
+// ============================================================================
+
+const KEY_AGES = {
+  IRA_CATCHUP: 50,           // IRA and 401(k) catch-up contributions begin
+  HSA_CATCHUP: 55,           // HSA catch-up contributions begin
+  PENALTY_FREE_401K: 55,     // 401(k) penalty-free if separated from service at 55+
+  PENALTY_FREE_IRA: 59.5,    // IRA penalty-free withdrawals
+  SUPER_CATCHUP_START: 60,   // 401(k) super catch-up begins (SECURE 2.0)
+  SUPER_CATCHUP_END: 63,     // 401(k) super catch-up ends
+  EARLY_SS: 62,              // Earliest Social Security (reduced benefit)
+  MEDICARE: 65,              // Medicare eligibility
+  FULL_SS_1960_PLUS: 67,     // Full Social Security for those born 1960+
+  RMD_AGE: 73,               // Required Minimum Distributions begin (SECURE 2.0)
+  RMD_AGE_2033: 75           // RMD age increases to 75 in 2033
+};
+
+// ============================================================================
+// SPRINT 13: FINANCIAL CALENDAR
+// ============================================================================
+
+const FINANCIAL_CALENDAR = {
+  'January 1': {
+    event: 'New contribution limits take effect',
+    vehicles: ['all'],
+    action: 'Update contribution amounts to new limits'
+  },
+  'January 15': {
+    event: 'Q4 estimated tax payment due',
+    vehicles: ['self-employed'],
+    action: 'Pay quarterly estimated taxes for prior Q4'
+  },
+  'April 15': {
+    event: 'Tax filing deadline / Prior year IRA & HSA deadline',
+    vehicles: ['IRA Traditional', 'IRA Roth', 'Backdoor Roth IRA', 'HSA'],
+    action: 'Last day to contribute to IRA/HSA for prior tax year'
+  },
+  'June 15': {
+    event: 'Q2 estimated tax payment due',
+    vehicles: ['self-employed'],
+    action: 'Pay quarterly estimated taxes for Q2'
+  },
+  'September 15': {
+    event: 'Q3 estimated tax payment due',
+    vehicles: ['self-employed'],
+    action: 'Pay quarterly estimated taxes for Q3'
+  },
+  'October 15': {
+    event: 'Extended tax filing deadline / SEP-IRA deadline',
+    vehicles: ['SEP-IRA', 'Solo 401(k) Employer'],
+    action: 'Last day for SEP-IRA and Solo 401(k) employer contributions (if extension filed)'
+  },
+  'December 31': {
+    event: '401(k) contribution deadline / Roth conversion deadline / RMD deadline',
+    vehicles: ['401(k) Traditional', '401(k) Roth', 'Solo 401(k) Employee', 'Backdoor Roth IRA'],
+    action: 'Complete all 401(k) contributions and Roth conversions; Take RMDs if required'
+  }
+};
+
+// ============================================================================
+// SPRINT 13: AGE-BASED BENCHMARKS (Fidelity Guidelines)
+// ============================================================================
+
+const AGE_BENCHMARKS = {
+  30: { multiple: 1.0, note: '1x annual salary saved by age 30' },
+  35: { multiple: 2.0, note: '2x annual salary saved by age 35' },
+  40: { multiple: 3.0, note: '3x annual salary saved by age 40' },
+  45: { multiple: 4.0, note: '4x annual salary saved by age 45' },
+  50: { multiple: 6.0, note: '6x annual salary saved by age 50' },
+  55: { multiple: 7.0, note: '7x annual salary saved by age 55' },
+  60: { multiple: 8.0, note: '8x annual salary saved by age 60' },
+  67: { multiple: 10.0, note: '10x annual salary saved by retirement' }
+};
+
+// ============================================================================
 // STORAGE KEYS
 // ============================================================================
 
@@ -1282,7 +1729,17 @@ const Tool6Constants = {
   INVESTMENT_SCORE_LABELS,
   TAX_STRATEGY_OPTIONS,
   TAX_STRATEGY_THRESHOLDS,
+  // Sprint 12: Tax Logic Improvements
+  BACKDOOR_ROTH_WARNINGS,
+  SOLO_401K_EMPLOYER_NOTES,
+  BACKDOOR_ROTH_EDUCATION,
   EMPLOYER_MATCH_FORMULAS,
+  // Sprint 13: Implementation Blueprint
+  VEHICLE_SETUP_INSTRUCTIONS,
+  SAVINGS_BENCHMARKS,
+  KEY_AGES,
+  FINANCIAL_CALENDAR,
+  AGE_BENCHMARKS,
   AMBITION_QUOTIENT_CONFIG,
   // Two-phase questionnaire exports
   CLASSIFICATION_QUESTIONS,

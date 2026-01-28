@@ -387,6 +387,374 @@ const Tool6Report = {
         body { padding: 20px; }
         .page-break { page-break-before: always; }
       }
+
+      /* ============================================================
+         SPRINT 13: IMPLEMENTATION BLUEPRINT STYLES
+         ============================================================ */
+
+      /* Dashboard KPI Cards */
+      .dashboard-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        margin: 20px 0;
+      }
+
+      .kpi-card {
+        flex: 1;
+        min-width: 140px;
+        background: white;
+        border: 2px solid #e0e0e0;
+        border-radius: 10px;
+        padding: 15px;
+        text-align: center;
+      }
+
+      .kpi-card.status-good {
+        border-color: #4caf50;
+        background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%);
+      }
+
+      .kpi-card.status-warning {
+        border-color: #ff9800;
+        background: linear-gradient(135deg, #fff3e0 0%, #fff8e1 100%);
+      }
+
+      .kpi-card.status-alert {
+        border-color: #f44336;
+        background: linear-gradient(135deg, #ffebee 0%, #fce4ec 100%);
+      }
+
+      .kpi-card .kpi-value {
+        font-size: 28px;
+        font-weight: 700;
+        color: #2d2d44;
+        margin: 5px 0;
+      }
+
+      .kpi-card .kpi-label {
+        font-size: 12px;
+        color: #666;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .kpi-card .kpi-status {
+        font-size: 11px;
+        margin-top: 5px;
+        font-weight: 600;
+      }
+
+      .kpi-card.status-good .kpi-status { color: #2e7d32; }
+      .kpi-card.status-warning .kpi-status { color: #ef6c00; }
+      .kpi-card.status-alert .kpi-status { color: #c62828; }
+
+      /* Vehicle Implementation Cards */
+      .vehicle-impl-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        margin: 20px 0;
+      }
+
+      .vehicle-impl-card {
+        background: white;
+        border: 2px solid #5b4b8a;
+        border-radius: 12px;
+        overflow: hidden;
+        page-break-inside: avoid;
+      }
+
+      .vehicle-impl-header {
+        background: linear-gradient(135deg, #5b4b8a 0%, #4b4166 100%);
+        color: white;
+        padding: 15px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .vehicle-impl-header .vehicle-name {
+        font-size: 18px;
+        font-weight: 700;
+      }
+
+      .vehicle-impl-header .vehicle-amount {
+        font-size: 16px;
+        opacity: 0.95;
+      }
+
+      .vehicle-impl-body {
+        padding: 20px;
+      }
+
+      .vehicle-impl-row {
+        display: flex;
+        margin-bottom: 12px;
+        font-size: 14px;
+      }
+
+      .vehicle-impl-row .label {
+        width: 120px;
+        font-weight: 600;
+        color: #555;
+        flex-shrink: 0;
+      }
+
+      .vehicle-impl-row .value {
+        flex: 1;
+        color: #333;
+      }
+
+      .setup-checklist {
+        background: #f9f9f9;
+        border-radius: 8px;
+        padding: 15px;
+        margin-top: 15px;
+      }
+
+      .setup-checklist h5 {
+        margin: 0 0 12px 0;
+        color: #5b4b8a;
+        font-size: 14px;
+      }
+
+      .setup-step {
+        display: flex;
+        align-items: flex-start;
+        margin-bottom: 8px;
+        font-size: 13px;
+      }
+
+      .setup-step .checkbox {
+        width: 16px;
+        height: 16px;
+        border: 2px solid #5b4b8a;
+        border-radius: 3px;
+        margin-right: 10px;
+        flex-shrink: 0;
+        margin-top: 2px;
+      }
+
+      .vehicle-warning {
+        background: #fff3e0;
+        border-left: 4px solid #ff9800;
+        padding: 10px 15px;
+        margin-top: 15px;
+        font-size: 13px;
+        color: #e65100;
+        border-radius: 0 4px 4px 0;
+      }
+
+      /* Milestone Timeline */
+      .milestone-timeline {
+        margin: 20px 0;
+      }
+
+      .milestone-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+      }
+
+      .milestone-table th {
+        background: #5b4b8a;
+        color: white;
+        padding: 12px;
+        text-align: left;
+        font-weight: 600;
+      }
+
+      .milestone-table td {
+        padding: 12px;
+        border-bottom: 1px solid #e0e0e0;
+        vertical-align: top;
+      }
+
+      .milestone-table tr:nth-child(even) {
+        background: #f9f9f9;
+      }
+
+      .milestone-table .age-cell {
+        font-weight: 700;
+        color: #5b4b8a;
+        font-size: 16px;
+      }
+
+      .milestone-table .balance-cell {
+        font-weight: 600;
+        color: #2d2d44;
+      }
+
+      .milestone-table .event-cell {
+        font-size: 13px;
+        color: #555;
+      }
+
+      .milestone-current {
+        background: #e8f5e9 !important;
+        border-left: 4px solid #4caf50;
+      }
+
+      /* Financial Calendar */
+      .calendar-section {
+        margin: 20px 0;
+      }
+
+      .calendar-item {
+        display: flex;
+        margin-bottom: 15px;
+        padding: 15px;
+        background: #f9f9f9;
+        border-radius: 8px;
+        border-left: 4px solid #5b4b8a;
+      }
+
+      .calendar-date {
+        width: 100px;
+        flex-shrink: 0;
+        font-weight: 700;
+        color: #5b4b8a;
+        font-size: 14px;
+      }
+
+      .calendar-details {
+        flex: 1;
+      }
+
+      .calendar-event {
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 5px;
+      }
+
+      .calendar-action {
+        font-size: 13px;
+        color: #666;
+      }
+
+      .calendar-item.priority-high {
+        border-left-color: #f44336;
+        background: #ffebee;
+      }
+
+      /* Gap Analysis */
+      .gap-analysis {
+        margin: 20px 0;
+      }
+
+      .benchmark-meter {
+        height: 25px;
+        background: #e0e0e0;
+        border-radius: 12px;
+        overflow: hidden;
+        margin: 15px 0;
+        position: relative;
+      }
+
+      .benchmark-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #4caf50, #8bc34a);
+        border-radius: 12px;
+        transition: width 0.3s ease;
+      }
+
+      .benchmark-fill.behind {
+        background: linear-gradient(90deg, #ff9800, #ffc107);
+      }
+
+      .benchmark-fill.far-behind {
+        background: linear-gradient(90deg, #f44336, #ff5722);
+      }
+
+      .benchmark-target {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 3px;
+        background: #2d2d44;
+        border-radius: 3px;
+      }
+
+      .benchmark-labels {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+        color: #666;
+        margin-top: 5px;
+      }
+
+      .catch-up-box {
+        background: linear-gradient(135deg, #e3f2fd 0%, #e1f5fe 100%);
+        border-left: 4px solid #2196f3;
+        padding: 15px 20px;
+        border-radius: 0 8px 8px 0;
+        margin: 15px 0;
+      }
+
+      .catch-up-box .amount {
+        font-size: 24px;
+        font-weight: 700;
+        color: #1565c0;
+      }
+
+      .catch-up-box .description {
+        font-size: 14px;
+        color: #555;
+        margin-top: 5px;
+      }
+
+      /* Enhanced Roadmap - 5 Tier */
+      .roadmap-tier {
+        margin-bottom: 25px;
+        page-break-inside: avoid;
+      }
+
+      .roadmap-tier h4 {
+        background: #5b4b8a;
+        color: white;
+        padding: 10px 15px;
+        margin: 0;
+        border-radius: 8px 8px 0 0;
+        font-size: 14px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      .roadmap-tier.tier-immediate h4 { background: #c62828; }
+      .roadmap-tier.tier-week1 h4 { background: #ef6c00; }
+      .roadmap-tier.tier-month1 h4 { background: #2196f3; }
+      .roadmap-tier.tier-quarterly h4 { background: #7b1fa2; }
+      .roadmap-tier.tier-annual h4 { background: #00695c; }
+
+      .roadmap-actions {
+        background: #f9f9f9;
+        border: 1px solid #e0e0e0;
+        border-top: none;
+        border-radius: 0 0 8px 8px;
+        padding: 15px;
+      }
+
+      .roadmap-action {
+        display: flex;
+        align-items: flex-start;
+        margin-bottom: 10px;
+        font-size: 14px;
+      }
+
+      .roadmap-action:last-child {
+        margin-bottom: 0;
+      }
+
+      .roadmap-action .checkbox {
+        width: 18px;
+        height: 18px;
+        border: 2px solid #5b4b8a;
+        border-radius: 3px;
+        margin-right: 12px;
+        flex-shrink: 0;
+        margin-top: 1px;
+      }
     `;
   },
 
@@ -407,20 +775,32 @@ const Tool6Report = {
       allocation,
       projections,
       inputs,
-      gptInsights
+      gptInsights,
+      enhancedInsights  // Sprint 13: GPT-generated implementation guidance
     } = params;
 
     const styles = this.getReportStyles();
     const bodyContent = [
       this.buildHeader(clientName, 'Retirement Blueprint Report'),
       this.buildProfileSection(profile),
+      // Sprint 13: Dashboard at top for quick snapshot
+      this.buildDashboardSection(inputs, projections, allocation),
       this.buildExecutiveSummary(profile, inputs, projections),
       this.buildAllocationSection(allocation, inputs),
       this.buildGPTSection(gptInsights),
       this.buildProjectionsSection(projections, inputs),
+      // Sprint 13: Gap Analysis - how they compare to benchmarks
+      this.buildGapAnalysisSection(inputs, projections, enhancedInsights),
       this.buildEducationSection(projections, inputs),
-      this.buildImplementationSection(gptInsights),
-      this.buildFooter(gptInsights?.source)
+      // Sprint 13: Milestone Timeline - balance at key ages
+      this.buildMilestoneSection(inputs, projections, enhancedInsights),
+      // Sprint 13: Vehicle Implementation Cards - setup instructions
+      this.buildVehicleImplementationCards(allocation, inputs, enhancedInsights),
+      // Sprint 13: Financial Calendar - key deadlines
+      this.buildCalendarSection(allocation, inputs, enhancedInsights),
+      // Sprint 13: Enhanced 5-Tier Roadmap
+      this.buildEnhancedRoadmapSection(allocation, inputs, gptInsights, enhancedInsights),
+      this.buildFooter(gptInsights?.source || enhancedInsights?.source)
     ].join('\n');
 
     return this.buildHTMLDocument(styles, bodyContent);
@@ -537,9 +917,11 @@ const Tool6Report = {
     let tableRows = vehicles.map(([vehicle, monthly]) => {
       const annual = monthly * 12;
       const pct = monthlyBudget > 0 ? Math.round((monthly / monthlyBudget) * 100) : 0;
+      // Sprint 13: Normalize vehicle name for display
+      const displayName = this.normalizeVehicleName(vehicle);
       return `
         <tr>
-          <td>${vehicle}</td>
+          <td>${displayName}</td>
           <td style="text-align: right;">$${monthly.toLocaleString()}</td>
           <td style="text-align: right;">$${annual.toLocaleString()}</td>
           <td style="text-align: right;">${pct}%</td>
@@ -992,6 +1374,556 @@ const Tool6Report = {
   },
 
   // ============================================================
+  // SPRINT 13: IMPLEMENTATION BLUEPRINT SECTIONS
+  // ============================================================
+
+  /**
+   * Build executive dashboard with KPI cards
+   * Shows critical numbers at a glance with status indicators
+   */
+  buildDashboardSection(inputs, projections, allocation) {
+    const income = inputs?.income || inputs?.grossIncome || 0;
+    const monthlyBudget = inputs?.monthlyBudget || 0;
+    const savingsRate = income > 0 ? (monthlyBudget * 12 / income) : 0;
+    const yearsToRetirement = inputs?.yearsToRetirement || 25;
+    const age = inputs?.age || 40;
+
+    // Calculate tax efficiency (% in Roth/HSA)
+    let rothHSAAmount = 0;
+    let totalAmount = 0;
+    if (allocation) {
+      Object.entries(allocation).forEach(([vehicle, amount]) => {
+        if (amount > 0) {
+          totalAmount += amount;
+          if (vehicle.includes('Roth') || vehicle.includes('HSA')) {
+            rothHSAAmount += amount;
+          }
+        }
+      });
+    }
+    const taxEfficiency = totalAmount > 0 ? (rothHSAAmount / totalAmount) : 0;
+
+    // Catch-up eligibility
+    const yearsToIRACatchUp = Math.max(0, 50 - age);
+    const yearsToHSACatchUp = Math.max(0, 55 - age);
+    const catchUpStatus = age >= 50 ? 'Currently Eligible' :
+                          yearsToIRACatchUp <= 5 ? `${yearsToIRACatchUp} years away` :
+                          `${yearsToIRACatchUp} years`;
+
+    // Status logic
+    const savingsStatus = savingsRate >= 0.15 ? 'good' : savingsRate >= 0.10 ? 'warning' : 'alert';
+    const taxStatus = taxEfficiency >= 0.50 ? 'good' : taxEfficiency >= 0.30 ? 'warning' : 'alert';
+
+    return `
+      <h2>Your Financial Snapshot</h2>
+      <div class="dashboard-grid">
+        <div class="kpi-card status-${savingsStatus}">
+          <div class="kpi-label">Savings Rate</div>
+          <div class="kpi-value">${Math.round(savingsRate * 100)}%</div>
+          <div class="kpi-status">${savingsRate >= 0.15 ? 'On Track' : savingsRate >= 0.10 ? 'Room to Grow' : 'Needs Attention'}</div>
+        </div>
+
+        <div class="kpi-card status-${taxStatus}">
+          <div class="kpi-label">Tax-Free %</div>
+          <div class="kpi-value">${Math.round(taxEfficiency * 100)}%</div>
+          <div class="kpi-status">${taxEfficiency >= 0.50 ? 'Well Diversified' : 'Build Roth/HSA'}</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-label">Years to Goal</div>
+          <div class="kpi-value">${yearsToRetirement}</div>
+          <div class="kpi-status">Age ${age + yearsToRetirement}</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-label">Catch-Up Status</div>
+          <div class="kpi-value" style="font-size: 18px;">${catchUpStatus}</div>
+          <div class="kpi-status">${age >= 50 ? 'Add extra $' : 'Plan ahead'}</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-label">Monthly Budget</div>
+          <div class="kpi-value" style="font-size: 22px;">$${monthlyBudget.toLocaleString()}</div>
+          <div class="kpi-status">$${(monthlyBudget * 12).toLocaleString()}/year</div>
+        </div>
+      </div>
+    `;
+  },
+
+  /**
+   * Build vehicle implementation cards with setup instructions
+   * Each vehicle gets detailed steps, provider info, and deadlines
+   */
+  buildVehicleImplementationCards(allocation, inputs, enhancedInsights) {
+    if (!allocation || Object.keys(allocation).length === 0) {
+      return '';
+    }
+
+    // Filter and sort vehicles by amount
+    const vehicles = Object.entries(allocation)
+      .filter(([_, amount]) => amount > 0)
+      .sort((a, b) => b[1] - a[1]);
+
+    if (vehicles.length === 0) return '';
+
+    const age = inputs?.age || 40;
+
+    let html = '<div class="page-break"></div><h2>How to Set Up Each Account</h2>';
+    html += '<p style="color: #666; margin-bottom: 20px;">Follow these steps to implement your allocation. Check off each step as you complete it.</p>';
+    html += '<div class="vehicle-impl-grid">';
+
+    vehicles.forEach(([vehicleName, monthlyAmount]) => {
+      const annualAmount = monthlyAmount * 12;
+      // Sprint 13: Use normalized name for lookup and display
+      const displayName = this.normalizeVehicleName(vehicleName);
+      const setup = this.getVehicleSetupInstructions(vehicleName);
+
+      // Get annual limit for this vehicle (try both original and normalized names)
+      let limitInfo = '';
+      const vehicleDef = VEHICLE_DEFINITIONS[vehicleName] || VEHICLE_DEFINITIONS[displayName];
+      if (vehicleDef?.annualLimit) {
+        let limit = vehicleDef.annualLimit;
+        // Add catch-up if eligible
+        if (vehicleDef.catchUpAge && age >= vehicleDef.catchUpAge) {
+          limit += vehicleDef.catchUpAmount || 0;
+          limitInfo = `$${limit.toLocaleString()} (includes catch-up)`;
+        } else {
+          limitInfo = `$${limit.toLocaleString()}`;
+        }
+      }
+
+      html += `
+        <div class="vehicle-impl-card">
+          <div class="vehicle-impl-header">
+            <span class="vehicle-name">${displayName}</span>
+            <span class="vehicle-amount">$${monthlyAmount.toLocaleString()}/mo ($${annualAmount.toLocaleString()}/yr)</span>
+          </div>
+          <div class="vehicle-impl-body">
+            <div class="vehicle-impl-row">
+              <span class="label">Where:</span>
+              <span class="value">${setup?.provider || 'Contact your provider'}</span>
+            </div>
+            ${limitInfo ? `
+            <div class="vehicle-impl-row">
+              <span class="label">2025 Limit:</span>
+              <span class="value">${limitInfo}</span>
+            </div>
+            ` : ''}
+            <div class="vehicle-impl-row">
+              <span class="label">Contribution:</span>
+              <span class="value">${setup?.autoTransfer || 'Set up recurring transfer'}</span>
+            </div>
+            <div class="vehicle-impl-row">
+              <span class="label">Deadline:</span>
+              <span class="value">${setup?.deadline || 'Check with provider'}</span>
+            </div>
+            <div class="vehicle-impl-row">
+              <span class="label">Tax Forms:</span>
+              <span class="value">${setup?.taxForms?.join(', ') || 'Varies'}</span>
+            </div>
+
+            ${setup?.setupSteps ? `
+            <div class="setup-checklist">
+              <h5>Setup Steps</h5>
+              ${setup.setupSteps.map(step => `
+                <div class="setup-step">
+                  <div class="checkbox"></div>
+                  <span>${step}</span>
+                </div>
+              `).join('')}
+            </div>
+            ` : ''}
+
+            ${setup?.warning ? `
+            <div class="vehicle-warning">
+              <strong>Important:</strong> ${setup.warning}
+            </div>
+            ` : ''}
+
+            ${setup?.note ? `
+            <div style="margin-top: 10px; font-size: 13px; color: #666; font-style: italic;">
+              Note: ${setup.note}
+            </div>
+            ` : ''}
+          </div>
+        </div>
+      `;
+    });
+
+    html += '</div>';
+
+    // Add personalized GPT guidance if available
+    if (enhancedInsights?.vehicleGuidance) {
+      html += `
+        <div class="insight-box">
+          <h3>Personalized Guidance</h3>
+          <p>${enhancedInsights.vehicleGuidance}</p>
+        </div>
+      `;
+    }
+
+    return html;
+  },
+
+  /**
+   * Build milestone projections timeline
+   * Shows projected balance at key life stages
+   */
+  buildMilestoneSection(inputs, projections, enhancedInsights) {
+    const age = inputs?.age || 40;
+    const yearsToRetirement = inputs?.yearsToRetirement || 25;
+    const retirementAge = age + yearsToRetirement;
+    const monthlyContribution = inputs?.monthlyBudget || 0;
+    const currentBalance = projections?.currentBalance || 0;
+    const returnRate = this.getReturnRate(inputs?.investmentScore || 4) / 100;
+
+    // Key milestone ages to show
+    const milestoneAges = [50, 55, 59.5, 62, 65, 67, 70].filter(m => m > age && m <= 75);
+
+    // Calculate projected balance at each milestone
+    const milestones = milestoneAges.map(milestoneAge => {
+      const yearsAway = milestoneAge - age;
+      // FV = PV(1+r)^n + PMT * (((1+r)^n - 1) / r)
+      const monthlyRate = returnRate / 12;
+      const months = yearsAway * 12;
+      const fvPrincipal = currentBalance * Math.pow(1 + monthlyRate, months);
+      const fvContributions = monthlyContribution * ((Math.pow(1 + monthlyRate, months) - 1) / monthlyRate);
+      const balance = fvPrincipal + fvContributions;
+
+      // What happens at this age
+      let events = [];
+      if (milestoneAge === 50) events.push('IRA/401(k) catch-up begins (+$8,500/yr potential)');
+      if (milestoneAge === 55) events.push('HSA catch-up begins (+$1,000/yr)');
+      if (milestoneAge === 59.5) events.push('Penalty-free IRA withdrawals');
+      if (milestoneAge === 62) events.push('Early Social Security available (reduced)');
+      if (milestoneAge === 65) events.push('Medicare eligibility');
+      if (milestoneAge === 67) events.push('Full Social Security benefits');
+      if (milestoneAge === 70) events.push('Consider RMD planning (begins at 73)');
+
+      return {
+        age: milestoneAge,
+        yearsAway: Math.round(yearsAway * 10) / 10,
+        balance: Math.round(balance),
+        events: events.join('; ') || 'Continued growth'
+      };
+    });
+
+    let html = '<h2>Your Retirement Timeline</h2>';
+    html += '<p style="color: #666; margin-bottom: 15px;">Projected balances at key life stages based on your current plan.</p>';
+    html += '<div class="milestone-timeline">';
+    html += '<table class="milestone-table">';
+    html += '<thead><tr><th>Age</th><th>Years Away</th><th>Projected Balance</th><th>What Happens</th></tr></thead>';
+    html += '<tbody>';
+
+    milestones.forEach(m => {
+      const isRetirement = Math.abs(m.age - retirementAge) < 1;
+      html += `
+        <tr class="${isRetirement ? 'milestone-current' : ''}">
+          <td class="age-cell">${m.age}</td>
+          <td>${m.yearsAway}</td>
+          <td class="balance-cell">$${m.balance.toLocaleString()}</td>
+          <td class="event-cell">${m.events}</td>
+        </tr>
+      `;
+    });
+
+    html += '</tbody></table></div>';
+
+    // Add personalized milestone insights if available
+    if (enhancedInsights?.milestoneInsights) {
+      html += `
+        <div class="insight-box">
+          <h3>What This Means for You</h3>
+          <p>${enhancedInsights.milestoneInsights}</p>
+        </div>
+      `;
+    }
+
+    return html;
+  },
+
+  /**
+   * Build financial calendar section
+   * Shows key deadlines based on user's vehicles
+   */
+  buildCalendarSection(allocation, inputs, enhancedInsights) {
+    if (!allocation) return '';
+
+    const userVehicles = Object.keys(allocation).filter(v => allocation[v] > 0);
+    const isSelfEmployed = inputs?.workSituation === 'Self-employed' || inputs?.workSituation === 'Both';
+
+    // Filter calendar to relevant deadlines
+    const relevantDeadlines = [];
+
+    Object.entries(FINANCIAL_CALENDAR).forEach(([date, info]) => {
+      // Check if any user vehicle matches
+      const isRelevant = info.vehicles.includes('all') ||
+                         (info.vehicles.includes('self-employed') && isSelfEmployed) ||
+                         info.vehicles.some(v => userVehicles.some(uv => uv.includes(v) || v.includes(uv)));
+
+      if (isRelevant) {
+        relevantDeadlines.push({ date, ...info });
+      }
+    });
+
+    if (relevantDeadlines.length === 0) return '';
+
+    let html = '<h2>Your Financial Calendar</h2>';
+    html += '<p style="color: #666; margin-bottom: 15px;">Key deadlines based on your retirement vehicles.</p>';
+    html += '<div class="calendar-section">';
+
+    relevantDeadlines.forEach(deadline => {
+      const isPriority = deadline.date === 'April 15' || deadline.date === 'December 31';
+      html += `
+        <div class="calendar-item ${isPriority ? 'priority-high' : ''}">
+          <div class="calendar-date">${deadline.date}</div>
+          <div class="calendar-details">
+            <div class="calendar-event">${deadline.event}</div>
+            <div class="calendar-action">${deadline.action}</div>
+          </div>
+        </div>
+      `;
+    });
+
+    html += '</div>';
+
+    // Add personalized calendar reminders if available
+    if (enhancedInsights?.calendarReminders) {
+      html += `
+        <div class="insight-box">
+          <h3>Your Priority Deadlines</h3>
+          <p>${enhancedInsights.calendarReminders}</p>
+        </div>
+      `;
+    }
+
+    return html;
+  },
+
+  /**
+   * Build gap analysis and benchmarks section
+   * Shows where user stands vs age-appropriate targets
+   */
+  buildGapAnalysisSection(inputs, projections, enhancedInsights) {
+    const age = inputs?.age || 40;
+    const income = inputs?.income || inputs?.grossIncome || 0;
+    const currentBalance = projections?.currentBalance || 0;
+    const monthlyBudget = inputs?.monthlyBudget || 0;
+
+    // Find appropriate benchmark
+    const benchmarkAges = [30, 35, 40, 45, 50, 55, 60, 67];
+    let targetAge = benchmarkAges.find(a => a >= age) || 67;
+    const benchmark = AGE_BENCHMARKS[targetAge];
+    const targetBalance = income * (benchmark?.multiple || 3);
+
+    // Calculate progress
+    const progress = targetBalance > 0 ? (currentBalance / targetBalance) : 0;
+    const progressPct = Math.min(progress * 100, 150); // Cap at 150% for display
+
+    // Determine status
+    let statusClass = 'far-behind';
+    let statusText = 'Needs Attention';
+    if (progress >= 1.0) {
+      statusClass = '';
+      statusText = 'On Track or Ahead';
+    } else if (progress >= 0.75) {
+      statusClass = '';
+      statusText = 'Nearly There';
+    } else if (progress >= 0.5) {
+      statusClass = 'behind';
+      statusText = 'Building Momentum';
+    }
+
+    // Calculate catch-up needed
+    const gap = Math.max(0, targetBalance - currentBalance);
+    const yearsToTarget = Math.max(1, targetAge - age);
+    const additionalMonthlyNeeded = gap > 0 ? Math.round(gap / (yearsToTarget * 12)) : 0;
+
+    // Current savings rate
+    const savingsRate = income > 0 ? (monthlyBudget * 12 / income) : 0;
+    let rateStatus = 'alert';
+    let rateAdvice = 'Try to increase to at least 10%';
+    if (savingsRate >= 0.20) {
+      rateStatus = 'good';
+      rateAdvice = 'Excellent - maximizing wealth building';
+    } else if (savingsRate >= 0.15) {
+      rateStatus = 'good';
+      rateAdvice = 'Great - on track for comfortable retirement';
+    } else if (savingsRate >= 0.10) {
+      rateStatus = 'warning';
+      rateAdvice = 'Good start - consider increasing to 15%+';
+    }
+
+    let html = '<h2>How You Compare</h2>';
+
+    // Savings Rate Analysis
+    html += `
+      <h3>Your Savings Rate</h3>
+      <div class="benchmark-meter">
+        <div class="benchmark-fill ${rateStatus === 'alert' ? 'far-behind' : rateStatus === 'warning' ? 'behind' : ''}" style="width: ${Math.min(savingsRate * 100 / 0.25 * 100, 100)}%;"></div>
+        <div class="benchmark-target" style="left: 60%;" title="15% recommended"></div>
+      </div>
+      <div class="benchmark-labels">
+        <span>0%</span>
+        <span style="margin-left: 35%;">10%</span>
+        <span style="margin-left: 15%;">15%</span>
+        <span style="margin-left: 10%;">20%+</span>
+      </div>
+      <p style="margin-top: 10px;"><strong>Your rate: ${Math.round(savingsRate * 100)}%</strong> - ${rateAdvice}</p>
+    `;
+
+    // Balance vs Benchmark
+    html += `
+      <h3 style="margin-top: 25px;">Balance vs Age Benchmark</h3>
+      <p style="color: #666; font-size: 14px;">${benchmark?.note || 'Target based on Fidelity guidelines'}</p>
+      <div class="benchmark-meter">
+        <div class="benchmark-fill ${statusClass}" style="width: ${Math.min(progressPct, 100)}%;"></div>
+      </div>
+      <div class="benchmark-labels">
+        <span>$0</span>
+        <span>Target: $${targetBalance.toLocaleString()}</span>
+      </div>
+      <p style="margin-top: 10px;"><strong>Current: $${currentBalance.toLocaleString()}</strong> (${Math.round(progress * 100)}% of target) - ${statusText}</p>
+    `;
+
+    // Catch-up recommendation if behind
+    if (gap > 0 && additionalMonthlyNeeded > 0) {
+      html += `
+        <div class="catch-up-box">
+          <div class="amount">+$${additionalMonthlyNeeded.toLocaleString()}/month</div>
+          <div class="description">Additional savings needed to reach your age ${targetAge} benchmark of $${targetBalance.toLocaleString()}</div>
+        </div>
+      `;
+    }
+
+    // Add personalized gap analysis if available
+    if (enhancedInsights?.gapAnalysis) {
+      html += `
+        <div class="insight-box">
+          <h3>Personalized Assessment</h3>
+          <p>${enhancedInsights.gapAnalysis}</p>
+        </div>
+      `;
+    }
+
+    return html;
+  },
+
+  /**
+   * Build enhanced 5-tier implementation roadmap
+   */
+  buildEnhancedRoadmapSection(allocation, inputs, gptInsights, enhancedInsights) {
+    const actionPlan = enhancedInsights?.actionPlan;
+
+    // Default actions if GPT not available
+    const defaultActions = {
+      immediate: [
+        'Review your current contribution rates in all accounts',
+        'Verify employer match is being captured'
+      ],
+      week1: [
+        'Update contribution amounts to match your allocation plan',
+        'Set up any new accounts needed (IRA, HSA, etc.)'
+      ],
+      month1: [
+        'Verify first contributions have been processed',
+        'Review investment selections in each account'
+      ],
+      quarterly: [
+        'Review account balances and contribution progress',
+        'Rebalance if allocation has drifted significantly'
+      ],
+      annual: [
+        'Check for new contribution limits',
+        'Update beneficiary designations if needed',
+        'Review overall strategy and make adjustments'
+      ]
+    };
+
+    const actions = actionPlan || defaultActions;
+
+    let html = '<div class="page-break"></div><h2>Your Implementation Roadmap</h2>';
+    html += '<p style="color: #666; margin-bottom: 20px;">Follow this step-by-step action plan. Check off each item as you complete it.</p>';
+
+    // Tier 1: Immediate
+    html += `
+      <div class="roadmap-tier tier-immediate">
+        <h4>Immediate (Today)</h4>
+        <div class="roadmap-actions">
+          ${(actions.immediate || defaultActions.immediate).map(action => `
+            <div class="roadmap-action">
+              <div class="checkbox"></div>
+              <span>${action}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+
+    // Tier 2: Week 1
+    html += `
+      <div class="roadmap-tier tier-week1">
+        <h4>Week 1</h4>
+        <div class="roadmap-actions">
+          ${(actions.week1 || defaultActions.week1).map(action => `
+            <div class="roadmap-action">
+              <div class="checkbox"></div>
+              <span>${action}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+
+    // Tier 3: Month 1
+    html += `
+      <div class="roadmap-tier tier-month1">
+        <h4>Month 1</h4>
+        <div class="roadmap-actions">
+          ${(actions.month1 || defaultActions.month1).map(action => `
+            <div class="roadmap-action">
+              <div class="checkbox"></div>
+              <span>${action}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+
+    // Tier 4: Quarterly
+    html += `
+      <div class="roadmap-tier tier-quarterly">
+        <h4>Quarterly Check-In</h4>
+        <div class="roadmap-actions">
+          ${(actions.quarterly || defaultActions.quarterly).map(action => `
+            <div class="roadmap-action">
+              <div class="checkbox"></div>
+              <span>${action}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+
+    // Tier 5: Annual
+    html += `
+      <div class="roadmap-tier tier-annual">
+        <h4>Annual Review</h4>
+        <div class="roadmap-actions">
+          ${(actions.annual || defaultActions.annual).map(action => `
+            <div class="roadmap-action">
+              <div class="checkbox"></div>
+              <span>${action}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+
+    return html;
+  },
+
+  // ============================================================
   // UTILITIES
   // ============================================================
 
@@ -1029,5 +1961,55 @@ const Tool6Report = {
     const date = new Date().toISOString().split('T')[0];
     const typeStr = reportType === 'comparison' ? 'Comparison' : 'Blueprint';
     return `TruPath_Retirement${typeStr}_${sanitizedName}_${date}.pdf`;
+  },
+
+  /**
+   * Sprint 13: Normalize vehicle names from underscore format to proper names
+   * Converts "529_Plan" -> "529 Plan", "Solo_401_k__Employee" -> "Solo 401(k) Employee"
+   */
+  normalizeVehicleName(name) {
+    if (!name) return '';
+
+    // First, replace underscores with spaces
+    let normalized = name.replace(/_/g, ' ');
+
+    // Fix common patterns
+    normalized = normalized
+      .replace(/\s+/g, ' ')           // Multiple spaces to single
+      .replace(/401 k/gi, '401(k)')   // 401 k -> 401(k)
+      .replace(/\( /g, '(')           // Remove space after (
+      .replace(/ \)/g, ')')           // Remove space before )
+      .trim();
+
+    return normalized;
+  },
+
+  /**
+   * Sprint 13: Get setup instructions for a vehicle, handling name normalization
+   */
+  getVehicleSetupInstructions(vehicleName) {
+    // Try exact match first
+    if (VEHICLE_SETUP_INSTRUCTIONS[vehicleName]) {
+      return VEHICLE_SETUP_INSTRUCTIONS[vehicleName];
+    }
+
+    // Try normalized name
+    const normalized = this.normalizeVehicleName(vehicleName);
+    if (VEHICLE_SETUP_INSTRUCTIONS[normalized]) {
+      return VEHICLE_SETUP_INSTRUCTIONS[normalized];
+    }
+
+    // Try partial matching for common vehicles
+    const keys = Object.keys(VEHICLE_SETUP_INSTRUCTIONS);
+    for (const key of keys) {
+      // Check if normalized name contains key or vice versa
+      if (normalized.toLowerCase().includes(key.toLowerCase()) ||
+          key.toLowerCase().includes(normalized.toLowerCase())) {
+        return VEHICLE_SETUP_INSTRUCTIONS[key];
+      }
+    }
+
+    // Return null if no match found
+    return null;
   }
 };

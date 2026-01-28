@@ -725,3 +725,279 @@ function testPhase5_Integration(clientId) {
     return { success: false, error: e.message };
   }
 }
+
+// ============================================================================
+// SPRINT 12: TAX LOGIC IMPROVEMENTS TESTS
+// ============================================================================
+
+/**
+ * Sprint 12 Test: Backdoor Roth Pro-Rata & Solo 401(k) Dynamic Limits
+ * Run from Apps Script Editor: testSprint12()
+ */
+function testSprint12() {
+  Logger.log('=== Sprint 12: Tax Logic Improvements Tests ===\n');
+
+  let passed = 0;
+  let failed = 0;
+
+  // -------------------------------------------------------------------------
+  // Test 1: Backdoor Roth - Clean (No Trad IRA)
+  // -------------------------------------------------------------------------
+  Logger.log('Test 1: Backdoor Roth - Clean (No Trad IRA Balance)');
+  try {
+    const mockProfile = { id: 7, name: 'Foundation Builder' };
+    const mockInputs = {
+      age: 40,
+      grossIncome: 250000,  // Above Roth phase-out
+      filingStatus: 'MFJ',
+      a3_has401k: 'Yes',
+      a7_hsaEligible: 'Yes',
+      a8_hasChildren: 'No',
+      a13b_tradIRABalance: 'none',  // No Trad IRA
+      a13c_401kAcceptsRollovers: ''
+    };
+
+    const eligible = Tool6.getEligibleVehicles(mockProfile, mockInputs, 'Both');
+
+    const hasBackdoor = eligible['Backdoor Roth IRA'] !== undefined;
+    const note = eligible['Backdoor Roth IRA']?.note || '';
+    const warning = eligible['Backdoor Roth IRA']?.warning;
+    const isClean = note.includes('tax-free') && !warning;
+
+    Logger.log('  Has Backdoor Roth: ' + hasBackdoor);
+    Logger.log('  Note: ' + note.substring(0, 60) + '...');
+    Logger.log('  Warning: ' + (warning || 'None'));
+    Logger.log('  Is clean (no warning): ' + isClean);
+
+    const pass = hasBackdoor && isClean;
+    Logger.log(pass ? '  ✓ Test 1 PASSED\n' : '  ✗ Test 1 FAILED\n');
+    if (pass) passed++; else failed++;
+  } catch (e) {
+    Logger.log('  ✗ Test 1 FAILED: ' + e.message + '\n');
+    failed++;
+  }
+
+  // -------------------------------------------------------------------------
+  // Test 2: Backdoor Roth - Pro-Rata Warning (Has Trad IRA, no rollover)
+  // -------------------------------------------------------------------------
+  Logger.log('Test 2: Backdoor Roth - Pro-Rata Warning');
+  try {
+    const mockProfile = { id: 7, name: 'Foundation Builder' };
+    const mockInputs = {
+      age: 40,
+      grossIncome: 250000,
+      filingStatus: 'MFJ',
+      a3_has401k: 'Yes',
+      a7_hsaEligible: 'Yes',
+      a8_hasChildren: 'No',
+      a13b_tradIRABalance: 'over10k',  // Has Trad IRA
+      a13c_401kAcceptsRollovers: 'no'   // Cannot roll
+    };
+
+    const eligible = Tool6.getEligibleVehicles(mockProfile, mockInputs, 'Both');
+
+    const backdoor = eligible['Backdoor Roth IRA'];
+    const hasWarning = backdoor?.warning && backdoor.warning.toLowerCase().includes('pro-rata');
+    const noteHasProRata = backdoor?.note && backdoor.note.toLowerCase().includes('pro-rata');
+
+    Logger.log('  Has warning: ' + !!backdoor?.warning);
+    Logger.log('  Warning mentions pro-rata: ' + hasWarning);
+    Logger.log('  Note mentions pro-rata: ' + noteHasProRata);
+
+    const pass = hasWarning && noteHasProRata;
+    Logger.log(pass ? '  ✓ Test 2 PASSED\n' : '  ✗ Test 2 FAILED\n');
+    if (pass) passed++; else failed++;
+  } catch (e) {
+    Logger.log('  ✗ Test 2 FAILED: ' + e.message + '\n');
+    failed++;
+  }
+
+  // -------------------------------------------------------------------------
+  // Test 3: Backdoor Roth - Rollover Suggestion
+  // -------------------------------------------------------------------------
+  Logger.log('Test 3: Backdoor Roth - Rollover Suggestion');
+  try {
+    const mockProfile = { id: 7, name: 'Foundation Builder' };
+    const mockInputs = {
+      age: 40,
+      grossIncome: 250000,
+      filingStatus: 'MFJ',
+      a3_has401k: 'Yes',
+      a7_hsaEligible: 'Yes',
+      a8_hasChildren: 'No',
+      a13b_tradIRABalance: 'over10k',  // Has Trad IRA
+      a13c_401kAcceptsRollovers: 'yes'  // CAN roll
+    };
+
+    const eligible = Tool6.getEligibleVehicles(mockProfile, mockInputs, 'Both');
+
+    const backdoor = eligible['Backdoor Roth IRA'];
+    const hasRolloverNote = backdoor?.note && backdoor.note.includes('Roll');
+    const hasRolloverWarning = backdoor?.warning && backdoor.warning.includes('rolling');
+    const hasActionItem = eligible['IRA Rollover to 401k'] !== undefined;
+
+    Logger.log('  Note mentions rollover: ' + hasRolloverNote);
+    Logger.log('  Warning suggests rollover: ' + hasRolloverWarning);
+    Logger.log('  Has IRA Rollover action item: ' + hasActionItem);
+
+    const pass = hasRolloverNote && hasRolloverWarning && hasActionItem;
+    Logger.log(pass ? '  ✓ Test 3 PASSED\n' : '  ✗ Test 3 FAILED\n');
+    if (pass) passed++; else failed++;
+  } catch (e) {
+    Logger.log('  ✗ Test 3 FAILED: ' + e.message + '\n');
+    failed++;
+  }
+
+  // -------------------------------------------------------------------------
+  // Test 4: Solo 401(k) - Low Income ($80k)
+  // -------------------------------------------------------------------------
+  Logger.log('Test 4: Solo 401(k) Employer - Low Income ($80k)');
+  try {
+    const mockProfile = { id: 4, name: 'Solo 401(k) Optimizer' };
+    const mockInputs = {
+      age: 40,
+      grossIncome: 80000,
+      filingStatus: 'Single',
+      c5_workSituation: 'Self-employed',
+      a7_hsaEligible: 'Yes',
+      a8_hasChildren: 'No',
+      a13d_selfEmploymentIncome: 80000
+    };
+
+    const eligible = Tool6.getEligibleVehicles(mockProfile, mockInputs, 'Both');
+
+    const soloEmployer = eligible['Solo 401(k) Employer'];
+    const monthlyLimit = soloEmployer?.monthlyLimit || 0;
+    const annualLimit = monthlyLimit * 12;
+    const expectedLimit = 80000 * 0.20;  // 20% of $80k = $16k
+
+    Logger.log('  Monthly limit: $' + Math.round(monthlyLimit));
+    Logger.log('  Annual limit: $' + Math.round(annualLimit));
+    Logger.log('  Expected annual: $' + expectedLimit);
+    Logger.log('  Note: ' + (soloEmployer?.note || 'None'));
+
+    // Allow 10% tolerance for rounding
+    const pass = annualLimit > 0 && Math.abs(annualLimit - expectedLimit) < expectedLimit * 0.1;
+    Logger.log(pass ? '  ✓ Test 4 PASSED\n' : '  ✗ Test 4 FAILED\n');
+    if (pass) passed++; else failed++;
+  } catch (e) {
+    Logger.log('  ✗ Test 4 FAILED: ' + e.message + '\n');
+    failed++;
+  }
+
+  // -------------------------------------------------------------------------
+  // Test 5: Solo 401(k) - High Income ($250k) - Should hit cap
+  // -------------------------------------------------------------------------
+  Logger.log('Test 5: Solo 401(k) Employer - High Income ($250k)');
+  try {
+    const mockProfile = { id: 4, name: 'Solo 401(k) Optimizer' };
+    const mockInputs = {
+      age: 40,
+      grossIncome: 250000,
+      filingStatus: 'Single',
+      c5_workSituation: 'Self-employed',
+      a7_hsaEligible: 'Yes',
+      a8_hasChildren: 'No',
+      a13d_selfEmploymentIncome: 250000
+    };
+
+    const eligible = Tool6.getEligibleVehicles(mockProfile, mockInputs, 'Both');
+
+    const soloEmployer = eligible['Solo 401(k) Employer'];
+    const monthlyLimit = soloEmployer?.monthlyLimit || 0;
+    const annualLimit = monthlyLimit * 12;
+    const maxCap = 46500;  // IRS cap for employer contributions
+
+    Logger.log('  Monthly limit: $' + Math.round(monthlyLimit));
+    Logger.log('  Annual limit: $' + Math.round(annualLimit));
+    Logger.log('  Max IRS cap: $' + maxCap);
+
+    // Should be at or near the cap (20% of $250k = $50k, but capped at $46.5k)
+    const pass = annualLimit > 40000 && annualLimit <= maxCap + 1000;
+    Logger.log(pass ? '  ✓ Test 5 PASSED\n' : '  ✗ Test 5 FAILED\n');
+    if (pass) passed++; else failed++;
+  } catch (e) {
+    Logger.log('  ✗ Test 5 FAILED: ' + e.message + '\n');
+    failed++;
+  }
+
+  // -------------------------------------------------------------------------
+  // Test 6: Solo 401(k) - Uses grossIncome when SE income not provided
+  // -------------------------------------------------------------------------
+  Logger.log('Test 6: Solo 401(k) - Falls back to grossIncome');
+  try {
+    const mockProfile = { id: 4, name: 'Solo 401(k) Optimizer' };
+    const mockInputs = {
+      age: 40,
+      grossIncome: 100000,
+      filingStatus: 'Single',
+      c5_workSituation: 'Self-employed',
+      a7_hsaEligible: 'Yes',
+      a8_hasChildren: 'No'
+      // a13d_selfEmploymentIncome NOT provided
+    };
+
+    const eligible = Tool6.getEligibleVehicles(mockProfile, mockInputs, 'Both');
+
+    const soloEmployer = eligible['Solo 401(k) Employer'];
+    const monthlyLimit = soloEmployer?.monthlyLimit || 0;
+    const annualLimit = monthlyLimit * 12;
+    const expectedLimit = 100000 * 0.20;  // 20% of $100k = $20k
+
+    Logger.log('  Annual limit: $' + Math.round(annualLimit));
+    Logger.log('  Expected (from grossIncome): $' + expectedLimit);
+
+    const pass = Math.abs(annualLimit - expectedLimit) < expectedLimit * 0.1;
+    Logger.log(pass ? '  ✓ Test 6 PASSED\n' : '  ✗ Test 6 FAILED\n');
+    if (pass) passed++; else failed++;
+  } catch (e) {
+    Logger.log('  ✗ Test 6 FAILED: ' + e.message + '\n');
+    failed++;
+  }
+
+  // -------------------------------------------------------------------------
+  // Test 7: No Backdoor when income below phase-out
+  // -------------------------------------------------------------------------
+  Logger.log('Test 7: No Backdoor Roth when income below phase-out');
+  try {
+    const mockProfile = { id: 7, name: 'Foundation Builder' };
+    const mockInputs = {
+      age: 40,
+      grossIncome: 100000,  // Below MFJ phase-out ($236k)
+      filingStatus: 'MFJ',
+      a3_has401k: 'Yes',
+      a7_hsaEligible: 'Yes',
+      a8_hasChildren: 'No'
+    };
+
+    const eligible = Tool6.getEligibleVehicles(mockProfile, mockInputs, 'Both');
+
+    const hasBackdoor = eligible['Backdoor Roth IRA'] !== undefined;
+    const hasDirectRoth = eligible['IRA Roth'] !== undefined;
+
+    Logger.log('  Has Backdoor Roth: ' + hasBackdoor + ' (expected: false)');
+    Logger.log('  Has Direct Roth IRA: ' + hasDirectRoth + ' (expected: true)');
+
+    const pass = !hasBackdoor && hasDirectRoth;
+    Logger.log(pass ? '  ✓ Test 7 PASSED\n' : '  ✗ Test 7 FAILED\n');
+    if (pass) passed++; else failed++;
+  } catch (e) {
+    Logger.log('  ✗ Test 7 FAILED: ' + e.message + '\n');
+    failed++;
+  }
+
+  // -------------------------------------------------------------------------
+  // Summary
+  // -------------------------------------------------------------------------
+  Logger.log('=== Sprint 12 Test Summary ===');
+  Logger.log('Passed: ' + passed + '/' + (passed + failed));
+  Logger.log('Failed: ' + failed + '/' + (passed + failed));
+
+  if (failed === 0) {
+    Logger.log('\n✓ ALL SPRINT 12 TESTS PASSED');
+  } else {
+    Logger.log('\n✗ SOME TESTS FAILED - Review above for details');
+  }
+
+  return { passed, failed, total: passed + failed };
+}
