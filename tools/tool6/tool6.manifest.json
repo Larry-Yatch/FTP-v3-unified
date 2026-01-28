@@ -12,7 +12,6 @@
     "processor": "Tool6.processSubmission",
     "dependencies": [
       "Tool6Constants",
-      "Tool6Styles",
       "Tool6Profiles",
       "Tool6Allocation",
       "Tool6Projections",
