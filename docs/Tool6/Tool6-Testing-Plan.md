@@ -48,6 +48,7 @@ Invariants are rules that must **always** be true regardless of inputs. Run thes
 | PRIO-001 | If `401(k) Employer Match` is eligible and `monthlyBudget > 0`, it should be allocated before other discretionary vehicles | Match is always first priority |
 | PRIO-002 | `Family Bank` should only have allocation > 0 if all other eligible vehicles are maxed OR `monthlyBudget` exceeds all vehicle limits | Family Bank is overflow only |
 | PRIO-003 | If HSA is eligible, it should be allocated before IRA vehicles (HSA has triple tax advantage) | HSA priority over IRAs |
+| PRIO-004 | If both Coverdell ESA and 529 Plan are eligible, Coverdell should be funded before 529 (Coverdell has $2k limit, 529 is unlimited) | Coverdell fills first in education waterfall |
 
 ### 1.5 Budget Invariants
 
@@ -55,7 +56,8 @@ Invariants are rules that must **always** be true regardless of inputs. Run thes
 |----|------|-------------|
 | BUDGET-001 | `sum(all allocations) === monthlyBudget + sum(non-discretionary seeds)` | Total allocation equals available budget |
 | BUDGET-002 | No allocation should be negative | All allocations >= 0 |
-| BUDGET-003 | If `monthlyBudget === 0`, only non-discretionary vehicles (employer match, ROBS) should have allocations | Zero budget means no discretionary allocation |
+| BUDGET-003 | If `monthlyBudget === 0`, only non-discretionary seeds (employer match, ROBS Distribution) should have allocations. Seeds are pre-allocated regardless of discretionary budget. | Zero budget means no discretionary allocation, but seeds still apply |
+| BUDGET-004 | Unspent Education budget cascades to Health, unspent Health budget cascades to Retirement, final overflow goes to Family Bank | Domain waterfall cascade verification |
 
 ### 1.6 Profile-Specific Invariants
 
@@ -143,6 +145,15 @@ These are specific scenarios with known-correct expected outputs. Store as JSON 
 | P4_BALANCED | Yes | No | Both | Both Solo 401k Employee types, 50/50 |
 | P4_WITH_EMPLOYER | Yes | No | Now | Solo 401k Employer contribution included |
 
+**Solo 401(k) Employer Limit Scenarios** (test `MIN(20% of SE income, remaining room, $46.5k cap)`):
+
+| Scenario ID | SE Income | Age | Key Validation |
+|-------------|-----------|-----|----------------|
+| P4_LOW_SE_INCOME | $50,000 | 35 | Employer = $10,000/yr (20%), room available |
+| P4_HIGH_SE_INCOME | $300,000 | 35 | Employer capped at remaining room after $23.5k employee deferrals |
+| P4_COMBINED_LIMIT | $250,000 | 35 | Employee + Employer total ≤ $70,000 |
+| P4_CATCHUP_COMBINED | $250,000 | 55 | Employee + Employer total ≤ $77,500 (with catch-up) |
+
 #### Profile 5: Bracket Strategist
 
 | Scenario ID | 401k | HSA | Tax Pref | Key Validation |
@@ -185,12 +196,78 @@ These are specific scenarios with known-correct expected outputs. Store as JSON 
 
 | Scenario ID | Description | Key Validation |
 |-------------|-------------|----------------|
-| EDGE_ZERO_BUDGET | monthlyBudget = 0 | Only non-discretionary allocations |
+| EDGE_ZERO_BUDGET | monthlyBudget = 0 | Only non-discretionary allocations (seeds still apply) |
 | EDGE_TINY_BUDGET | monthlyBudget = 50 | Proper waterfall with small amount |
 | EDGE_HUGE_BUDGET | monthlyBudget = 50000 | All vehicles maxed, overflow to Family Bank |
 | EDGE_HIGH_INCOME_SINGLE | income = 200000, Single | Roth IRA phased out, use Backdoor |
 | EDGE_HIGH_INCOME_MFJ | income = 300000, MFJ | Roth IRA phased out, use Backdoor |
 | EDGE_INCOME_AT_PHASEOUT | income at exact phase-out threshold | Partial Roth eligibility |
+| EDGE_TIEBREAKER_MAX_WEIGHT | User has 75%+ weight in one domain, selects it as tie-breaker | Weight caps at 80%, boost redistributes correctly |
+
+**Roth IRA Phase-Out Edge Cases** (2025 limits: Single $150k-$165k, MFJ $236k-$246k):
+
+| Scenario ID | Income | Filing Status | Key Validation |
+|-------------|--------|---------------|----------------|
+| EDGE_PHASEOUT_START_SINGLE | $150,000 | Single | Roth IRA at full limit, no Backdoor needed |
+| EDGE_PHASEOUT_MID_SINGLE | $157,500 | Single | Roth IRA at ~50% limit (partial phase-out) |
+| EDGE_PHASEOUT_END_SINGLE | $165,000 | Single | Roth IRA = $0, automatically switches to Backdoor |
+| EDGE_PHASEOUT_START_MFJ | $236,000 | MFJ | Roth IRA at full limit |
+| EDGE_PHASEOUT_MID_MFJ | $241,000 | MFJ | Roth IRA at ~50% limit |
+| EDGE_PHASEOUT_END_MFJ | $246,000 | MFJ | Roth IRA = $0, switches to Backdoor |
+
+### 2.4 Tax Preference Comparison Tests
+
+These tests verify the **same user** produces different allocations based solely on tax preference. Run all three variations and compare results.
+
+```javascript
+{
+  "scenarioId": "TAX_COMPARE_WITH_401K",
+  "description": "Same user with 401k, testing all three tax preferences",
+  "baseInputs": {
+    "profileId": 7,
+    "grossIncome": 100000,
+    "monthlyBudget": 3000,
+    "age": 35,
+    "filingStatus": "Single",
+    "has401k": "Yes",
+    "hasRoth401k": "Yes",
+    "hsaEligible": "Yes",
+    "hasChildren": "No"
+  },
+  "variations": [
+    {
+      "taxPreference": "Now",
+      "expectedBehavior": "401k Roth maxed ($1,958.33), 401k Trad = $0"
+    },
+    {
+      "taxPreference": "Later",
+      "expectedBehavior": "401k Trad maxed ($1,958.33), 401k Roth = $0"
+    },
+    {
+      "taxPreference": "Both",
+      "expectedBehavior": "401k Roth = $979.17, 401k Trad = $979.17 (50/50)"
+    }
+  ]
+}
+```
+
+| Scenario ID | Base Profile | Key Validation |
+|-------------|--------------|----------------|
+| TAX_COMPARE_WITH_401K | Profile 7, has 401k + Roth 401k | 401k split changes with tax preference |
+| TAX_COMPARE_IRA_ONLY | Profile 7, no 401k | IRA Roth vs IRA Trad changes with tax preference |
+| TAX_COMPARE_SOLO_401K | Profile 4, self-employed | Solo 401k Employee (Roth) vs (Traditional) based on preference |
+
+### 2.5 Backdoor Roth Warning Tests
+
+These verify the correct warning message appears based on Traditional IRA balance and 401k rollover availability.
+
+| Scenario ID | tradIRABalance | has401k | has401kAcceptsRollovers | Expected Warning |
+|-------------|----------------|---------|-------------------------|------------------|
+| BACKDOOR_NO_BALANCE | none | No | N/A | No warning |
+| BACKDOOR_PRORATA_NO_ROLLOVER | over10k | No | N/A | PRO_RATA warning |
+| BACKDOOR_ROLLOVER_AVAILABLE | over10k | Yes | Yes | ROLLOVER_AVAILABLE warning + action item |
+| BACKDOOR_PRORATA_NO_ACCEPT | under10k | Yes | No | PRO_RATA warning |
+| BACKDOOR_SMALL_BALANCE | under10k | No | N/A | PRO_RATA warning (still applies) |
 
 ---
 
@@ -198,30 +275,49 @@ These are specific scenarios with known-correct expected outputs. Store as JSON 
 
 ### 3.1 File Structure
 
+**Note:** Google Apps Script does not support separate JSON files or a `/tests/` directory structure well. All test code and scenarios should be embedded in the existing test file.
+
 ```
 /tools/tool6/
-  Tool6Tests.js          # Existing test file - expand this
+  Tool6.js               # Main tool implementation
+  Tool6Constants.js      # Constants and limits
+  Tool6Tests.js          # ALL test code goes here (expand this file)
+```
 
-/tests/
-  tool6/
-    invariants/
-      tax-preference.test.js
-      shared-limits.test.js
-      eligibility.test.js
-      priority-order.test.js
-      budget.test.js
-      profile-specific.test.js
-    golden-files/
-      scenarios/
-        profile7/*.json
-        profile8/*.json
-        profile4/*.json
-        ... (one folder per profile)
-      golden-file-runner.test.js
-    test-utils/
-      input-generator.js    # Generates random valid inputs
-      allocation-runner.js  # Runs allocation and returns results
-      invariant-checker.js  # Validates all invariants
+**Inside Tool6Tests.js, organize as:**
+
+```javascript
+// ========== TEST SCENARIOS (as JS objects) ==========
+const GOLDEN_FILE_SCENARIOS = {
+  profile7: [
+    { scenarioId: 'P7_FULL_BENEFITS_BALANCED', inputs: {...}, expected: {...} },
+    { scenarioId: 'P7_MINIMAL', inputs: {...}, expected: {...} },
+    // ...
+  ],
+  profile8: [...],
+  profile4: [...],
+  // ... other profiles
+  edgeCases: [...],
+  taxComparison: [...],
+  backdoorWarnings: [...]
+};
+
+// ========== INVARIANT CHECKERS ==========
+function checkTaxPreferenceInvariants(inputs, allocation) { ... }
+function checkSharedLimitInvariants(inputs, allocation) { ... }
+function checkEligibilityInvariants(inputs, allocation) { ... }
+function checkPriorityOrderInvariants(inputs, allocation) { ... }
+function checkBudgetInvariants(inputs, allocation) { ... }
+function checkProfileSpecificInvariants(inputs, allocation) { ... }
+
+// ========== TEST UTILITIES ==========
+function generateRandomInputs() { ... }
+function checkAllInvariants(inputs, allocation) { ... }
+
+// ========== TEST RUNNERS ==========
+function runInvariantTests(iterations) { ... }
+function runGoldenFileTests() { ... }
+function runAllTool6Tests() { ... }  // Main entry point
 ```
 
 ### 3.2 Test Runner Implementation
@@ -518,14 +614,70 @@ The bug fixed on 2026-01-27 (Roth/Traditional 50/50 split ignoring tax preferenc
 
 ---
 
+## Part 7: Known Issues to Investigate
+
+Before implementing tests, investigate these potential issues found during code review:
+
+### 7.1 Profile 8 Classification Logic
+
+In `Tool6.js` around line 869, `taxFocus === 'Both'` maps to Profile 8 (Roth Maximizer). This may be unintentional:
+
+- **Current behavior:** `'Now'` OR `'Both'` → Profile 8 (Roth Maximizer)
+- **Expected behavior:** `'Now'` → Profile 8, `'Both'` → Profile 7 (Foundation Builder)?
+
+**Action:** Clarify with stakeholders whether "Both" should default to Roth-heavy (Profile 8) or balanced (Profile 7). Update tests accordingly.
+
+### 7.2 Education Vehicle Priority Order
+
+When user selects "both" Coverdell and 529, both are added to eligible vehicles but the priority order insertion may not guarantee Coverdell fills before 529. Verify in `getVehiclePriorityOrder()` that Coverdell appears before 529.
+
+---
+
 ## Appendix: Implementation Checklist
 
-- [ ] Create `/tests/tool6/` directory structure
-- [ ] Implement `input-generator.js` with `generateRandomInputs()`
-- [ ] Implement `invariant-checker.js` with all invariant checks
-- [ ] Create golden file JSON for each scenario in Section 2.2
-- [ ] Implement `golden-file-runner.test.js`
-- [ ] Add `runAllTool6Tests()` to `Tool6Tests.js`
-- [ ] Run initial test suite and fix any failures
-- [ ] Document baseline test results
-- [ ] Add to CI/CD pipeline (if applicable)
+### Phase 1: Setup (in Tool6Tests.js)
+- [ ] Add `GOLDEN_FILE_SCENARIOS` object structure
+- [ ] Implement `generateRandomInputs()` function
+- [ ] Implement helper functions: `randomInt()`, `randomChoice()`
+
+### Phase 2: Invariant Checkers (32 total invariants)
+- [ ] `checkTaxPreferenceInvariants()` - TAX-001 through TAX-005
+- [ ] `checkSharedLimitInvariants()` - LIMIT-001 through LIMIT-004
+- [ ] `checkEligibilityInvariants()` - ELIG-001 through ELIG-007
+- [ ] `checkPriorityOrderInvariants()` - PRIO-001 through PRIO-004
+- [ ] `checkBudgetInvariants()` - BUDGET-001 through BUDGET-004
+- [ ] `checkProfileSpecificInvariants()` - PROF-001 through PROF-005
+- [ ] `checkAllInvariants()` - aggregates all checkers
+
+### Phase 3: Golden File Scenarios
+- [ ] Profile 7 scenarios (7 tests)
+- [ ] Profile 8 scenarios (4 tests)
+- [ ] Profile 4 scenarios (8 tests, including employer limit tests)
+- [ ] Profile 5 scenarios (2 tests)
+- [ ] Profile 6 scenarios (5 tests)
+- [ ] Profile 9 scenarios (2 tests)
+- [ ] Profile 1 scenarios (2 tests)
+- [ ] Profile 3 scenarios (2 tests)
+- [ ] Edge case scenarios (13 tests, including phase-out)
+- [ ] Tax preference comparison scenarios (3 base cases × 3 variations)
+- [ ] Backdoor warning scenarios (5 tests)
+
+### Phase 4: Test Runners
+- [ ] `runInvariantTests(iterations)` - random input fuzzing
+- [ ] `runGoldenFileTests()` - scenario comparison
+- [ ] `runAllTool6Tests()` - main entry point with summary
+
+### Phase 5: Validation
+- [ ] Run initial test suite
+- [ ] Fix any failures (bugs or incorrect expected values)
+- [ ] Document baseline results
+- [ ] Investigate Profile 8 classification (Section 7.1)
+- [ ] Verify education vehicle priority (Section 7.2)
+
+### Estimated Test Counts
+| Category | Count |
+|----------|-------|
+| Invariants (per iteration) | 32 |
+| Invariant iterations | 1,000 |
+| Golden file scenarios | ~50 |
+| **Total assertions** | ~32,050 |

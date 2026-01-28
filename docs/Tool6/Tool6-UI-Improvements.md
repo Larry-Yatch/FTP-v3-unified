@@ -456,6 +456,31 @@
     - Detects via `hasPreSurvey` flag
   - New CSS: `.welcome-message`, `.welcome-title`, `.welcome-text`
 
+### Sprint 12: Tax Logic Improvements ✅ COMPLETE (Jan 26, 2026)
+- [x] **12.1 Backdoor Roth Pro-Rata Warning** - HIGH priority
+  - Added `a13b_tradIRABalance` question (No / Under $10k / $10k+ / Unsure)
+  - Added `a13c_401kAcceptsRollovers` question (conditional)
+  - Yellow warning banner when pro-rata taxation applies
+  - Rollover suggestion when 401(k) accepts rollovers
+  - `BACKDOOR_ROTH_WARNINGS` constant with 4 scenarios
+- [x] **12.2 Solo 401(k) Dynamic Limits** - MEDIUM priority
+  - Added `a13d_selfEmploymentIncome` question
+  - Dynamic calculation: 20% of SE income (Sole Prop/LLC formula)
+  - Personalized note: "Your limit: $X/year (20% of $Y SE income)"
+  - `SOLO_401K_EMPLOYER_NOTES` constant for entity types
+- [x] **12.3 Testing**
+  - `testSprint12()` function with 7 test scenarios
+  - All tests passing (7/7)
+- [x] **12.4 Educational Help Section**
+  - Collapsible "What is Backdoor Roth?" explainer
+  - Native HTML5 `<details>`/`<summary>` elements
+  - `BACKDOOR_ROTH_EDUCATION` constant with 5 sections
+- [x] **Bug Fixes**
+  - Return to Dashboard button: `getDashboardHtml` → `getDashboardPage`
+  - Continue to Priorities button: `aq_ret_*` → `aq_retirement_*` field names
+  - Vehicle sliders: Added `pointer-events: none` to slider-track/fill
+- See: [Sprint-12-Tax-Logic-Improvements.md](Sprint-12-Tax-Logic-Improvements.md)
+
 ---
 
 ## Reference: Tool 4 & Tool 5 Patterns to Mirror

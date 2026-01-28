@@ -1308,6 +1308,19 @@ const Tool6 = {
       }
     }
 
+    // --- Bidirectional Shared Limit Links ---
+    // For taxPreference='Both', we need shared limit vehicles to find each other
+    // regardless of which one appears first in the priority order.
+    // The allocation logic checks vehicleInfo.sharesLimitWith to detect pairs.
+    if (eligible['401(k) Roth'] && eligible['401(k) Traditional']) {
+      eligible['401(k) Traditional'].sharesLimitWith = '401(k) Roth';
+    }
+    if (eligible['IRA Roth'] && eligible['IRA Traditional']) {
+      eligible['IRA Traditional'].sharesLimitWith = 'IRA Roth';
+    }
+    // Note: Backdoor Roth already points to IRA Traditional, and we want it
+    // to consume the full IRA limit (not split), so we don't link Traditional → Backdoor
+
     // --- HSA (Requires HDHP enrollment) ---
     if (hsaEligible) {
       eligible['HSA'] = {
@@ -1374,6 +1387,24 @@ const Tool6 = {
     // Filter to only eligible vehicles
     let filteredOrder = basePriority.filter(vehicle => eligibleVehicles[vehicle]);
 
+    // Add any eligible IRA/401k vehicles that weren't in the base priority
+    // This ensures users can access vehicles they're eligible for even if profile didn't include them
+    const retirementVehiclesToCheck = [
+      'IRA Roth', 'IRA Traditional',
+      '401(k) Roth', '401(k) Traditional'
+    ];
+    for (const vehicle of retirementVehiclesToCheck) {
+      if (eligibleVehicles[vehicle] && !filteredOrder.includes(vehicle)) {
+        // Insert before Family Bank (or at end if no Family Bank)
+        const familyBankIndex = filteredOrder.indexOf('Family Bank');
+        if (familyBankIndex >= 0) {
+          filteredOrder.splice(familyBankIndex, 0, vehicle);
+        } else {
+          filteredOrder.push(vehicle);
+        }
+      }
+    }
+
     // Add education vehicles if eligible (not in VEHICLE_PRIORITY_BY_PROFILE)
     // Insert after HSA but before retirement vehicles
     // Order: Coverdell first (fills to limit), then 529 (overflow)
@@ -1408,12 +1439,17 @@ const Tool6 = {
     }
 
     // Apply tax strategy reordering
-    if (taxPreference === 'Now') {
-      // User wants tax-free retirement → prioritize Roth
-      filteredOrder = this.prioritizeRothAccounts(filteredOrder);
-    } else if (taxPreference === 'Later') {
-      // User wants tax savings now → prioritize Traditional
-      filteredOrder = this.prioritizeTraditionalAccounts(filteredOrder);
+    // Profiles 5 (Bracket Strategist) and 8 (Roth Maximizer) have tax strategy as their
+    // defining characteristic, so we respect their built-in priority order and don't override
+    const taxStrategyProfiles = [5, 8];
+    if (!taxStrategyProfiles.includes(profileId)) {
+      if (taxPreference === 'Now') {
+        // User wants tax-free retirement → prioritize Roth
+        filteredOrder = this.prioritizeRothAccounts(filteredOrder);
+      } else if (taxPreference === 'Later') {
+        // User wants tax savings now → prioritize Traditional
+        filteredOrder = this.prioritizeTraditionalAccounts(filteredOrder);
+      }
     }
     // 'Both' or undefined keeps the profile's default order
 
