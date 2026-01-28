@@ -10946,18 +10946,22 @@ const Tool6 = {
       Logger.log(`[Tool6.generatePDF] GPT source: ${gptInsights.source}`);
 
       // Sprint 13: Get enhanced implementation blueprint insights
+      // Use the calculated fallback values (projectedBalance, inflationAdjusted, etc.) not scenarioData
       Logger.log('[Tool6.generatePDF] Generating enhanced report insights...');
+      const savingsRate = grossIncome > 0 ? Math.round((inputs.monthlyBudget * 12 / grossIncome) * 100) : 0;
       const enhancedInsights = Tool6GPTAnalysis.generateEnhancedReportInsights({
         clientId,
         profile,
         allocations: scenarioData.allocations || {},
         userInputs: inputs,
         projections: {
-          balance: scenarioData.projectedBalance || 0,
-          inflationAdjusted: scenarioData.inflationAdjusted || 0,
-          monthlyIncome: scenarioData.monthlyRetirementIncome || 0,
-          currentBalance: scenarioData.currentBalance || 0,
-          savingsRate: inputs.income > 0 ? Math.round((inputs.monthlyBudget * 12 / inputs.income) * 100) : 0
+          projectedBalance: projectedBalance,
+          balance: projectedBalance,  // Alias for GPT prompt compatibility
+          inflationAdjusted: inflationAdjusted,
+          monthlyRetirementIncome: monthlyRetirementIncome,
+          monthlyIncome: monthlyRetirementIncome,  // Alias for GPT prompt compatibility
+          currentBalance: currentBalance,
+          savingsRate: savingsRate
         },
         tool1Data,
         tool3Data
