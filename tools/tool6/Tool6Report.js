@@ -362,6 +362,48 @@ const Tool6Report = {
         font-weight: 600;
       }
 
+      /* Winner highlight for milestone comparison */
+      .comparison-table .winner-highlight {
+        background: #e8f5e9;
+        font-weight: 700;
+        color: #2e7d32;
+      }
+
+      .comparison-table .balance-cell {
+        font-family: monospace;
+        font-size: 13px;
+      }
+
+      .comparison-table .age-cell {
+        font-weight: 700;
+        color: #5b4b8a;
+      }
+
+      /* Profile type in scenario cards */
+      .profile-card .profile-type {
+        font-size: 14px;
+        opacity: 0.85;
+        margin-bottom: 5px;
+      }
+
+      /* Recommendation section styles */
+      .recommendation-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        margin: 20px 0;
+      }
+
+      .recommendation-card {
+        flex: 1;
+        min-width: 250px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 15px;
+        border-left: 4px solid #2563eb;
+        page-break-inside: avoid;
+      }
+
       .footer {
         margin-top: 40px;
         padding-top: 20px;
@@ -1204,6 +1246,10 @@ const Tool6Report = {
       this.buildScenarioCards(scenario1, scenario2),
       this.buildComparisonTable(scenario1, scenario2),
       this.buildProjectionComparison(scenario1, scenario2),
+      // NEW: Side-by-side milestone timeline - shows projected balances at key ages
+      this.buildComparisonMilestoneTimeline(scenario1, scenario2),
+      // NEW: Recommendation section - which scenario wins on what metrics
+      this.buildRecommendationSection(scenario1, scenario2),
       this.buildComparisonGPTSection(gptInsights),
       this.buildFooter(gptInsights?.source)
     ].join('\n');
@@ -1212,25 +1258,50 @@ const Tool6Report = {
   },
 
   /**
-   * Build scenario cards for comparison
+   * Build enhanced scenario cards for comparison with profile icons
    */
   buildScenarioCards(scenario1, scenario2) {
+    // Get profile icons
+    const icon1 = scenario1?.profile?.icon || '📊';
+    const icon2 = scenario2?.profile?.icon || '📊';
+
+    // Helper to build a compact scenario card
+    const buildCard = (scenario, icon) => `
+      <td style="width: 50%; vertical-align: top; padding: 0 10px;">
+        <div style="background: linear-gradient(135deg, #2d2d44 0%, #4b4166 100%); color: white; padding: 15px; border-radius: 8px;">
+          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+            <span style="font-size: 28px;">${icon}</span>
+            <div>
+              <div style="font-size: 16px; font-weight: 700;">${scenario?.name || 'Scenario'}</div>
+              <div style="font-size: 12px; opacity: 0.85;">${scenario?.profileName || 'Not specified'}</div>
+            </div>
+          </div>
+          <table style="width: 100%; font-size: 12px; color: white;">
+            <tr>
+              <td style="padding: 3px 0; opacity: 0.8;">Monthly Budget:</td>
+              <td style="padding: 3px 0; text-align: right; font-weight: 600;">$${(scenario?.monthlyBudget || 0).toLocaleString()}</td>
+            </tr>
+            <tr>
+              <td style="padding: 3px 0; opacity: 0.8;">Tax Strategy:</td>
+              <td style="padding: 3px 0; text-align: right; font-weight: 600;">${scenario?.taxPreference || 'Balanced'}</td>
+            </tr>
+            <tr>
+              <td style="padding: 3px 0; opacity: 0.8;">Current Balance:</td>
+              <td style="padding: 3px 0; text-align: right; font-weight: 600;">$${(scenario?.currentBalance || 0).toLocaleString()}</td>
+            </tr>
+          </table>
+        </div>
+      </td>
+    `;
+
     return `
       <h2>Scenarios Being Compared</h2>
-      <div style="display: flex; gap: 20px; flex-wrap: wrap;">
-        <div class="section-box" style="flex: 1; min-width: 250px;">
-          <h3>${scenario1?.name || 'Scenario A'}</h3>
-          <p><strong>Profile:</strong> ${scenario1?.profileName || 'Not specified'}</p>
-          <p><strong>Monthly Budget:</strong> $${(scenario1?.monthlyBudget || 0).toLocaleString()}</p>
-          <p><strong>Tax Strategy:</strong> ${scenario1?.taxPreference || 'Balanced'}</p>
-        </div>
-        <div class="section-box" style="flex: 1; min-width: 250px;">
-          <h3>${scenario2?.name || 'Scenario B'}</h3>
-          <p><strong>Profile:</strong> ${scenario2?.profileName || 'Not specified'}</p>
-          <p><strong>Monthly Budget:</strong> $${(scenario2?.monthlyBudget || 0).toLocaleString()}</p>
-          <p><strong>Tax Strategy:</strong> ${scenario2?.taxPreference || 'Balanced'}</p>
-        </div>
-      </div>
+      <table style="width: 100%; border-collapse: collapse;">
+        <tr>
+          ${buildCard(scenario1, icon1)}
+          ${buildCard(scenario2, icon2)}
+        </tr>
+      </table>
     `;
   },
 
@@ -1324,6 +1395,7 @@ const Tool6Report = {
     }).join('');
 
     return `
+      <div class="page-break"></div>
       <h2>Projection Comparison</h2>
       <table class="comparison-table">
         <thead>
@@ -1383,6 +1455,281 @@ const Tool6Report = {
         </div>
       `;
     }
+
+    return html;
+  },
+
+  /**
+   * Build side-by-side milestone timeline comparing balances at key ages
+   * Shows how each scenario projects out over time
+   */
+  buildComparisonMilestoneTimeline(scenario1, scenario2) {
+    // Get inputs from each scenario
+    const inputs1 = scenario1?.inputs || {};
+    const inputs2 = scenario2?.inputs || {};
+
+    // Use the younger age as the base (scenarios should have same age, but just in case)
+    const age = Math.min(inputs1.age || 40, inputs2.age || 40);
+
+    // Get return rates based on investment scores
+    const returnRate1 = this.getReturnRate(inputs1.investmentScore || 4) / 100;
+    const returnRate2 = this.getReturnRate(inputs2.investmentScore || 4) / 100;
+
+    // Get current balances and contributions
+    const currentBalance1 = scenario1?.currentBalance || 0;
+    const currentBalance2 = scenario2?.currentBalance || 0;
+    const monthlyContrib1 = scenario1?.monthlyBudget || 0;
+    const monthlyContrib2 = scenario2?.monthlyBudget || 0;
+
+    // Key milestone ages
+    const milestoneAges = [50, 55, 60, 65, 70].filter(m => m > age && m <= 75);
+
+    // Calculate balances at each milestone for both scenarios
+    const milestones = milestoneAges.map(milestoneAge => {
+      const yearsAway = milestoneAge - age;
+
+      // Scenario 1 calculation
+      const monthlyRate1 = returnRate1 / 12;
+      const months1 = yearsAway * 12;
+      const fvPrincipal1 = currentBalance1 * Math.pow(1 + monthlyRate1, months1);
+      const fvContrib1 = monthlyRate1 > 0
+        ? monthlyContrib1 * ((Math.pow(1 + monthlyRate1, months1) - 1) / monthlyRate1)
+        : monthlyContrib1 * months1;
+      const balance1 = Math.round(fvPrincipal1 + fvContrib1);
+
+      // Scenario 2 calculation
+      const monthlyRate2 = returnRate2 / 12;
+      const months2 = yearsAway * 12;
+      const fvPrincipal2 = currentBalance2 * Math.pow(1 + monthlyRate2, months2);
+      const fvContrib2 = monthlyRate2 > 0
+        ? monthlyContrib2 * ((Math.pow(1 + monthlyRate2, months2) - 1) / monthlyRate2)
+        : monthlyContrib2 * months2;
+      const balance2 = Math.round(fvPrincipal2 + fvContrib2);
+
+      // Calculate difference
+      const diff = balance2 - balance1;
+      const winner = diff > 0 ? 2 : diff < 0 ? 1 : 0;
+
+      return {
+        age: milestoneAge,
+        yearsAway,
+        balance1,
+        balance2,
+        diff,
+        winner
+      };
+    });
+
+    if (milestones.length === 0) {
+      return '';
+    }
+
+    let html = '<div class="page-break"></div>';
+    html += '<h2>Side-by-Side Timeline Comparison</h2>';
+    html += '<p style="color: #666; margin-bottom: 15px;">See how each scenario grows over time at key milestone ages.</p>';
+
+    html += '<table class="comparison-table milestone-comparison">';
+    html += `<thead><tr>
+      <th style="width: 80px;">Age</th>
+      <th style="width: 80px;">Years Away</th>
+      <th>${scenario1?.name || 'Scenario A'}</th>
+      <th>${scenario2?.name || 'Scenario B'}</th>
+      <th>Difference</th>
+    </tr></thead>`;
+    html += '<tbody>';
+
+    milestones.forEach(m => {
+      const diffStr = m.diff > 0
+        ? `+$${m.diff.toLocaleString()} (${scenario2?.name || 'B'})`
+        : m.diff < 0
+          ? `+$${Math.abs(m.diff).toLocaleString()} (${scenario1?.name || 'A'})`
+          : 'Same';
+      const diffClass = m.diff !== 0 ? (m.diff > 0 ? 'diff-positive' : 'diff-negative') : '';
+
+      html += `
+        <tr>
+          <td class="age-cell" style="font-weight: bold;">${m.age}</td>
+          <td>${m.yearsAway} yrs</td>
+          <td class="balance-cell ${m.winner === 1 ? 'winner-highlight' : ''}">$${m.balance1.toLocaleString()}</td>
+          <td class="balance-cell ${m.winner === 2 ? 'winner-highlight' : ''}">$${m.balance2.toLocaleString()}</td>
+          <td class="${diffClass}">${diffStr}</td>
+        </tr>
+      `;
+    });
+
+    html += '</tbody></table>';
+
+    // Add summary insight
+    const finalMilestone = milestones[milestones.length - 1];
+    if (finalMilestone) {
+      const totalDiffPercent = finalMilestone.balance1 > 0
+        ? Math.round((finalMilestone.diff / finalMilestone.balance1) * 100)
+        : 0;
+
+      html += `
+        <div class="insight-box" style="margin-top: 15px;">
+          <h3>Timeline Summary</h3>
+          <p>By age ${finalMilestone.age}, ${
+            finalMilestone.diff > 0
+              ? `<strong>${scenario2?.name || 'Scenario B'}</strong> would be ahead by $${finalMilestone.diff.toLocaleString()} (${Math.abs(totalDiffPercent)}% more)`
+              : finalMilestone.diff < 0
+                ? `<strong>${scenario1?.name || 'Scenario A'}</strong> would be ahead by $${Math.abs(finalMilestone.diff).toLocaleString()} (${Math.abs(totalDiffPercent)}% more)`
+                : 'both scenarios would have approximately the same balance'
+          }.</p>
+        </div>
+      `;
+    }
+
+    return html;
+  },
+
+  /**
+   * Build recommendation section showing which scenario wins on different metrics
+   * Helps users make informed decisions based on their priorities
+   */
+  buildRecommendationSection(scenario1, scenario2) {
+    const metrics = [];
+
+    // Compare projected balance
+    const bal1 = scenario1?.projectedBalance || 0;
+    const bal2 = scenario2?.projectedBalance || 0;
+    if (bal1 !== bal2) {
+      metrics.push({
+        metric: 'Maximum Growth',
+        winner: bal1 > bal2 ? scenario1?.name || 'Scenario A' : scenario2?.name || 'Scenario B',
+        loser: bal1 > bal2 ? scenario2?.name || 'Scenario B' : scenario1?.name || 'Scenario A',
+        value: `$${Math.max(bal1, bal2).toLocaleString()} vs $${Math.min(bal1, bal2).toLocaleString()}`,
+        diff: Math.abs(bal1 - bal2),
+        description: 'Higher projected balance at retirement',
+        icon: '📈'
+      });
+    }
+
+    // Compare tax-free percentage
+    const tf1 = scenario1?.taxFreePercent || 0;
+    const tf2 = scenario2?.taxFreePercent || 0;
+    if (Math.abs(tf1 - tf2) > 1) { // Only show if meaningfully different
+      metrics.push({
+        metric: 'Tax-Free Retirement Income',
+        winner: tf1 > tf2 ? scenario1?.name || 'Scenario A' : scenario2?.name || 'Scenario B',
+        loser: tf1 > tf2 ? scenario2?.name || 'Scenario B' : scenario1?.name || 'Scenario A',
+        value: `${Math.round(Math.max(tf1, tf2))}% vs ${Math.round(Math.min(tf1, tf2))}%`,
+        diff: Math.abs(tf1 - tf2),
+        description: 'More of your retirement withdrawals would be tax-free',
+        icon: '🛡️'
+      });
+    }
+
+    // Compare monthly retirement income
+    const inc1 = scenario1?.monthlyRetirementIncome || 0;
+    const inc2 = scenario2?.monthlyRetirementIncome || 0;
+    if (inc1 !== inc2) {
+      metrics.push({
+        metric: 'Monthly Retirement Income',
+        winner: inc1 > inc2 ? scenario1?.name || 'Scenario A' : scenario2?.name || 'Scenario B',
+        loser: inc1 > inc2 ? scenario2?.name || 'Scenario B' : scenario1?.name || 'Scenario A',
+        value: `$${Math.max(inc1, inc2).toLocaleString()}/mo vs $${Math.min(inc1, inc2).toLocaleString()}/mo`,
+        diff: Math.abs(inc1 - inc2),
+        description: 'Higher sustainable monthly income using 4% rule',
+        icon: '💵'
+      });
+    }
+
+    // Compare monthly contribution (lower might be better for cash flow)
+    const contrib1 = scenario1?.monthlyBudget || 0;
+    const contrib2 = scenario2?.monthlyBudget || 0;
+    if (contrib1 !== contrib2) {
+      metrics.push({
+        metric: 'Lower Monthly Commitment',
+        winner: contrib1 < contrib2 ? scenario1?.name || 'Scenario A' : scenario2?.name || 'Scenario B',
+        loser: contrib1 < contrib2 ? scenario2?.name || 'Scenario B' : scenario1?.name || 'Scenario A',
+        value: `$${Math.min(contrib1, contrib2).toLocaleString()}/mo vs $${Math.max(contrib1, contrib2).toLocaleString()}/mo`,
+        diff: Math.abs(contrib1 - contrib2),
+        description: 'More monthly cash flow available for other goals',
+        icon: '💳'
+      });
+    }
+
+    // Compare number of vehicles (simplicity)
+    const vehicles1 = Object.keys(scenario1?.allocation || {}).filter(v => (scenario1?.allocation[v] || 0) > 0).length;
+    const vehicles2 = Object.keys(scenario2?.allocation || {}).filter(v => (scenario2?.allocation[v] || 0) > 0).length;
+    if (vehicles1 !== vehicles2) {
+      metrics.push({
+        metric: 'Simplicity',
+        winner: vehicles1 < vehicles2 ? scenario1?.name || 'Scenario A' : scenario2?.name || 'Scenario B',
+        loser: vehicles1 < vehicles2 ? scenario2?.name || 'Scenario B' : scenario1?.name || 'Scenario A',
+        value: `${Math.min(vehicles1, vehicles2)} accounts vs ${Math.max(vehicles1, vehicles2)} accounts`,
+        diff: Math.abs(vehicles1 - vehicles2),
+        description: 'Fewer accounts to manage and track',
+        icon: '✨'
+      });
+    }
+
+    if (metrics.length === 0) {
+      return `
+        <h2>Recommendation Summary</h2>
+        <div class="insight-box">
+          <p>Both scenarios are very similar across key metrics. Your choice may come down to personal preference or which investment profile feels more aligned with your values.</p>
+        </div>
+      `;
+    }
+
+    let html = '<h2>Which Scenario is Right for You?</h2>';
+    html += '<p style="color: #666; margin-bottom: 15px;">Each scenario has strengths. Consider what matters most to you.</p>';
+
+    // Build recommendation cards
+    html += '<div class="recommendation-grid" style="display: flex; flex-wrap: wrap; gap: 15px;">';
+
+    metrics.forEach(m => {
+      html += `
+        <div class="recommendation-card" style="flex: 1; min-width: 250px; background: #f8f9fa; border-radius: 8px; padding: 15px; border-left: 4px solid #2563eb;">
+          <div style="font-size: 24px; margin-bottom: 5px;">${m.icon}</div>
+          <div style="font-weight: 600; color: #1e40af; margin-bottom: 5px;">${m.metric}</div>
+          <div style="font-size: 14px; color: #374151; margin-bottom: 8px;">${m.description}</div>
+          <div style="background: #dbeafe; padding: 8px; border-radius: 4px;">
+            <strong style="color: #1e40af;">Winner: ${m.winner}</strong><br>
+            <span style="font-size: 12px; color: #4b5563;">${m.value}</span>
+          </div>
+        </div>
+      `;
+    });
+
+    html += '</div>';
+
+    // Add decision framework
+    html += `
+      <div class="focus-box" style="margin-top: 20px;">
+        <h3>Decision Framework</h3>
+        <ul style="margin: 0; padding-left: 20px;">
+    `;
+
+    // Generate personalized recommendations based on wins
+    const scenario1Wins = metrics.filter(m => m.winner === (scenario1?.name || 'Scenario A'));
+    const scenario2Wins = metrics.filter(m => m.winner === (scenario2?.name || 'Scenario B'));
+
+    if (scenario1Wins.length > scenario2Wins.length) {
+      html += `<li><strong>${scenario1?.name || 'Scenario A'}</strong> wins on more metrics (${scenario1Wins.length} vs ${scenario2Wins.length})</li>`;
+    } else if (scenario2Wins.length > scenario1Wins.length) {
+      html += `<li><strong>${scenario2?.name || 'Scenario B'}</strong> wins on more metrics (${scenario2Wins.length} vs ${scenario1Wins.length})</li>`;
+    } else {
+      html += `<li>Both scenarios win on equal number of metrics (${scenario1Wins.length} each)</li>`;
+    }
+
+    // Add specific guidance
+    const growthWinner = metrics.find(m => m.metric === 'Maximum Growth');
+    const taxWinner = metrics.find(m => m.metric === 'Tax-Free Retirement Income');
+
+    if (growthWinner) {
+      html += `<li>If maximizing your retirement nest egg is the priority, choose <strong>${growthWinner.winner}</strong></li>`;
+    }
+    if (taxWinner) {
+      html += `<li>If minimizing taxes in retirement is important, choose <strong>${taxWinner.winner}</strong></li>`;
+    }
+
+    html += `
+        </ul>
+      </div>
+    `;
 
     return html;
   },

@@ -569,10 +569,13 @@ This Week:
       traumaContext += `\n- Growth direction: ${tool1Context.healingDirection}`;
     }
 
+    const name1 = scenario1.name || 'First Scenario';
+    const name2 = scenario2.name || 'Second Scenario';
+
     return `You are comparing two retirement scenarios for a student in a trauma-informed financial program.
 ${traumaContext}
 
-SCENARIO A: "${scenario1.name}"
+FIRST SCENARIO: "${name1}"
 - Profile: ${scenario1.profileName || 'Unknown'}
 - Monthly Budget: $${scenario1.monthlyBudget?.toLocaleString() || 0}
 - Tax Strategy: ${scenario1.taxPreference || 'Balanced'}
@@ -580,7 +583,7 @@ SCENARIO A: "${scenario1.name}"
 - Tax-Free %: ${scenario1.taxFreePercent || 0}%
 - Monthly Retirement Income: $${scenario1.monthlyRetirementIncome?.toLocaleString() || 0}
 
-SCENARIO B: "${scenario2.name}"
+SECOND SCENARIO: "${name2}"
 - Profile: ${scenario2.profileName || 'Unknown'}
 - Monthly Budget: $${scenario2.monthlyBudget?.toLocaleString() || 0}
 - Tax Strategy: ${scenario2.taxPreference || 'Balanced'}
@@ -596,6 +599,7 @@ KEY DIFFERENCES:
 WRITING GUIDELINES:
 - Write as if speaking directly to the student
 - Reference specific numbers from BOTH scenarios
+- ALWAYS refer to scenarios by their actual names: "${name1}" and "${name2}" - NEVER say "Scenario A" or "Scenario B"
 - Consider psychological patterns in your guidance
 - Be clear about trade-offs without being prescriptive
 - Do NOT use markdown formatting
@@ -604,13 +608,13 @@ WRITING GUIDELINES:
 Return PLAIN TEXT ONLY in this exact format:
 
 Synthesis:
-(ONE paragraph explaining the key differences between these scenarios and what drives those differences. 4-5 sentences.)
+(ONE paragraph explaining the key differences between these scenarios and what drives those differences. Use the actual scenario names. 4-5 sentences.)
 
 Decision Guidance:
-(2-3 sentences on which scenario might work better for this student and why, considering both financial and psychological factors. Do not make the decision for them - help them understand the trade-offs.)
+(2-3 sentences on which scenario might work better for this student and why, considering both financial and psychological factors. Use actual scenario names. Do not make the decision for them - help them understand the trade-offs.)
 
 Key Trade-offs:
-1. [First major trade-off to consider - 1-2 sentences]
+1. [First major trade-off to consider - use actual scenario names - 1-2 sentences]
 2. [Second trade-off - 1-2 sentences]
 3. [Third trade-off - 1-2 sentences]`;
   },
@@ -619,9 +623,12 @@ Key Trade-offs:
    * Build user prompt for Comparison Report
    */
   buildComparisonUserPrompt(scenario1, scenario2) {
+    const name1 = scenario1.name || 'First Scenario';
+    const name2 = scenario2.name || 'Second Scenario';
+
     let prompt = 'Please compare these two retirement scenarios and provide insights to help the student make a decision.\n\n';
 
-    prompt += `SCENARIO A ALLOCATION:\n`;
+    prompt += `"${name1}" ALLOCATION:\n`;
     if (scenario1.allocation) {
       Object.entries(scenario1.allocation)
         .filter(([_, v]) => v > 0)
@@ -630,7 +637,7 @@ Key Trade-offs:
         });
     }
 
-    prompt += `\nSCENARIO B ALLOCATION:\n`;
+    prompt += `\n"${name2}" ALLOCATION:\n`;
     if (scenario2.allocation) {
       Object.entries(scenario2.allocation)
         .filter(([_, v]) => v > 0)
@@ -639,7 +646,7 @@ Key Trade-offs:
         });
     }
 
-    prompt += '\nHelp the student understand the implications of each scenario.';
+    prompt += `\nHelp the student understand the implications of each scenario. Remember to use the actual scenario names ("${name1}" and "${name2}") in your response.`;
 
     return prompt;
   },

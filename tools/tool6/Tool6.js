@@ -6978,6 +6978,11 @@ const Tool6 = {
       a10_yearsToEducation: function() { return formData.a8_hasChildren === 'Yes'; },
       a11_educationVehicle: function() { return formData.a8_hasChildren === 'Yes'; },
       a12_current401kBalance: function() { return formData.a3_has401k === 'Yes'; },
+      // Solo 401(k) employer contribution requires self-employment income - only show for Profile 4
+      a13d_selfEmploymentIncome: function() {
+        var profileId = parseInt(document.getElementById('classifiedProfile').value) || 0;
+        return profileId === 4; // Profile 4: Solo 401(k) Optimizer (self-employed or both)
+      },
       a14_currentHSABalance: function() { return formData.a7_hsaEligible === 'Yes'; },
       a15_currentEducationBalance: function() { return formData.a8_hasChildren === 'Yes'; },
       a16_monthly401kContribution: function() { return formData.a3_has401k === 'Yes'; },
@@ -9625,10 +9630,20 @@ const Tool6 = {
       console.log('Scenario grossIncome:', scenario.grossIncome);
       console.log('Current page values - investmentScore:', currentInvestmentScore, 'age:', upstreamAge, 'yearsToRetirement:', yearsToRetirement);
 
+      // Show loading overlay - PDF generation takes time
+      var overlay = document.getElementById('loadingOverlay');
+      var loadingText = document.getElementById('loadingText');
+      var loadingSubtext = document.getElementById('loadingSubtext');
+      if (overlay) {
+        loadingText.textContent = 'Creating Your Personalized Report';
+        loadingSubtext.textContent = 'This may take a moment...';
+        overlay.classList.add('show');
+      }
       showScenarioFeedback('Generating PDF report for "' + scenario.name + '"...', 'info');
 
       google.script.run
         .withSuccessHandler(function(result) {
+          if (overlay) overlay.classList.remove('show');
           if (result.success) {
             // Trigger download
             downloadBase64PDF(result.pdf, result.fileName);
@@ -9644,6 +9659,7 @@ const Tool6 = {
           }
         })
         .withFailureHandler(function(error) {
+          if (overlay) overlay.classList.remove('show');
           showScenarioFeedback('Error: ' + error.message, 'error');
         })
         .generateTool6PDF(clientId, scenario);
@@ -9677,10 +9693,20 @@ const Tool6 = {
         return;
       }
 
+      // Show loading overlay - PDF generation takes time
+      var overlay = document.getElementById('loadingOverlay');
+      var loadingText = document.getElementById('loadingText');
+      var loadingSubtext = document.getElementById('loadingSubtext');
+      if (overlay) {
+        loadingText.textContent = 'Creating Your Comparison Report';
+        loadingSubtext.textContent = 'This may take a moment...';
+        overlay.classList.add('show');
+      }
       showScenarioFeedback('Generating comparison PDF...', 'info');
 
       google.script.run
         .withSuccessHandler(function(result) {
+          if (overlay) overlay.classList.remove('show');
           if (result.success) {
             downloadBase64PDF(result.pdf, result.fileName);
             showScenarioFeedback('Comparison PDF downloaded successfully!', 'success');
@@ -9689,6 +9715,7 @@ const Tool6 = {
           }
         })
         .withFailureHandler(function(error) {
+          if (overlay) overlay.classList.remove('show');
           showScenarioFeedback('Error: ' + error.message, 'error');
         })
         .generateTool6ComparisonPDF(clientId, scenario1, scenario2);
@@ -11690,10 +11717,48 @@ const Tool6 = {
       const tool1Data = DataService.getLatestResponse(clientId, 'tool1');
       const tool3Data = DataService.getLatestResponse(clientId, 'tool3');
 
-      // Build inputs object (use scenario1 as primary)
-      const inputs = {
-        age: scenario1.age || scenario2.age || 40,
-        yearsToRetirement: scenario1.yearsToRetirement || scenario2.yearsToRetirement || 25
+      // ========================================================================
+      // SINGLE SOURCE OF TRUTH: Use resolveClientData() for fallback values
+      // ========================================================================
+      const resolvedData = this.resolveClientData(clientId);
+
+      // Helper to calculate currentBalance from saved balances
+      const calculateCurrentBalance = (scenario) => {
+        let balance = scenario.currentBalance || 0;
+        if (!balance && scenario.currentBalances) {
+          balance = (scenario.currentBalances['401k'] || 0) +
+                    (scenario.currentBalances.ira || 0) +
+                    (scenario.currentBalances.hsa || 0) +
+                    (scenario.currentBalances.education || 0);
+        }
+        return balance;
+      };
+
+      // Build complete inputs object for each scenario (like normal PDF)
+      const inputs1 = {
+        age: scenario1.age || resolvedData.age || 40,
+        yearsToRetirement: scenario1.yearsToRetirement || resolvedData.yearsToRetirement || 25,
+        monthlyBudget: scenario1.monthlyBudget || 0,
+        investmentScore: scenario1.investmentScore || resolvedData.investmentScore || 4,
+        grossIncome: scenario1.grossIncome || scenario1.income || resolvedData.grossIncome || 0
+      };
+
+      const inputs2 = {
+        age: scenario2.age || resolvedData.age || 40,
+        yearsToRetirement: scenario2.yearsToRetirement || resolvedData.yearsToRetirement || 25,
+        monthlyBudget: scenario2.monthlyBudget || 0,
+        investmentScore: scenario2.investmentScore || resolvedData.investmentScore || 4,
+        grossIncome: scenario2.grossIncome || scenario2.income || resolvedData.grossIncome || 0
+      };
+
+      // Get profile definitions with icons
+      const profile1 = PROFILE_DEFINITIONS[scenario1.profileId] || PROFILE_DEFINITIONS[7];
+      const profile2 = PROFILE_DEFINITIONS[scenario2.profileId] || PROFILE_DEFINITIONS[7];
+
+      // Build shared inputs for GPT (use scenario1 as primary for shared fields)
+      const sharedInputs = {
+        age: inputs1.age,
+        yearsToRetirement: inputs1.yearsToRetirement
       };
 
       // Get GPT comparison insights (3-tier fallback)
@@ -11702,7 +11767,7 @@ const Tool6 = {
         clientId,
         scenario1: {
           name: scenario1.name || 'Scenario A',
-          profileName: PROFILE_DEFINITIONS[scenario1.profileId]?.name || 'Unknown',
+          profileName: profile1.name || 'Unknown',
           monthlyBudget: scenario1.monthlyBudget || 0,
           taxPreference: scenario1.taxStrategy || 'Balanced',
           projectedBalance: scenario1.projectedBalance || 0,
@@ -11712,7 +11777,7 @@ const Tool6 = {
         },
         scenario2: {
           name: scenario2.name || 'Scenario B',
-          profileName: PROFILE_DEFINITIONS[scenario2.profileId]?.name || 'Unknown',
+          profileName: profile2.name || 'Unknown',
           monthlyBudget: scenario2.monthlyBudget || 0,
           taxPreference: scenario2.taxStrategy || 'Balanced',
           projectedBalance: scenario2.projectedBalance || 0,
@@ -11720,37 +11785,47 @@ const Tool6 = {
           monthlyRetirementIncome: scenario2.monthlyRetirementIncome || 0,
           allocation: scenario2.allocations || {}
         },
-        inputs,
+        inputs: sharedInputs,
         tool1Data,
         tool3Data
       });
 
       Logger.log(`[Tool6.generateComparisonPDF] GPT source: ${gptInsights.source}`);
 
-      // Generate HTML comparison report
+      // Generate HTML comparison report with complete data
       const htmlContent = Tool6Report.generateComparisonReportHTML({
         clientName,
         scenario1: {
           name: scenario1.name || 'Scenario A',
-          profileName: PROFILE_DEFINITIONS[scenario1.profileId]?.name || 'Unknown',
+          profile: profile1,
+          profileName: profile1.name || 'Unknown',
           monthlyBudget: scenario1.monthlyBudget || 0,
           taxPreference: scenario1.taxStrategy || 'Balanced',
           projectedBalance: scenario1.projectedBalance || 0,
           inflationAdjusted: scenario1.inflationAdjusted || 0,
           monthlyRetirementIncome: scenario1.monthlyRetirementIncome || 0,
           taxFreePercent: scenario1.taxFreePercent || 0,
-          allocation: scenario1.allocations || {}
+          traditionalPercent: scenario1.traditionalPercent || 0,
+          taxablePercent: scenario1.taxablePercent || 0,
+          allocation: scenario1.allocations || {},
+          currentBalance: calculateCurrentBalance(scenario1),
+          inputs: inputs1
         },
         scenario2: {
           name: scenario2.name || 'Scenario B',
-          profileName: PROFILE_DEFINITIONS[scenario2.profileId]?.name || 'Unknown',
+          profile: profile2,
+          profileName: profile2.name || 'Unknown',
           monthlyBudget: scenario2.monthlyBudget || 0,
           taxPreference: scenario2.taxStrategy || 'Balanced',
           projectedBalance: scenario2.projectedBalance || 0,
           inflationAdjusted: scenario2.inflationAdjusted || 0,
           monthlyRetirementIncome: scenario2.monthlyRetirementIncome || 0,
           taxFreePercent: scenario2.taxFreePercent || 0,
-          allocation: scenario2.allocations || {}
+          traditionalPercent: scenario2.traditionalPercent || 0,
+          taxablePercent: scenario2.taxablePercent || 0,
+          allocation: scenario2.allocations || {},
+          currentBalance: calculateCurrentBalance(scenario2),
+          inputs: inputs2
         },
         gptInsights
       });
