@@ -10887,25 +10887,48 @@ const Tool6 = {
 
       // Get toolStatus for upstream data (Tool 2 has age/income, Tool 4 has yearsToRetirement)
       const toolStatus = this.checkToolCompletion(clientId);
-      Logger.log(`[Tool6.generatePDF] ToolStatus - age: ${toolStatus.age}, yearsToRetirement: ${toolStatus.yearsToRetirement}, grossIncome: ${toolStatus.grossIncome}`);
-      Logger.log(`[Tool6.generatePDF] ScenarioData - age: ${scenarioData.age}, yearsToRetirement: ${scenarioData.yearsToRetirement}, grossIncome: ${scenarioData.grossIncome}`);
+
+      // Get preSurveyData (Tool 6 questionnaire answers - may have data not in saved scenario)
+      const preSurveyData = this.getPreSurvey(clientId) || {};
+
+      Logger.log(`[Tool6.generatePDF] Data sources:`);
+      Logger.log(`  ScenarioData - age: ${scenarioData.age}, yearsToRetirement: ${scenarioData.yearsToRetirement}, grossIncome: ${scenarioData.grossIncome}, monthlyBudget: ${scenarioData.monthlyBudget}`);
+      Logger.log(`  PreSurveyData - a2_yearsToRetirement: ${preSurveyData.a2_yearsToRetirement}, a1_grossIncome: ${preSurveyData.a1_grossIncome}, backup_age: ${preSurveyData.backup_age}`);
+      Logger.log(`  ToolStatus - age: ${toolStatus.age}, yearsToRetirement: ${toolStatus.yearsToRetirement}, grossIncome: ${toolStatus.grossIncome}, monthlyBudget: ${toolStatus.monthlyBudget}`);
 
       // ========================================================================
       // CRITICAL DATA VALIDATION - No hardcoded defaults for financial data
       // These values directly impact projections and must come from actual data
+      // Fallback chain: scenarioData → preSurveyData (questionnaire) → toolStatus (upstream tools) → ERROR
       // ========================================================================
 
-      // Resolve age: scenario → toolStatus (Tool 2) → MISSING
-      const age = scenarioData.age || toolStatus.age || null;
+      // Resolve age: scenario → preSurvey backup → toolStatus (Tool 2) → MISSING
+      const age = scenarioData.age ||
+                  parseInt(preSurveyData.backup_age) ||
+                  toolStatus.age ||
+                  null;
 
-      // Resolve yearsToRetirement: scenario → toolStatus (Tool 4) → MISSING
-      const yearsToRetirement = scenarioData.yearsToRetirement || toolStatus.yearsToRetirement || null;
+      // Resolve yearsToRetirement: scenario → preSurvey (a2 or backup) → toolStatus (Tool 4) → MISSING
+      const yearsToRetirement = scenarioData.yearsToRetirement ||
+                                parseInt(preSurveyData.a2_yearsToRetirement) ||
+                                parseInt(preSurveyData.backup_yearsToRetirement) ||
+                                toolStatus.yearsToRetirement ||
+                                null;
 
-      // Resolve grossIncome: scenario.grossIncome → scenario.income → toolStatus → MISSING
-      const grossIncome = scenarioData.grossIncome || scenarioData.income || toolStatus.grossIncome || toolStatus.income || null;
+      // Resolve grossIncome: scenario → preSurvey (a1 or backup) → toolStatus → MISSING
+      const grossIncome = scenarioData.grossIncome ||
+                          scenarioData.income ||
+                          parseFloat(preSurveyData.a1_grossIncome) ||
+                          parseFloat(preSurveyData.backup_grossIncome) ||
+                          toolStatus.grossIncome ||
+                          toolStatus.income ||
+                          null;
 
-      // Resolve monthlyBudget: scenario → toolStatus → MISSING
-      const monthlyBudget = scenarioData.monthlyBudget || toolStatus.monthlyBudget || null;
+      // Resolve monthlyBudget: scenario → preSurvey backup → toolStatus → MISSING
+      const monthlyBudget = scenarioData.monthlyBudget ||
+                            parseFloat(preSurveyData.backup_monthlyBudget) ||
+                            toolStatus.monthlyBudget ||
+                            null;
 
       // Collect missing critical fields
       const missingFields = [];
