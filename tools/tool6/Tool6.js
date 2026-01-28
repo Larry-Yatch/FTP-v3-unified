@@ -4646,6 +4646,10 @@ const Tool6 = {
       // Add monthlyBudget from Tool 4
       submitData.monthlyBudget = ${toolStatus.monthlyBudget || 0};
 
+      // Merge with existing formData to preserve backup questions and other previously saved data
+      var mergedSubmitData = Object.assign({}, formData, submitData);
+      console.log('Merged submit data (formData + submitData):', mergedSubmitData);
+
       // Show loading overlay
       var loadingOverlay = document.getElementById('loadingOverlay');
       var loadingText = document.getElementById('loadingText');
@@ -4692,7 +4696,7 @@ const Tool6 = {
           errorDiv.innerHTML = 'Server error: ' + error.message;
           errorDiv.classList.add('show');
         })
-        .savePreSurveyTool6(clientId, submitData);
+        .savePreSurveyTool6(clientId, mergedSubmitData);
     }
 
     // ========================================================================
