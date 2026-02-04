@@ -449,7 +449,12 @@ const GroundingReport = {
               showLoading('Generating PDF...');
 
               // Determine which PDF function to call based on toolId
-              const pdfFunction = toolId === 'tool3' ? 'generateTool3PDF' : 'generateTool5PDF';
+              const pdfFunctions = {
+                'tool3': 'generateTool3PDF',
+                'tool5': 'generateTool5PDF',
+                'tool7': 'generateTool7PDF'
+              };
+              const pdfFunction = pdfFunctions[toolId];
 
               google.script.run
                 .withSuccessHandler(function(result) {
