@@ -591,7 +591,10 @@ const Tool5 = {
         DataService.updateDraft(clientId, 'tool5', draftData);
       }
     } else {
-      Logger.log(`[Tool5] Skipping DRAFT save/update - already in edit mode with EDIT_DRAFT`);
+      // EDIT MODE: Also update EDIT_DRAFT row to keep RESPONSES sheet in sync
+      // This ensures data isn't lost if PropertiesService gets cleared mid-session
+      Logger.log(`[Tool5] Updating EDIT_DRAFT with current data`);
+      DataService.updateDraft(clientId, 'tool5', draftData);
     }
 
     // ============================================================
@@ -687,11 +690,11 @@ const Tool5 = {
         }
       }
 
-      return data || {};
+      return data || null;
 
     } catch (error) {
       Logger.log(`[Tool5] Error getting existing data: ${error}`);
-      return {};
+      return null;
     }
   },
 

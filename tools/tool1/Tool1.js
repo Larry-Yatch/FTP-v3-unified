@@ -461,7 +461,10 @@ const Tool1 = {
         DataService.updateDraft(clientId, 'tool1', draftData);
       }
     } else {
-      Logger.log(`[Tool1] Skipping DRAFT save/update - already in edit mode with EDIT_DRAFT`);
+      // EDIT MODE: Also update EDIT_DRAFT row to keep RESPONSES sheet in sync
+      // This ensures data isn't lost if PropertiesService gets cleared mid-session
+      Logger.log(`[Tool1] Updating EDIT_DRAFT with current data`);
+      DataService.updateDraft(clientId, 'tool1', draftData);
     }
 
     return { success: true };

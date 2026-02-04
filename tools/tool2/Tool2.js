@@ -1501,7 +1501,10 @@ const Tool2 = {
           DataService.updateDraft(clientId, 'tool2', draftData);
         }
       } else {
-        Logger.log(`[Tool2] Skipping DRAFT save/update - already in edit mode with EDIT_DRAFT`);
+        // EDIT MODE: Also update EDIT_DRAFT row to keep RESPONSES sheet in sync
+        // This ensures data isn't lost if PropertiesService gets cleared mid-session
+        Logger.log(`[Tool2] Updating EDIT_DRAFT with current data`);
+        DataService.updateDraft(clientId, 'tool2', draftData);
       }
 
       // Trigger background GPT analysis for free-text responses

@@ -403,6 +403,12 @@ const ResponseManager = {
       // Clean up old versions (keep last 2)
       this._cleanupOldVersions(clientId, toolId, 2);
 
+      // Clear PropertiesService draft data (prevents orphaned data)
+      if (typeof DraftService !== 'undefined') {
+        DraftService.clearDraft(toolId, clientId);
+        Logger.log(`Cleared PropertiesService draft for ${clientId} / ${toolId}`);
+      }
+
       Logger.log(`Edited response submitted successfully for ${clientId}`);
 
       return {
@@ -431,8 +437,9 @@ const ResponseManager = {
 
       const sheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.RESPONSES);
 
-      // Use cached data to reduce API calls
-      const data = SpreadsheetCache.getSheetData(CONFIG.SHEETS.RESPONSES);
+      // CRITICAL: Use fresh data, not cache, because we're deleting rows
+      // Cached data indices become invalid after the first deleteRow()
+      const data = sheet.getDataRange().getValues();
       const headers = data[0];
 
       const clientIdCol = headers.indexOf('Client_ID');

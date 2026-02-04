@@ -25,11 +25,11 @@ const Tool7 = {
     // Domain configuration
     domain1Name: 'Control Leading to Isolation',
     domain1Key: 'domain1',
-    domain1Description: 'Self-imposed suffering through rejection of help and systems',
+    domain1Description: 'Self-imposed suffering through undercharging, not collecting, hoarding, and refusing to delegate',
 
     domain2Name: 'Fear Leading to Isolation',
     domain2Key: 'domain2',
-    domain2Description: 'Creating disasters through catastrophic thinking and self-sabotage',
+    domain2Description: 'Creating disasters through lack of protection, self-sabotage at success, and trusting the wrong people',
 
     // Subdomain configurations (6 total: 3 per domain)
     subdomains: [
@@ -38,198 +38,198 @@ const Tool7 = {
       // ========================================
       {
         key: 'subdomain_1_1',
-        label: "I Must Control Everything",
-        description: 'Exploring patterns of needing total control that lead to exhaustion and isolation',
-        beliefBehaviorConnection: 'Believing you must control everything leads to rejection of help and systems',
+        label: "I Undercharge and Give Away",
+        description: 'Exploring patterns of not charging your worth, not collecting money owed, and giving away work for free',
+        beliefBehaviorConnection: 'Believing it is dangerous to charge your worth or collect debts leads to chronic underearning and uncollected receivables',
 
         questions: [
           // Belief
           {
             aspect: 'Belief',
-            text: 'If I don\'t personally control every financial detail, things will fall apart',
+            text: 'Charging full price or collecting money owed to me feels dangerous or wrong',
             scale: [
-              { value: -3, label: 'Strongly agree - I\'m absolutely certain everything will collapse without my total control of every detail' },
-              { value: -2, label: 'Agree - I firmly believe I must control all financial details; trusting anything else means failure' },
-              { value: -1, label: 'Slightly agree - I often feel I must control everything, though I\'m questioning this need' },
-              { value: 1, label: 'Slightly disagree - I\'m learning I can share control, though letting go feels dangerous' },
-              { value: 2, label: 'Disagree - I generally know shared responsibility works, though occasional control urges emerge' },
-              { value: 3, label: 'Strongly disagree - I completely trust that I don\'t need to control everything; collaboration and systems work' }
+              { value: -3, label: 'Strongly agree - Charging what I am worth or pursuing money owed feels deeply dangerous; I am certain something bad will happen if I do' },
+              { value: -2, label: 'Agree - I firmly believe charging full price or collecting debts will cause problems or push people away' },
+              { value: -1, label: 'Slightly agree - I often feel uncomfortable about charging or collecting, though I am starting to question why' },
+              { value: 1, label: 'Slightly disagree - I am learning it is okay to charge fairly and collect what is owed, though discomfort lingers' },
+              { value: 2, label: 'Disagree - I generally know fair pricing and collecting debts is appropriate, though occasional guilt surfaces' },
+              { value: 3, label: 'Strongly disagree - I completely accept that charging my worth and collecting owed money is right and necessary' }
             ]
           },
           // Behavior
           {
             aspect: 'Behavior',
-            text: 'I reject systems, tools, or help because I don\'t trust anything I don\'t personally manage',
+            text: 'I charge less than my work is worth, have uncollected money owed to me, or give away work for free',
             scale: [
-              { value: -3, label: 'Always - I constantly reject all help and systems; everything must go through me personally' },
-              { value: -2, label: 'Very often - I regularly refuse systems and help, maintaining total personal control' },
-              { value: -1, label: 'Often - I frequently reject assistance and tools, unable to trust anything I don\'t control' },
-              { value: 1, label: 'Occasionally - I sometimes reject help, working on trusting systems and others' },
-              { value: 2, label: 'Rarely - I occasionally resist help, but generally embrace useful systems and support' },
-              { value: 3, label: 'Never - I consistently use helpful systems and accept assistance; trust in collaboration' }
+              { value: -3, label: 'Always - I consistently undercharge, never collect debts, and regularly give away work that should be paid' },
+              { value: -2, label: 'Very often - I frequently price below my value, let receivables pile up, and often work for free' },
+              { value: -1, label: 'Often - I regularly undercharge or avoid collecting, giving away more than I should' },
+              { value: 1, label: 'Occasionally - I sometimes undercharge or let debts slide, working on valuing my work appropriately' },
+              { value: 2, label: 'Rarely - I occasionally give discounts, but generally charge fairly and collect what is owed' },
+              { value: 3, label: 'Never - I consistently charge what I am worth, collect debts promptly, and only give away work intentionally' }
             ]
           },
           // Feeling
           {
             aspect: 'Feeling',
-            text: 'I feel anxious and unsafe when I\'m not personally managing every financial detail',
+            text: 'I feel anxious or guilty about charging what I am worth or asking people to pay what they owe me',
             scale: [
-              { value: -3, label: 'Always - Constant overwhelming anxiety and terror when I\'m not controlling everything' },
-              { value: -2, label: 'Very often - Persistent severe anxiety about not being in complete control' },
-              { value: -1, label: 'Often - Frequent anxiety and feeling unsafe when not personally managing everything' },
-              { value: 1, label: 'Occasionally - Sometimes anxious about control, learning to trust others and systems' },
-              { value: 2, label: 'Rarely - Occasional brief anxiety, but generally comfortable with shared responsibility' },
-              { value: 3, label: 'Never - I feel completely safe with appropriate delegation; no anxiety about control' }
+              { value: -3, label: 'Always - Overwhelming anxiety and guilt about any pricing discussion or collection attempt; it feels wrong to ask' },
+              { value: -2, label: 'Very often - Persistent guilt and anxiety when setting prices or requesting payment' },
+              { value: -1, label: 'Often - Frequent discomfort and guilt around charging or collecting money' },
+              { value: 1, label: 'Occasionally - Sometimes feel guilty about pricing, learning that fair compensation is appropriate' },
+              { value: 2, label: 'Rarely - Occasional brief discomfort, but generally comfortable asking for fair payment' },
+              { value: 3, label: 'Never - I feel no guilt about charging appropriately or collecting what is owed; it is simply business' }
             ]
           },
           // Consequence
           {
             aspect: 'Consequence',
-            text: 'My need for control has exhausted me and prevented me from achieving financial goals',
+            text: 'I have earned significantly less than I could have because I undercharge, do not collect what is owed, or give work away',
             scale: [
-              { value: -3, label: 'Always - Complete exhaustion and massive goal failure from trying to control everything' },
-              { value: -2, label: 'Very often - Regular severe exhaustion and significant goal failure from control needs' },
-              { value: -1, label: 'Often - Frequent exhaustion and goal sabotage due to control requirements' },
-              { value: 1, label: 'Occasionally - Sometimes exhausted by control needs, working toward balance' },
-              { value: 2, label: 'Rarely - Occasional tiredness from control, but generally maintain healthy balance' },
-              { value: 3, label: 'Never - I maintain energy and achieve goals through healthy delegation and trust' }
+              { value: -3, label: 'Always - Massive income loss from chronic undercharging, uncollected debts, and constant free work' },
+              { value: -2, label: 'Very often - Significant earnings lost regularly from underpricing and not collecting' },
+              { value: -1, label: 'Often - Noticeable income reduction from undercharging or uncollected receivables' },
+              { value: 1, label: 'Occasionally - Some lost income from undercharging, working on capturing my full value' },
+              { value: 2, label: 'Rarely - Occasional minor losses, but generally earn what my work is worth' },
+              { value: 3, label: 'Never - I consistently earn appropriately; no significant losses from undercharging or uncollected debts' }
             ]
           },
           // Open Response
           {
-            text: 'What has your need for total control cost you specifically in terms of energy, opportunities, or relationships?'
+            text: 'What money is currently owed to you that you have not collected, and what stops you from pursuing it? Or describe a time you significantly undercharged or gave away work for free—what were you afraid would happen if you charged full price?'
           }
         ]
       },
 
       {
         key: 'subdomain_1_2',
-        label: 'I Can\'t Trust Others',
-        description: 'Exploring patterns of distrust that lead to isolated self-reliance',
-        beliefBehaviorConnection: 'Believing others will fail you leads to isolated self-reliance',
+        label: 'I Have Money But Will Not Use It',
+        description: 'Exploring patterns of hoarding money while living in lack, refusing to invest, and living far below your means',
+        beliefBehaviorConnection: 'Believing spending or investing will lead to loss causes hoarding while living in artificial scarcity',
 
         questions: [
           // Belief
           {
             aspect: 'Belief',
-            text: 'People will inevitably let me down financially; I can only count on myself',
+            text: 'Spending or investing my savings feels too risky, even when I have enough and could benefit',
             scale: [
-              { value: -3, label: 'Strongly agree - I\'m absolutely certain everyone will fail me; only I am reliable' },
-              { value: -2, label: 'Agree - I firmly believe others will let me down; trusting anyone is foolish' },
-              { value: -1, label: 'Slightly agree - I often feel others will fail me, though I\'m questioning this belief' },
-              { value: 1, label: 'Slightly disagree - I\'m learning some people are trustworthy, though suspicion lingers' },
-              { value: 2, label: 'Disagree - I generally believe most people are trustworthy, though occasional wariness appears' },
-              { value: 3, label: 'Strongly disagree - I completely trust that many people are reliable and won\'t fail me' }
+              { value: -3, label: 'Strongly agree - I am absolutely certain that spending or investing will lead to disaster; my savings must stay untouched no matter what' },
+              { value: -2, label: 'Agree - I firmly believe using my savings is too dangerous, even when I clearly have enough' },
+              { value: -1, label: 'Slightly agree - I often feel spending or investing is risky, though I am starting to question this fear' },
+              { value: 1, label: 'Slightly disagree - I am learning that appropriate spending and investing can be safe, though fear lingers' },
+              { value: 2, label: 'Disagree - I generally know using money wisely is fine, though occasional fear of loss surfaces' },
+              { value: 3, label: 'Strongly disagree - I completely trust that thoughtful spending and investing are healthy uses of money' }
             ]
           },
           // Behavior
           {
             aspect: 'Behavior',
-            text: 'I refuse to rely on anyone financially, even when I\'m struggling and they\'re reliable',
+            text: 'I have money saved but will not spend it on things I need, or I refuse to invest because I cannot control what happens to it',
             scale: [
-              { value: -3, label: 'Always - I absolutely never rely on anyone regardless of struggle; complete isolation' },
-              { value: -2, label: 'Very often - I regularly refuse all financial reliance even when struggling severely' },
-              { value: -1, label: 'Often - I frequently reject reliance on others despite need and their reliability' },
-              { value: 1, label: 'Occasionally - I sometimes refuse help, working on accepting appropriate support' },
-              { value: 2, label: 'Rarely - I occasionally resist reliance, but generally accept help when needed' },
-              { value: 3, label: 'Never - I consistently accept appropriate help from reliable people; healthy interdependence' }
+              { value: -3, label: 'Always - I consistently deny myself necessities despite having savings; I refuse all investing because I cannot control it' },
+              { value: -2, label: 'Very often - I regularly go without things I need and avoid investing, keeping money locked away' },
+              { value: -1, label: 'Often - I frequently skip needed purchases and shy away from investing despite having resources' },
+              { value: 1, label: 'Occasionally - I sometimes hold back on spending or investing, working on using money appropriately' },
+              { value: 2, label: 'Rarely - I occasionally hesitate on purchases, but generally spend on needs and invest reasonably' },
+              { value: 3, label: 'Never - I consistently spend on necessities and invest appropriately; money serves my life, not just my fears' }
             ]
           },
           // Feeling
           {
             aspect: 'Feeling',
-            text: 'I feel isolated and alone with my financial struggles because I can\'t let anyone help',
+            text: 'I feel anxious spending money even when I have enough, as if any spending threatens my security',
             scale: [
-              { value: -3, label: 'Always - Constant crushing isolation and loneliness; completely alone with all financial burdens' },
-              { value: -2, label: 'Very often - Persistent deep isolation from carrying everything alone' },
-              { value: -1, label: 'Often - Frequent isolation and loneliness from refusing to let others in' },
-              { value: 1, label: 'Occasionally - Sometimes feel isolated, learning to accept connection and support' },
-              { value: 2, label: 'Rarely - Occasional loneliness, but generally feel connected and supported' },
-              { value: 3, label: 'Never - I feel connected and supported; share burdens appropriately' }
+              { value: -3, label: 'Always - Constant overwhelming anxiety about any spending; every purchase feels like a threat to my survival' },
+              { value: -2, label: 'Very often - Persistent deep anxiety when spending, even on necessities, despite having adequate savings' },
+              { value: -1, label: 'Often - Frequent anxiety about spending that feels disproportionate to my actual financial situation' },
+              { value: 1, label: 'Occasionally - Sometimes anxious about spending, learning to trust that I have enough' },
+              { value: 2, label: 'Rarely - Occasional brief spending anxiety, but generally feel secure when making purchases' },
+              { value: 3, label: 'Never - I feel secure spending appropriately; no anxiety when I have adequate resources' }
             ]
           },
           // Consequence
           {
             aspect: 'Consequence',
-            text: 'I\'ve stayed stuck financially and emotionally isolated by refusing to trust anyone, even when they were reliable',
+            text: 'I have lived without things I needed or missed investment growth because I could not let go of controlling my money',
             scale: [
-              { value: -3, label: 'Always - Complete stagnation and crushing isolation from never trusting anyone, regardless of their reliability' },
-              { value: -2, label: 'Very often - Regular pattern of staying stuck and isolated by refusing to trust reliable people' },
-              { value: -1, label: 'Often - Frequently remain stuck and isolated from my refusal to trust' },
-              { value: 1, label: 'Occasionally - I\'ve stayed stuck at times, working on trusting reliable people' },
-              { value: 2, label: 'Rarely - Occasional stuckness from trust issues, but generally open to reliable help' },
-              { value: 3, label: 'Never - I consistently trust reliable people and grow through collaboration; no isolation' }
+              { value: -3, label: 'Always - Severe deprivation and massive missed growth from refusing to spend or invest; I live in artificial poverty' },
+              { value: -2, label: 'Very often - Regular denial of needs and significant missed opportunities from hoarding money' },
+              { value: -1, label: 'Often - Noticeable sacrifice of needs and investment growth from inability to release control' },
+              { value: 1, label: 'Occasionally - Some missed opportunities from holding too tight, working on appropriate use of resources' },
+              { value: 2, label: 'Rarely - Occasional missed chances, but generally use money to meet needs and grow wealth' },
+              { value: 3, label: 'Never - I consistently meet my needs and invest wisely; no deprivation from control issues' }
             ]
           },
           // Open Response
           {
-            text: 'Who in your life has proven themselves reliable with money, and what specifically stops you from trusting them?'
+            text: 'Describe something you need or want but will not spend money on despite having savings. What do you fear would happen if you spent it? Or describe your relationship with investing—what makes it feel unsafe?'
           }
         ]
       },
 
       {
         key: 'subdomain_1_3',
-        label: 'Asking for Help Is Weakness',
-        description: 'Exploring patterns of viewing help as failure that lead to martyr suffering',
-        beliefBehaviorConnection: 'Believing help is weakness leads to martyr suffering',
+        label: 'Only I Can Do It Right',
+        description: 'Exploring patterns of refusing to delegate, hire help, or scale because you do not trust anyone else to do things correctly',
+        beliefBehaviorConnection: 'Believing no one else can do things right leads to exhaustion, stagnation, and isolation from refusing to delegate',
 
         questions: [
           // Belief
           {
             aspect: 'Belief',
-            text: 'Asking for help means I\'ve failed; I should be able to handle everything myself',
+            text: 'If I do not personally handle every financial detail or task, it will not be done right',
             scale: [
-              { value: -3, label: 'Strongly agree - Asking for help absolutely means failure; I\'m worthless if I can\'t handle everything alone' },
-              { value: -2, label: 'Agree - I firmly believe asking for help proves weakness and personal failure' },
-              { value: -1, label: 'Slightly agree - I often feel asking for help is weakness, though I\'m questioning this belief' },
-              { value: 1, label: 'Slightly disagree - I\'m learning asking for help is strength, though it still feels like failure' },
-              { value: 2, label: 'Disagree - I generally know asking for help is wise, though occasional shame surfaces' },
-              { value: 3, label: 'Strongly disagree - I completely know asking for help is strength and wisdom, not weakness' }
+              { value: -3, label: 'Strongly agree - I am absolutely certain no one else can do anything correctly; I must personally control every detail' },
+              { value: -2, label: 'Agree - I firmly believe others will mess things up; delegating means accepting inferior results' },
+              { value: -1, label: 'Slightly agree - I often feel only I can do things right, though I am questioning this belief' },
+              { value: 1, label: 'Slightly disagree - I am learning others can handle tasks competently, though trusting their work is hard' },
+              { value: 2, label: 'Disagree - I generally know others can do good work, though I sometimes doubt their capability' },
+              { value: 3, label: 'Strongly disagree - I completely trust that others can handle tasks well; I do not need to do everything myself' }
             ]
           },
           // Behavior
           {
             aspect: 'Behavior',
-            text: 'I struggle in silence rather than ask for help, support, or guidance',
+            text: 'I refuse to delegate financial tasks or hire help because I do not trust anyone else to do them correctly',
             scale: [
-              { value: -3, label: 'Always - I always suffer alone in complete silence; asking for help is impossible' },
-              { value: -2, label: 'Very often - I regularly endure severe struggle alone rather than ask for support' },
-              { value: -1, label: 'Often - I frequently suffer silently instead of seeking available help' },
-              { value: 1, label: 'Occasionally - I sometimes struggle alone, working on reaching out for support' },
-              { value: 2, label: 'Rarely - I occasionally resist asking, but generally seek help when needed' },
-              { value: 3, label: 'Never - I consistently ask for help, support, and guidance when needed; no silent suffering' }
+              { value: -3, label: 'Always - I never delegate anything; I do every financial task myself regardless of the cost to me' },
+              { value: -2, label: 'Very often - I rarely let anyone handle financial tasks; I insist on personal control of nearly everything' },
+              { value: -1, label: 'Often - I frequently refuse to delegate, taking on far more than I should' },
+              { value: 1, label: 'Occasionally - I sometimes refuse to delegate, working on trusting others with appropriate tasks' },
+              { value: 2, label: 'Rarely - I occasionally hold onto tasks, but generally delegate appropriately' },
+              { value: 3, label: 'Never - I consistently delegate tasks suited for others; I trust competent people to do good work' }
             ]
           },
           // Feeling
           {
             aspect: 'Feeling',
-            text: 'I feel shame and inadequacy about needing help; I should be self-sufficient',
+            text: 'I feel exhausted from handling everything myself but unable to let go of control',
             scale: [
-              { value: -3, label: 'Always - Overwhelming constant shame about any need; profound inadequacy about not being completely self-sufficient' },
-              { value: -2, label: 'Very often - Deep persistent shame about needing anything; heavy inadequacy' },
-              { value: -1, label: 'Often - Frequent shame and inadequacy feelings about needing help' },
-              { value: 1, label: 'Occasionally - Sometimes feel ashamed about need, learning it\'s human not weakness' },
-              { value: 2, label: 'Rarely - Occasional brief shame, but generally comfortable with interdependence' },
-              { value: 3, label: 'Never - I feel no shame about appropriate need; understand interdependence is healthy' }
+              { value: -3, label: 'Always - Constant crushing exhaustion from doing everything myself, yet completely unable to release any control' },
+              { value: -2, label: 'Very often - Persistent exhaustion from carrying all tasks, feeling trapped by my need to control' },
+              { value: -1, label: 'Often - Frequent exhaustion and frustration at my inability to delegate' },
+              { value: 1, label: 'Occasionally - Sometimes exhausted by control needs, learning to let go of appropriate tasks' },
+              { value: 2, label: 'Rarely - Occasional tiredness from taking on too much, but generally delegate effectively' },
+              { value: 3, label: 'Never - I feel energized by appropriate workload; I delegate freely and trust the results' }
             ]
           },
           // Consequence
           {
             aspect: 'Consequence',
-            text: 'I\'ve suffered unnecessarily by not asking for help that was readily available',
+            text: 'My need to control every detail has kept me stuck, burned out, or created more chaos than it prevented',
             scale: [
-              { value: -3, label: 'Always - Severe repeated unnecessary suffering from never asking for readily available help' },
-              { value: -2, label: 'Very often - Regular significant hardship refusing to ask for available support' },
-              { value: -1, label: 'Often - Frequent unnecessary suffering by not seeking help that existed' },
-              { value: 1, label: 'Occasionally - I\'ve suffered at times not asking, working on reaching out' },
-              { value: 2, label: 'Rarely - Occasional unnecessary difficulty, but generally ask when needed' },
-              { value: 3, label: 'Never - I consistently ask for available help; no unnecessary suffering from pride' }
+              { value: -3, label: 'Always - Severe stagnation and burnout from controlling everything; my systems create constant chaos' },
+              { value: -2, label: 'Very often - Regular burnout and stuckness from refusing to delegate; more problems than solutions' },
+              { value: -1, label: 'Often - Noticeable limitations and exhaustion from needing to control everything' },
+              { value: 1, label: 'Occasionally - Some stuckness from control needs, working on trusting others with tasks' },
+              { value: 2, label: 'Rarely - Occasional issues from over-controlling, but generally maintain healthy delegation' },
+              { value: 3, label: 'Never - I grow freely through delegation; my need for control never creates chaos or burnout' }
             ]
           },
           // Open Response
           {
-            text: 'What help is available to you right now that you haven\'t asked for, and what specifically stops you?'
+            text: 'What financial tasks or responsibilities do you refuse to delegate, and what specifically do you fear would go wrong if someone else handled them? How has this need to control everything affected your growth or wellbeing?'
           }
         ]
       },
@@ -239,198 +239,198 @@ const Tool7 = {
       // ========================================
       {
         key: 'subdomain_2_1',
-        label: 'Everything Will Go Wrong',
-        description: 'Exploring patterns of catastrophic thinking that lead to self-sabotage',
-        beliefBehaviorConnection: 'Believing disaster is inevitable leads to catastrophic thinking and protective sabotage',
+        label: 'I Do Not Protect Myself',
+        description: 'Exploring patterns of entering agreements without contracts, not claiming benefits you qualify for, and skipping basic protective measures',
+        beliefBehaviorConnection: 'Believing you would not know what protection to ask for or how to do it correctly leads to avoiding protection entirely',
 
         questions: [
           // Belief
           {
             aspect: 'Belief',
-            text: 'Bad things always happen financially; disaster is inevitable no matter what I do',
+            text: 'I would not know what protection to ask for or whether I was doing it correctly, so I avoid it',
             scale: [
-              { value: -3, label: 'Strongly agree - I\'m absolutely certain financial disaster is guaranteed; nothing works out ever' },
-              { value: -2, label: 'Agree - I firmly believe bad financial outcomes are inevitable; hope is foolish' },
-              { value: -1, label: 'Slightly agree - I often feel disaster is coming, though I\'m questioning this expectation' },
-              { value: 1, label: 'Slightly disagree - I\'m learning things can work out, though catastrophic thinking persists' },
-              { value: 2, label: 'Disagree - I generally believe positive outcomes are possible, though occasional fear surfaces' },
-              { value: 3, label: 'Strongly disagree - I completely trust that things can and do work out; disaster isn\'t inevitable' }
+              { value: -3, label: 'Strongly agree - I have no idea what protection I need or how to get it; the whole process feels beyond me so I do not try' },
+              { value: -2, label: 'Agree - I firmly believe I would not know the right questions to ask or if I was protecting myself properly' },
+              { value: -1, label: 'Slightly agree - I often feel lost about what protection looks like, though I am starting to wonder if I could learn' },
+              { value: 1, label: 'Slightly disagree - I am learning that I can figure out what protection I need, though uncertainty still stops me sometimes' },
+              { value: 2, label: 'Disagree - I generally know how to ask for protection, though I occasionally feel unsure about the details' },
+              { value: 3, label: 'Strongly disagree - I know how to identify what protection I need and confidently ask for it' }
             ]
           },
           // Behavior
           {
             aspect: 'Behavior',
-            text: 'I create financial problems when things start going well, or stop projects right before they succeed',
+            text: 'I enter financial agreements without contracts, do not claim benefits I qualify for, or skip basic protective measures',
             scale: [
-              { value: -3, label: 'Always - I consistently sabotage success; every time things go well, I create problems or quit before completion' },
-              { value: -2, label: 'Very often - I regularly derail progress when things start working or abandon projects near completion' },
-              { value: -1, label: 'Often - I frequently create problems during success or stop projects before breakthrough' },
-              { value: 1, label: 'Occasionally - I sometimes sabotage success or quit early, working on following through' },
-              { value: 2, label: 'Rarely - I occasionally self-sabotage, but generally see things through to completion' },
-              { value: 3, label: 'Never - I consistently complete projects and allow success to continue; no self-sabotage' }
+              { value: -3, label: 'Always - I never get contracts, never claim benefits, and consistently enter deals completely unprotected' },
+              { value: -2, label: 'Very often - I regularly skip contracts, rarely claim entitled benefits, and frequently go unprotected' },
+              { value: -1, label: 'Often - I frequently enter agreements without protection and miss benefits I could claim' },
+              { value: 1, label: 'Occasionally - I sometimes skip protection, working on claiming benefits and getting agreements in writing' },
+              { value: 2, label: 'Rarely - I occasionally miss protective measures, but generally get contracts and claim what I am entitled to' },
+              { value: 3, label: 'Never - I consistently protect myself with contracts, claim all benefits I qualify for, and never enter deals unprotected' }
             ]
           },
           // Feeling
           {
             aspect: 'Feeling',
-            text: 'I feel constant anxiety and dread about financial catastrophe',
+            text: 'I feel overwhelmed or paralyzed when I think about protecting myself, so I avoid it',
             scale: [
-              { value: -3, label: 'Always - Unrelenting overwhelming anxiety and dread; catastrophe feels imminent constantly' },
-              { value: -2, label: 'Very often - Persistent severe anxiety and heavy dread about financial disaster' },
-              { value: -1, label: 'Often - Frequent anxiety and dread that something terrible will happen' },
-              { value: 1, label: 'Occasionally - Sometimes anxious about disasters, learning to distinguish real from imagined threats' },
-              { value: 2, label: 'Rarely - Occasional worry, but generally feel calm and grounded' },
-              { value: 3, label: 'Never - I feel peaceful and secure; no constant dread or catastrophic anxiety' }
+              { value: -3, label: 'Always - Completely overwhelmed and paralyzed by the thought of protection; I shut down and avoid it entirely' },
+              { value: -2, label: 'Very often - Persistent overwhelm when protection comes up; the complexity paralyzes me into inaction' },
+              { value: -1, label: 'Often - Frequently feel overwhelmed by protection, though I am starting to take small steps' },
+              { value: 1, label: 'Occasionally - Sometimes feel overwhelmed, but learning to break protection into manageable pieces' },
+              { value: 2, label: 'Rarely - Occasional overwhelm, but generally able to work through it and take protective action' },
+              { value: 3, label: 'Never - I feel capable of figuring out protection; complexity does not paralyze me' }
             ]
           },
           // Consequence
           {
             aspect: 'Consequence',
-            text: 'My catastrophic thinking has caused me to make fear-based decisions that created actual problems',
+            text: 'I have lost money or opportunities because I did not have contracts, did not protect myself, or did not claim what I was entitled to',
             scale: [
-              { value: -3, label: 'Always - My catastrophic thinking has repeatedly created severe real problems through fear-based decisions' },
-              { value: -2, label: 'Very often - I regularly create actual problems through fear-driven choices' },
-              { value: -1, label: 'Often - I frequently cause real difficulties with catastrophic thinking and fear decisions' },
-              { value: 1, label: 'Occasionally - I\'ve created some problems with fear-thinking, working on realistic assessment' },
-              { value: 2, label: 'Rarely - I\'ve had occasional fear-based missteps, but generally make sound decisions' },
-              { value: 3, label: 'Never - I consistently make grounded decisions; no self-created problems from catastrophizing' }
+              { value: -3, label: 'Always - Devastating losses from lack of contracts, repeated harm from no protection, countless missed benefits' },
+              { value: -2, label: 'Very often - Significant financial losses and missed opportunities from failing to protect myself' },
+              { value: -1, label: 'Often - Noticeable losses from inadequate protection and unclaimed benefits' },
+              { value: 1, label: 'Occasionally - Some losses from insufficient protection, working on safeguarding myself' },
+              { value: 2, label: 'Rarely - Occasional minor losses, but generally protected and claim what I deserve' },
+              { value: 3, label: 'Never - I consistently avoid losses through protection and claim all benefits; no harm from lack of safeguards' }
             ]
           },
           // Open Response
           {
-            text: 'What financial disaster do you most fear, and describe a specific fear-based decision you made to prevent disaster—what was the actual result?'
+            text: 'Describe a financial situation where you knew you should have gotten something in writing or protected yourself but did not. What happened? Or what benefits, programs, or opportunities might you qualify for that you have not claimed—what stops you?'
           }
         ]
       },
 
       {
         key: 'subdomain_2_2',
-        label: 'Better the Devil I Know',
-        description: 'Exploring patterns of fearing change more than current dysfunction',
-        beliefBehaviorConnection: 'Believing change is dangerous leads to staying in dysfunction',
+        label: 'I Sabotage Success',
+        description: 'Exploring patterns of creating problems when things go well, quitting before breakthrough, and refusing opportunities',
+        beliefBehaviorConnection: 'Believing success is dangerous or undeserved leads to self-sabotage at the threshold of breakthrough',
 
         questions: [
           // Belief
           {
             aspect: 'Belief',
-            text: 'Changing my financial situation is more dangerous than staying in my current dysfunction',
+            text: 'When things start going well financially, I feel like something bad is about to happen or I do not deserve it',
             scale: [
-              { value: -3, label: 'Strongly agree - I\'m certain change is terrifying and dangerous; staying stuck is definitely safer' },
-              { value: -2, label: 'Agree - I firmly believe my current dysfunction is safer than risking change' },
-              { value: -1, label: 'Slightly agree - I often feel change is too dangerous, though I\'m questioning this belief' },
-              { value: 1, label: 'Slightly disagree - I\'m learning change can be positive, though fear of the unknown persists' },
-              { value: 2, label: 'Disagree - I generally know healthy change is good, though occasional fear of change surfaces' },
-              { value: 3, label: 'Strongly disagree - I completely trust that positive change is safe and beneficial' }
+              { value: -3, label: 'Strongly agree - I am absolutely certain that success will be punished or taken away; I do not deserve good things' },
+              { value: -2, label: 'Agree - I firmly believe success is dangerous and I am unworthy of financial wellbeing' },
+              { value: -1, label: 'Slightly agree - I often feel dread when things go well, though I am questioning why' },
+              { value: 1, label: 'Slightly disagree - I am learning I can have success, though fear and unworthiness still arise' },
+              { value: 2, label: 'Disagree - I generally believe I can succeed and deserve it, though occasional doubts surface' },
+              { value: 3, label: 'Strongly disagree - I completely believe I deserve success and good things can last' }
             ]
           },
           // Behavior
           {
             aspect: 'Behavior',
-            text: 'I stay in financial dysfunction because it\'s familiar, even though it\'s harming me',
+            text: 'I create problems when things are going well, quit projects before they succeed, or turn down opportunities that could help me',
             scale: [
-              { value: -3, label: 'Always - I absolutely stay stuck in harmful patterns; familiar dysfunction feels safer than change' },
-              { value: -2, label: 'Very often - I regularly choose harmful familiar patterns over healthier unknown alternatives' },
-              { value: -1, label: 'Often - I frequently maintain dysfunction because change feels too threatening' },
-              { value: 1, label: 'Occasionally - I sometimes stay stuck, working on embracing healthy change' },
-              { value: 2, label: 'Rarely - I occasionally resist change, but generally move toward healthier patterns' },
-              { value: 3, label: 'Never - I consistently embrace positive change; don\'t stay in harmful patterns from fear' }
+              { value: -3, label: 'Always - I consistently sabotage success, quit at the threshold of breakthrough, and refuse every helpful opportunity' },
+              { value: -2, label: 'Very often - I regularly derail progress, abandon projects near completion, and turn down chances to advance' },
+              { value: -1, label: 'Often - I frequently create problems during good times or quit before seeing results' },
+              { value: 1, label: 'Occasionally - I sometimes sabotage or quit early, working on following through to success' },
+              { value: 2, label: 'Rarely - I occasionally hesitate at opportunities, but generally complete projects and accept help' },
+              { value: 3, label: 'Never - I consistently see things through, accept opportunities, and allow success to continue' }
             ]
           },
           // Feeling
           {
             aspect: 'Feeling',
-            text: 'I feel trapped between the pain of my current situation and terror of change',
+            text: 'I feel anxious, unworthy, or filled with dread when I am on the verge of financial success',
             scale: [
-              { value: -3, label: 'Always - Constant paralysis between current pain and overwhelming terror of anything different' },
-              { value: -2, label: 'Very often - Persistent feeling of being trapped; change feels impossible despite pain' },
-              { value: -1, label: 'Often - Frequently feel stuck between suffering and fear of the unknown' },
-              { value: 1, label: 'Occasionally - Sometimes feel trapped, learning that change can be safe and gradual' },
-              { value: 2, label: 'Rarely - Occasional fear of change, but generally feel empowered to make shifts' },
-              { value: 3, label: 'Never - I feel free to make positive changes; no paralysis or terror' }
+              { value: -3, label: 'Always - Overwhelming dread and unworthiness at any hint of success; success feels terrifying and wrong' },
+              { value: -2, label: 'Very often - Persistent anxiety and deep unworthiness when approaching financial success' },
+              { value: -1, label: 'Often - Frequent dread and discomfort when things start going well financially' },
+              { value: 1, label: 'Occasionally - Sometimes feel unworthy near success, learning I deserve good outcomes' },
+              { value: 2, label: 'Rarely - Occasional brief anxiety, but generally feel deserving when success approaches' },
+              { value: 3, label: 'Never - I feel excited and worthy when success approaches; no dread or unworthiness' }
             ]
           },
           // Consequence
           {
             aspect: 'Consequence',
-            text: 'I\'ve stayed in harmful financial situations for years because fear of change kept me stuck',
+            text: 'I have a pattern of almost succeeding financially but sabotaging it, quitting too soon, or refusing chances that could have changed things',
             scale: [
-              { value: -3, label: 'Always - I\'ve remained in severely damaging situations for many years; fear has completely paralyzed positive change' },
-              { value: -2, label: 'Very often - I regularly stay in harmful situations far too long due to fear of change' },
-              { value: -1, label: 'Often - I frequently remain stuck in dysfunction longer than necessary from fear' },
-              { value: 1, label: 'Occasionally - I\'ve stayed too long at times, working on embracing healthy change' },
-              { value: 2, label: 'Rarely - I\'ve occasionally delayed positive change, but generally make needed shifts' },
-              { value: 3, label: 'Never - I consistently make positive changes when needed; no staying stuck from fear' }
+              { value: -3, label: 'Always - A devastating pattern of near-misses; I have sabotaged, quit, or refused every major opportunity' },
+              { value: -2, label: 'Very often - A clear pattern of snatching defeat from victory; significant chances lost to self-sabotage' },
+              { value: -1, label: 'Often - A noticeable pattern of undermining my own success or refusing helpful opportunities' },
+              { value: 1, label: 'Occasionally - Some instances of self-sabotage, working on allowing success to happen' },
+              { value: 2, label: 'Rarely - A few missed chances, but generally follow through and accept opportunities' },
+              { value: 3, label: 'Never - No pattern of self-sabotage; I consistently achieve success and accept opportunities' }
             ]
           },
           // Open Response
           {
-            text: 'What financial situation are you staying in right now that you know isn\'t working, and what specifically makes leaving it feel scarier than staying?'
+            text: 'Describe a time you were close to a financial breakthrough or success but something went wrong—looking back, did you play any role in derailing it? Or describe an opportunity you turned down that could have helped you—what were you really afraid of?'
           }
         ]
       },
 
       {
         key: 'subdomain_2_3',
-        label: 'I Always Trust the Wrong People',
-        description: 'Exploring patterns of expecting betrayal that lead to choosing untrustworthy people',
-        beliefBehaviorConnection: 'Believing you\'ll be betrayed leads to choosing untrustworthy people',
+        label: 'I Trust the Wrong People',
+        description: 'Exploring patterns of ignoring red flags, trusting people you knew better than to trust, and experiencing predictable betrayals',
+        beliefBehaviorConnection: 'Believing betrayal is inevitable leads to ignoring red flags and trusting untrustworthy people',
 
         questions: [
           // Belief
           {
             aspect: 'Belief',
-            text: 'I\'m destined to be betrayed financially; I always end up trusting people who hurt me',
+            text: 'I am destined to be betrayed financially; I always end up trusting people who hurt me',
             scale: [
-              { value: -3, label: 'Strongly agree - I\'m absolutely certain betrayal is my destiny; I\'ll always trust wrong people' },
-              { value: -2, label: 'Agree - I firmly believe I\'m doomed to trust untrustworthy people; betrayal is inevitable' },
-              { value: -1, label: 'Slightly agree - I often feel I\'ll be betrayed again, though I\'m questioning this pattern' },
-              { value: 1, label: 'Slightly disagree - I\'m learning I can identify trustworthy people, though past betrayals echo' },
-              { value: 2, label: 'Disagree - I generally know I can trust wisely, though occasional fear of betrayal surfaces' },
-              { value: 3, label: 'Strongly disagree - I completely trust my judgment about trustworthiness; not destined for betrayal' }
+              { value: -3, label: 'Strongly agree - I am absolutely certain betrayal is my fate; I will always trust the wrong people no matter what' },
+              { value: -2, label: 'Agree - I firmly believe I am doomed to repeat this pattern; betrayal is inevitable for me' },
+              { value: -1, label: 'Slightly agree - I often feel destined to be betrayed, though I am questioning this pattern' },
+              { value: 1, label: 'Slightly disagree - I am learning I can choose trustworthy people, though past betrayals haunt me' },
+              { value: 2, label: 'Disagree - I generally believe I can trust wisely, though I sometimes doubt my judgment' },
+              { value: 3, label: 'Strongly disagree - I completely trust my ability to identify trustworthy people; I am not destined for betrayal' }
             ]
           },
           // Behavior
           {
             aspect: 'Behavior',
-            text: 'I ignore red flags and trust people I suspect aren\'t trustworthy, then feel betrayed',
+            text: 'I ignore red flags and trust people with money even when I have a bad feeling about them',
             scale: [
-              { value: -3, label: 'Always - I constantly ignore obvious red flags and trust clearly untrustworthy people; betrayal is guaranteed' },
-              { value: -2, label: 'Very often - I regularly ignore warning signs and trust suspicious people, experiencing repeated betrayal' },
-              { value: -1, label: 'Often - I frequently trust people despite red flags, creating predictable betrayals' },
-              { value: 1, label: 'Occasionally - I sometimes ignore warnings, working on trusting my instincts about trustworthiness' },
-              { value: 2, label: 'Rarely - I occasionally miss red flags, but generally trust wisely' },
-              { value: 3, label: 'Never - I consistently honor red flags and trust appropriate people; no pattern of betrayal' }
+              { value: -3, label: 'Always - I consistently override my instincts and trust people I know are untrustworthy; I ignore every warning sign' },
+              { value: -2, label: 'Very often - I regularly dismiss red flags and trust people despite clear warning signs' },
+              { value: -1, label: 'Often - I frequently ignore my gut feelings and trust people I have doubts about' },
+              { value: 1, label: 'Occasionally - I sometimes ignore red flags, working on honoring my instincts' },
+              { value: 2, label: 'Rarely - I occasionally miss warning signs, but generally trust my judgment about people' },
+              { value: 3, label: 'Never - I consistently honor red flags and trust my instincts; I do not override clear warnings' }
             ]
           },
           // Feeling
           {
             aspect: 'Feeling',
-            text: 'I feel resigned to being betrayed and hurt; it always happens so why try to prevent it',
+            text: 'I feel resigned to being betrayed—it always happens, so why try to prevent it',
             scale: [
-              { value: -3, label: 'Always - Complete resignation and helplessness; betrayal is inevitable so why even try' },
-              { value: -2, label: 'Very often - Deep resignation about betrayal; feel powerless to choose differently' },
-              { value: -1, label: 'Often - Frequent resignation that betrayal will happen regardless of my choices' },
-              { value: 1, label: 'Occasionally - Sometimes feel resigned, learning I can make different choices' },
-              { value: 2, label: 'Rarely - Occasional resignation, but generally feel empowered to trust wisely' },
-              { value: 3, label: 'Never - I feel empowered to trust wisely and protect myself; no resignation to betrayal' }
+              { value: -3, label: 'Always - Complete resignation and helplessness about betrayal; preventing it feels utterly impossible' },
+              { value: -2, label: 'Very often - Deep resignation that betrayal will happen regardless of what I do' },
+              { value: -1, label: 'Often - Frequent resignation about betrayal, as if my choices do not matter' },
+              { value: 1, label: 'Occasionally - Sometimes feel resigned, learning that I can make different choices' },
+              { value: 2, label: 'Rarely - Occasional resignation, but generally feel empowered to choose trustworthy people' },
+              { value: 3, label: 'Never - I feel completely empowered to protect myself through wise trust; no resignation to betrayal' }
             ]
           },
           // Consequence
           {
             aspect: 'Consequence',
-            text: 'I\'ve been financially betrayed multiple times by people I knew had red flags',
+            text: 'I have been financially burned multiple times by people I knew had red flags but trusted anyway',
             scale: [
-              { value: -3, label: 'Always - I have a devastating pattern of repeated betrayals and financial losses from people I consciously knew were untrustworthy; the emotional and financial toll has been catastrophic' },
-              { value: -2, label: 'Agree - I\'ve experienced significant financial betrayals multiple times from people I knew had red flags; the pattern is clear and the cost has been substantial' },
-              { value: -1, label: 'Often - I\'ve been burned financially by people I suspected weren\'t trustworthy, and I\'m starting to recognize this as a pattern I keep repeating' },
-              { value: 1, label: 'Occasionally - I\'ve had some betrayals where I missed or ignored red flags, working on trusting my instincts' },
-              { value: 2, label: 'Rarely - I\'ve had occasional betrayals, but generally trust appropriate people and honor warnings' },
-              { value: 3, label: 'Never - I consistently trust people who prove trustworthy; no pattern of ignoring red flags and experiencing betrayal' }
+              { value: -3, label: 'Always - Devastating pattern of repeated betrayals from people I consciously knew were untrustworthy; massive financial and emotional toll' },
+              { value: -2, label: 'Very often - Multiple significant betrayals from people I had clear warnings about; the pattern is undeniable' },
+              { value: -1, label: 'Often - Several burns from people I suspected were not trustworthy; I am starting to see the pattern' },
+              { value: 1, label: 'Occasionally - A few betrayals where I ignored red flags, working on trusting my instincts' },
+              { value: 2, label: 'Rarely - One or two instances of ignoring warnings, but generally trust appropriately' },
+              { value: 3, label: 'Never - No pattern of being burned by people I had warnings about; I honor red flags consistently' }
             ]
           },
           // Open Response
           {
-            text: 'Describe a specific time when you knew you shouldn\'t trust someone but did anyway—what were the warning signs you ignored, and what happened?'
+            text: 'Describe a specific time you trusted someone with money despite warning signs you noticed. What were the red flags you ignored, and what happened? What made you override your instincts?'
           }
         ]
       }
@@ -536,18 +536,18 @@ const Tool7 = {
         <h3 style="color: #ad9168; margin-top: 25px;">What This Assessment Explores</h3>
         <p style="line-height: 1.7; color: rgba(255, 255, 255, 0.85);">
           <strong>Domain 1: Control Leading to Isolation</strong><br>
-          How needing total control creates suffering—patterns like rejecting help and systems,
-          refusing to trust others, and viewing asking for support as weakness that exhausts you and keeps you stuck.
+          How self-imposed suffering through undercharging, not collecting, and refusing to use resources creates artificial scarcity—
+          patterns like giving away work for free, hoarding money while living in lack, and refusing to delegate because only you can do it right.
         </p>
         <p style="line-height: 1.7; color: rgba(255, 255, 255, 0.85);">
           <strong>Domain 2: Fear Leading to Isolation</strong><br>
-          How fear creates the disasters you're trying to prevent—patterns like catastrophic thinking,
-          staying in dysfunction from fear of change, and trusting untrustworthy people that become self-fulfilling prophecies.
+          How ensuring things go wrong creates the disasters you fear—patterns like entering agreements without protection,
+          sabotaging success just before breakthrough, and trusting people you knew had red flags.
         </p>
 
         <h3 style="color: #ad9168; margin-top: 25px;">How it Works</h3>
         <ul style="line-height: 1.8; color: rgba(255, 255, 255, 0.85);">
-          <li>You'll complete <strong>6 sections</strong>, one at a time (about 20-25 minutes total)</li>
+          <li>You will complete <strong>6 sections</strong>, one at a time (about 20-25 minutes total)</li>
           <li>Each section has <strong>4 scale questions</strong> and <strong>1 reflection question</strong></li>
           <li>Answer based on your actual patterns, not how you wish things were</li>
           <li>There are no "right" answers—this is about self-discovery</li>
@@ -556,7 +556,7 @@ const Tool7 = {
 
         <div style="background: rgba(173, 145, 104, 0.1); padding: 20px; border-radius: 10px; border-left: 4px solid #ad9168; margin-top: 25px;">
           <p style="margin: 0; color: rgba(255, 255, 255, 0.9); font-weight: 500;">
-            💡 <strong>Tip:</strong> This assessment may surface uncomfortable feelings about control and trust.
+            <strong>Tip:</strong> This assessment may surface uncomfortable feelings about how you limit yourself financially.
             Be compassionate with yourself as you explore these patterns.
           </p>
         </div>
@@ -590,7 +590,10 @@ const Tool7 = {
         DataService.updateDraft(clientId, 'tool7', draftData);
       }
     } else {
-      Logger.log(`[Tool7] Skipping DRAFT save/update - already in edit mode with EDIT_DRAFT`);
+      // EDIT MODE: Also update EDIT_DRAFT row to keep RESPONSES sheet in sync
+      // This ensures data isn't lost if PropertiesService gets cleared mid-session
+      Logger.log(`[Tool7] Updating EDIT_DRAFT with current data`);
+      DataService.updateDraft(clientId, 'tool7', draftData);
     }
 
     // ============================================================
@@ -686,11 +689,11 @@ const Tool7 = {
         }
       }
 
-      return data || {};
+      return data || null;
 
     } catch (error) {
       Logger.log(`[Tool7] Error getting existing data: ${error}`);
-      return {};
+      return null;
     }
   },
 
