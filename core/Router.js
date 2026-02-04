@@ -462,25 +462,43 @@ const Router = {
       });
     }
 
+    // Helper: Auto-expire stale EDIT_DRAFTs older than 7 days
+    function autoExpireStaleEdit(cId, toolId, latestResponse) {
+      if (latestResponse && latestResponse.status === 'EDIT_DRAFT') {
+        const editAge = Date.now() - new Date(latestResponse.timestamp).getTime();
+        const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
+        if (editAge > SEVEN_DAYS) {
+          Logger.log(`Dashboard: Auto-expiring stale EDIT_DRAFT for ${cId}/${toolId} (${Math.round(editAge / 86400000)} days old)`);
+          DataService.cancelEditDraft(cId, toolId);
+          return DataService.getLatestResponse(cId, toolId);
+        }
+      }
+      return latestResponse;
+    }
+
     // Check Tool 1 status
-    const tool1Latest = DataService.getLatestResponse(clientId, 'tool1');
+    let tool1Latest = DataService.getLatestResponse(clientId, 'tool1');
+    tool1Latest = autoExpireStaleEdit(clientId, 'tool1', tool1Latest);
     const tool1HasDraft = tool1Latest && (tool1Latest.status === 'DRAFT' || tool1Latest.status === 'EDIT_DRAFT');
     const tool1Completed = tool1Latest && tool1Latest.status === 'COMPLETED';
 
     // Check Tool 2 status
-    const tool2Latest = DataService.getLatestResponse(clientId, 'tool2');
+    let tool2Latest = DataService.getLatestResponse(clientId, 'tool2');
+    tool2Latest = autoExpireStaleEdit(clientId, 'tool2', tool2Latest);
     const tool2HasDraft = tool2Latest && (tool2Latest.status === 'DRAFT' || tool2Latest.status === 'EDIT_DRAFT');
     const tool2Completed = tool2Latest && tool2Latest.status === 'COMPLETED';
     const tool2Access = ToolAccessControl.canAccessTool(clientId, 'tool2');
 
     // Check Tool 3 status
-    const tool3Latest = DataService.getLatestResponse(clientId, 'tool3');
+    let tool3Latest = DataService.getLatestResponse(clientId, 'tool3');
+    tool3Latest = autoExpireStaleEdit(clientId, 'tool3', tool3Latest);
     const tool3HasDraft = tool3Latest && (tool3Latest.status === 'DRAFT' || tool3Latest.status === 'EDIT_DRAFT');
     const tool3Completed = tool3Latest && tool3Latest.status === 'COMPLETED';
     const tool3Access = ToolAccessControl.canAccessTool(clientId, 'tool3');
 
     // Check Tool 4 status
-    const tool4Latest = DataService.getLatestResponse(clientId, 'tool4');
+    let tool4Latest = DataService.getLatestResponse(clientId, 'tool4');
+    tool4Latest = autoExpireStaleEdit(clientId, 'tool4', tool4Latest);
     const tool4HasDraft = tool4Latest && (tool4Latest.status === 'DRAFT' || tool4Latest.status === 'EDIT_DRAFT');
     const tool4Completed = tool4Latest && tool4Latest.status === 'COMPLETED';
     const tool4Access = ToolAccessControl.canAccessTool(clientId, 'tool4');
@@ -571,19 +589,22 @@ const Router = {
     }
 
     // Check Tool 5 status
-    const tool5Latest = DataService.getLatestResponse(clientId, 'tool5');
+    let tool5Latest = DataService.getLatestResponse(clientId, 'tool5');
+    tool5Latest = autoExpireStaleEdit(clientId, 'tool5', tool5Latest);
     const tool5HasDraft = tool5Latest && (tool5Latest.status === 'DRAFT' || tool5Latest.status === 'EDIT_DRAFT');
     const tool5Completed = tool5Latest && tool5Latest.status === 'COMPLETED';
     const tool5Access = ToolAccessControl.canAccessTool(clientId, 'tool5');
 
     // Check Tool 6 status
-    const tool6Latest = DataService.getLatestResponse(clientId, 'tool6');
+    let tool6Latest = DataService.getLatestResponse(clientId, 'tool6');
+    tool6Latest = autoExpireStaleEdit(clientId, 'tool6', tool6Latest);
     const tool6HasDraft = tool6Latest && (tool6Latest.status === 'DRAFT' || tool6Latest.status === 'EDIT_DRAFT');
     const tool6Completed = tool6Latest && tool6Latest.status === 'COMPLETED';
     const tool6Access = ToolAccessControl.canAccessTool(clientId, 'tool6');
 
     // Check Tool 7 status
-    const tool7Latest = DataService.getLatestResponse(clientId, 'tool7');
+    let tool7Latest = DataService.getLatestResponse(clientId, 'tool7');
+    tool7Latest = autoExpireStaleEdit(clientId, 'tool7', tool7Latest);
     const tool7HasDraft = tool7Latest && (tool7Latest.status === 'DRAFT' || tool7Latest.status === 'EDIT_DRAFT');
     const tool7Completed = tool7Latest && tool7Latest.status === 'COMPLETED';
     const tool7Access = ToolAccessControl.canAccessTool(clientId, 'tool7');
