@@ -69,6 +69,10 @@ const FormUtils = {
                 document.close();
                 // Scroll to top of new page
                 window.scrollTo(0, 0);
+                // Push history state for back button support (next page = current + 1)
+                if (typeof pushAppState === 'function') {
+                  pushAppState('tool', { toolId: '${toolId}', page: page + 1 });
+                }
               } else {
                 hideLoading();
                 alert('Error: Server did not return next page HTML');
@@ -198,6 +202,10 @@ const FormUtils = {
                   document.close();
                   // Scroll to top of new page
                   window.scrollTo(0, 0);
+                  // Push history state for back button support (report view)
+                  if (typeof pushAppState === 'function') {
+                    pushAppState('report', { toolId: '${toolId}' });
+                  }
                 } else {
                   hideLoading();
                   alert('Error: Server did not return report HTML');
@@ -368,6 +376,7 @@ const FormUtils = {
         </style>
         <?!= include('shared/styles') ?>
         <?!= include('shared/loading-animation') ?>
+        <?!= include('shared/history-manager') ?>
       </head>
       <body>
         <div class="container">
@@ -392,6 +401,11 @@ const FormUtils = {
 
         <script>
           document.body.classList.add('loaded');
+
+          // Initialize history manager for browser back button support
+          if (typeof initHistoryManager === 'function') {
+            initHistoryManager('${clientId}');
+          }
         </script>
       </body>
       </html>

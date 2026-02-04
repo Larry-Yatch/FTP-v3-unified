@@ -1,0 +1,291 @@
+<!--
+  History Manager for Browser Back Button Support
+  Uses google.script.history API to create history entries and handle back/forward navigation
+-->
+<script>
+(function() {
+  'use strict';
+
+  // Private state
+  var _clientId = null;
+  var _isRestoring = false;
+  var _initialized = false;
+
+  /**
+   * Initialize the history manager
+   * @param {string} clientId - The current client/student ID
+   */
+  window.initHistoryManager = function(clientId) {
+    if (_initialized) {
+      console.log('[HistoryManager] Already initialized');
+      return;
+    }
+
+    _clientId = clientId;
+    _initialized = true;
+
+    // Set up the history change handler (fires on back/forward)
+    google.script.history.setChangeHandler(handleHistoryChange);
+
+    // Push initial state for current view (if not restoring from back button)
+    if (!_isRestoring) {
+      var currentView = detectCurrentView();
+      console.log('[HistoryManager] Initialized with view:', currentView.view, currentView.options);
+      pushAppState(currentView.view, currentView.options);
+    }
+  };
+
+  /**
+   * Push a new history state entry
+   * Call this after each navigation to create a back button entry
+   * @param {string} view - 'dashboard', 'tool', or 'report'
+   * @param {Object} options - { toolId, page } depending on view
+   */
+  window.pushAppState = function(view, options) {
+    // Do not push state if we are currently restoring from back button
+    if (_isRestoring) {
+      console.log('[HistoryManager] Skipping pushState during restoration');
+      return;
+    }
+
+    options = options || {};
+    var state = {
+      view: view,
+      clientId: _clientId,
+      toolId: options.toolId || null,
+      page: options.page || null,
+      timestamp: Date.now()
+    };
+
+    console.log('[HistoryManager] Pushing state:', state);
+    google.script.history.push(state, {}, '');
+  };
+
+  /**
+   * Handle browser back/forward button press
+   * @param {Object} e - Event with state and location
+   */
+  function handleHistoryChange(e) {
+    var state = e.state;
+    console.log('[HistoryManager] History change detected:', state);
+
+    // No state means user went back before our first push - go to dashboard
+    if (!state || !state.view) {
+      console.log('[HistoryManager] No state, defaulting to dashboard');
+      state = { view: 'dashboard', clientId: _clientId };
+    }
+
+    _isRestoring = true;
+    var clientId = state.clientId || _clientId;
+
+    // Save current form data before navigating away
+    saveCurrentFormData(function() {
+      switch(state.view) {
+        case 'dashboard':
+          loadDashboard(clientId);
+          break;
+        case 'tool':
+          if (state.toolId && state.page) {
+            loadToolPage(state.toolId, clientId, state.page);
+          } else {
+            console.warn('[HistoryManager] Tool state missing toolId or page, going to dashboard');
+            loadDashboard(clientId);
+          }
+          break;
+        case 'report':
+          if (state.toolId) {
+            loadReport(state.toolId, clientId);
+          } else {
+            console.warn('[HistoryManager] Report state missing toolId, going to dashboard');
+            loadDashboard(clientId);
+          }
+          break;
+        default:
+          console.warn('[HistoryManager] Unknown view:', state.view);
+          loadDashboard(clientId);
+      }
+    });
+  }
+
+  /**
+   * Detect the current view from DOM structure
+   * @returns {Object} { view: string, options: Object }
+   */
+  function detectCurrentView() {
+    // Check for multi-page tool form (e.g., tool1Page2Form)
+    var form = document.querySelector('form[id*="Page"][id*="Form"]');
+    if (form) {
+      var match = form.id.match(/^(tool\d+)Page(\d+)/);
+      if (match) {
+        return {
+          view: 'tool',
+          options: { toolId: match[1], page: parseInt(match[2]) }
+        };
+      }
+    }
+
+    // Check for calculator tool containers (Tool 4, Tool 6)
+    var tool4Container = document.querySelector('.tool4-container, #tool4-app');
+    if (tool4Container) {
+      return { view: 'tool', options: { toolId: 'tool4', page: 1 }};
+    }
+
+    var tool6Container = document.querySelector('.tool6-container, #tool6-app');
+    if (tool6Container) {
+      return { view: 'tool', options: { toolId: 'tool6', page: 1 }};
+    }
+
+    // Check for report page
+    var reportContainer = document.querySelector('.report-container, .report-wrapper, [class*="report"]');
+    if (reportContainer) {
+      // Try to extract toolId from report
+      var toolIdMeta = document.querySelector('meta[name="tool-id"]');
+      var toolId = toolIdMeta ? toolIdMeta.content : null;
+      return { view: 'report', options: { toolId: toolId }};
+    }
+
+    // Default to dashboard
+    return { view: 'dashboard', options: {} };
+  }
+
+  /**
+   * Save current form data before navigating away (prevents data loss)
+   * @param {Function} callback - Called after save completes (or immediately if no form)
+   */
+  function saveCurrentFormData(callback) {
+    var forms = document.querySelectorAll('form[id*="Page"]');
+    if (forms.length === 0) {
+      callback();
+      return;
+    }
+
+    var form = forms[0];
+    var match = form.id.match(/^(tool\d+)/);
+    if (!match) {
+      callback();
+      return;
+    }
+
+    var toolId = match[1];
+    var formData = new FormData(form);
+    var data = Object.fromEntries(formData.entries());
+
+    // Only save if there is actual data
+    if (Object.keys(data).length === 0) {
+      callback();
+      return;
+    }
+
+    console.log('[HistoryManager] Saving form data for', toolId);
+
+    google.script.run
+      .withSuccessHandler(function() {
+        console.log('[HistoryManager] Form data saved');
+        callback();
+      })
+      .withFailureHandler(function(error) {
+        console.warn('[HistoryManager] Form save failed:', error);
+        callback(); // Continue navigation even if save fails
+      })
+      .saveToolPageData(toolId, data);
+  }
+
+  /**
+   * Load dashboard page
+   * @param {string} clientId
+   */
+  function loadDashboard(clientId) {
+    if (typeof showLoading === 'function') {
+      showLoading('Loading Dashboard');
+    }
+
+    google.script.run
+      .withSuccessHandler(function(html) {
+        writeAndFinishRestore(html);
+      })
+      .withFailureHandler(function(error) {
+        handleNavError(error, 'dashboard');
+      })
+      .getDashboardPage(clientId);
+  }
+
+  /**
+   * Load a specific tool page
+   * @param {string} toolId - e.g., 'tool1'
+   * @param {string} clientId
+   * @param {number} page - Page number
+   */
+  function loadToolPage(toolId, clientId, page) {
+    if (typeof showLoading === 'function') {
+      showLoading('Loading ' + toolId.replace('tool', 'Tool ') + ' Page ' + page);
+    }
+
+    google.script.run
+      .withSuccessHandler(function(html) {
+        writeAndFinishRestore(html);
+      })
+      .withFailureHandler(function(error) {
+        handleNavError(error, 'tool page');
+      })
+      .getToolPageHtml(toolId, clientId, page);
+  }
+
+  /**
+   * Load a report page
+   * @param {string} toolId - e.g., 'tool1'
+   * @param {string} clientId
+   */
+  function loadReport(toolId, clientId) {
+    if (typeof showLoading === 'function') {
+      showLoading('Loading Report');
+    }
+
+    google.script.run
+      .withSuccessHandler(function(html) {
+        writeAndFinishRestore(html);
+      })
+      .withFailureHandler(function(error) {
+        handleNavError(error, 'report');
+      })
+      .getReportPage(clientId, toolId);
+  }
+
+  /**
+   * Write HTML to document and finish restoration
+   * @param {string} html
+   */
+  function writeAndFinishRestore(html) {
+    if (!html) {
+      handleNavError({ message: 'Server returned empty response' }, 'page');
+      return;
+    }
+
+    document.open();
+    document.write(html);
+    document.close();
+    window.scrollTo(0, 0);
+
+    // Clear restoring flag after a short delay (allows new page scripts to run)
+    setTimeout(function() {
+      _isRestoring = false;
+    }, 100);
+  }
+
+  /**
+   * Handle navigation errors
+   * @param {Object} error
+   * @param {string} pageType
+   */
+  function handleNavError(error, pageType) {
+    _isRestoring = false;
+
+    if (typeof hideLoading === 'function') {
+      hideLoading();
+    }
+
+    console.error('[HistoryManager] Error loading ' + pageType + ':', error);
+    alert('Error loading ' + pageType + ': ' + (error.message || error));
+  }
+
+})();
+</script>

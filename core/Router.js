@@ -633,6 +633,7 @@ const Router = {
         </style>
         <?!= include('shared/styles') ?>
         <?!= include('shared/loading-animation') ?>
+        <?!= include('shared/history-manager') ?>
       </head>
       <body>
         <div class="container">
@@ -697,6 +698,10 @@ const Router = {
                   document.open();
                   document.write(reportHtml);
                   document.close();
+                  // Push history state for back button support
+                  if (typeof pushAppState === 'function') {
+                    pushAppState('report', { toolId: 'tool1' });
+                  }
                 })
                 .withFailureHandler(function(error) {
                   hideLoading();
@@ -734,6 +739,11 @@ const Router = {
           // Fade in page once loaded
           window.addEventListener('load', function() {
             document.body.classList.add('loaded');
+
+            // Initialize history manager for browser back button support
+            if (typeof initHistoryManager === 'function') {
+              initHistoryManager(clientId);
+            }
           });
 
           // Fallback: show page after 100ms even if not fully loaded
