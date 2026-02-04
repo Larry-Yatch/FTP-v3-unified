@@ -859,7 +859,7 @@ const Router = {
 
             // Discard Tool 1 Draft - navigate using document.write() pattern
             function discardTool1Draft() {
-              if (confirm('Discard your draft and lose all progress?')) {
+              if (confirm('Discard this draft? Your last completed submission will be preserved.')) {
                 showLoading('Discarding draft...');
 
                 google.script.run
@@ -1080,7 +1080,7 @@ const Router = {
           }
 
           function discardTool2Draft() {
-            if (confirm('Discard your draft and lose all progress?')) {
+            if (confirm('Discard this draft? Your last completed submission will be preserved.')) {
               showLoading('Discarding draft...');
               google.script.run
                 .withSuccessHandler(function(dashboardHtml) {
@@ -1268,7 +1268,7 @@ const Router = {
           }
 
           function discardTool3Draft() {
-            if (confirm('Discard your draft and lose all progress?')) {
+            if (confirm('Discard this draft? Your last completed submission will be preserved.')) {
               showLoading('Discarding draft...');
               google.script.run
                 .withSuccessHandler(function(dashboardHtml) {
@@ -1454,7 +1454,7 @@ const Router = {
           }
 
           function discardTool5Draft() {
-            if (confirm('Discard your draft and lose all progress?')) {
+            if (confirm('Discard this draft? Your last completed submission will be preserved.')) {
               showLoading('Discarding draft...');
               google.script.run
                 .withSuccessHandler(function(dashboardHtml) {
@@ -1699,7 +1699,7 @@ const Router = {
           }
 
           function discardTool7Draft() {
-            if (confirm('Discard your draft and lose all progress?')) {
+            if (confirm('Discard this draft? Your last completed submission will be preserved.')) {
               showLoading('Discarding draft...');
               google.script.run
                 .withSuccessHandler(function(dashboardHtml) {
