@@ -54,22 +54,29 @@ const EditModeBanner = {
           if (confirm('Cancel editing and discard changes?')) {
             showLoading('Canceling edit...');
             google.script.run
-              .withSuccessHandler(function(result) {
-                // Don't hide loading - navigate directly to dashboard
-                if (result && result.success !== false) {
-                  // Use navigateToDashboard to avoid iframe issues
-                  navigateToDashboard('${clientId}', 'Loading Dashboard');
-                } else {
-                  hideLoading();
-                  alert('Error canceling edit: ' + (result ? result.error : 'Unknown error'));
-                }
+              .withSuccessHandler(function(dashboardHtml) {
+                // Save dashboard location before document.write()
+                try {
+                  sessionStorage.setItem('_ftpCurrentLocation', JSON.stringify({
+                    view: 'dashboard',
+                    toolId: null,
+                    page: null,
+                    clientId: '${clientId}',
+                    timestamp: Date.now()
+                  }));
+                } catch(e) {}
+                // Replace current document with dashboard HTML
+                document.open();
+                document.write(dashboardHtml);
+                document.close();
+                window.scrollTo(0, 0);
               })
               .withFailureHandler(function(error) {
                 hideLoading();
                 console.error('Cancel edit error:', error);
                 alert('Error canceling edit: ' + error.message);
               })
-              .cancelEditDraft('${clientId}', '${toolId}');
+              .discardDraftAndGetDashboard('${clientId}', '${toolId}');
           }
         }
       </script>
