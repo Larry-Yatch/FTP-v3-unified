@@ -735,6 +735,15 @@ function getDashboardPage(clientId) {
 }
 
 /**
+ * Get login page HTML for document.write() navigation (logout)
+ * @param {string} message - Optional message to display
+ * @returns {string} Login page HTML
+ */
+function getLoginPage(message) {
+  return NavigationHelpers.getLoginPage(message);
+}
+
+/**
  * Get report page HTML for document.write() navigation
  * @param {string} clientId - Student ID
  * @param {string} toolId - Tool identifier (e.g., 'tool1')
@@ -753,6 +762,28 @@ function getReportPage(clientId, toolId) {
  */
 function getToolPageHtml(toolId, clientId, page) {
   return NavigationHelpers.getToolPageHtml(toolId, clientId, page);
+}
+
+/**
+ * Get tool page HTML with options (editMode, clearDraft) for document.write() navigation
+ * @param {string} toolId - Tool identifier (e.g., 'tool2')
+ * @param {string} clientId - Client ID
+ * @param {number} page - Page number to load
+ * @param {Object} options - Additional options {editMode, clearDraft}
+ * @returns {string} Tool page HTML
+ */
+function getToolPageWithOptions(toolId, clientId, page, options) {
+  return NavigationHelpers.getToolPageWithOptions(toolId, clientId, page, options);
+}
+
+/**
+ * Discard draft and return dashboard HTML for document.write() navigation
+ * @param {string} clientId - Client ID
+ * @param {string} toolId - Tool to discard draft for
+ * @returns {string} Dashboard HTML
+ */
+function discardDraftAndGetDashboard(clientId, toolId) {
+  return NavigationHelpers.discardDraftAndGetDashboard(clientId, toolId);
 }
 
 /**

@@ -491,7 +491,18 @@ const Router = {
         <script>
           function viewTool4Calculator() {
             showLoading('Loading Calculator');
-            window.top.location.href = '${baseUrl}?route=tool4&client=${clientId}';
+            google.script.run
+              .withSuccessHandler(function(pageHtml) {
+                document.open();
+                document.write(pageHtml);
+                document.close();
+                window.scrollTo(0, 0);
+              })
+              .withFailureHandler(function(error) {
+                hideLoading();
+                alert('Error loading calculator: ' + error.message);
+              })
+              .getToolPageHtml('tool4', '${clientId}', 1);
           }
         </script>
       `;
@@ -502,10 +513,28 @@ const Router = {
           <p class="muted">Discover your optimal budget allocation across 4 buckets (M/E/F/J)</p>
           <span class="badge" style="background: #2196F3; color: white;">✓ Ready</span>
           <br><br>
-          <button class="btn-primary" onclick="showLoading('Loading Calculator'); window.top.location.href='${baseUrl}?route=tool4&client=${clientId}'">
+          <button class="btn-primary" onclick="openTool4()">
             💰 Open Calculator
           </button>
         </div>
+
+        <script>
+          function openTool4() {
+            showLoading('Loading Calculator');
+            google.script.run
+              .withSuccessHandler(function(pageHtml) {
+                document.open();
+                document.write(pageHtml);
+                document.close();
+                window.scrollTo(0, 0);
+              })
+              .withFailureHandler(function(error) {
+                hideLoading();
+                alert('Error loading calculator: ' + error.message);
+              })
+              .getToolPageHtml('tool4', '${clientId}', 1);
+          }
+        </script>
       `;
     } else {
       tool4CardHTML = `
@@ -583,10 +612,10 @@ const Router = {
           </p>
 
           <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px;">
-            <button class="btn-primary" onclick="showLoading('Loading Assessment'); window.top.location.href='${baseUrl}?route=tool1&client=${clientId}&page=1'">
+            <button class="btn-primary" onclick="continueTool1()">
               ▶️ Continue
             </button>
-            <button class="btn-secondary" onclick="if(confirm('Discard your draft and lose all progress?')) { showLoading('Discarding draft...'); window.top.location.href='${baseUrl}?route=dashboard&client=${clientId}&discardDraft=tool1'; }">
+            <button class="btn-secondary" onclick="discardTool1Draft()">
               ❌ Discard Draft
             </button>
           </div>
@@ -600,7 +629,7 @@ const Router = {
           <p class="muted">Begin your financial journey with a comprehensive assessment</p>
           <span class="badge">Ready</span>
           <br><br>
-          <button class="btn-primary" onclick="showLoading('Loading Assessment'); window.top.location.href='${baseUrl}?route=tool1&client=${clientId}'">
+          <button class="btn-primary" onclick="startTool1()">
             Start Assessment
           </button>
         </div>
@@ -686,7 +715,23 @@ const Router = {
             window.viewReport = viewReport;
             window.editResponse = editResponse;
             window.retakeTool = retakeTool;
+            window.continueTool1 = continueTool1;
+            window.discardTool1Draft = discardTool1Draft;
+            window.startTool1 = startTool1;
             window.logout = logout;
+
+            // Helper to save location to sessionStorage for refresh recovery
+            function saveLocationForRefresh(view, toolId, page) {
+              try {
+                sessionStorage.setItem('_ftpCurrentLocation', JSON.stringify({
+                  view: view,
+                  toolId: toolId || null,
+                  page: page || null,
+                  clientId: clientId,
+                  timestamp: Date.now()
+                }));
+              } catch(e) {}
+            }
 
             // View report - navigate using document.write() pattern
             function viewReport() {
@@ -694,11 +739,11 @@ const Router = {
 
               google.script.run
                 .withSuccessHandler(function(reportHtml) {
-                  // Replace current document with report HTML
+                  saveLocationForRefresh('report', 'tool1', null);
                   document.open();
                   document.write(reportHtml);
                   document.close();
-                  // Note: History state is pushed by initHistoryManager when report loads
+                  window.scrollTo(0, 0);
                 })
                 .withFailureHandler(function(error) {
                   hideLoading();
@@ -708,30 +753,133 @@ const Router = {
                 .getReportPage(clientId, 'tool1');
             }
 
-            // Edit response - navigate immediately to preserve user gesture
+            // Edit response - navigate using document.write() pattern
             function editResponse() {
               showLoading('Loading your responses...');
-              // Navigate IMMEDIATELY - async callbacks lose user gesture in iframe
-              window.top.location.href = baseUrl + '?route=tool1&client=' + clientId + '&page=1&editMode=true';
+
+              google.script.run
+                .withSuccessHandler(function(pageHtml) {
+                  saveLocationForRefresh('tool', 'tool1', 1);
+                  document.open();
+                  document.write(pageHtml);
+                  document.close();
+                  window.scrollTo(0, 0);
+                })
+                .withFailureHandler(function(error) {
+                  hideLoading();
+                  console.error('Edit navigation error:', error);
+                  alert('Error loading assessment: ' + error.message);
+                })
+                .getToolPageWithOptions('tool1', clientId, 1, { editMode: true });
             }
 
-          // Retake tool - navigate immediately to preserve user gesture
-          function retakeTool() {
-            if (confirm('Start a completely fresh assessment? This will clear any drafts but keep your previous completed response.')) {
-              showLoading('Preparing fresh assessment...');
-              // Navigate IMMEDIATELY - async callbacks lose user gesture in iframe
-              window.top.location.href = baseUrl + '?route=tool1&client=' + clientId + '&page=1&clearDraft=true';
+            // Retake tool - navigate using document.write() pattern
+            function retakeTool() {
+              if (confirm('Start a completely fresh assessment? This will clear any drafts but keep your previous completed response.')) {
+                showLoading('Preparing fresh assessment...');
+
+                google.script.run
+                  .withSuccessHandler(function(pageHtml) {
+                    saveLocationForRefresh('tool', 'tool1', 1);
+                    document.open();
+                    document.write(pageHtml);
+                    document.close();
+                    window.scrollTo(0, 0);
+                  })
+                  .withFailureHandler(function(error) {
+                    hideLoading();
+                    console.error('Retake navigation error:', error);
+                    alert('Error starting assessment: ' + error.message);
+                  })
+                  .getToolPageWithOptions('tool1', clientId, 1, { clearDraft: true });
+              }
             }
-          }
 
-          // Logout - navigate to login using document.write pattern
-          function logout() {
-            showLoading('Logging out');
+            // Continue Tool 1 - navigate using document.write() pattern
+            function continueTool1() {
+              showLoading('Loading Assessment');
 
-            // For logout, we actually want to do a full page reload to clear all state
-            // Use window.location.replace to avoid iframe issues
-            window.top.location.replace(baseUrl + '?route=login');
-          }
+              google.script.run
+                .withSuccessHandler(function(pageHtml) {
+                  saveLocationForRefresh('tool', 'tool1', 1);
+                  document.open();
+                  document.write(pageHtml);
+                  document.close();
+                  window.scrollTo(0, 0);
+                })
+                .withFailureHandler(function(error) {
+                  hideLoading();
+                  console.error('Continue navigation error:', error);
+                  alert('Error loading assessment: ' + error.message);
+                })
+                .getToolPageHtml('tool1', clientId, 1);
+            }
+
+            // Discard Tool 1 Draft - navigate using document.write() pattern
+            function discardTool1Draft() {
+              if (confirm('Discard your draft and lose all progress?')) {
+                showLoading('Discarding draft...');
+
+                google.script.run
+                  .withSuccessHandler(function(dashboardHtml) {
+                    saveLocationForRefresh('dashboard', null, null);
+                    document.open();
+                    document.write(dashboardHtml);
+                    document.close();
+                    window.scrollTo(0, 0);
+                  })
+                  .withFailureHandler(function(error) {
+                    hideLoading();
+                    console.error('Discard draft error:', error);
+                    alert('Error discarding draft: ' + error.message);
+                  })
+                  .discardDraftAndGetDashboard(clientId, 'tool1');
+              }
+            }
+
+            // Start Tool 1 - navigate using document.write() pattern
+            function startTool1() {
+              showLoading('Loading Assessment');
+
+              google.script.run
+                .withSuccessHandler(function(pageHtml) {
+                  saveLocationForRefresh('tool', 'tool1', 1);
+                  document.open();
+                  document.write(pageHtml);
+                  document.close();
+                  window.scrollTo(0, 0);
+                })
+                .withFailureHandler(function(error) {
+                  hideLoading();
+                  console.error('Start navigation error:', error);
+                  alert('Error starting assessment: ' + error.message);
+                })
+                .getToolPageHtml('tool1', clientId, 1);
+            }
+
+            // Logout - navigate to login page
+            function logout() {
+              showLoading('Logging out');
+
+              // Clear stored location on logout
+              try {
+                sessionStorage.removeItem('_ftpCurrentLocation');
+              } catch(e) {}
+
+              google.script.run
+                .withSuccessHandler(function(loginHtml) {
+                  document.open();
+                  document.write(loginHtml);
+                  document.close();
+                  window.scrollTo(0, 0);
+                })
+                .withFailureHandler(function(error) {
+                  hideLoading();
+                  // Fallback - try direct navigation for logout
+                  window.top.location.replace(baseUrl + '?route=login');
+                })
+                .getLoginPage();
+            }
 
           // Fade in page once loaded
           window.addEventListener('load', function() {
@@ -797,19 +945,54 @@ const Router = {
         <script>
           function viewTool2Report() {
             showLoading('Loading Report');
-            window.top.location.href = '${baseUrl}?route=tool2_report&client=${clientId}';
+            google.script.run
+              .withSuccessHandler(function(reportHtml) {
+                if (typeof saveLocationForRefresh === 'function') saveLocationForRefresh('report', 'tool2', null, '${clientId}');
+                document.open();
+                document.write(reportHtml);
+                document.close();
+                window.scrollTo(0, 0);
+              })
+              .withFailureHandler(function(error) {
+                hideLoading();
+                alert('Error loading report: ' + error.message);
+              })
+              .getReportPage('${clientId}', 'tool2');
           }
 
           function editTool2Response() {
             showLoading('Loading your responses...');
-            // Navigate IMMEDIATELY - async callbacks lose user gesture in iframe
-            window.top.location.href = '${baseUrl}?route=tool2&client=${clientId}&page=1&editMode=true';
+            google.script.run
+              .withSuccessHandler(function(pageHtml) {
+                if (typeof saveLocationForRefresh === 'function') saveLocationForRefresh('tool', 'tool2', 1, '${clientId}');
+                document.open();
+                document.write(pageHtml);
+                document.close();
+                window.scrollTo(0, 0);
+              })
+              .withFailureHandler(function(error) {
+                hideLoading();
+                alert('Error loading assessment: ' + error.message);
+              })
+              .getToolPageWithOptions('tool2', '${clientId}', 1, { editMode: true });
           }
 
           function retakeTool2() {
             if (confirm('Start fresh? This will discard your current response.')) {
               showLoading('Starting Fresh');
-              window.top.location.href = '${baseUrl}?route=tool2&client=${clientId}&page=1&clearDraft=true';
+              google.script.run
+                .withSuccessHandler(function(pageHtml) {
+                  if (typeof saveLocationForRefresh === 'function') saveLocationForRefresh('tool', 'tool2', 1, '${clientId}');
+                  document.open();
+                  document.write(pageHtml);
+                  document.close();
+                  window.scrollTo(0, 0);
+                })
+                .withFailureHandler(function(error) {
+                  hideLoading();
+                  alert('Error starting assessment: ' + error.message);
+                })
+                .getToolPageWithOptions('tool2', '${clientId}', 1, { clearDraft: true });
             }
           }
         </script>
@@ -827,14 +1010,52 @@ const Router = {
           </p>
 
           <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px;">
-            <button class="btn-primary" onclick="showLoading('Loading Assessment'); window.top.location.href='${baseUrl}?route=tool2&client=${clientId}&page=1'">
+            <button class="btn-primary" onclick="continueTool2()">
               ▶️ Continue
             </button>
-            <button class="btn-secondary" onclick="if(confirm('Discard your draft and lose all progress?')) { showLoading('Discarding draft...'); window.top.location.href='${baseUrl}?route=dashboard&client=${clientId}&discardDraft=tool2'; }">
+            <button class="btn-secondary" onclick="discardTool2Draft()">
               ❌ Discard Draft
             </button>
           </div>
         </div>
+
+        <script>
+          function continueTool2() {
+            showLoading('Loading Assessment');
+            google.script.run
+              .withSuccessHandler(function(pageHtml) {
+                if (typeof saveLocationForRefresh === 'function') saveLocationForRefresh('tool', 'tool2', 1, '${clientId}');
+                document.open();
+                document.write(pageHtml);
+                document.close();
+                window.scrollTo(0, 0);
+              })
+              .withFailureHandler(function(error) {
+                hideLoading();
+                alert('Error loading assessment: ' + error.message);
+              })
+              .getToolPageHtml('tool2', '${clientId}', 1);
+          }
+
+          function discardTool2Draft() {
+            if (confirm('Discard your draft and lose all progress?')) {
+              showLoading('Discarding draft...');
+              google.script.run
+                .withSuccessHandler(function(dashboardHtml) {
+                  if (typeof saveLocationForRefresh === 'function') saveLocationForRefresh('dashboard', null, null, '${clientId}');
+                  document.open();
+                  document.write(dashboardHtml);
+                  document.close();
+                  window.scrollTo(0, 0);
+                })
+                .withFailureHandler(function(error) {
+                  hideLoading();
+                  alert('Error discarding draft: ' + error.message);
+                })
+                .discardDraftAndGetDashboard('${clientId}', 'tool2');
+            }
+          }
+        </script>
       `;
     } else if (tool2Access.allowed) {
       // Accessible but not started - show Start button
@@ -844,10 +1065,29 @@ const Router = {
           <p class="muted">Comprehensive assessment of your financial situation and values</p>
           <span class="badge" style="background: #2196F3; color: white;">✓ Ready</span>
           <br><br>
-          <button class="btn-primary" onclick="showLoading('Loading Assessment'); window.top.location.href='${baseUrl}?route=tool2&client=${clientId}&page=1'">
+          <button class="btn-primary" onclick="startTool2()">
             Start Assessment
           </button>
         </div>
+
+        <script>
+          function startTool2() {
+            showLoading('Loading Assessment');
+            google.script.run
+              .withSuccessHandler(function(pageHtml) {
+                if (typeof saveLocationForRefresh === 'function') saveLocationForRefresh('tool', 'tool2', 1, '${clientId}');
+                document.open();
+                document.write(pageHtml);
+                document.close();
+                window.scrollTo(0, 0);
+              })
+              .withFailureHandler(function(error) {
+                hideLoading();
+                alert('Error starting assessment: ' + error.message);
+              })
+              .getToolPageHtml('tool2', '${clientId}', 1);
+          }
+        </script>
       `;
     } else {
       // Locked - show reason
@@ -896,18 +1136,54 @@ const Router = {
         <script>
           function viewTool3Report() {
             showLoading('Loading Report');
-            window.top.location.href = '${baseUrl}?route=tool3_report&client=${clientId}';
+            google.script.run
+              .withSuccessHandler(function(reportHtml) {
+                if (typeof saveLocationForRefresh === 'function') saveLocationForRefresh('report', 'tool3', null, '${clientId}');
+                document.open();
+                document.write(reportHtml);
+                document.close();
+                window.scrollTo(0, 0);
+              })
+              .withFailureHandler(function(error) {
+                hideLoading();
+                alert('Error loading report: ' + error.message);
+              })
+              .getReportPage('${clientId}', 'tool3');
           }
 
           function editTool3Response() {
             showLoading('Loading your responses...');
-            window.top.location.href = '${baseUrl}?route=tool3&client=${clientId}&page=1&editMode=true';
+            google.script.run
+              .withSuccessHandler(function(pageHtml) {
+                if (typeof saveLocationForRefresh === 'function') saveLocationForRefresh('tool', 'tool3', 1, '${clientId}');
+                document.open();
+                document.write(pageHtml);
+                document.close();
+                window.scrollTo(0, 0);
+              })
+              .withFailureHandler(function(error) {
+                hideLoading();
+                alert('Error loading assessment: ' + error.message);
+              })
+              .getToolPageWithOptions('tool3', '${clientId}', 1, { editMode: true });
           }
 
           function retakeTool3() {
             if (confirm('Start a completely fresh assessment? This will clear any drafts but keep your previous completed response.')) {
               showLoading('Preparing fresh assessment...');
-              window.top.location.href = '${baseUrl}?route=tool3&client=${clientId}&page=1&clearDraft=true';
+              google.script.run
+                .withSuccessHandler(function(pageHtml) {
+                  if (typeof saveLocationForRefresh === 'function') saveLocationForRefresh('tool', 'tool3', 1, '${clientId}');
+                  document.open();
+                  document.write(pageHtml);
+                  document.close();
+                  window.scrollTo(0, 0);
+                })
+                .withFailureHandler(function(error) {
+                  hideLoading();
+                  alert('Error starting assessment: ' + error.message);
+                })
+                .getToolPageWithOptions('tool3', '${clientId}', 1, { clearDraft: true });
             }
           }
         </script>
@@ -922,14 +1198,52 @@ const Router = {
           <p class="muted" style="margin-bottom: 10px;">You have a draft in progress</p>
 
           <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px;">
-            <button class="btn-primary" onclick="showLoading('Loading Assessment'); window.top.location.href='${baseUrl}?route=tool3&client=${clientId}&page=1'">
+            <button class="btn-primary" onclick="continueTool3()">
               ▶️ Continue
             </button>
-            <button class="btn-secondary" onclick="if(confirm('Discard your draft and lose all progress?')) { showLoading('Discarding draft...'); window.top.location.href='${baseUrl}?route=dashboard&client=${clientId}&discardDraft=tool3'; }">
+            <button class="btn-secondary" onclick="discardTool3Draft()">
               ❌ Discard Draft
             </button>
           </div>
         </div>
+
+        <script>
+          function continueTool3() {
+            showLoading('Loading Assessment');
+            google.script.run
+              .withSuccessHandler(function(pageHtml) {
+                if (typeof saveLocationForRefresh === 'function') saveLocationForRefresh('tool', 'tool3', 1, '${clientId}');
+                document.open();
+                document.write(pageHtml);
+                document.close();
+                window.scrollTo(0, 0);
+              })
+              .withFailureHandler(function(error) {
+                hideLoading();
+                alert('Error loading assessment: ' + error.message);
+              })
+              .getToolPageHtml('tool3', '${clientId}', 1);
+          }
+
+          function discardTool3Draft() {
+            if (confirm('Discard your draft and lose all progress?')) {
+              showLoading('Discarding draft...');
+              google.script.run
+                .withSuccessHandler(function(dashboardHtml) {
+                  if (typeof saveLocationForRefresh === 'function') saveLocationForRefresh('dashboard', null, null, '${clientId}');
+                  document.open();
+                  document.write(dashboardHtml);
+                  document.close();
+                  window.scrollTo(0, 0);
+                })
+                .withFailureHandler(function(error) {
+                  hideLoading();
+                  alert('Error discarding draft: ' + error.message);
+                })
+                .discardDraftAndGetDashboard('${clientId}', 'tool3');
+            }
+          }
+        </script>
       `;
     } else if (tool3Access.allowed) {
       return `
@@ -938,10 +1252,29 @@ const Router = {
           <p class="muted">Grounding assessment revealing patterns of disconnection from self</p>
           <span class="badge" style="background: #2196F3; color: white;">✓ Ready</span>
           <br><br>
-          <button class="btn-primary" onclick="showLoading('Loading Assessment'); window.top.location.href='${baseUrl}?route=tool3&client=${clientId}&page=1'">
+          <button class="btn-primary" onclick="startTool3()">
             Start Assessment
           </button>
         </div>
+
+        <script>
+          function startTool3() {
+            showLoading('Loading Assessment');
+            google.script.run
+              .withSuccessHandler(function(pageHtml) {
+                if (typeof saveLocationForRefresh === 'function') saveLocationForRefresh('tool', 'tool3', 1, '${clientId}');
+                document.open();
+                document.write(pageHtml);
+                document.close();
+                window.scrollTo(0, 0);
+              })
+              .withFailureHandler(function(error) {
+                hideLoading();
+                alert('Error starting assessment: ' + error.message);
+              })
+              .getToolPageHtml('tool3', '${clientId}', 1);
+          }
+        </script>
       `;
     } else {
       return `
@@ -989,18 +1322,54 @@ const Router = {
         <script>
           function viewTool5Report() {
             showLoading('Loading Report');
-            window.top.location.href = '${baseUrl}?route=tool5_report&client=${clientId}';
+            google.script.run
+              .withSuccessHandler(function(reportHtml) {
+                if (typeof saveLocationForRefresh === 'function') saveLocationForRefresh('report', 'tool5', null, '${clientId}');
+                document.open();
+                document.write(reportHtml);
+                document.close();
+                window.scrollTo(0, 0);
+              })
+              .withFailureHandler(function(error) {
+                hideLoading();
+                alert('Error loading report: ' + error.message);
+              })
+              .getReportPage('${clientId}', 'tool5');
           }
 
           function editTool5Response() {
             showLoading('Loading your responses...');
-            window.top.location.href = '${baseUrl}?route=tool5&client=${clientId}&page=1&editMode=true';
+            google.script.run
+              .withSuccessHandler(function(pageHtml) {
+                if (typeof saveLocationForRefresh === 'function') saveLocationForRefresh('tool', 'tool5', 1, '${clientId}');
+                document.open();
+                document.write(pageHtml);
+                document.close();
+                window.scrollTo(0, 0);
+              })
+              .withFailureHandler(function(error) {
+                hideLoading();
+                alert('Error loading assessment: ' + error.message);
+              })
+              .getToolPageWithOptions('tool5', '${clientId}', 1, { editMode: true });
           }
 
           function retakeTool5() {
             if (confirm('Start a completely fresh assessment? This will clear any drafts but keep your previous completed response.')) {
               showLoading('Preparing fresh assessment...');
-              window.top.location.href = '${baseUrl}?route=tool5&client=${clientId}&page=1&clearDraft=true';
+              google.script.run
+                .withSuccessHandler(function(pageHtml) {
+                  if (typeof saveLocationForRefresh === 'function') saveLocationForRefresh('tool', 'tool5', 1, '${clientId}');
+                  document.open();
+                  document.write(pageHtml);
+                  document.close();
+                  window.scrollTo(0, 0);
+                })
+                .withFailureHandler(function(error) {
+                  hideLoading();
+                  alert('Error starting assessment: ' + error.message);
+                })
+                .getToolPageWithOptions('tool5', '${clientId}', 1, { clearDraft: true });
             }
           }
         </script>
@@ -1015,14 +1384,52 @@ const Router = {
           <p class="muted" style="margin-bottom: 10px;">You have a draft in progress</p>
 
           <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px;">
-            <button class="btn-primary" onclick="showLoading('Loading Assessment'); window.top.location.href='${baseUrl}?route=tool5&client=${clientId}&page=1'">
+            <button class="btn-primary" onclick="continueTool5()">
               ▶️ Continue
             </button>
-            <button class="btn-secondary" onclick="if(confirm('Discard your draft and lose all progress?')) { showLoading('Discarding draft...'); window.top.location.href='${baseUrl}?route=dashboard&client=${clientId}&discardDraft=tool5'; }">
+            <button class="btn-secondary" onclick="discardTool5Draft()">
               ❌ Discard Draft
             </button>
           </div>
         </div>
+
+        <script>
+          function continueTool5() {
+            showLoading('Loading Assessment');
+            google.script.run
+              .withSuccessHandler(function(pageHtml) {
+                if (typeof saveLocationForRefresh === 'function') saveLocationForRefresh('tool', 'tool5', 1, '${clientId}');
+                document.open();
+                document.write(pageHtml);
+                document.close();
+                window.scrollTo(0, 0);
+              })
+              .withFailureHandler(function(error) {
+                hideLoading();
+                alert('Error loading assessment: ' + error.message);
+              })
+              .getToolPageHtml('tool5', '${clientId}', 1);
+          }
+
+          function discardTool5Draft() {
+            if (confirm('Discard your draft and lose all progress?')) {
+              showLoading('Discarding draft...');
+              google.script.run
+                .withSuccessHandler(function(dashboardHtml) {
+                  if (typeof saveLocationForRefresh === 'function') saveLocationForRefresh('dashboard', null, null, '${clientId}');
+                  document.open();
+                  document.write(dashboardHtml);
+                  document.close();
+                  window.scrollTo(0, 0);
+                })
+                .withFailureHandler(function(error) {
+                  hideLoading();
+                  alert('Error discarding draft: ' + error.message);
+                })
+                .discardDraftAndGetDashboard('${clientId}', 'tool5');
+            }
+          }
+        </script>
       `;
     } else if (tool5Access.allowed) {
       return `
@@ -1031,10 +1438,29 @@ const Router = {
           <p class="muted">Grounding assessment revealing patterns of disconnection from others</p>
           <span class="badge" style="background: #2196F3; color: white;">✓ Ready</span>
           <br><br>
-          <button class="btn-primary" onclick="showLoading('Loading Assessment'); window.top.location.href='${baseUrl}?route=tool5&client=${clientId}&page=1'">
+          <button class="btn-primary" onclick="startTool5()">
             Start Assessment
           </button>
         </div>
+
+        <script>
+          function startTool5() {
+            showLoading('Loading Assessment');
+            google.script.run
+              .withSuccessHandler(function(pageHtml) {
+                if (typeof saveLocationForRefresh === 'function') saveLocationForRefresh('tool', 'tool5', 1, '${clientId}');
+                document.open();
+                document.write(pageHtml);
+                document.close();
+                window.scrollTo(0, 0);
+              })
+              .withFailureHandler(function(error) {
+                hideLoading();
+                alert('Error starting assessment: ' + error.message);
+              })
+              .getToolPageHtml('tool5', '${clientId}', 1);
+          }
+        </script>
       `;
     } else {
       return `
@@ -1077,7 +1503,7 @@ const Router = {
         <script>
           function openTool6Calculator() {
             showLoading('Loading Calculator');
-            window.top.location.href = '${baseUrl}?route=tool6&client=${clientId}';
+            google.script.run.withSuccessHandler(function(h){document.open();document.write(h);document.close();window.scrollTo(0,0);}).withFailureHandler(function(e){hideLoading();alert('Error: '+e.message);}).getToolPageHtml('tool6','${clientId}',1);
           }
         </script>
       `;
@@ -1088,10 +1514,13 @@ const Router = {
           <p class="muted">Optimize your retirement vehicle allocations for maximum tax efficiency</p>
           <span class="badge" style="background: #2196F3; color: white;">✓ Ready</span>
           <br><br>
-          <button class="btn-primary" onclick="showLoading('Loading Calculator'); window.top.location.href='${baseUrl}?route=tool6&client=${clientId}'">
+          <button class="btn-primary" onclick="startTool6()">
             📊 Open Calculator
           </button>
         </div>
+        <script>
+          function startTool6(){showLoading('Loading Calculator');google.script.run.withSuccessHandler(function(h){document.open();document.write(h);document.close();window.scrollTo(0,0);}).withFailureHandler(function(e){hideLoading();alert('Error: '+e.message);}).getToolPageHtml('tool6','${clientId}',1);}
+        </script>
       `;
     } else {
       return `
@@ -1138,16 +1567,54 @@ const Router = {
         <script>
           function viewTool7Report() {
             showLoading('Loading Report');
-            window.top.location.href = '${baseUrl}?route=tool7_report&client=${clientId}';
+            google.script.run
+              .withSuccessHandler(function(reportHtml) {
+                if (typeof saveLocationForRefresh === 'function') saveLocationForRefresh('report', 'tool7', null, '${clientId}');
+                document.open();
+                document.write(reportHtml);
+                document.close();
+                window.scrollTo(0, 0);
+              })
+              .withFailureHandler(function(error) {
+                hideLoading();
+                alert('Error loading report: ' + error.message);
+              })
+              .getReportPage('${clientId}', 'tool7');
           }
+
           function editTool7Response() {
             showLoading('Loading Assessment');
-            window.top.location.href = '${baseUrl}?route=tool7&client=${clientId}&page=1&editMode=true';
+            google.script.run
+              .withSuccessHandler(function(pageHtml) {
+                if (typeof saveLocationForRefresh === 'function') saveLocationForRefresh('tool', 'tool7', 1, '${clientId}');
+                document.open();
+                document.write(pageHtml);
+                document.close();
+                window.scrollTo(0, 0);
+              })
+              .withFailureHandler(function(error) {
+                hideLoading();
+                alert('Error loading assessment: ' + error.message);
+              })
+              .getToolPageWithOptions('tool7', '${clientId}', 1, { editMode: true });
           }
+
           function retakeTool7() {
-            if(confirm('Start fresh? This will create a new assessment while preserving your previous results.')) {
+            if (confirm('Start fresh? This will create a new assessment while preserving your previous results.')) {
               showLoading('Starting Fresh Assessment');
-              window.top.location.href = '${baseUrl}?route=tool7&client=${clientId}&page=1&clearDraft=true';
+              google.script.run
+                .withSuccessHandler(function(pageHtml) {
+                  if (typeof saveLocationForRefresh === 'function') saveLocationForRefresh('tool', 'tool7', 1, '${clientId}');
+                  document.open();
+                  document.write(pageHtml);
+                  document.close();
+                  window.scrollTo(0, 0);
+                })
+                .withFailureHandler(function(error) {
+                  hideLoading();
+                  alert('Error starting assessment: ' + error.message);
+                })
+                .getToolPageWithOptions('tool7', '${clientId}', 1, { clearDraft: true });
             }
           }
         </script>
@@ -1162,14 +1629,52 @@ const Router = {
           <p class="muted" style="margin-bottom: 10px;">You have a draft in progress</p>
 
           <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px;">
-            <button class="btn-primary" onclick="showLoading('Loading Assessment'); window.top.location.href='${baseUrl}?route=tool7&client=${clientId}&page=1'">
+            <button class="btn-primary" onclick="continueTool7()">
               ▶️ Continue
             </button>
-            <button class="btn-secondary" onclick="if(confirm('Discard your draft and lose all progress?')) { showLoading('Discarding draft...'); window.top.location.href='${baseUrl}?route=dashboard&client=${clientId}&discardDraft=tool7'; }">
+            <button class="btn-secondary" onclick="discardTool7Draft()">
               ❌ Discard Draft
             </button>
           </div>
         </div>
+
+        <script>
+          function continueTool7() {
+            showLoading('Loading Assessment');
+            google.script.run
+              .withSuccessHandler(function(pageHtml) {
+                if (typeof saveLocationForRefresh === 'function') saveLocationForRefresh('tool', 'tool7', 1, '${clientId}');
+                document.open();
+                document.write(pageHtml);
+                document.close();
+                window.scrollTo(0, 0);
+              })
+              .withFailureHandler(function(error) {
+                hideLoading();
+                alert('Error loading assessment: ' + error.message);
+              })
+              .getToolPageHtml('tool7', '${clientId}', 1);
+          }
+
+          function discardTool7Draft() {
+            if (confirm('Discard your draft and lose all progress?')) {
+              showLoading('Discarding draft...');
+              google.script.run
+                .withSuccessHandler(function(dashboardHtml) {
+                  if (typeof saveLocationForRefresh === 'function') saveLocationForRefresh('dashboard', null, null, '${clientId}');
+                  document.open();
+                  document.write(dashboardHtml);
+                  document.close();
+                  window.scrollTo(0, 0);
+                })
+                .withFailureHandler(function(error) {
+                  hideLoading();
+                  alert('Error discarding draft: ' + error.message);
+                })
+                .discardDraftAndGetDashboard('${clientId}', 'tool7');
+            }
+          }
+        </script>
       `;
     } else if (tool7Access.allowed) {
       return `
@@ -1178,10 +1683,29 @@ const Router = {
           <p class="muted">Grounding assessment revealing patterns of disconnection from trust</p>
           <span class="badge" style="background: #2196F3; color: white;">✓ Ready</span>
           <br><br>
-          <button class="btn-primary" onclick="showLoading('Loading Assessment'); window.top.location.href='${baseUrl}?route=tool7&client=${clientId}&page=1'">
+          <button class="btn-primary" onclick="startTool7()">
             Start Assessment
           </button>
         </div>
+
+        <script>
+          function startTool7() {
+            showLoading('Loading Assessment');
+            google.script.run
+              .withSuccessHandler(function(pageHtml) {
+                if (typeof saveLocationForRefresh === 'function') saveLocationForRefresh('tool', 'tool7', 1, '${clientId}');
+                document.open();
+                document.write(pageHtml);
+                document.close();
+                window.scrollTo(0, 0);
+              })
+              .withFailureHandler(function(error) {
+                hideLoading();
+                alert('Error starting assessment: ' + error.message);
+              })
+              .getToolPageHtml('tool7', '${clientId}', 1);
+          }
+        </script>
       `;
     } else {
       return `
