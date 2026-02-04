@@ -221,11 +221,27 @@
       if (!wasRestoring) {
         console.log('[HistoryManager] Initialized with view:', currentView.view, currentView.options);
         pushAppState(currentView.view, currentView.options);
-        // Save location for refresh recovery
-        saveLocation(currentView.view, currentView.options);
       } else {
-        console.log('[HistoryManager] Skipping initial push - restored from back/forward');
+        // After document.write() during back/forward restoration, the GAS parent
+        // frame's postMessage bridge to the iframe becomes stale. Calling replace()
+        // reconnects the callback channel so google.script.run callbacks work again.
+        // We use replace() instead of push() to avoid duplicate history entries.
+        var replaceState = {
+          view: currentView.view,
+          clientId: _clientId,
+          toolId: currentView.options.toolId || null,
+          page: currentView.options.page || null,
+          timestamp: Date.now()
+        };
+        try {
+          google.script.history.replace(replaceState, {}, '');
+          console.log('[HistoryManager] Replaced state after restoration:', replaceState);
+        } catch (e) {
+          console.warn('[HistoryManager] Error replacing state:', e);
+        }
       }
+      // Always save location for refresh recovery
+      saveLocation(currentView.view, currentView.options);
     } catch (e) {
       console.error('[HistoryManager] Error initializing:', e);
     }
@@ -417,6 +433,26 @@
    * @param {Function} callback - Called after save completes or immediately if no form
    */
   function saveCurrentFormDataAsync(callback) {
+    // Safety guard: ensure callback is only called once
+    var callbackFired = false;
+    function safeCallback() {
+      if (callbackFired) return;
+      callbackFired = true;
+      if (safetyTimer) clearTimeout(safetyTimer);
+      callback();
+    }
+
+    // Safety timeout: if google.script.run callback never fires (can happen
+    // after document.write() in edge cases), proceed with navigation anyway.
+    // Data save is best-effort during back navigation.
+    var safetyTimer = null;
+    function startSafetyTimeout() {
+      safetyTimer = setTimeout(function() {
+        console.warn('[HistoryManager] Save callback timeout - proceeding with navigation');
+        safeCallback();
+      }, 5000);
+    }
+
     // Try multi-page tool forms first (Tool 1/2/3/5/7)
     var forms = document.querySelectorAll('form[id*="Page"]');
     if (forms.length > 0) {
@@ -429,19 +465,20 @@
 
         if (Object.keys(data).length > 0) {
           console.log('[HistoryManager] Saving form data for', toolId);
+          startSafetyTimeout();
           google.script.run
             .withSuccessHandler(function() {
               console.log('[HistoryManager] Form data saved');
-              callback();
+              safeCallback();
             })
             .withFailureHandler(function(error) {
               console.warn('[HistoryManager] Form save failed:', error);
-              callback(); // Continue navigation even if save fails
+              safeCallback();
             })
             .saveToolPageData(toolId, data);
           return;
         }
-        callback();
+        safeCallback();
         return;
       }
     }
@@ -450,7 +487,8 @@
     var tool4Form = document.getElementById('preSurveyForm');
     var tool4Container = document.querySelector('.tool4-container');
     if (tool4Form && tool4Container) {
-      saveTool4DataAsync(callback);
+      startSafetyTimeout();
+      saveTool4DataAsync(safeCallback);
       return;
     }
 
@@ -458,12 +496,13 @@
     var tool6Form = document.getElementById('questionnaireForm');
     var tool6Container = document.querySelector('.tool6-container');
     if (tool6Form && tool6Container) {
-      saveTool6DataAsync(callback);
+      startSafetyTimeout();
+      saveTool6DataAsync(safeCallback);
       return;
     }
 
     // No form found - navigate immediately
-    callback();
+    safeCallback();
   }
 
   /**
