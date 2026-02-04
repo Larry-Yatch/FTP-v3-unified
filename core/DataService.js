@@ -118,12 +118,12 @@ const DataService = {
       const timestampCol = headers.indexOf('Timestamp');
       const isLatestCol = headers.indexOf('Is_Latest');
 
-      // Find the latest DRAFT row for this client/tool
+      // Find the latest DRAFT or EDIT_DRAFT row for this client/tool
       let draftRowIndex = -1;
       for (let i = sheetData.length - 1; i >= 1; i--) {
         if (sheetData[i][clientIdCol] === clientId &&
             sheetData[i][toolIdCol] === toolId &&
-            sheetData[i][statusCol] === 'DRAFT' &&
+            (sheetData[i][statusCol] === 'DRAFT' || sheetData[i][statusCol] === 'EDIT_DRAFT') &&
             (isLatestCol === -1 || sheetData[i][isLatestCol] === 'true' || sheetData[i][isLatestCol] === true)) {
           draftRowIndex = i;
           break;
@@ -131,14 +131,30 @@ const DataService = {
       }
 
       if (draftRowIndex !== -1) {
-        // Update existing DRAFT row
-        sheet.getRange(draftRowIndex + 1, dataCol + 1).setValue(JSON.stringify(data));
+        let dataToSave = data;
+
+        // For EDIT_DRAFT rows, MERGE new data with existing to preserve fields
+        // from pages not yet re-submitted (e.g., page 2+ fields when saving page 1)
+        if (sheetData[draftRowIndex][statusCol] === 'EDIT_DRAFT') {
+          try {
+            const existingData = typeof sheetData[draftRowIndex][dataCol] === 'string'
+              ? JSON.parse(sheetData[draftRowIndex][dataCol])
+              : sheetData[draftRowIndex][dataCol];
+            dataToSave = { ...existingData, ...data };
+            console.log(`DataService: Merged new data into existing EDIT_DRAFT for ${clientId} / ${toolId}`);
+          } catch (e) {
+            console.warn(`DataService: Could not parse existing EDIT_DRAFT data, replacing: ${e}`);
+          }
+        }
+
+        // Update existing DRAFT/EDIT_DRAFT row
+        sheet.getRange(draftRowIndex + 1, dataCol + 1).setValue(JSON.stringify(dataToSave));
         sheet.getRange(draftRowIndex + 1, timestampCol + 1).setValue(new Date());
-        console.log(`DataService: Updated existing DRAFT for ${clientId} / ${toolId}`);
+        console.log(`DataService: Updated existing ${sheetData[draftRowIndex][statusCol]} for ${clientId} / ${toolId}`);
         return { success: true, message: 'Draft updated successfully', action: 'updated' };
       } else {
-        // No existing DRAFT found, create new one
-        console.log(`DataService: No existing DRAFT found, creating new one for ${clientId} / ${toolId}`);
+        // No existing DRAFT/EDIT_DRAFT found, create new one
+        console.log(`DataService: No existing draft found, creating new one for ${clientId} / ${toolId}`);
         return this.saveDraft(clientId, toolId, data);
       }
 
