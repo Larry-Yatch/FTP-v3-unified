@@ -1,6 +1,7 @@
 <!--
-  History Manager for Browser Back Button Support
+  History Manager for Browser Back Button and Refresh Support
   Uses google.script.history API to create history entries and handle back/forward navigation
+  Uses sessionStorage to persist location across browser refresh
 -->
 <script>
 (function() {
@@ -11,6 +12,101 @@
   var _isRestoring = false;
   var _initialized = false;
   var RESTORE_FLAG_KEY = '_historyManagerRestoring';
+  var LOCATION_KEY = '_ftpCurrentLocation';
+  var LOCATION_MAX_AGE_MS = 30 * 60 * 1000; // 30 minutes - expire stale locations
+
+  /**
+   * Save the current location to sessionStorage for refresh recovery
+   * @param {string} view - 'dashboard', 'tool', or 'report'
+   * @param {Object} options - { toolId, page } depending on view
+   */
+  function saveLocation(view, options) {
+    try {
+      var location = {
+        view: view,
+        toolId: options.toolId || null,
+        page: options.page || null,
+        clientId: _clientId,
+        timestamp: Date.now()
+      };
+      sessionStorage.setItem(LOCATION_KEY, JSON.stringify(location));
+      console.log('[HistoryManager] Saved location:', location);
+    } catch (e) {
+      // sessionStorage might not be available
+      console.warn('[HistoryManager] Could not save location:', e);
+    }
+  }
+
+  /**
+   * Get stored location from sessionStorage
+   * @returns {Object|null} Stored location or null if not found/expired
+   */
+  function getStoredLocation() {
+    try {
+      var stored = sessionStorage.getItem(LOCATION_KEY);
+      if (!stored) return null;
+
+      var location = JSON.parse(stored);
+
+      // Check if location is stale (older than 30 minutes)
+      if (Date.now() - location.timestamp > LOCATION_MAX_AGE_MS) {
+        console.log('[HistoryManager] Stored location expired, clearing');
+        sessionStorage.removeItem(LOCATION_KEY);
+        return null;
+      }
+
+      return location;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /**
+   * Clear stored location (call on logout or when appropriate)
+   */
+  window.clearStoredLocation = function() {
+    try {
+      sessionStorage.removeItem(LOCATION_KEY);
+      console.log('[HistoryManager] Cleared stored location');
+    } catch (e) {
+      // Ignore errors
+    }
+  };
+
+  /**
+   * Save location for refresh recovery (global helper for tool card scripts)
+   * @param {string} view - 'dashboard', 'tool', or 'report'
+   * @param {string} toolId - Tool ID (e.g., 'tool1')
+   * @param {number} page - Page number (for tool views)
+   * @param {string} clientId - Client ID
+   */
+  window.saveLocationForRefresh = function(view, toolId, page, clientId) {
+    try {
+      sessionStorage.setItem(LOCATION_KEY, JSON.stringify({
+        view: view,
+        toolId: toolId || null,
+        page: page || null,
+        clientId: clientId || _clientId,
+        timestamp: Date.now()
+      }));
+      console.log('[HistoryManager] Saved location for refresh:', view, toolId, page);
+    } catch (e) {
+      // sessionStorage might not be available
+    }
+  };
+
+  /**
+   * Check if two locations match
+   * @param {Object} loc1
+   * @param {Object} loc2
+   * @returns {boolean}
+   */
+  function locationsMatch(loc1, loc2) {
+    if (!loc1 || !loc2) return false;
+    return loc1.view === loc2.view &&
+           loc1.toolId === loc2.toolId &&
+           loc1.page === loc2.page;
+  }
 
   /**
    * Initialize the history manager
@@ -22,11 +118,7 @@
       return;
     }
 
-    // Check if google.script.history API is available
-    if (typeof google === 'undefined' || !google.script || !google.script.history) {
-      console.warn('[HistoryManager] google.script.history API not available - back button support disabled');
-      return;
-    }
+    _clientId = clientId;
 
     // Check if we're restoring from a back/forward navigation (flag set by previous page)
     var wasRestoring = false;
@@ -37,8 +129,81 @@
       // sessionStorage might not be available
     }
 
-    _clientId = clientId;
+    // Detect current view from DOM
+    var currentView = detectCurrentView();
+    console.log('[HistoryManager] Current view:', currentView.view, currentView.options);
+
+    // Check for browser refresh: compare current view with stored location
+    // Only redirect if we detect a refresh that lost the user's place
+    // (i.e., they were deeper in a tool but URL loaded an earlier page)
+    if (!wasRestoring) {
+      var storedLocation = getStoredLocation();
+      if (storedLocation && storedLocation.clientId === clientId) {
+        var currentLocation = {
+          view: currentView.view,
+          toolId: currentView.options.toolId || null,
+          page: currentView.options.page || null
+        };
+
+        // Only attempt refresh recovery for tool pages within the SAME tool
+        // This handles the case where user was on page 3, refreshed, URL loaded page 1
+        // We don't auto-redirect for cross-tool or dashboard/report navigation
+        // (those use URL navigation which is self-recovering)
+        var shouldRecover = false;
+
+        if (storedLocation.view === 'tool' && currentLocation.view === 'tool') {
+          // Same tool, different page - likely a refresh
+          if (storedLocation.toolId === currentLocation.toolId &&
+              storedLocation.page !== currentLocation.page &&
+              storedLocation.page > currentLocation.page) {
+            console.log('[HistoryManager] Refresh detected! User was on page', storedLocation.page, 'but URL loaded page', currentLocation.page);
+            shouldRecover = true;
+          }
+        }
+
+        // Also recover if stored was report but current is tool (same toolId)
+        // This happens when user viewed report via document.write, then refreshed
+        if (storedLocation.view === 'report' && currentLocation.view === 'tool' &&
+            storedLocation.toolId === currentLocation.toolId) {
+          console.log('[HistoryManager] Refresh detected! User was viewing report but URL loaded tool page');
+          shouldRecover = true;
+        }
+
+        if (shouldRecover) {
+          _isRestoring = true;
+
+          if (typeof showLoading === 'function') {
+            showLoading('Restoring your place...');
+          }
+
+          // Redirect based on stored view
+          switch(storedLocation.view) {
+            case 'tool':
+              if (storedLocation.toolId && storedLocation.page) {
+                loadToolPage(storedLocation.toolId, clientId, storedLocation.page);
+                return; // Exit - page will reload
+              }
+              break;
+            case 'report':
+              if (storedLocation.toolId) {
+                loadReport(storedLocation.toolId, clientId);
+                return; // Exit - page will reload
+              }
+              break;
+          }
+        }
+      }
+    }
+
     _initialized = true;
+
+    // Check if google.script.history API is available
+    if (typeof google === 'undefined' || !google.script || !google.script.history) {
+      console.warn('[HistoryManager] google.script.history API not available - back button support disabled');
+      // Still save location for refresh support even without history API
+      saveLocation(currentView.view, currentView.options);
+      return;
+    }
 
     try {
       // Set up the history change handler (fires on back/forward)
@@ -47,9 +212,10 @@
 
       // Push initial state for current view (if not restoring from back button)
       if (!wasRestoring) {
-        var currentView = detectCurrentView();
         console.log('[HistoryManager] Initialized with view:', currentView.view, currentView.options);
         pushAppState(currentView.view, currentView.options);
+        // Save location for refresh recovery
+        saveLocation(currentView.view, currentView.options);
       } else {
         console.log('[HistoryManager] Skipping initial push - restored from back/forward');
       }
@@ -267,6 +433,8 @@
     // Loading already shown by handleHistoryChange
     google.script.run
       .withSuccessHandler(function(html) {
+        // Save destination location BEFORE writing (for refresh recovery)
+        saveLocation('dashboard', {});
         writeAndFinishRestore(html);
       })
       .withFailureHandler(function(error) {
@@ -288,6 +456,8 @@
 
     google.script.run
       .withSuccessHandler(function(html) {
+        // Save destination location BEFORE writing (for refresh recovery)
+        saveLocation('tool', { toolId: toolId, page: page });
         writeAndFinishRestore(html);
       })
       .withFailureHandler(function(error) {
@@ -308,6 +478,8 @@
 
     google.script.run
       .withSuccessHandler(function(html) {
+        // Save destination location BEFORE writing (for refresh recovery)
+        saveLocation('report', { toolId: toolId });
         writeAndFinishRestore(html);
       })
       .withFailureHandler(function(error) {

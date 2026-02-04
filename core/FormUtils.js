@@ -64,6 +64,21 @@ const FormUtils = {
 
               // Server returned HTML for next page - replace current document
               if (result.nextPageHtml) {
+                // Save destination location for refresh recovery (next page = page + 1)
+                if (typeof saveLocation === 'function') {
+                  saveLocation('tool', { toolId: '${toolId}', page: page + 1 });
+                } else {
+                  // Fallback: save directly to sessionStorage
+                  try {
+                    sessionStorage.setItem('_ftpCurrentLocation', JSON.stringify({
+                      view: 'tool',
+                      toolId: '${toolId}',
+                      page: page + 1,
+                      clientId: data.client,
+                      timestamp: Date.now()
+                    }));
+                  } catch(e) {}
+                }
                 document.open();
                 document.write(result.nextPageHtml);
                 document.close();
@@ -109,22 +124,35 @@ const FormUtils = {
 
           showLoading(\`Loading Page \${previousPage}\`);
 
+          // Helper to save location and write page
+          function writePageAndSaveLocation(pageHtml) {
+            if (pageHtml) {
+              // Save destination location for refresh recovery
+              try {
+                sessionStorage.setItem('_ftpCurrentLocation', JSON.stringify({
+                  view: 'tool',
+                  toolId: toolId,
+                  page: previousPage,
+                  clientId: clientId,
+                  timestamp: Date.now()
+                }));
+              } catch(e) {}
+              document.open();
+              document.write(pageHtml);
+              document.close();
+              window.scrollTo(0, 0);
+            } else {
+              hideLoading();
+              alert('Error loading previous page');
+            }
+          }
+
           // Save current page data, then load previous page (following Tool 2 pattern)
           google.script.run
             .withSuccessHandler(function() {
               // After saving, load the previous page
               google.script.run
-                .withSuccessHandler(function(pageHtml) {
-                  if (pageHtml) {
-                    document.open();
-                    document.write(pageHtml);
-                    document.close();
-                    window.scrollTo(0, 0);
-                  } else {
-                    hideLoading();
-                    alert('Error loading previous page');
-                  }
-                })
+                .withSuccessHandler(writePageAndSaveLocation)
                 .withFailureHandler(function(error) {
                   hideLoading();
                   console.error('Navigation error:', error);
@@ -136,17 +164,7 @@ const FormUtils = {
               // Even if save fails, still try to navigate (don't block user)
               console.warn('Save failed, navigating anyway:', error);
               google.script.run
-                .withSuccessHandler(function(pageHtml) {
-                  if (pageHtml) {
-                    document.open();
-                    document.write(pageHtml);
-                    document.close();
-                    window.scrollTo(0, 0);
-                  } else {
-                    hideLoading();
-                    alert('Error loading previous page');
-                  }
-                })
+                .withSuccessHandler(writePageAndSaveLocation)
                 .withFailureHandler(function(error) {
                   hideLoading();
                   console.error('Navigation error:', error);
@@ -194,6 +212,16 @@ const FormUtils = {
 
                 // Server returned HTML for report page - replace current document
                 if (result.nextPageHtml) {
+                  // Save destination location for refresh recovery (report page)
+                  try {
+                    sessionStorage.setItem('_ftpCurrentLocation', JSON.stringify({
+                      view: 'report',
+                      toolId: '${toolId}',
+                      page: null,
+                      clientId: data.client,
+                      timestamp: Date.now()
+                    }));
+                  } catch(e) {}
                   document.open();
                   document.write(result.nextPageHtml);
                   document.close();
