@@ -442,15 +442,16 @@
       callback();
     }
 
-    // Safety timeout: if google.script.run callback never fires (can happen
-    // after document.write() in edge cases), proceed with navigation anyway.
-    // Data save is best-effort during back navigation.
+    // Safety timeout: proceed with navigation without waiting for save callback.
+    // The save completes on the server regardless - we just cannot reliably
+    // receive the callback after document.write() page replacements.
+    // Data save is best-effort during back/forward navigation.
     var safetyTimer = null;
     function startSafetyTimeout() {
       safetyTimer = setTimeout(function() {
-        console.warn('[HistoryManager] Save callback timeout - proceeding with navigation');
+        console.log('[HistoryManager] Proceeding with navigation (save continues in background)');
         safeCallback();
-      }, 5000);
+      }, 500);
     }
 
     // Try multi-page tool forms first (Tool 1/2/3/5/7)
