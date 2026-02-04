@@ -3423,6 +3423,7 @@ const Tool6 = {
   buildUnifiedPage(clientId, resolvedData, preSurveyData, profile, allocation) {
     const styles = HtmlService.createHtmlOutputFromFile('shared/styles').getContent();
     const tool6Styles = HtmlService.createHtmlOutputFromFile('tools/tool6/tool6-styles').getContent();
+    const historyManager = HtmlService.createHtmlOutputFromFile('shared/history-manager').getContent();
     const hasPreSurvey = !!preSurveyData;
     const hasAllocation = !!allocation && allocation.totalBudget > 0;
     const hasProfile = !!profile;  // User has completed classification
@@ -3501,6 +3502,7 @@ const Tool6 = {
   <title>Retirement Blueprint Calculator</title>
   ${styles}
   ${tool6Styles}
+  ${historyManager}
 </head>
 <body>
   ${headerHtml}
@@ -3875,6 +3877,16 @@ const Tool6 = {
       google.script.run
         .withSuccessHandler(function(dashboardHtml) {
           if (dashboardHtml) {
+            // Save dashboard location BEFORE document.write() to prevent refresh recovery loop
+            try {
+              sessionStorage.setItem('_ftpCurrentLocation', JSON.stringify({
+                view: 'dashboard',
+                toolId: null,
+                page: null,
+                clientId: '${clientId}',
+                timestamp: Date.now()
+              }));
+            } catch(e) {}
             document.open();
             document.write(dashboardHtml);
             document.close();
@@ -6998,6 +7010,12 @@ const Tool6 = {
   <!-- FeedbackWidget - Get Help Button (Sprint 11.1) -->
   ${FeedbackWidget.render(clientId, 'tool6', 'calculator')}
 
+  <script>
+    // Initialize history manager for back button and refresh support
+    if (typeof initHistoryManager === 'function') {
+      initHistoryManager('${clientId}');
+    }
+  </script>
 </body>
 </html>
     `;

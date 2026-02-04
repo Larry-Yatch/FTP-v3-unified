@@ -188,6 +188,16 @@ const Tool2Report = {
 
               google.script.run
                 .withSuccessHandler(function(dashboardHtml) {
+                  // Save dashboard location BEFORE document.write() to prevent refresh recovery loop
+                  try {
+                    sessionStorage.setItem('_ftpCurrentLocation', JSON.stringify({
+                      view: 'dashboard',
+                      toolId: null,
+                      page: null,
+                      clientId: clientId,
+                      timestamp: Date.now()
+                    }));
+                  } catch(e) {}
                   // Replace current document with dashboard HTML
                   document.open();
                   document.write(dashboardHtml);

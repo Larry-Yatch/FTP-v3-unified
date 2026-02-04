@@ -329,6 +329,16 @@ const Router = {
             google.script.run
                 .withSuccessHandler(function(result) {
                   if (result && result.success) {
+                    // Clear any stale location from previous session before loading dashboard
+                    try {
+                      sessionStorage.setItem('_ftpCurrentLocation', JSON.stringify({
+                        view: 'dashboard',
+                        toolId: null,
+                        page: null,
+                        clientId: result.clientId || studentIdInput.value.trim(),
+                        timestamp: Date.now()
+                      }));
+                    } catch(e) {}
                     // Got dashboard HTML - load it
                     document.open();
                     document.write(result.dashboardHtml);
@@ -389,6 +399,16 @@ const Router = {
             google.script.run
                 .withSuccessHandler(function(result) {
                   if (result && result.success) {
+                    // Clear any stale location from previous session before loading dashboard
+                    try {
+                      sessionStorage.setItem('_ftpCurrentLocation', JSON.stringify({
+                        view: 'dashboard',
+                        toolId: null,
+                        page: null,
+                        clientId: result.clientId,
+                        timestamp: Date.now()
+                      }));
+                    } catch(e) {}
                     // Got dashboard HTML - load it
                     document.open();
                     document.write(result.dashboardHtml);

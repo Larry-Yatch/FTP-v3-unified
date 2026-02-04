@@ -954,6 +954,16 @@ const Tool3 = {
             google.script.run
               .withSuccessHandler(function(dashboardHtml) {
                 if (dashboardHtml) {
+                  // Save dashboard location BEFORE document.write() to prevent refresh recovery loop
+                  try {
+                    sessionStorage.setItem('_ftpCurrentLocation', JSON.stringify({
+                      view: 'dashboard',
+                      toolId: null,
+                      page: null,
+                      clientId: '${clientId}',
+                      timestamp: Date.now()
+                    }));
+                  } catch(e) {}
                   document.open();
                   document.write(dashboardHtml);
                   document.close();

@@ -429,6 +429,7 @@ const Tool4 = {
 
 buildUnifiedPage(clientId, toolStatus, preSurveyData, allocation) {
   const styles = HtmlService.createHtmlOutputFromFile('shared/styles').getContent();
+  const historyManager = HtmlService.createHtmlOutputFromFile('shared/history-manager').getContent();
   const hasPreSurvey = !!preSurveyData;
   const hasTool1 = toolStatus.hasTool1;
   const hasTool2 = toolStatus.hasTool2;
@@ -726,6 +727,7 @@ buildUnifiedPage(clientId, toolStatus, preSurveyData, allocation) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <base target="_top">
   ${styles}
+  ${historyManager}
   <style>
     .unified-container {
       max-width: 1000px;
@@ -1492,7 +1494,7 @@ buildUnifiedPage(clientId, toolStatus, preSurveyData, allocation) {
     </div>
   </div>
 
-  <div class="unified-container">
+  <div class="unified-container tool4-container">
 
     <!-- Page Header -->
     <div style="margin-bottom: 20px;">
@@ -2437,6 +2439,16 @@ buildUnifiedPage(clientId, toolStatus, preSurveyData, allocation) {
       google.script.run
         .withSuccessHandler(function(dashboardHtml) {
           if (dashboardHtml) {
+            // Save dashboard location BEFORE document.write() to prevent refresh recovery loop
+            try {
+              sessionStorage.setItem('_ftpCurrentLocation', JSON.stringify({
+                view: 'dashboard',
+                toolId: null,
+                page: null,
+                clientId: '${clientId}',
+                timestamp: Date.now()
+              }));
+            } catch(e) {}
             document.open();
             document.write(dashboardHtml);
             document.close();
@@ -4532,6 +4544,12 @@ buildUnifiedPage(clientId, toolStatus, preSurveyData, allocation) {
         })
         .savePreSurvey(clientId, formData);
     });
+  </script>
+  <script>
+    // Initialize history manager for back button and refresh support
+    if (typeof initHistoryManager === 'function') {
+      initHistoryManager('${clientId}');
+    }
   </script>
 </body>
 </html>
