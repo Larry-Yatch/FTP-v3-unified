@@ -288,34 +288,38 @@
       showLoading('Navigating...');
     }
 
-    // Save form data in background (don't wait for it to complete)
-    saveCurrentFormDataAsync();
-
-    // Navigate immediately - don't wait for save
-    switch(state.view) {
-      case 'dashboard':
-        loadDashboard(clientId);
-        break;
-      case 'tool':
-        if (state.toolId && state.page) {
-          loadToolPage(state.toolId, clientId, state.page);
-        } else {
-          console.warn('[HistoryManager] Tool state missing toolId or page, going to dashboard');
+    // Navigation helper - called after save completes (or immediately if no form)
+    function navigateToState() {
+      switch(state.view) {
+        case 'dashboard':
           loadDashboard(clientId);
-        }
-        break;
-      case 'report':
-        if (state.toolId) {
-          loadReport(state.toolId, clientId);
-        } else {
-          console.warn('[HistoryManager] Report state missing toolId, going to dashboard');
+          break;
+        case 'tool':
+          if (state.toolId && state.page) {
+            loadToolPage(state.toolId, clientId, state.page);
+          } else {
+            console.warn('[HistoryManager] Tool state missing toolId or page, going to dashboard');
+            loadDashboard(clientId);
+          }
+          break;
+        case 'report':
+          if (state.toolId) {
+            loadReport(state.toolId, clientId);
+          } else {
+            console.warn('[HistoryManager] Report state missing toolId, going to dashboard');
+            loadDashboard(clientId);
+          }
+          break;
+        default:
+          console.warn('[HistoryManager] Unknown view:', state.view);
           loadDashboard(clientId);
-        }
-        break;
-      default:
-        console.warn('[HistoryManager] Unknown view:', state.view);
-        loadDashboard(clientId);
+      }
     }
+
+    // Save form data FIRST, then navigate after save completes
+    // This prevents concurrent google.script.run calls which cause GAS to
+    // reload the iframe when document.write() destroys the pending callback
+    saveCurrentFormDataAsync(navigateToState);
   }
 
   /**
@@ -408,10 +412,11 @@
   }
 
   /**
-   * Save current form data asynchronously (fire-and-forget, no callback)
-   * Used for immediate navigation without waiting for save
+   * Save current form data, then call callback when done
+   * Callback is always called (on success, failure, or if no form found)
+   * @param {Function} callback - Called after save completes or immediately if no form
    */
-  function saveCurrentFormDataAsync() {
+  function saveCurrentFormDataAsync(callback) {
     // Try multi-page tool forms first (Tool 1/2/3/5/7)
     var forms = document.querySelectorAll('form[id*="Page"]');
     if (forms.length > 0) {
@@ -423,16 +428,20 @@
         var data = Object.fromEntries(formData.entries());
 
         if (Object.keys(data).length > 0) {
-          console.log('[HistoryManager] Saving form data async for', toolId);
+          console.log('[HistoryManager] Saving form data for', toolId);
           google.script.run
             .withSuccessHandler(function() {
-              console.log('[HistoryManager] Async form data saved');
+              console.log('[HistoryManager] Form data saved');
+              callback();
             })
             .withFailureHandler(function(error) {
-              console.warn('[HistoryManager] Async form save failed:', error);
+              console.warn('[HistoryManager] Form save failed:', error);
+              callback(); // Continue navigation even if save fails
             })
             .saveToolPageData(toolId, data);
+          return;
         }
+        callback();
         return;
       }
     }
@@ -441,7 +450,7 @@
     var tool4Form = document.getElementById('preSurveyForm');
     var tool4Container = document.querySelector('.tool4-container');
     if (tool4Form && tool4Container) {
-      saveTool4DataAsync();
+      saveTool4DataAsync(callback);
       return;
     }
 
@@ -449,18 +458,21 @@
     var tool6Form = document.getElementById('questionnaireForm');
     var tool6Container = document.querySelector('.tool6-container');
     if (tool6Form && tool6Container) {
-      saveTool6DataAsync();
+      saveTool6DataAsync(callback);
       return;
     }
+
+    // No form found - navigate immediately
+    callback();
   }
 
   /**
-   * Save Tool 4 calculator data asynchronously
-   * Collects data from preSurveyForm and calls savePreSurvey
+   * Save Tool 4 calculator data, then call callback when done
+   * @param {Function} callback - Called after save completes or immediately if no data
    */
-  function saveTool4DataAsync() {
+  function saveTool4DataAsync(callback) {
     var form = document.getElementById('preSurveyForm');
-    if (!form) return;
+    if (!form) { callback(); return; }
 
     // Collect form data
     var data = {
@@ -480,27 +492,30 @@
     // Only save if we have meaningful data
     if (!data.monthlyIncome && !data.monthlyEssentials) {
       console.log('[HistoryManager] Tool 4 form empty, skipping save');
+      callback();
       return;
     }
 
-    console.log('[HistoryManager] Saving Tool 4 data async');
+    console.log('[HistoryManager] Saving Tool 4 data');
     google.script.run
       .withSuccessHandler(function() {
         console.log('[HistoryManager] Tool 4 data saved');
+        callback();
       })
       .withFailureHandler(function(error) {
         console.warn('[HistoryManager] Tool 4 save failed:', error);
+        callback(); // Continue navigation even if save fails
       })
       .savePreSurvey(_clientId, data);
   }
 
   /**
-   * Save Tool 6 calculator data asynchronously
-   * Collects data from questionnaireForm and backup questions, calls savePreSurveyTool6
+   * Save Tool 6 calculator data, then call callback when done
+   * @param {Function} callback - Called after save completes or immediately if no data
    */
-  function saveTool6DataAsync() {
+  function saveTool6DataAsync(callback) {
     var form = document.getElementById('questionnaireForm');
-    if (!form) return;
+    if (!form) { callback(); return; }
 
     // Collect all form inputs (Tool 6 has many dynamic fields)
     var data = { client: _clientId };
@@ -532,16 +547,19 @@
 
     if (!hasData) {
       console.log('[HistoryManager] Tool 6 form empty, skipping save');
+      callback();
       return;
     }
 
-    console.log('[HistoryManager] Saving Tool 6 data async');
+    console.log('[HistoryManager] Saving Tool 6 data');
     google.script.run
       .withSuccessHandler(function() {
         console.log('[HistoryManager] Tool 6 data saved');
+        callback();
       })
       .withFailureHandler(function(error) {
         console.warn('[HistoryManager] Tool 6 save failed:', error);
+        callback(); // Continue navigation even if save fails
       })
       .savePreSurveyTool6(_clientId, data);
   }
@@ -684,8 +702,8 @@
       return;
     }
 
-    // Only recover if stored view was tool or report (not dashboard/login)
-    if (storedLocation.view !== 'tool' && storedLocation.view !== 'report') {
+    // Only recover if stored view was tool, report, or dashboard (not login)
+    if (storedLocation.view === 'login') {
       console.log('[HistoryManager] Stored view is not recoverable:', storedLocation.view);
       return;
     }
@@ -708,6 +726,9 @@
         if (storedLocation.toolId) {
           loadReport(storedLocation.toolId, storedLocation.clientId);
         }
+        break;
+      case 'dashboard':
+        loadDashboard(storedLocation.clientId);
         break;
     }
   }
