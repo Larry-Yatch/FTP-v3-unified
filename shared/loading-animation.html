@@ -164,10 +164,7 @@
               document.open();
               document.write(dashboardHtml);
               document.close();
-              // Push history state for back button support
-              if (typeof pushAppState === 'function') {
-                pushAppState('dashboard', {});
-              }
+              // Note: History state is pushed by initHistoryManager when dashboard loads
             })
             .withFailureHandler(function(error) {
               hideLoading();
@@ -184,10 +181,7 @@
               document.open();
               document.write(dashboardHtml);
               document.close();
-              // Push history state for back button support
-              if (typeof pushAppState === 'function') {
-                pushAppState('dashboard', {});
-              }
+              // Note: History state is pushed by initHistoryManager when dashboard loads
             })
             .withFailureHandler(function(error) {
               hideLoading();
@@ -206,10 +200,7 @@
           document.open();
           document.write(dashboardHtml);
           document.close();
-          // Push history state for back button support
-          if (typeof pushAppState === 'function') {
-            pushAppState('dashboard', {});
-          }
+          // Note: History state is pushed by initHistoryManager when dashboard loads
         })
         .withFailureHandler(function(error) {
           hideLoading();

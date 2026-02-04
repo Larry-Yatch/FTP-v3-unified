@@ -10,6 +10,7 @@
   var _clientId = null;
   var _isRestoring = false;
   var _initialized = false;
+  var RESTORE_FLAG_KEY = '_historyManagerRestoring';
 
   /**
    * Initialize the history manager
@@ -21,17 +22,39 @@
       return;
     }
 
+    // Check if google.script.history API is available
+    if (typeof google === 'undefined' || !google.script || !google.script.history) {
+      console.warn('[HistoryManager] google.script.history API not available - back button support disabled');
+      return;
+    }
+
+    // Check if we're restoring from a back/forward navigation (flag set by previous page)
+    var wasRestoring = false;
+    try {
+      wasRestoring = sessionStorage.getItem(RESTORE_FLAG_KEY) === 'true';
+      sessionStorage.removeItem(RESTORE_FLAG_KEY); // Clear flag after reading
+    } catch (e) {
+      // sessionStorage might not be available
+    }
+
     _clientId = clientId;
     _initialized = true;
 
-    // Set up the history change handler (fires on back/forward)
-    google.script.history.setChangeHandler(handleHistoryChange);
+    try {
+      // Set up the history change handler (fires on back/forward)
+      google.script.history.setChangeHandler(handleHistoryChange);
+      console.log('[HistoryManager] Change handler registered');
 
-    // Push initial state for current view (if not restoring from back button)
-    if (!_isRestoring) {
-      var currentView = detectCurrentView();
-      console.log('[HistoryManager] Initialized with view:', currentView.view, currentView.options);
-      pushAppState(currentView.view, currentView.options);
+      // Push initial state for current view (if not restoring from back button)
+      if (!wasRestoring) {
+        var currentView = detectCurrentView();
+        console.log('[HistoryManager] Initialized with view:', currentView.view, currentView.options);
+        pushAppState(currentView.view, currentView.options);
+      } else {
+        console.log('[HistoryManager] Skipping initial push - restored from back/forward');
+      }
+    } catch (e) {
+      console.error('[HistoryManager] Error initializing:', e);
     }
   };
 
@@ -42,6 +65,11 @@
    * @param {Object} options - { toolId, page } depending on view
    */
   window.pushAppState = function(view, options) {
+    // Check if API is available
+    if (typeof google === 'undefined' || !google.script || !google.script.history) {
+      return;
+    }
+
     // Do not push state if we are currently restoring from back button
     if (_isRestoring) {
       console.log('[HistoryManager] Skipping pushState during restoration');
@@ -57,8 +85,12 @@
       timestamp: Date.now()
     };
 
-    console.log('[HistoryManager] Pushing state:', state);
-    google.script.history.push(state, {}, '');
+    try {
+      console.log('[HistoryManager] Pushing state:', state);
+      google.script.history.push(state, {}, '');
+    } catch (e) {
+      console.error('[HistoryManager] Error pushing state:', e);
+    }
   };
 
   /**
@@ -78,33 +110,39 @@
     _isRestoring = true;
     var clientId = state.clientId || _clientId;
 
-    // Save current form data before navigating away
-    saveCurrentFormData(function() {
-      switch(state.view) {
-        case 'dashboard':
+    // Show loading IMMEDIATELY for instant feedback
+    if (typeof showLoading === 'function') {
+      showLoading('Navigating...');
+    }
+
+    // Save form data in background (don't wait for it to complete)
+    saveCurrentFormDataAsync();
+
+    // Navigate immediately - don't wait for save
+    switch(state.view) {
+      case 'dashboard':
+        loadDashboard(clientId);
+        break;
+      case 'tool':
+        if (state.toolId && state.page) {
+          loadToolPage(state.toolId, clientId, state.page);
+        } else {
+          console.warn('[HistoryManager] Tool state missing toolId or page, going to dashboard');
           loadDashboard(clientId);
-          break;
-        case 'tool':
-          if (state.toolId && state.page) {
-            loadToolPage(state.toolId, clientId, state.page);
-          } else {
-            console.warn('[HistoryManager] Tool state missing toolId or page, going to dashboard');
-            loadDashboard(clientId);
-          }
-          break;
-        case 'report':
-          if (state.toolId) {
-            loadReport(state.toolId, clientId);
-          } else {
-            console.warn('[HistoryManager] Report state missing toolId, going to dashboard');
-            loadDashboard(clientId);
-          }
-          break;
-        default:
-          console.warn('[HistoryManager] Unknown view:', state.view);
+        }
+        break;
+      case 'report':
+        if (state.toolId) {
+          loadReport(state.toolId, clientId);
+        } else {
+          console.warn('[HistoryManager] Report state missing toolId, going to dashboard');
           loadDashboard(clientId);
-      }
-    });
+        }
+        break;
+      default:
+        console.warn('[HistoryManager] Unknown view:', state.view);
+        loadDashboard(clientId);
+    }
   }
 
   /**
@@ -191,14 +229,42 @@
   }
 
   /**
+   * Save current form data asynchronously (fire-and-forget, no callback)
+   * Used for immediate navigation without waiting for save
+   */
+  function saveCurrentFormDataAsync() {
+    var forms = document.querySelectorAll('form[id*="Page"]');
+    if (forms.length === 0) return;
+
+    var form = forms[0];
+    var match = form.id.match(/^(tool\d+)/);
+    if (!match) return;
+
+    var toolId = match[1];
+    var formData = new FormData(form);
+    var data = Object.fromEntries(formData.entries());
+
+    if (Object.keys(data).length === 0) return;
+
+    console.log('[HistoryManager] Saving form data async for', toolId);
+
+    // Fire and forget - don't wait for response
+    google.script.run
+      .withSuccessHandler(function() {
+        console.log('[HistoryManager] Async form data saved');
+      })
+      .withFailureHandler(function(error) {
+        console.warn('[HistoryManager] Async form save failed:', error);
+      })
+      .saveToolPageData(toolId, data);
+  }
+
+  /**
    * Load dashboard page
    * @param {string} clientId
    */
   function loadDashboard(clientId) {
-    if (typeof showLoading === 'function') {
-      showLoading('Loading Dashboard');
-    }
-
+    // Loading already shown by handleHistoryChange
     google.script.run
       .withSuccessHandler(function(html) {
         writeAndFinishRestore(html);
@@ -260,15 +326,19 @@
       return;
     }
 
+    // Set flag so the NEW page knows not to push duplicate state
+    try {
+      sessionStorage.setItem(RESTORE_FLAG_KEY, 'true');
+    } catch (e) {
+      // sessionStorage might not be available
+    }
+
     document.open();
     document.write(html);
     document.close();
     window.scrollTo(0, 0);
-
-    // Clear restoring flag after a short delay (allows new page scripts to run)
-    setTimeout(function() {
-      _isRestoring = false;
-    }, 100);
+    // Note: The NEW page will check sessionStorage for RESTORE_FLAG_KEY
+    // and skip pushing duplicate state
   }
 
   /**

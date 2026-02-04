@@ -69,10 +69,7 @@ const FormUtils = {
                 document.close();
                 // Scroll to top of new page
                 window.scrollTo(0, 0);
-                // Push history state for back button support (next page = current + 1)
-                if (typeof pushAppState === 'function') {
-                  pushAppState('tool', { toolId: '${toolId}', page: page + 1 });
-                }
+                // Note: History state is pushed by initHistoryManager when the new page loads
               } else {
                 hideLoading();
                 alert('Error: Server did not return next page HTML');
@@ -202,10 +199,7 @@ const FormUtils = {
                   document.close();
                   // Scroll to top of new page
                   window.scrollTo(0, 0);
-                  // Push history state for back button support (report view)
-                  if (typeof pushAppState === 'function') {
-                    pushAppState('report', { toolId: '${toolId}' });
-                  }
+                  // Note: History state is pushed by initHistoryManager when the new page loads
                 } else {
                   hideLoading();
                   alert('Error: Server did not return report HTML');

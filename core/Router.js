@@ -698,10 +698,7 @@ const Router = {
                   document.open();
                   document.write(reportHtml);
                   document.close();
-                  // Push history state for back button support
-                  if (typeof pushAppState === 'function') {
-                    pushAppState('report', { toolId: 'tool1' });
-                  }
+                  // Note: History state is pushed by initHistoryManager when report loads
                 })
                 .withFailureHandler(function(error) {
                   hideLoading();
