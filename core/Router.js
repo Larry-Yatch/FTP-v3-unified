@@ -199,6 +199,7 @@ const Router = {
         </style>
         <?!= include('shared/styles') ?>
         <?!= include('shared/loading-animation') ?>
+        <?!= include('shared/history-manager') ?>
       </head>
       <body id="loginPage">
         <div class="login-container">

@@ -145,14 +145,11 @@
           page: currentView.options.page || null
         };
 
-        // Only attempt refresh recovery for tool pages within the SAME tool
-        // This handles the case where user was on page 3, refreshed, URL loaded page 1
-        // We don't auto-redirect for cross-tool or dashboard/report navigation
-        // (those use URL navigation which is self-recovering)
+        // Determine if we should attempt refresh recovery
         var shouldRecover = false;
 
+        // Case 1: Stored tool page, current is same tool but earlier page
         if (storedLocation.view === 'tool' && currentLocation.view === 'tool') {
-          // Same tool, different page - likely a refresh
           if (storedLocation.toolId === currentLocation.toolId &&
               storedLocation.page !== currentLocation.page &&
               storedLocation.page > currentLocation.page) {
@@ -161,11 +158,18 @@
           }
         }
 
-        // Also recover if stored was report but current is tool (same toolId)
-        // This happens when user viewed report via document.write, then refreshed
+        // Case 2: Stored report but current is tool (same toolId)
         if (storedLocation.view === 'report' && currentLocation.view === 'tool' &&
             storedLocation.toolId === currentLocation.toolId) {
           console.log('[HistoryManager] Refresh detected! User was viewing report but URL loaded tool page');
+          shouldRecover = true;
+        }
+
+        // Case 3: Stored tool/report but current is login or dashboard (URL had no params)
+        // This happens when login used document.write() and URL never changed
+        if ((storedLocation.view === 'tool' || storedLocation.view === 'report') &&
+            (currentLocation.view === 'login' || currentLocation.view === 'dashboard')) {
+          console.log('[HistoryManager] Refresh detected! User was in', storedLocation.view, 'but URL loaded', currentLocation.view);
           shouldRecover = true;
         }
 
@@ -176,17 +180,20 @@
             showLoading('Restoring your place...');
           }
 
+          // Use stored clientId if current clientId is not available (e.g., on login page)
+          var recoveryClientId = clientId || storedLocation.clientId;
+
           // Redirect based on stored view
           switch(storedLocation.view) {
             case 'tool':
-              if (storedLocation.toolId && storedLocation.page) {
-                loadToolPage(storedLocation.toolId, clientId, storedLocation.page);
+              if (storedLocation.toolId && storedLocation.page && recoveryClientId) {
+                loadToolPage(storedLocation.toolId, recoveryClientId, storedLocation.page);
                 return; // Exit - page will reload
               }
               break;
             case 'report':
-              if (storedLocation.toolId) {
-                loadReport(storedLocation.toolId, clientId);
+              if (storedLocation.toolId && recoveryClientId) {
+                loadReport(storedLocation.toolId, recoveryClientId);
                 return; // Exit - page will reload
               }
               break;
@@ -346,6 +353,12 @@
       var toolIdMeta = document.querySelector('meta[name="tool-id"]');
       var toolId = toolIdMeta ? toolIdMeta.content : null;
       return { view: 'report', options: { toolId: toolId }};
+    }
+
+    // Check for login page (has loginForm or loginPage id)
+    var loginForm = document.querySelector('#loginForm, #loginPage');
+    if (loginForm) {
+      return { view: 'login', options: {} };
     }
 
     // Default to dashboard
@@ -527,6 +540,64 @@
 
     console.error('[HistoryManager] Error loading ' + pageType + ':', error);
     alert('Error loading ' + pageType + ': ' + (error.message || error));
+  }
+
+  /**
+   * Auto-recovery for login page
+   * Runs automatically when history-manager loads on a page without initHistoryManager being called
+   * This handles the case where user refreshes and gets sent back to login
+   */
+  function attemptAutoRecovery() {
+    // Only run if we have not been initialized (login page does not call initHistoryManager)
+    if (_initialized) return;
+
+    // Check if we are on the login page
+    var loginForm = document.querySelector('#loginForm, #loginPage');
+    if (!loginForm) return;
+
+    console.log('[HistoryManager] Auto-recovery check on login page');
+
+    // Check for stored location
+    var storedLocation = getStoredLocation();
+    if (!storedLocation || !storedLocation.clientId) {
+      console.log('[HistoryManager] No stored location or clientId for recovery');
+      return;
+    }
+
+    // Only recover if stored view was tool or report (not dashboard/login)
+    if (storedLocation.view !== 'tool' && storedLocation.view !== 'report') {
+      console.log('[HistoryManager] Stored view is not recoverable:', storedLocation.view);
+      return;
+    }
+
+    console.log('[HistoryManager] Auto-recovering from login to', storedLocation.view);
+    _isRestoring = true;
+
+    if (typeof showLoading === 'function') {
+      showLoading('Restoring your place...');
+    }
+
+    // Redirect based on stored view
+    switch(storedLocation.view) {
+      case 'tool':
+        if (storedLocation.toolId && storedLocation.page) {
+          loadToolPage(storedLocation.toolId, storedLocation.clientId, storedLocation.page);
+        }
+        break;
+      case 'report':
+        if (storedLocation.toolId) {
+          loadReport(storedLocation.toolId, storedLocation.clientId);
+        }
+        break;
+    }
+  }
+
+  // Run auto-recovery when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', attemptAutoRecovery);
+  } else {
+    // DOM already loaded, run immediately
+    attemptAutoRecovery();
   }
 
 })();
