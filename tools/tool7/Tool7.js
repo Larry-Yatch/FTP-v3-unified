@@ -943,11 +943,31 @@ const Tool7 = {
             <p style="background: rgba(220, 53, 69, 0.1); padding: 15px; border-radius: 8px; font-family: monospace;">
               ${error.message}
             </p>
-            <button class="btn-primary" onclick="window.location.href='${baseUrl}?route=dashboard&client=${clientId}'">
+            <button class="btn-primary" onclick="returnToDashboard()">
               Return to Dashboard →
             </button>
           </div>
         </div>
+        <script>
+          function returnToDashboard() {
+            google.script.run
+              .withSuccessHandler(function(dashboardHtml) {
+                if (dashboardHtml) {
+                  document.open();
+                  document.write(dashboardHtml);
+                  document.close();
+                  window.scrollTo(0, 0);
+                } else {
+                  alert('Error loading dashboard');
+                }
+              })
+              .withFailureHandler(function(error) {
+                console.error('Navigation error:', error);
+                alert('Error returning to dashboard: ' + error.message);
+              })
+              .getDashboardPage('${clientId}');
+          }
+        </script>
       </body>
       </html>
     `;
