@@ -412,30 +412,150 @@
    * Used for immediate navigation without waiting for save
    */
   function saveCurrentFormDataAsync() {
+    // Try multi-page tool forms first (Tool 1/2/3/5/7)
     var forms = document.querySelectorAll('form[id*="Page"]');
-    if (forms.length === 0) return;
+    if (forms.length > 0) {
+      var form = forms[0];
+      var match = form.id.match(/^(tool\d+)/);
+      if (match) {
+        var toolId = match[1];
+        var formData = new FormData(form);
+        var data = Object.fromEntries(formData.entries());
 
-    var form = forms[0];
-    var match = form.id.match(/^(tool\d+)/);
-    if (!match) return;
+        if (Object.keys(data).length > 0) {
+          console.log('[HistoryManager] Saving form data async for', toolId);
+          google.script.run
+            .withSuccessHandler(function() {
+              console.log('[HistoryManager] Async form data saved');
+            })
+            .withFailureHandler(function(error) {
+              console.warn('[HistoryManager] Async form save failed:', error);
+            })
+            .saveToolPageData(toolId, data);
+        }
+        return;
+      }
+    }
 
-    var toolId = match[1];
-    var formData = new FormData(form);
-    var data = Object.fromEntries(formData.entries());
+    // Try Tool 4 calculator (preSurveyForm)
+    var tool4Form = document.getElementById('preSurveyForm');
+    var tool4Container = document.querySelector('.tool4-container');
+    if (tool4Form && tool4Container) {
+      saveTool4DataAsync();
+      return;
+    }
 
-    if (Object.keys(data).length === 0) return;
+    // Try Tool 6 calculator (questionnaireForm)
+    var tool6Form = document.getElementById('questionnaireForm');
+    var tool6Container = document.querySelector('.tool6-container');
+    if (tool6Form && tool6Container) {
+      saveTool6DataAsync();
+      return;
+    }
+  }
 
-    console.log('[HistoryManager] Saving form data async for', toolId);
+  /**
+   * Save Tool 4 calculator data asynchronously
+   * Collects data from preSurveyForm and calls savePreSurvey
+   */
+  function saveTool4DataAsync() {
+    var form = document.getElementById('preSurveyForm');
+    if (!form) return;
 
-    // Fire and forget - don't wait for response
+    // Collect form data
+    var data = {
+      client: _clientId,
+      monthlyIncome: getInputValue('monthlyIncome'),
+      monthlyEssentials: getInputValue('monthlyEssentials'),
+      totalDebt: getInputValue('totalDebt'),
+      emergencyFund: getInputValue('emergencyFund'),
+      debtInterest: getInputValue('debtInterest'),
+      enjoymentSpending: getInputValue('enjoymentSpending'),
+      satisfaction: getInputValue('satisfaction'),
+      discipline: getInputValue('discipline'),
+      selectedPriority: getInputValue('selectedPriority'),
+      goalTimeline: getInputValue('goalTimeline')
+    };
+
+    // Only save if we have meaningful data
+    if (!data.monthlyIncome && !data.monthlyEssentials) {
+      console.log('[HistoryManager] Tool 4 form empty, skipping save');
+      return;
+    }
+
+    console.log('[HistoryManager] Saving Tool 4 data async');
     google.script.run
       .withSuccessHandler(function() {
-        console.log('[HistoryManager] Async form data saved');
+        console.log('[HistoryManager] Tool 4 data saved');
       })
       .withFailureHandler(function(error) {
-        console.warn('[HistoryManager] Async form save failed:', error);
+        console.warn('[HistoryManager] Tool 4 save failed:', error);
       })
-      .saveToolPageData(toolId, data);
+      .savePreSurvey(_clientId, data);
+  }
+
+  /**
+   * Save Tool 6 calculator data asynchronously
+   * Collects data from questionnaireForm and backup questions, calls savePreSurveyTool6
+   */
+  function saveTool6DataAsync() {
+    var form = document.getElementById('questionnaireForm');
+    if (!form) return;
+
+    // Collect all form inputs (Tool 6 has many dynamic fields)
+    var data = { client: _clientId };
+
+    // Get all inputs from questionnaireForm
+    var formData = new FormData(form);
+    for (var pair of formData.entries()) {
+      data[pair[0]] = pair[1];
+    }
+
+    // Also get backup question inputs if they exist
+    var backupInputs = document.querySelectorAll('[id^="backup_"], [id^="a1_"], [id^="a2_"], [id^="a3_"], [id^="a4_"], [id^="a5_"], [id^="a6_"]');
+    backupInputs.forEach(function(input) {
+      if (input.type === 'radio' || input.type === 'checkbox') {
+        if (input.checked) {
+          data[input.id] = input.value;
+        }
+      } else if (input.tagName === 'SELECT') {
+        data[input.id] = input.value;
+      } else {
+        data[input.id] = input.value;
+      }
+    });
+
+    // Only save if we have meaningful data
+    var hasData = Object.keys(data).some(function(key) {
+      return key !== 'client' && data[key];
+    });
+
+    if (!hasData) {
+      console.log('[HistoryManager] Tool 6 form empty, skipping save');
+      return;
+    }
+
+    console.log('[HistoryManager] Saving Tool 6 data async');
+    google.script.run
+      .withSuccessHandler(function() {
+        console.log('[HistoryManager] Tool 6 data saved');
+      })
+      .withFailureHandler(function(error) {
+        console.warn('[HistoryManager] Tool 6 save failed:', error);
+      })
+      .savePreSurveyTool6(_clientId, data);
+  }
+
+  /**
+   * Helper to safely get input value by ID
+   */
+  function getInputValue(id) {
+    var el = document.getElementById(id);
+    if (!el) return '';
+    if (el.type === 'radio' || el.type === 'checkbox') {
+      return el.checked ? el.value : '';
+    }
+    return el.value || '';
   }
 
   /**
