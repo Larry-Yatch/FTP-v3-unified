@@ -704,6 +704,31 @@ function handleGetToolReportHTMLRequest(clientId, toolId) {
         }
         break;
 
+      case 'tool7':
+        // Tool7 uses GroundingReport pattern
+        const savedData7 = DataService.getToolResponse(clientId, 'tool7');
+        const assessmentData7 = savedData7?.data || savedData7;
+
+        if (assessmentData7.scoring && assessmentData7.gpt_insights && assessmentData7.syntheses) {
+          const gptInsights7 = {
+            subdomains: assessmentData7.gpt_insights?.subdomains || {},
+            domain1: assessmentData7.syntheses?.domain1,
+            domain2: assessmentData7.syntheses?.domain2,
+            overall: assessmentData7.syntheses?.overall
+          };
+
+          reportHTML = GroundingReport.generateReport({
+            toolId: 'tool7',
+            toolConfig: Tool7.config,
+            clientId: clientId,
+            baseUrl: ScriptApp.getService().getUrl(),
+            scoringResult: assessmentData7.scoring,
+            gptInsights: gptInsights7,
+            formData: assessmentData7.responses || {}
+          });
+        }
+        break;
+
       default:
         return {
           success: false,
