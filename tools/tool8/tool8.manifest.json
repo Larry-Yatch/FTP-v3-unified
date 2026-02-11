@@ -1,0 +1,51 @@
+{
+  "id": "tool8",
+  "name": "Investment Planning Tool",
+  "version": "1.0.0",
+  "description": "Retirement investment calculator with scenario planning, comparison reports, and trauma-informed action barriers",
+  "category": "calculator",
+  "estimatedMinutes": 20,
+  "requires": ["tool6"],
+  "unlocks": [],
+  "manifest": {
+    "entryPoint": "Tool8.render",
+    "processor": null,
+    "dependencies": [
+      "Tool8Constants",
+      "Tool8Report"
+    ]
+  },
+  "architecture": {
+    "type": "single-page-calculator",
+    "pattern": "calculator-report",
+    "storage": "TOOL8_SCENARIOS",
+    "multipleScenarios": true
+  },
+  "features": {
+    "threeCalculationModes": true,
+    "riskReturnMapping": true,
+    "scenarioManagement": true,
+    "scenarioComparison": true,
+    "pdfGeneration": true,
+    "upstreamDataPrePopulation": true,
+    "traumaIntegration": true,
+    "actionBarriers": true,
+    "backupQuestions": true,
+    "advancedSettings": true
+  },
+  "dataFlow": {
+    "pulls": {
+      "tool1": ["winningPattern", "scores"],
+      "tool2": ["age", "investmentConfidence", "employment"],
+      "tool3": ["subdomainQuotients"],
+      "tool4": ["monthlyIncome", "multiply"],
+      "tool5": ["subdomainQuotients"],
+      "tool6": ["investmentScore", "preSurveyBalances"],
+      "tool7": ["subdomainQuotients"]
+    },
+    "stores": {
+      "scenarios": "Investment scenarios with all parameters",
+      "projections": "Required savings, returns, or timeline calculations"
+    }
+  }
+}

@@ -224,7 +224,31 @@ function registerTools() {
     Tool7.manifest = tool7Manifest;
     ToolRegistry.register('tool7', Tool7, tool7Manifest);
 
-    console.log('Tools registered successfully (Tool 1, Tool 2, Tool 3, Tool 4, Tool 5, Tool 6, Tool 7)');
+    // Tool 8: Investment Planning Tool
+    const tool8Manifest = {
+      id: "tool8",
+      version: "1.0.0",
+      name: "Investment Planning Tool",
+      pattern: "calculator",
+      route: "tool8",
+      routes: ["/tool8"],
+      description: "Retirement investment calculator with scenario planning and comparison",
+      icon: "📈",
+      estimatedTime: "15-20 minutes",
+      categories: ["investment", "retirement", "planning"],
+      outputs: {
+        report: true,
+        pdf: true,
+        scenarios: true
+      },
+      dependencies: ["tool6"],
+      unlocks: []  // Last tool in sequence
+    };
+
+    Tool8.manifest = tool8Manifest;
+    ToolRegistry.register('tool8', Tool8, tool8Manifest);
+
+    console.log('Tools registered successfully (Tool 1, Tool 2, Tool 3, Tool 4, Tool 5, Tool 6, Tool 7, Tool 8)');
   } catch (error) {
     console.error('Error registering tools:', error);
   }
@@ -479,6 +503,88 @@ function generateTool4ComparisonPDF(clientId, scenario1, scenario2) {
   }
 
   return result;
+}
+
+/**
+ * Generate PDF for Tool 8 Investment Planning Report (single scenario)
+ * @param {string} clientId - Client ID
+ * @param {Object} scenarioData - Scenario data for the report
+ * @returns {object} {success, pdf, fileName, mimeType} or {success: false, error}
+ */
+function generateTool8PDF(clientId, scenarioData) {
+  try {
+    registerTools();
+    const result = Tool8Report.generatePDF(clientId, scenarioData);
+
+    if (result && result.success) {
+      DataService.logActivity(clientId, 'pdf_downloaded', {
+        toolId: 'tool8',
+        details: 'Downloaded Tool 8 Investment Planning PDF report'
+      });
+    }
+
+    return result;
+  } catch (error) {
+    Logger.log('Error generating Tool 8 PDF: ' + error);
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Generate PDF for Tool 8 Scenario Comparison Report
+ * @param {string} clientId - Client ID
+ * @param {Object} scenario1 - First scenario data
+ * @param {Object} scenario2 - Second scenario data
+ * @returns {object} {success, pdf, fileName, mimeType} or {success: false, error}
+ */
+function generateTool8ComparisonPDF(clientId, scenario1, scenario2) {
+  try {
+    registerTools();
+    const result = Tool8Report.generateComparisonPDF(clientId, scenario1, scenario2);
+
+    if (result && result.success) {
+      DataService.logActivity(clientId, 'pdf_downloaded', {
+        toolId: 'tool8',
+        details: 'Downloaded Tool 8 Comparison PDF report'
+      });
+    }
+
+    return result;
+  } catch (error) {
+    Logger.log('Error generating Tool 8 Comparison PDF: ' + error);
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Save Tool 8 scenario to spreadsheet
+ * @param {string} clientId - Client ID
+ * @param {Object} scenario - Scenario data to save
+ * @returns {Object} Result with success status
+ */
+function tool8SaveScenario(clientId, scenario) {
+  try {
+    registerTools();
+    return Tool8.saveScenario(clientId, scenario);
+  } catch (error) {
+    Logger.log('Error saving Tool 8 scenario: ' + error);
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get all Tool 8 scenarios for a client
+ * @param {string} clientId - Client ID
+ * @returns {Object} Result with scenarios array
+ */
+function tool8GetUserScenarios(clientId) {
+  try {
+    registerTools();
+    return Tool8.getUserScenarios(clientId);
+  } catch (error) {
+    Logger.log('Error getting Tool 8 scenarios: ' + error);
+    return { success: false, error: error.toString() };
+  }
 }
 
 /**
