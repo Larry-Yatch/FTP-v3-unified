@@ -25,10 +25,15 @@ const Tool8 = {
         return this.renderError('No client ID provided.');
       }
 
-      return this.buildPage(clientId);
+      const htmlContent = this.buildPage(clientId);
+      return HtmlService.createHtmlOutput(htmlContent)
+        .setTitle('Investment Planning Tool')
+        .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
     } catch (error) {
       console.error('Tool8.render error:', error);
-      return this.renderError(error.toString());
+      return HtmlService.createHtmlOutput(this.renderError(error.toString()))
+        .setTitle('Tool 8 - Error')
+        .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
     }
   },
 
