@@ -1,23 +1,29 @@
 # Financial TruPath v3 - Active TODOs
 
-## Tool 6
-
----
-
 ## Bugs
-- Add access to the investment tool - tool 8 now
-- Tool 5: last two domains have the same consequence look into that
-- discard draft in mid-draft does not actually discard draft it just takes you back to the main menu then you have to discard draft there.
-- overall can we make the back button in browser work right - for now it just takes you back to the login screen
+
+- we have an issue with multiple drafts and completed lines on the responses sheet having TRUE - which creates a draft issue
+
+
 
 - add "Attended by Watching" to admin panel - count toward participated
 
-Tool 7
-- the trust open response question is weak 
-- Check for the questions that seem too similar in both the first and second pages. 
-- Is there a trust people we shouldn't or just trust people we should section? 
+Tool 8
+
+- there is a possiblity that we should rebuild this tool in the future to make it a more useful investment calculator.  Instead of having it just focused on retirement investing we could make it universal so that it could be used to build a full investment plan.
+
+Meaning it could use an ambition tool to guide someone through all of the options to build the right plan for cashflow today verses retirement value.
+
+As well as all the variables that change the plan such as: Foundational strategies for investing
+- short long term
+- cash flow - end term value
+- taxes - now later
+- risk vs return - types domains of investing
+- Accredited / unaccredited
 
 Future features:
 - add persistance over time and trends over time
+
+- integratae spousal account dynamically
 
 

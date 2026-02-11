@@ -259,8 +259,8 @@ Split Phase 2 into incremental steps:
 
 | Step | Extract | Lines | Risk | Verification |
 |------|---------|-------|------|--------------|
-| 2a | `buildStyles()` | ~620 | Low | Already done in Phase 1 |
-| 2b | `buildHeader()` | ~150 | Low | Profile banner displays correctly |
+| 2a | `buildStyles()` | ~620 | Low | ✓ Done in Phase 1 |
+| 2b | `buildHeader()` | ~77 | Low | ✓ Done - Loading overlay, nav, welcome, profile banner, blocker extracted |
 | 2c | `buildAmbitionSection()` | ~300 | Medium | Phase C questions render, submit works |
 | 2d | `buildClientScripts()` | ~3,000 | **High** | Sliders drag, navigation works, forms submit |
 | 2e | Refactor orchestrator | ~200 | Medium | All phases render correctly |
@@ -676,3 +676,4 @@ formData.filingStatus = newStatus;  // Missing a6_ version
 | Jan 28, 2026 | Major revision after codebase analysis: updated line counts (+4,661 lines), noted test suite improvements (+1,606 lines), revised priorities, added critical warnings, updated buildUnifiedPage analysis (now 6,856 lines) |
 | Jan 28, 2026 | Reordered phases: Extract CSS is now Phase 1 (do first), Split buildUnifiedPage is now Phase 2 with mini-phases 2a-2e. Updated implementation sequence to match execution order. |
 | Jan 28, 2026 | **Phase 1 Complete:** Extracted 3,198 lines of CSS to `tool6-styles.html`. Initial approach using JS constant failed (GAS loading order issue). Switched to HtmlService pattern. Tool6.js reduced from 12,193 to 8,998 lines. Commits: fa30a50, fe5e393. |
+| Jan 28, 2026 | **Phase 2b Complete:** Extracted `buildHeader()` function (~77 lines of HTML). Contains loading overlay, navigation header, welcome message, profile banner, and blocker message. Tool6.js now 9,018 lines (+20 net due to function overhead). Slider CSS verified intact. |
