@@ -612,6 +612,12 @@ const Router = {
     const tool7Completed = tool7Latest && tool7Latest.status === 'COMPLETED';
     const tool7Access = ToolAccessControl.canAccessTool(clientId, 'tool7');
 
+    // Check Tool 8 status
+    let tool8Latest = DataService.getLatestResponse(clientId, 'tool8');
+    tool8Latest = autoExpireStaleEdit(clientId, 'tool8', tool8Latest);
+    const tool8Completed = tool8Latest && tool8Latest.status === 'COMPLETED';
+    const tool8Access = ToolAccessControl.canAccessTool(clientId, 'tool8');
+
     // Build Tool 1 card HTML based on status
     let tool1CardHTML = '';
 
@@ -741,7 +747,7 @@ const Router = {
 
             ${this._buildTool7Card(clientId, baseUrl, tool7Latest, tool7HasDraft, tool7Completed, tool7Access)}
 
-            <p class="muted mt-20 text-center">More tools will unlock as you progress</p>
+            ${this._buildTool8Card(clientId, tool8Latest, tool8Completed, tool8Access)}
           </div>
 
           <div class="text-center mt-20">
@@ -1760,6 +1766,66 @@ const Router = {
           <span class="badge">🔒 Locked</span>
           <p class="muted mt-10" style="font-size: 14px;">
             ${tool7Access.reason || 'Complete previous tools to unlock'}
+          </p>
+        </div>
+      `;
+    }
+  },
+
+  _buildTool8Card(clientId, tool8Latest, tool8Completed, tool8Access) {
+    // Tool 8 is a single-page calculator (like Tool 4/6)
+    if (tool8Completed) {
+      const completedDate = new Date(tool8Latest.timestamp).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+
+      return `
+        <div class="tool-card" style="margin-bottom: 15px; border: 2px solid #4CAF50;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <h3 style="margin: 0;">Tool 8: Investment Planning</h3>
+            <span class="badge" style="background: #4CAF50; color: white;">✓ Completed</span>
+          </div>
+          <p class="muted" style="margin-bottom: 10px;">Completed on ${completedDate}</p>
+
+          <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px;">
+            <button class="btn-primary" onclick="openTool8Calculator()">
+              📈 Open Calculator
+            </button>
+          </div>
+        </div>
+
+        <script>
+          function openTool8Calculator() {
+            showLoading('Loading Calculator');
+            google.script.run.withSuccessHandler(function(h){document.open();document.write(h);document.close();window.scrollTo(0,0);}).withFailureHandler(function(e){hideLoading();alert('Error: '+e.message);}).getToolPageHtml('tool8','${clientId}',1);
+          }
+        </script>
+      `;
+    } else if (tool8Access.allowed) {
+      return `
+        <div class="tool-card" style="margin-bottom: 15px;">
+          <h3>Tool 8: Investment Planning</h3>
+          <p class="muted">Retirement investment calculator with scenario planning and comparison</p>
+          <span class="badge" style="background: #2196F3; color: white;">✓ Ready</span>
+          <br><br>
+          <button class="btn-primary" onclick="startTool8()">
+            📈 Open Calculator
+          </button>
+        </div>
+        <script>
+          function startTool8(){showLoading('Loading Calculator');google.script.run.withSuccessHandler(function(h){document.open();document.write(h);document.close();window.scrollTo(0,0);}).withFailureHandler(function(e){hideLoading();alert('Error: '+e.message);}).getToolPageHtml('tool8','${clientId}',1);}
+        </script>
+      `;
+    } else {
+      return `
+        <div class="tool-card locked" style="margin-bottom: 15px; opacity: 0.6;">
+          <h3>Tool 8: Investment Planning</h3>
+          <p class="muted">Retirement investment calculator</p>
+          <span class="badge" style="background: #9E9E9E; color: white;">🔒 Locked</span>
+          <p class="muted mt-10" style="font-size: 0.9rem;">
+            ${tool8Access.reason || 'Complete Tool 7 to unlock'}
           </p>
         </div>
       `;
