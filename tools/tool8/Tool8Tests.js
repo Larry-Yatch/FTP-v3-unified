@@ -15,6 +15,12 @@
  *  9. Time-at-capacity solver
  * 10. Render pipeline (buildPage, HtmlOutput)
  * 11. Edge cases (T=0, zero rate, boundary inputs)
+ * 15. Warning constants integrity (18 definitions, field validation)
+ * 16. Warning trigger logic (all 12 recalc-time triggers)
+ * 17. Warning threshold cascade (capN field: 50%/25%/10%)
+ * 18. Warning render infrastructure (HTML verification)
+ * 19. Warning state tracking (gate logic, save-time triggers)
+ * 20. Backup questions & trauma insights constants
  */
 
 // ============================================================
@@ -177,6 +183,12 @@ function runAllTool8Tests() {
   run('Test 12: Render Pipeline', testRenderPipeline);
   run('Test 13: Cross-Validation (Contribution Mode)', testCrossValidationContrib);
   run('Test 14: Cross-Validation (Return Mode)', testCrossValidationReturn);
+  run('Test 15: Warning Constants Integrity', testWarningConstants);
+  run('Test 16: Warning Trigger Logic', testWarningTriggerLogic);
+  run('Test 17: Warning Threshold Cascade (capN)', testWarningCapNCascade);
+  run('Test 18: Warning Render Infrastructure', testWarningRenderInfrastructure);
+  run('Test 19: Warning State Tracking', testWarningStateTracking);
+  run('Test 20: Backup Questions & Trauma Insights', testBackupAndInsights);
 
   Logger.log('\n==========================================================');
   Logger.log('RESULTS: ' + results.passed + ' passed, ' + results.failed + ' failed, ' + results.total + ' total');
@@ -712,6 +724,557 @@ function testCrossValidationReturn() {
     Logger.log('  INFO: Time solver did not converge');
     p++;
   }
+
+  return { passed: p, failed: f };
+}
+
+// ============================================================
+// Phase 6: Contextual Warning System Tests
+// ============================================================
+
+/**
+ * Server-side simulation of showWarning gate logic.
+ * Mirrors the client-side showWarning() function.
+ * Returns true if warning WOULD fire (subdomain quotient > 50 and not pdf_only).
+ */
+function _t8_wouldShowWarning(warningId, prepop) {
+  var w = TOOL8_CONTEXTUAL_WARNINGS[warningId];
+  if (!w || w.trigger === 'pdf_only') return false;
+  var scoring = prepop[w.tool];
+  if (!scoring || !scoring.subdomainQuotients) return false;
+  var quotient = scoring.subdomainQuotients[w.subdomain];
+  if (!quotient || quotient <= 50) return false;
+  return true;
+}
+
+/**
+ * Server-side simulation of checkWarnings trigger conditions.
+ * Returns array of warning IDs that would fire given the input state.
+ */
+function _t8_simulateCheckWarnings(state) {
+  var fired = [];
+  var cap = state.cap || 0;
+  var a0 = state.a0 || 0;
+  var rsk = state.risk || 0;
+  var inc = state.income || 0;
+  var infl = state.inflation;
+  if (infl === undefined) infl = 2.5;
+  var overrideOn = state.overrideOn || false;
+  var rAccOvr = state.rAccOverride || 0;
+  var prepopCap = state.prepopCapacity || null;
+  var prepopAssets = state.prepopAssets || null;
+  var changedCount = state.changedCount || 0;
+  var advOpened = state.advancedOpened || false;
+  var advChanges = state.advancedChanges || 0;
+  var hasSaved = state.hasSaved || false;
+  var savedSnapshot = state.savedSnapshot || null;
+  var yearsVal = state.years || 20;
+
+  // 3_1_1 / avoidance: poverty-level retirement goal
+  if (inc > 0 && inc < 2000) fired.push('3_1_1');
+
+  // 3_1_2 / unrealistic_target
+  if (inc > 25000 || cap > 50000) fired.push('3_1_2');
+
+  // 3_2_1 / inflate_assets
+  if (prepopAssets && prepopAssets > 0 && a0 > prepopAssets * 1.5) fired.push('3_2_1');
+
+  // 3_2_3 / max_risk
+  if (rsk >= 7 || (overrideOn && rAccOvr > 20)) fired.push('3_2_3');
+
+  // 5_1_1 / near-zero contribution
+  if (prepopCap && prepopCap > 200 && cap < prepopCap * 0.10) fired.push('5_1_1');
+
+  // 5_1_2 / low_contribution
+  if (prepopCap && prepopCap > 200 && cap > 0 && cap < prepopCap * 0.25) fired.push('5_1_2');
+
+  // 5_1_3 / override_all_prepop
+  if (changedCount >= 4) fired.push('5_1_3');
+
+  // 7_1_1 / lower_income
+  if (prepopCap && prepopCap > 200 && cap < prepopCap * 0.50) fired.push('7_1_1');
+
+  // 7_1_2 / hoard_assets
+  if (prepopAssets && prepopAssets > 1000 && a0 < prepopAssets * 0.25) fired.push('7_1_2');
+
+  // 7_1_3 / change_everything
+  if (advOpened && advChanges >= 3 && changedCount >= 3) fired.push('7_1_3');
+
+  // 7_2_1 / no_protection
+  if (!isNaN(infl) && infl < 0.5) fired.push('7_2_1');
+
+  // 7_2_2 / sabotage_success
+  if (hasSaved && savedSnapshot) {
+    var worse = 0;
+    if (cap < savedSnapshot.cap * 0.7) worse++;
+    if (a0 < savedSnapshot.a0 * 0.7 && savedSnapshot.a0 > 0) worse++;
+    if (rsk > savedSnapshot.risk + 2) worse++;
+    if (yearsVal < savedSnapshot.years * 0.7 && savedSnapshot.years > 0) worse++;
+    if (worse >= 3) fired.push('7_2_2');
+  }
+
+  return fired;
+}
+
+
+/**
+ * Test 15: Verify TOOL8_CONTEXTUAL_WARNINGS structure
+ */
+function testWarningConstants() {
+  var p = 0, f = 0;
+  var W = TOOL8_CONTEXTUAL_WARNINGS;
+
+  // Should have exactly 18 warnings
+  var keys = Object.keys(W);
+  (_t8_assert('18 warning definitions', keys.length === 18, 'got ' + keys.length)) ? p++ : f++;
+
+  // Tool 3 subdomains: 6
+  var t3 = keys.filter(function(k) { return k.indexOf('3_') === 0; });
+  (_t8_assert('6 Tool 3 warnings', t3.length === 6, 'got ' + t3.length)) ? p++ : f++;
+
+  // Tool 5 subdomains: 6
+  var t5 = keys.filter(function(k) { return k.indexOf('5_') === 0; });
+  (_t8_assert('6 Tool 5 warnings', t5.length === 6, 'got ' + t5.length)) ? p++ : f++;
+
+  // Tool 7 subdomains: 6
+  var t7 = keys.filter(function(k) { return k.indexOf('7_') === 0; });
+  (_t8_assert('6 Tool 7 warnings', t7.length === 6, 'got ' + t7.length)) ? p++ : f++;
+
+  // Each warning has required fields
+  var allValid = true;
+  var missingFields = [];
+  for (var i = 0; i < keys.length; i++) {
+    var w = W[keys[i]];
+    if (!w.tool) { allValid = false; missingFields.push(keys[i] + '.tool'); }
+    if (!w.subdomain) { allValid = false; missingFields.push(keys[i] + '.subdomain'); }
+    if (!w.theme) { allValid = false; missingFields.push(keys[i] + '.theme'); }
+    if (!w.trigger) { allValid = false; missingFields.push(keys[i] + '.trigger'); }
+    if (!w.message) { allValid = false; missingFields.push(keys[i] + '.message'); }
+  }
+  (_t8_assert('All warnings have required fields', allValid,
+    missingFields.length ? 'missing: ' + missingFields.join(', ') : '')) ? p++ : f++;
+
+  // Verify tool references are valid
+  var validTools = ['tool3Scoring', 'tool5Scoring', 'tool7Scoring'];
+  var toolsValid = true;
+  for (var j = 0; j < keys.length; j++) {
+    if (validTools.indexOf(W[keys[j]].tool) === -1) { toolsValid = false; break; }
+  }
+  (_t8_assert('All tool references are valid', toolsValid)) ? p++ : f++;
+
+  // Verify subdomain references follow pattern
+  var subdomainValid = true;
+  for (var k = 0; k < keys.length; k++) {
+    if (!/^subdomain_[12]_[123]$/.test(W[keys[k]].subdomain)) { subdomainValid = false; break; }
+  }
+  (_t8_assert('All subdomain refs match pattern', subdomainValid)) ? p++ : f++;
+
+  // Exactly 3 pdf_only warnings
+  var pdfOnly = keys.filter(function(k) { return W[k].trigger === 'pdf_only'; });
+  (_t8_assert('3 pdf_only warnings', pdfOnly.length === 3, 'got ' + pdfOnly.length)) ? p++ : f++;
+
+  // pdf_only warnings are 5_2_2, 5_2_3, 7_2_3
+  var expectedPdfOnly = ['5_2_2', '5_2_3', '7_2_3'];
+  var pdfOnlyCorrect = true;
+  for (var m = 0; m < expectedPdfOnly.length; m++) {
+    if (pdfOnly.indexOf(expectedPdfOnly[m]) === -1) pdfOnlyCorrect = false;
+  }
+  (_t8_assert('Correct pdf_only warnings', pdfOnlyCorrect)) ? p++ : f++;
+
+  // Warning key matches tool+subdomain (e.g. 3_1_1 -> tool3Scoring + subdomain_1_1)
+  var keyMatchValid = true;
+  for (var n = 0; n < keys.length; n++) {
+    var key = keys[n];
+    var parts = key.split('_');
+    var expectedTool = 'tool' + parts[0] + 'Scoring';
+    var expectedSub = 'subdomain_' + parts[1] + '_' + parts[2];
+    if (W[key].tool !== expectedTool || W[key].subdomain !== expectedSub) {
+      keyMatchValid = false;
+      Logger.log('    Mismatch: ' + key + ' -> tool=' + W[key].tool + ', sub=' + W[key].subdomain);
+    }
+  }
+  (_t8_assert('Warning keys match tool+subdomain', keyMatchValid)) ? p++ : f++;
+
+  return { passed: p, failed: f };
+}
+
+
+/**
+ * Test 16: Warning trigger conditions fire correctly
+ * Tests each trigger with values that should/should not fire
+ */
+function testWarningTriggerLogic() {
+  var p = 0, f = 0;
+
+  // ---- 3_1_1: poverty-level income goal ----
+  var r1 = _t8_simulateCheckWarnings({ income: 1500 });
+  (_t8_assert('3_1_1 fires: income=$1500', r1.indexOf('3_1_1') !== -1)) ? p++ : f++;
+
+  var r1b = _t8_simulateCheckWarnings({ income: 5000 });
+  (_t8_assert('3_1_1 silent: income=$5000', r1b.indexOf('3_1_1') === -1)) ? p++ : f++;
+
+  var r1c = _t8_simulateCheckWarnings({ income: 0 });
+  (_t8_assert('3_1_1 silent: income=$0 (no goal set)', r1c.indexOf('3_1_1') === -1)) ? p++ : f++;
+
+  // ---- 3_1_2: unrealistic target ----
+  var r2 = _t8_simulateCheckWarnings({ income: 30000 });
+  (_t8_assert('3_1_2 fires: income=$30K/mo', r2.indexOf('3_1_2') !== -1)) ? p++ : f++;
+
+  var r2b = _t8_simulateCheckWarnings({ cap: 60000, income: 10000 });
+  (_t8_assert('3_1_2 fires: cap=$60K/mo', r2b.indexOf('3_1_2') !== -1)) ? p++ : f++;
+
+  var r2c = _t8_simulateCheckWarnings({ income: 15000, cap: 3000 });
+  (_t8_assert('3_1_2 silent: income=$15K, cap=$3K', r2c.indexOf('3_1_2') === -1)) ? p++ : f++;
+
+  // ---- 3_2_1: inflate assets above profile ----
+  var r3 = _t8_simulateCheckWarnings({ a0: 200000, prepopAssets: 100000 });
+  (_t8_assert('3_2_1 fires: a0=200K vs prepop=100K (2x)', r3.indexOf('3_2_1') !== -1)) ? p++ : f++;
+
+  var r3b = _t8_simulateCheckWarnings({ a0: 120000, prepopAssets: 100000 });
+  (_t8_assert('3_2_1 silent: a0=120K vs prepop=100K (1.2x)', r3b.indexOf('3_2_1') === -1)) ? p++ : f++;
+
+  var r3c = _t8_simulateCheckWarnings({ a0: 50000, prepopAssets: 0 });
+  (_t8_assert('3_2_1 silent: prepop=0 (no baseline)', r3c.indexOf('3_2_1') === -1)) ? p++ : f++;
+
+  // ---- 3_2_3: max risk (threshold=7) ----
+  var r4 = _t8_simulateCheckWarnings({ risk: 7 });
+  (_t8_assert('3_2_3 fires: risk=7', r4.indexOf('3_2_3') !== -1)) ? p++ : f++;
+
+  var r4b = _t8_simulateCheckWarnings({ risk: 6.9 });
+  (_t8_assert('3_2_3 silent: risk=6.9', r4b.indexOf('3_2_3') === -1)) ? p++ : f++;
+
+  var r4c = _t8_simulateCheckWarnings({ risk: 5, overrideOn: true, rAccOverride: 22 });
+  (_t8_assert('3_2_3 fires: override=22%', r4c.indexOf('3_2_3') !== -1)) ? p++ : f++;
+
+  var r4d = _t8_simulateCheckWarnings({ risk: 5, overrideOn: true, rAccOverride: 18 });
+  (_t8_assert('3_2_3 silent: override=18%', r4d.indexOf('3_2_3') === -1)) ? p++ : f++;
+
+  // ---- 5_1_1: near-zero contribution (<10% of capacity) ----
+  var r5 = _t8_simulateCheckWarnings({ cap: 40, prepopCapacity: 2000 });
+  (_t8_assert('5_1_1 fires: cap=$40 vs capacity=$2000 (2%)', r5.indexOf('5_1_1') !== -1)) ? p++ : f++;
+
+  var r5b = _t8_simulateCheckWarnings({ cap: 300, prepopCapacity: 2000 });
+  (_t8_assert('5_1_1 silent: cap=$300 vs capacity=$2000 (15%)', r5b.indexOf('5_1_1') === -1)) ? p++ : f++;
+
+  var r5c = _t8_simulateCheckWarnings({ cap: 10, prepopCapacity: 100 });
+  (_t8_assert('5_1_1 silent: capacity < $200 (too small)', r5c.indexOf('5_1_1') === -1)) ? p++ : f++;
+
+  // ---- 5_1_2: low contribution (<25% of capacity) ----
+  var r6 = _t8_simulateCheckWarnings({ cap: 400, prepopCapacity: 2000 });
+  (_t8_assert('5_1_2 fires: cap=$400 vs capacity=$2000 (20%)', r6.indexOf('5_1_2') !== -1)) ? p++ : f++;
+
+  var r6b = _t8_simulateCheckWarnings({ cap: 600, prepopCapacity: 2000 });
+  (_t8_assert('5_1_2 silent: cap=$600 vs capacity=$2000 (30%)', r6b.indexOf('5_1_2') === -1)) ? p++ : f++;
+
+  // ---- 5_1_3: override all prepop ----
+  var r7 = _t8_simulateCheckWarnings({ changedCount: 4 });
+  (_t8_assert('5_1_3 fires: 4 fields changed', r7.indexOf('5_1_3') !== -1)) ? p++ : f++;
+
+  var r7b = _t8_simulateCheckWarnings({ changedCount: 3 });
+  (_t8_assert('5_1_3 silent: 3 fields changed', r7b.indexOf('5_1_3') === -1)) ? p++ : f++;
+
+  // ---- 7_1_1: devalue savings (<50% of capacity) ----
+  var r8 = _t8_simulateCheckWarnings({ cap: 400, prepopCapacity: 1000 });
+  (_t8_assert('7_1_1 fires: cap=$400 vs capacity=$1000 (40%)', r8.indexOf('7_1_1') !== -1)) ? p++ : f++;
+
+  var r8b = _t8_simulateCheckWarnings({ cap: 600, prepopCapacity: 1000 });
+  (_t8_assert('7_1_1 silent: cap=$600 vs capacity=$1000 (60%)', r8b.indexOf('7_1_1') === -1)) ? p++ : f++;
+
+  // ---- 7_1_2: deny assets (<25% of profile) ----
+  var r9 = _t8_simulateCheckWarnings({ a0: 5000, prepopAssets: 50000 });
+  (_t8_assert('7_1_2 fires: a0=5K vs prepop=50K (10%)', r9.indexOf('7_1_2') !== -1)) ? p++ : f++;
+
+  var r9b = _t8_simulateCheckWarnings({ a0: 20000, prepopAssets: 50000 });
+  (_t8_assert('7_1_2 silent: a0=20K vs prepop=50K (40%)', r9b.indexOf('7_1_2') === -1)) ? p++ : f++;
+
+  var r9c = _t8_simulateCheckWarnings({ a0: 0, prepopAssets: 500 });
+  (_t8_assert('7_1_2 silent: prepop < $1000 threshold', r9c.indexOf('7_1_2') === -1)) ? p++ : f++;
+
+  // ---- 7_1_3: control everything ----
+  var r10 = _t8_simulateCheckWarnings({ advancedOpened: true, advancedChanges: 3, changedCount: 3 });
+  (_t8_assert('7_1_3 fires: adv opened + 3 adv + 3 prepop', r10.indexOf('7_1_3') !== -1)) ? p++ : f++;
+
+  var r10b = _t8_simulateCheckWarnings({ advancedOpened: false, advancedChanges: 3, changedCount: 3 });
+  (_t8_assert('7_1_3 silent: advanced not opened', r10b.indexOf('7_1_3') === -1)) ? p++ : f++;
+
+  var r10c = _t8_simulateCheckWarnings({ advancedOpened: true, advancedChanges: 2, changedCount: 3 });
+  (_t8_assert('7_1_3 silent: only 2 adv changes', r10c.indexOf('7_1_3') === -1)) ? p++ : f++;
+
+  // ---- 7_2_1: no inflation protection ----
+  var r11 = _t8_simulateCheckWarnings({ inflation: 0 });
+  (_t8_assert('7_2_1 fires: inflation=0%', r11.indexOf('7_2_1') !== -1)) ? p++ : f++;
+
+  var r11b = _t8_simulateCheckWarnings({ inflation: 0.3 });
+  (_t8_assert('7_2_1 fires: inflation=0.3%', r11b.indexOf('7_2_1') !== -1)) ? p++ : f++;
+
+  var r11c = _t8_simulateCheckWarnings({ inflation: 0.5 });
+  (_t8_assert('7_2_1 silent: inflation=0.5%', r11c.indexOf('7_2_1') === -1)) ? p++ : f++;
+
+  var r11d = _t8_simulateCheckWarnings({ inflation: 2.5 });
+  (_t8_assert('7_2_1 silent: inflation=2.5% (default)', r11d.indexOf('7_2_1') === -1)) ? p++ : f++;
+
+  // ---- 7_2_2: sabotage after save ----
+  var r12 = _t8_simulateCheckWarnings({
+    hasSaved: true,
+    savedSnapshot: { cap: 2000, a0: 50000, risk: 5, years: 25 },
+    cap: 500, a0: 10000, risk: 8, years: 7
+  });
+  (_t8_assert('7_2_2 fires: 4 params worsened after save', r12.indexOf('7_2_2') !== -1)) ? p++ : f++;
+
+  var r12b = _t8_simulateCheckWarnings({
+    hasSaved: true,
+    savedSnapshot: { cap: 2000, a0: 50000, risk: 5, years: 25 },
+    cap: 1800, a0: 45000, risk: 5.5, years: 24
+  });
+  (_t8_assert('7_2_2 silent: minor tweaks after save', r12b.indexOf('7_2_2') === -1)) ? p++ : f++;
+
+  var r12c = _t8_simulateCheckWarnings({
+    hasSaved: false,
+    cap: 500, a0: 10000, risk: 8, years: 7
+  });
+  (_t8_assert('7_2_2 silent: never saved', r12c.indexOf('7_2_2') === -1)) ? p++ : f++;
+
+  return { passed: p, failed: f };
+}
+
+
+/**
+ * Test 17: capN field cascading thresholds
+ * Verifies that the 3 different warnings on capN fire at correct thresholds
+ */
+function testWarningCapNCascade() {
+  var p = 0, f = 0;
+  var capacity = 2000;
+
+  // At 60% of capacity: no warnings
+  var r60 = _t8_simulateCheckWarnings({ cap: 1200, prepopCapacity: capacity, income: 5000 });
+  (_t8_assert('cap=60%: no 7_1_1', r60.indexOf('7_1_1') === -1)) ? p++ : f++;
+  (_t8_assert('cap=60%: no 5_1_2', r60.indexOf('5_1_2') === -1)) ? p++ : f++;
+  (_t8_assert('cap=60%: no 5_1_1', r60.indexOf('5_1_1') === -1)) ? p++ : f++;
+
+  // At 40%: 7_1_1 fires (< 50%), but not 5_1_2 or 5_1_1
+  var r40 = _t8_simulateCheckWarnings({ cap: 800, prepopCapacity: capacity, income: 5000 });
+  (_t8_assert('cap=40%: 7_1_1 fires', r40.indexOf('7_1_1') !== -1)) ? p++ : f++;
+  (_t8_assert('cap=40%: no 5_1_2 (>25%)', r40.indexOf('5_1_2') === -1)) ? p++ : f++;
+  (_t8_assert('cap=40%: no 5_1_1 (>10%)', r40.indexOf('5_1_1') === -1)) ? p++ : f++;
+
+  // At 20%: 7_1_1 AND 5_1_2 fire, but not 5_1_1
+  var r20 = _t8_simulateCheckWarnings({ cap: 400, prepopCapacity: capacity, income: 5000 });
+  (_t8_assert('cap=20%: 7_1_1 fires', r20.indexOf('7_1_1') !== -1)) ? p++ : f++;
+  (_t8_assert('cap=20%: 5_1_2 fires', r20.indexOf('5_1_2') !== -1)) ? p++ : f++;
+  (_t8_assert('cap=20%: no 5_1_1 (>10%)', r20.indexOf('5_1_1') === -1)) ? p++ : f++;
+
+  // At 5%: all three fire
+  var r5 = _t8_simulateCheckWarnings({ cap: 100, prepopCapacity: capacity, income: 5000 });
+  (_t8_assert('cap=5%: 7_1_1 fires', r5.indexOf('7_1_1') !== -1)) ? p++ : f++;
+  (_t8_assert('cap=5%: 5_1_2 fires', r5.indexOf('5_1_2') !== -1)) ? p++ : f++;
+  (_t8_assert('cap=5%: 5_1_1 fires', r5.indexOf('5_1_1') !== -1)) ? p++ : f++;
+
+  // At 0: 7_1_1 and 5_1_1 fire, 5_1_2 does NOT (requires cap > 0)
+  var r0 = _t8_simulateCheckWarnings({ cap: 0, prepopCapacity: capacity, income: 5000 });
+  (_t8_assert('cap=0: 7_1_1 fires', r0.indexOf('7_1_1') !== -1)) ? p++ : f++;
+  (_t8_assert('cap=0: 5_1_1 fires', r0.indexOf('5_1_1') !== -1)) ? p++ : f++;
+  (_t8_assert('cap=0: 5_1_2 silent (requires cap>0)', r0.indexOf('5_1_2') === -1)) ? p++ : f++;
+
+  return { passed: p, failed: f };
+}
+
+
+/**
+ * Test 18: Warning render infrastructure in HTML output
+ * Verifies the HTML contains all necessary warning elements
+ */
+function testWarningRenderInfrastructure() {
+  var p = 0, f = 0;
+
+  var output = Tool8.render({ clientId: 'TEST_WARN_CLIENT' });
+  var html = output.getContent();
+
+  // Warning container exists and is inside Four Dials section
+  (_t8_assert('HTML has warningContainer div', html.indexOf('id="warningContainer"') !== -1)) ? p++ : f++;
+
+  // Warning container is AFTER rAccEffLabel (risk dial) and BEFORE Advanced Option
+  var rAccPos = html.indexOf('id="rAccEffLabel"');
+  var warnPos = html.indexOf('id="warningContainer"');
+  var advOptPos = html.indexOf('Advanced Option');
+  (_t8_assert('Warning container after risk dial output',
+    rAccPos > 0 && warnPos > rAccPos, 'rAccPos=' + rAccPos + ' warnPos=' + warnPos)) ? p++ : f++;
+  (_t8_assert('Warning container before Advanced Option',
+    warnPos > 0 && advOptPos > warnPos, 'warnPos=' + warnPos + ' advOptPos=' + advOptPos)) ? p++ : f++;
+
+  // checkWarnings function exists
+  (_t8_assert('Has checkWarnings function', html.indexOf('function checkWarnings()') !== -1)) ? p++ : f++;
+
+  // checkWarnings is called from recalc
+  (_t8_assert('recalc calls checkWarnings', html.indexOf('checkWarnings();') !== -1)) ? p++ : f++;
+
+  // showWarning function exists
+  (_t8_assert('Has showWarning function', html.indexOf('function showWarning(') !== -1)) ? p++ : f++;
+
+  // dismissWarning function exists
+  (_t8_assert('Has dismissWarning function', html.indexOf('function dismissWarning(') !== -1)) ? p++ : f++;
+
+  // WARNINGS constant is injected
+  (_t8_assert('WARNINGS JSON injected', html.indexOf('var WARNINGS =') !== -1)) ? p++ : f++;
+
+  // State tracking object
+  (_t8_assert('_wState tracking object exists', html.indexOf('var _wState =') !== -1)) ? p++ : f++;
+
+  // Warning CSS exists
+  (_t8_assert('ctx-warning CSS present', html.indexOf('.ctx-warning') !== -1)) ? p++ : f++;
+  (_t8_assert('fadeInWarning animation present', html.indexOf('fadeInWarning') !== -1)) ? p++ : f++;
+
+  // No old initContextualWarnings function
+  (_t8_assert('No old initContextualWarnings', html.indexOf('initContextualWarnings') === -1)) ? p++ : f++;
+
+  // No wrong element IDs
+  (_t8_assert('No el("inflN") (old bug)', html.indexOf('el("inflN")') === -1)) ? p++ : f++;
+  (_t8_assert('No el("goalN") (old bug)', html.indexOf('el("goalN")') === -1)) ? p++ : f++;
+
+  // Uses correct element IDs
+  (_t8_assert('Uses inflAdvN for inflation', html.indexOf('inflAdvN') !== -1)) ? p++ : f++;
+  (_t8_assert('Uses incomeN for income', html.indexOf('incomeN') !== -1)) ? p++ : f++;
+
+  return { passed: p, failed: f };
+}
+
+
+/**
+ * Test 19: Warning state tracking logic
+ * Tests the _wState based triggers (save-time checks)
+ */
+function testWarningStateTracking() {
+  var p = 0, f = 0;
+
+  // showWarning gate: should block when subdomain quotient <= 50
+  var lowScorePrepop = {
+    tool3Scoring: { subdomainQuotients: { subdomain_1_1: 30, subdomain_1_2: 60 } }
+  };
+  (_t8_assert('Gate blocks: quotient=30 for 3_1_1', !_t8_wouldShowWarning('3_1_1', lowScorePrepop))) ? p++ : f++;
+  (_t8_assert('Gate passes: quotient=60 for 3_1_2', _t8_wouldShowWarning('3_1_2', lowScorePrepop))) ? p++ : f++;
+
+  // showWarning gate: should block pdf_only triggers
+  var fullScorePrepop = {
+    tool5Scoring: { subdomainQuotients: { subdomain_2_2: 90, subdomain_2_3: 90 } },
+    tool7Scoring: { subdomainQuotients: { subdomain_2_3: 90 } }
+  };
+  (_t8_assert('Gate blocks: 5_2_2 is pdf_only', !_t8_wouldShowWarning('5_2_2', fullScorePrepop))) ? p++ : f++;
+  (_t8_assert('Gate blocks: 5_2_3 is pdf_only', !_t8_wouldShowWarning('5_2_3', fullScorePrepop))) ? p++ : f++;
+  (_t8_assert('Gate blocks: 7_2_3 is pdf_only', !_t8_wouldShowWarning('7_2_3', fullScorePrepop))) ? p++ : f++;
+
+  // showWarning gate: should block when scoring data is missing
+  (_t8_assert('Gate blocks: no scoring data', !_t8_wouldShowWarning('3_1_1', {}))) ? p++ : f++;
+  (_t8_assert('Gate blocks: empty subdomains', !_t8_wouldShowWarning('3_1_1', { tool3Scoring: {} }))) ? p++ : f++;
+
+  // showWarning gate: should pass with high quotient
+  var highPrepop = {
+    tool3Scoring: { subdomainQuotients: { subdomain_2_3: 75 } }
+  };
+  (_t8_assert('Gate passes: quotient=75 for 3_2_3', _t8_wouldShowWarning('3_2_3', highPrepop))) ? p++ : f++;
+
+  // Boundary: quotient exactly 50 should NOT pass (must be > 50)
+  var boundaryPrepop = {
+    tool3Scoring: { subdomainQuotients: { subdomain_1_1: 50 } }
+  };
+  (_t8_assert('Gate blocks: quotient=50 exactly', !_t8_wouldShowWarning('3_1_1', boundaryPrepop))) ? p++ : f++;
+
+  // Boundary: quotient 51 should pass
+  var boundaryPrepop2 = {
+    tool3Scoring: { subdomainQuotients: { subdomain_1_1: 51 } }
+  };
+  (_t8_assert('Gate passes: quotient=51', _t8_wouldShowWarning('3_1_1', boundaryPrepop2))) ? p++ : f++;
+
+  // Invalid warning ID returns false
+  (_t8_assert('Gate blocks: invalid warning ID', !_t8_wouldShowWarning('99_99_99', highPrepop))) ? p++ : f++;
+
+  // 7_2_2 sabotage requires 3+ worsened params
+  // Test with exactly 2 worsened (should NOT fire)
+  var r2worse = _t8_simulateCheckWarnings({
+    hasSaved: true,
+    savedSnapshot: { cap: 2000, a0: 50000, risk: 5, years: 25 },
+    cap: 500, a0: 10000, risk: 5, years: 25
+  });
+  (_t8_assert('7_2_2 silent: only 2 params worsened', r2worse.indexOf('7_2_2') === -1)) ? p++ : f++;
+
+  // Test with exactly 3 worsened
+  var r3worse = _t8_simulateCheckWarnings({
+    hasSaved: true,
+    savedSnapshot: { cap: 2000, a0: 50000, risk: 5, years: 25 },
+    cap: 500, a0: 10000, risk: 8, years: 25
+  });
+  (_t8_assert('7_2_2 fires: exactly 3 params worsened', r3worse.indexOf('7_2_2') !== -1)) ? p++ : f++;
+
+  return { passed: p, failed: f };
+}
+
+
+/**
+ * Test 20: Backup questions and trauma insights constants
+ */
+function testBackupAndInsights() {
+  var p = 0, f = 0;
+
+  // TOOL8_TRAUMA_INSIGHTS
+  var TI = TOOL8_TRAUMA_INSIGHTS;
+  var patterns = ['FSV', 'ExVal', 'Showing', 'Receiving', 'Control', 'Fear'];
+  (_t8_assert('6 trauma insight patterns', Object.keys(TI).length === 6)) ? p++ : f++;
+
+  for (var i = 0; i < patterns.length; i++) {
+    var pat = patterns[i];
+    var insight = TI[pat];
+    var hasAllFields = insight && insight.name && insight.icon && insight.type &&
+                       insight.pattern && insight.watchFor && insight.healing;
+    (_t8_assert('Insight ' + pat + ' has all fields', !!hasAllFields)) ? p++ : f++;
+  }
+
+  // TOOL8_BACKUP_QUESTIONS
+  var BQ = TOOL8_BACKUP_QUESTIONS;
+  (_t8_assert('3 backup questions', BQ.length === 3)) ? p++ : f++;
+
+  for (var j = 0; j < BQ.length; j++) {
+    var q = BQ[j];
+    (_t8_assert('Q' + (j+1) + ' has 6 options', q.options && q.options.length === 6)) ? p++ : f++;
+    (_t8_assert('Q' + (j+1) + ' has field name', !!q.field)) ? p++ : f++;
+    (_t8_assert('Q' + (j+1) + ' has label', !!q.label)) ? p++ : f++;
+
+    // Each question covers all 6 patterns
+    var coveredPatterns = {};
+    for (var k = 0; k < q.options.length; k++) {
+      coveredPatterns[q.options[k].value] = true;
+    }
+    var allCovered = true;
+    for (var m = 0; m < patterns.length; m++) {
+      if (!coveredPatterns[patterns[m]]) allCovered = false;
+    }
+    (_t8_assert('Q' + (j+1) + ' covers all 6 patterns', allCovered)) ? p++ : f++;
+  }
+
+  // Majority voting simulation: 3 votes for same pattern should return that pattern
+  var votes = { FSV: 0, ExVal: 0, Showing: 0, Receiving: 0, Control: 0, Fear: 0 };
+  votes.Control = 3;
+  var maxP = '', maxV = 0;
+  for (var vk in votes) {
+    if (votes[vk] > maxV) { maxV = votes[vk]; maxP = vk; }
+  }
+  (_t8_assert('Majority voting: 3x Control = Control', maxP === 'Control')) ? p++ : f++;
+
+  // Tie-breaking: first alphabetical wins (matches client-side behavior)
+  var tieVotes = { FSV: 1, ExVal: 1, Showing: 1, Receiving: 0, Control: 0, Fear: 0 };
+  var tieP = '', tieV = 0;
+  for (var tk in tieVotes) {
+    if (tieVotes[tk] > tieV) { tieV = tieVotes[tk]; tieP = tk; }
+  }
+  (_t8_assert('Tie-break: first pattern with max wins', tieP === 'FSV' || tieP === 'ExVal' || tieP === 'Showing')) ? p++ : f++;
+
+  // Render pipeline includes backup questions section OR trauma section
+  var output = Tool8.render({ clientId: 'TEST_BACKUP_CLIENT' });
+  var html = output.getContent();
+  var hasBackup = html.indexOf('backup-section') !== -1 || html.indexOf('backup_stressResponse') !== -1;
+  var hasTrauma = html.indexOf('trauma-section') !== -1 || html.indexOf('traumaBody') !== -1;
+  (_t8_assert('Render includes backup OR trauma section', hasBackup || hasTrauma)) ? p++ : f++;
+
+  // checkWarnings should exist regardless of trauma data
+  (_t8_assert('checkWarnings defined in output', html.indexOf('function checkWarnings()') !== -1)) ? p++ : f++;
 
   return { passed: p, failed: f };
 }

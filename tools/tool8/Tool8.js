@@ -51,6 +51,10 @@ const Tool8 = {
     // Inject settings as JSON for client-side use
     var settingsJson = JSON.stringify(TOOL8_SETTINGS);
 
+    // Phase 5: Resolve upstream data for pre-population
+    var resolvedData = this.resolveClientData(clientId);
+    var prepopJson = JSON.stringify(resolvedData);
+
     return '<!DOCTYPE html>\n' +
 '<html>\n' +
 '<head>\n' +
@@ -62,10 +66,11 @@ const Tool8 = {
 '  </style>\n' +
 '</head>\n' +
 '<body>\n' +
-    this._buildHTML(clientId) +
+    this._buildHTML(clientId, resolvedData) +
 '  <script>\n' +
 '    var SETTINGS = ' + settingsJson + ';\n' +
 '    var CLIENT_ID = "' + clientId + '";\n' +
+'    var PREPOP = ' + prepopJson + ';\n' +
     this._buildJS(clientId) +
 '  </script>\n' +
 '</body>\n' +
@@ -280,6 +285,73 @@ const Tool8 = {
       '.back-bar .btn {',
       '  padding: 12px 32px;',
       '}',
+      // Data review section (Phase 5)
+      '.data-review { grid-column: 1 / -1; margin-bottom: 16px; padding: 16px 20px; background: rgba(20, 15, 35, 0.6); border-radius: 12px; border: 1px solid var(--border); }',
+      '.data-review summary { cursor: pointer; display: flex; align-items: center; justify-content: space-between; list-style: none; }',
+      '.data-review summary::-webkit-details-marker { display: none; }',
+      '.data-review .dr-title { font-size: 13px; font-weight: 600; color: var(--accent); }',
+      '.data-review .dr-toggle { font-size: 12px; color: var(--muted); }',
+      '.data-review .dr-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }',
+      '@media (max-width: 768px) { .data-review .dr-grid { grid-template-columns: 1fr; } }',
+      '.data-review .dr-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: rgba(255,255,255,0.03); border-radius: 8px; border: 1px solid rgba(255,255,255,0.04); }',
+      '.data-review .dr-label { font-size: 12px; color: var(--muted); }',
+      '.data-review .dr-value { font-size: 14px; font-weight: 600; color: var(--text); }',
+      '.data-review .dr-source { font-size: 10px; color: var(--muted); margin-top: 2px; }',
+      '.dr-reset { font-size: 10px; color: var(--accent); cursor: pointer; background: none; border: 1px solid var(--accent); border-radius: 4px; padding: 1px 6px; margin-left: 6px; opacity: 0.35; }',
+      '.dr-reset.active { opacity: 1; }',
+      '.dr-reset:hover { background: rgba(173,145,104,0.15); }',
+      '.dr-value { cursor: pointer; border-bottom: 1px dashed rgba(255,255,255,0.3); }',
+      '.dr-value:hover { color: var(--accent); border-bottom-color: var(--accent); }',
+      '.dr-edit-hint { font-size: 9px; color: var(--muted); margin-left: 4px; opacity: 0.6; }',
+      '.dr-alt { margin-top: 4px; padding: 4px 8px; background: rgba(245,158,11,0.08); border-radius: 4px; border: 1px solid rgba(245,158,11,0.15); display: flex; align-items: center; justify-content: space-between; gap: 8px; }',
+      '.dr-alt-label { font-size: 11px; color: var(--warn); }',
+      '.dr-use-alt { font-size: 10px; color: var(--warn); cursor: pointer; background: none; border: 1px solid var(--warn); border-radius: 4px; padding: 1px 6px; white-space: nowrap; }',
+      '.dr-use-alt:hover { background: rgba(245,158,11,0.15); }',
+      // Trauma insight section (Phase 6)
+      '.trauma-section { grid-column: 1 / -1; margin-bottom: 16px; }',
+      '.trauma-insight { padding: 16px 20px; background: rgba(20, 15, 35, 0.6); border-radius: 12px; border: 1px solid var(--border); }',
+      '.trauma-header { cursor: pointer; display: flex; align-items: center; justify-content: space-between; }',
+      '.trauma-title-wrap { display: flex; align-items: center; gap: 12px; }',
+      '.trauma-icon { font-size: 24px; }',
+      '.trauma-name { font-size: 14px; font-weight: 600; color: var(--accent); }',
+      '.trauma-type { font-size: 11px; color: var(--muted); margin-top: 2px; }',
+      '.trauma-toggle { font-size: 12px; color: var(--muted); transition: transform 0.2s; }',
+      '.trauma-body { margin-top: 12px; display: flex; flex-direction: column; gap: 10px; }',
+      '.trauma-body.collapsed { display: none; }',
+      '.trauma-card { padding: 12px 16px; background: rgba(255,255,255,0.03); border-radius: 8px; border: 1px solid rgba(255,255,255,0.04); }',
+      '.trauma-card-title { font-size: 12px; font-weight: 600; color: var(--accent); margin-bottom: 6px; }',
+      '.trauma-card-content { font-size: 13px; color: var(--muted); line-height: 1.5; }',
+      '.trauma-card.healing { border-left: 3px solid var(--ok); }',
+      '.trauma-card.secondary { opacity: 0.8; border-left: 3px solid rgba(173,145,104,0.3); }',
+      // Backup questions (Phase 6 - when Tool 1 missing)
+      '.backup-section { grid-column: 1 / -1; margin-bottom: 16px; padding: 20px; background: rgba(20, 15, 35, 0.6); border-radius: 12px; border: 1px solid var(--border); }',
+      '.backup-title { font-size: 14px; font-weight: 600; color: var(--accent); margin-bottom: 4px; }',
+      '.backup-subtitle { font-size: 12px; color: var(--muted); margin-bottom: 16px; }',
+      '.backup-question { margin-bottom: 20px; }',
+      '.backup-label { font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 4px; }',
+      '.backup-help { font-size: 11px; color: var(--muted); margin-bottom: 8px; }',
+      '.backup-options { display: flex; flex-direction: column; gap: 6px; }',
+      '.backup-option { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; cursor: pointer; transition: all 0.2s; }',
+      '.backup-option:hover { background: rgba(173,145,104,0.08); border-color: rgba(173,145,104,0.2); }',
+      '.backup-option.selected { background: rgba(173,145,104,0.12); border-color: var(--accent); }',
+      '.backup-option input[type="radio"] { accent-color: var(--accent); }',
+      '.backup-option span { font-size: 13px; color: var(--text); }',
+      '.backup-submit { margin-top: 12px; text-align: center; }',
+      // Contextual warnings (Phase 6)
+      '.ctx-warning { padding: 12px 16px; background: rgba(139,92,246,0.06); border: 1px solid rgba(139,92,246,0.15); border-radius: 10px; margin-bottom: 12px; display: flex; align-items: flex-start; gap: 10px; animation: fadeInWarning 0.4s ease; }',
+      '.ctx-warning-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }',
+      '.ctx-warning-text { font-size: 13px; color: var(--text); line-height: 1.5; flex: 1; }',
+      '.ctx-warning-dismiss { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 16px; padding: 0 4px; flex-shrink: 0; }',
+      '.ctx-warning-dismiss:hover { color: var(--text); }',
+      '@keyframes fadeInWarning { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }',
+      // Loading overlay
+      '.loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; z-index: 9999; }',
+      '.loading-overlay.show { display: flex; }',
+      '.loading-content { text-align: center; }',
+      '.loading-spinner { border: 4px solid rgba(255,255,255,0.1); border-top: 4px solid var(--gold); border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 0 auto 20px; }',
+      '@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }',
+      '.loading-text { color: white; font-size: 18px; font-weight: 500; }',
+      '.loading-subtext { color: rgba(255,255,255,0.7); font-size: 14px; margin-top: 8px; }',
       // Responsive
       '@media (max-width: 768px) {',
       '  .wrap { grid-template-columns: 1fr; }',
@@ -291,16 +363,28 @@ const Tool8 = {
 
   /**
    * Build HTML structure for the calculator
-   * Ported from legacy index.html (skip gate/auth, skip scenarios/comparison for Phase 4)
+   * Ported from legacy index.html
+   * @param {string} clientId
+   * @param {Object} resolvedData - Pre-populated data from upstream tools (Phase 5)
    */
-  _buildHTML(clientId) {
+  _buildHTML(clientId, resolvedData) {
     return [
+      // Loading overlay
+      '<div class="loading-overlay" id="loadingOverlay">',
+      '  <div class="loading-content">',
+      '    <div class="loading-spinner"></div>',
+      '    <div class="loading-text" id="loadingText">Loading...</div>',
+      '    <div class="loading-subtext" id="loadingSubtext"></div>',
+      '  </div>',
+      '</div>',
       // Header bar
       '<div class="wrap">',
       '  <div style="grid-column: 1 / -1; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; padding: 15px 20px; background: rgba(20, 15, 35, 0.6); border-radius: 15px; backdrop-filter: blur(10px);">',
       '    <div style="font-size: 14px; color: #94a3b8;">Investment Planning Tool</div>',
       '    <button class="btn" style="padding: 6px 16px; font-size: 11px;" onclick="goToDashboard()">Back to Dashboard</button>',
       '  </div>',
+      this._buildDataReviewSection(resolvedData),
+      this._buildTraumaSection(resolvedData),
 
       // LEFT: Controls
       '  <div class="card">',
@@ -386,6 +470,8 @@ const Tool8 = {
       '      </div>',
       '      <div class="small muted" style="margin-left:12px; margin-top:-8px; margin-bottom:12px;">Higher risk = higher potential returns</div>',
       '      <div class="small" style="margin-bottom:20px;">Effective Accumulation Return Rate (conservative): <span id="rAccEffLabel"></span></div>',
+      // Warning container: between main dials and advanced option (Phase 6)
+      '      <div id="warningContainer" style="margin: 8px 0;"></div>',
       '      <div class="hr"></div>',
       // Dial 4: Custom Return Override
       '      <div style="margin-top:16px; margin-bottom:8px;">',
@@ -564,11 +650,283 @@ const Tool8 = {
   },
 
   /**
+   * Build data review section showing pre-populated values with source attribution
+   * Phase 5: Collapsible panel between header and calculator
+   * @param {Object} d - Resolved data from resolveClientData()
+   * @returns {string} HTML string
+   */
+  _buildDataReviewSection(d) {
+    if (!d || !d.hasFinancialData) return '';
+
+    var items = [];
+
+    // Determine source timestamp: prefer Tool 6 scenario, fall back to individual tools
+    var mainDate = d.scenarioTimestamp ? this._formatDate(d.scenarioTimestamp) : '';
+
+    // --- Monthly Savings Capacity ---
+    if (d.savingsCapacity !== null) {
+      var savSrc = d.savingsSource || 'upstream tools';
+      var savDate = mainDate || (d.tool4Timestamp ? this._formatDate(d.tool4Timestamp) : '');
+      var savDateStr = savDate ? ' (' + savDate + ')' : '';
+
+      // Show alternate Tool 4 value if it differs
+      var savAlt = '';
+      if (d.t4SavingsCapacity !== null && d.t4SavingsCapacity !== undefined) {
+        savAlt = '<div class="dr-alt">' +
+          '<span class="dr-alt-label">Tool 4 budget: $' + Number(d.t4SavingsCapacity).toLocaleString() + '/mo</span>' +
+          '<button class="dr-use-alt" data-field="capN" data-value="' + d.t4SavingsCapacity + '" data-slider="">Use this instead</button>' +
+          '</div>';
+      }
+
+      items.push(
+        '<div class="dr-item">' +
+        '  <div><div class="dr-label">Monthly Savings Capacity</div><div class="dr-source">From ' + savSrc + savDateStr + '</div>' + savAlt + '</div>' +
+        '  <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;"><span class="dr-value" data-target="capN" data-format="usd" id="drv_capN" title="Click to edit">$' + Number(d.savingsCapacity).toLocaleString() + '<span class="dr-edit-hint">edit</span></span>' +
+        '  <button class="dr-reset" data-field="capN" data-orig="' + d.savingsCapacity + '" title="Restore to ' + savSrc + '">Reset</button></div>' +
+        '</div>'
+      );
+    }
+
+    // --- Current Investment Balance ---
+    if (d.currentAssets !== null) {
+      var assetDate = d.tool6Timestamp ? ' (' + this._formatDate(d.tool6Timestamp) + ')' : '';
+      items.push(
+        '<div class="dr-item">' +
+        '  <div><div class="dr-label">Current Investment Balance</div><div class="dr-source">From Tool 6 pre-survey (401k + IRA + HSA + education)' + assetDate + '</div></div>' +
+        '  <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;"><span class="dr-value" data-target="a0N" data-format="usd" id="drv_a0N" title="Click to edit">$' + Number(d.currentAssets).toLocaleString() + '<span class="dr-edit-hint">edit</span></span>' +
+        '  <button class="dr-reset" data-field="a0N" data-orig="' + d.currentAssets + '" title="Restore pre-populated value">Reset</button></div>' +
+        '</div>'
+      );
+    }
+
+    // --- Years to Retirement ---
+    if (d.yearsToRetirement !== null) {
+      var yrsSrc = d.hasTool6Scenario ? 'your Tool 6 investment plan' : ('Tool 2 (age ' + d.age + ', target 65)');
+      var yrsDate = (d.hasTool6Scenario && mainDate) ? mainDate : (d.tool2Timestamp ? this._formatDate(d.tool2Timestamp) : '');
+      var yrsDateStr = yrsDate ? ' (' + yrsDate + ')' : '';
+
+      // Show alternate Tool 2 calc if it differs
+      var yrsAlt = '';
+      if (d.t2YearsToRetirement !== null && d.t2YearsToRetirement !== undefined) {
+        yrsAlt = '<div class="dr-alt">' +
+          '<span class="dr-alt-label">Tool 2 (age ' + d.t2Age + ', target 65): ' + d.t2YearsToRetirement + ' years</span>' +
+          '<button class="dr-use-alt" data-field="yearsN" data-value="' + d.t2YearsToRetirement + '" data-slider="years">Use this instead</button>' +
+          '</div>';
+      }
+
+      items.push(
+        '<div class="dr-item">' +
+        '  <div><div class="dr-label">Years to Retirement</div><div class="dr-source">From ' + yrsSrc + yrsDateStr + '</div>' + yrsAlt + '</div>' +
+        '  <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;"><span class="dr-value" data-target="yearsN" data-format="years" id="drv_yearsN" title="Click to edit">' + d.yearsToRetirement + ' years<span class="dr-edit-hint">edit</span></span>' +
+        '  <button class="dr-reset" data-field="yearsN" data-orig="' + d.yearsToRetirement + '" data-slider="years" title="Restore to ' + yrsSrc + '">Reset</button></div>' +
+        '</div>'
+      );
+    }
+
+    // --- Risk Tolerance ---
+    if (d.riskTolerance !== null) {
+      var riskSrc = d.riskSource || 'upstream tools';
+      var riskDate = (d.hasTool6Scenario && mainDate) ? mainDate : (d.tool4Timestamp ? this._formatDate(d.tool4Timestamp) : '');
+      var riskDateStr = riskDate ? ' (' + riskDate + ')' : '';
+
+      // Show alternate Tool 4 risk if it differs
+      var riskAlt = '';
+      if (d.t4RiskDial !== null && d.t4RiskDial !== undefined) {
+        riskAlt = '<div class="dr-alt">' +
+          '<span class="dr-alt-label">Tool 4 risk assessment: ' + d.t4RiskDial.toFixed(1) + ' / 10</span>' +
+          '<button class="dr-use-alt" data-field="riskN" data-value="' + d.t4RiskDial + '" data-slider="risk">Use this instead</button>' +
+          '</div>';
+      }
+
+      items.push(
+        '<div class="dr-item">' +
+        '  <div><div class="dr-label">Risk Tolerance</div><div class="dr-source">From ' + riskSrc + riskDateStr + '</div>' + riskAlt + '</div>' +
+        '  <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;"><span class="dr-value" data-target="riskN" data-format="risk" id="drv_riskN" title="Click to edit">' + d.riskTolerance.toFixed(1) + ' / 10<span class="dr-edit-hint">edit</span></span>' +
+        '  <button class="dr-reset" data-field="riskN" data-orig="' + d.riskTolerance + '" data-slider="risk" title="Restore to ' + riskSrc + '">Reset</button></div>' +
+        '</div>'
+      );
+    }
+
+    if (items.length === 0) return '';
+
+    // Show scenario name if available
+    var headerNote = d.scenarioName
+      ? ' (based on your "' + d.scenarioName + '" scenario from Tool 6)'
+      : ' (pre-populated from earlier tools)';
+
+    return '<div class="data-review">' +
+      '<details open>' +
+      '  <summary>' +
+      '    <span class="dr-title">Your Financial Profile' + headerNote + '</span>' +
+      '    <span class="dr-toggle">Click to collapse</span>' +
+      '  </summary>' +
+      '  <div class="dr-grid">' + items.join('') + '</div>' +
+      '  <div style="margin-top:8px; font-size:11px; color:var(--muted);">Values below have been set from your profile. Change any value freely - use Reset buttons to restore.</div>' +
+      '</details>' +
+      '</div>';
+  },
+
+  /**
+   * Format a timestamp for display in data review
+   * @param {string} ts - Timestamp string
+   * @returns {string} Formatted date
+   */
+  _formatDate(ts) {
+    try {
+      var d = new Date(ts);
+      if (isNaN(d.getTime())) return '';
+      var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      return months[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear();
+    } catch (e) {
+      return '';
+    }
+  },
+
+  /**
+   * Phase 6: Build the trauma section (insight card OR backup questions)
+   * @param {Object} d - Resolved data from resolveClientData()
+   * @returns {string} HTML string
+   */
+  _buildTraumaSection(d) {
+    if (!d) return '';
+
+    // If Tool 1 data exists, show insight section
+    if (d.hasTool1 && d.traumaPattern) {
+      return this._buildTraumaInsightSection(d);
+    }
+
+    // If no Tool 1 data, show backup questions
+    return this._buildBackupQuestionsSection();
+  },
+
+  /**
+   * Phase 6: Build collapsible trauma insight section
+   * Follows Tool6.js:3185-3320 pattern, with investment-specific content
+   * @param {Object} d - Resolved data
+   * @returns {string} HTML
+   */
+  _buildTraumaInsightSection(d) {
+    var pattern = d.traumaPattern;
+    var insight = TOOL8_TRAUMA_INSIGHTS[pattern];
+
+    if (!insight) {
+      return '<div class="trauma-section"><div class="trauma-insight">' +
+        '<div style="padding: 8px; font-size: 13px; color: var(--muted);">' +
+        'Your money pattern could not be identified. Consider retaking Tool 1.</div>' +
+        '</div></div>';
+    }
+
+    // Build secondary pattern card
+    var secondaryHtml = '';
+    var scores = d.traumaScores;
+    if (scores && typeof scores === 'object') {
+      var sortedKeys = Object.keys(scores)
+        .filter(function(k) { return k !== pattern; })
+        .sort(function(a, b) { return (scores[b] || 0) - (scores[a] || 0); });
+
+      if (sortedKeys.length > 0 && scores[sortedKeys[0]] > 0) {
+        var secKey = sortedKeys[0];
+        var secInsight = TOOL8_TRAUMA_INSIGHTS[secKey];
+        if (secInsight) {
+          var secWatch = secInsight.watchFor.split(',')[0];
+          secondaryHtml =
+            '<div class="trauma-card secondary">' +
+            '  <div class="trauma-card-title">Secondary Pattern: ' + secInsight.name + '</div>' +
+            '  <div class="trauma-card-content">This pattern may also influence your investment decisions. Be aware of ' + secWatch.toLowerCase().trim() + '.</div>' +
+            '</div>';
+        }
+      }
+    }
+
+    return '<div class="trauma-section">' +
+      '<div class="trauma-insight">' +
+      '  <div class="trauma-header" onclick="toggleTraumaInsight()">' +
+      '    <div class="trauma-title-wrap">' +
+      '      <span class="trauma-icon">' + insight.icon + '</span>' +
+      '      <div>' +
+      '        <div class="trauma-name">Your Money Pattern: ' + insight.name + '</div>' +
+      '        <div class="trauma-type">' + insight.type + '</div>' +
+      '      </div>' +
+      '    </div>' +
+      '    <span class="trauma-toggle" id="traumaToggle">\u25BC</span>' +
+      '  </div>' +
+      '  <div class="trauma-body" id="traumaBody">' +
+      '    <div class="trauma-card">' +
+      '      <div class="trauma-card-title">How This Shows Up in Investment Planning</div>' +
+      '      <div class="trauma-card-content">' + insight.pattern + '</div>' +
+      '    </div>' +
+      '    <div class="trauma-card">' +
+      '      <div class="trauma-card-title">Watch For These Tendencies</div>' +
+      '      <div class="trauma-card-content">' + insight.watchFor + '</div>' +
+      '    </div>' +
+      secondaryHtml +
+      '    <div class="trauma-card healing">' +
+      '      <div class="trauma-card-title">Your Healing Direction</div>' +
+      '      <div class="trauma-card-content">' + insight.healing + '</div>' +
+      '    </div>' +
+      '  </div>' +
+      '</div>' +
+      '</div>';
+  },
+
+  /**
+   * Phase 6: Build backup questions section (when Tool 1 is missing)
+   * Shows 3 questions with radio options, then derives pattern via majority voting
+   * @returns {string} HTML
+   */
+  _buildBackupQuestionsSection() {
+    var html = '<div class="backup-section" id="backupSection">' +
+      '<div class="backup-title">Understanding Your Money Pattern</div>' +
+      '<div class="backup-subtitle">These 3 questions help us personalize your investment guidance. ' +
+      'For deeper insight, complete Tool 1: Money Pattern Discovery.</div>';
+
+    for (var qi = 0; qi < TOOL8_BACKUP_QUESTIONS.length; qi++) {
+      var q = TOOL8_BACKUP_QUESTIONS[qi];
+      html += '<div class="backup-question">' +
+        '<div class="backup-label">' + (qi + 1) + '. ' + q.label + '</div>' +
+        '<div class="backup-help">' + q.help + '</div>' +
+        '<div class="backup-options">';
+
+      for (var oi = 0; oi < q.options.length; oi++) {
+        var opt = q.options[oi];
+        html += '<label class="backup-option" onclick="selectBackupOption(this, \'' + q.field + '\')">' +
+          '<input type="radio" name="' + q.field + '" value="' + opt.value + '">' +
+          '<span>' + opt.text + '</span>' +
+          '</label>';
+      }
+
+      html += '</div></div>';
+    }
+
+    html += '<div class="backup-submit">' +
+      '<button class="btn" id="backupSubmitBtn" onclick="submitBackupQuestions()" disabled>Show My Investment Insight</button>' +
+      '<div style="margin-top:6px; font-size:11px; color:var(--muted);">Answer all 3 questions to continue</div>' +
+      '</div>' +
+      '</div>';
+
+    return html;
+  },
+
+  /**
    * Build all client-side JavaScript for the calculator
    * Ported from legacy index.html - core math, UI sync, recalc, feasibility
    */
   _buildJS(clientId) {
     return [
+      '// ===== Loading Overlay =====',
+      'function showLoading(msg, sub) {',
+      '  var overlay = document.getElementById("loadingOverlay");',
+      '  var text = document.getElementById("loadingText");',
+      '  var subtext = document.getElementById("loadingSubtext");',
+      '  if (text) text.textContent = msg || "Loading...";',
+      '  if (subtext) subtext.textContent = sub || "";',
+      '  if (overlay) overlay.classList.add("show");',
+      '}',
+      'function hideLoading() {',
+      '  var overlay = document.getElementById("loadingOverlay");',
+      '  if (overlay) overlay.classList.remove("show");',
+      '}',
+      '',
       '// ===== Utils =====',
       'var fmtUSD = function(n) { return isFinite(n) ? n.toLocaleString(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 0 }) : "--"; };',
       'var fmtPct = function(x) { return isFinite(x) ? (100 * x).toFixed(2) + "%" : "--"; };',
@@ -935,6 +1293,9 @@ const Tool8 = {
       '    tSolved: (mode === "time") ? tSolvedVal : "",',
       '    mode: mode',
       '  };',
+      '',
+      '  // Check contextual warnings on every recalc (covers sliders + number inputs)',
+      '  checkWarnings();',
       '}',
       '',
       '// ===== Scenario Management (Phase 4 - placeholders) =====',
@@ -1019,14 +1380,34 @@ const Tool8 = {
       'saveBtn.addEventListener("click", function() {',
       '  if (isSaving) return;',
       '  recalc();',
+      '',
+      '  // Save-time warning checks',
+      '  if (PREPOP.traumaPattern || PREPOP.hasBackupPattern) {',
+      '    // 3_1_3 / skip_review: saving without ever opening data review (when prepop exists)',
+      '    var hasPrepop = PREPOP.savingsCapacity || PREPOP.currentAssets || PREPOP.yearsToRetirement || PREPOP.riskTolerance;',
+      '    if (hasPrepop && !_wState.dataReviewOpened) showWarning("3_1_3");',
+      '',
+      '    // 3_2_2 / hesitate_save: 10+ recalcs over 5+ minutes without prior save',
+      '    var elapsed = (Date.now() - _wState.pageLoadTime) / 1000;',
+      '    if (!_wState.hasSaved && _wState.recalcCount >= 10 && elapsed > 300) showWarning("3_2_2");',
+      '',
+      '    // 5_2_1 / instant_save: saving too quickly without customization',
+      '    if (!_wState.hasSaved && _wState.recalcCount < 3 && elapsed < 60 && Object.keys(_wState.prepopChangedFields).length === 0) showWarning("5_2_1");',
+      '  }',
+      '',
       '  isSaving = true;',
       '  saveBtn.disabled = true;',
       '  saveBtn.textContent = "Saving...";',
+      '  showLoading("Saving Scenario...", "Storing your investment plan");',
       '  google.script.run',
       '    .withSuccessHandler(function(res) {',
+      '      hideLoading();',
       '      isSaving = false;',
       '      saveBtn.disabled = false;',
       '      if (res && res.success) {',
+      '        _wState.hasSaved = true;',
+      '        // Snapshot values at save for 7_2_2 sabotage detection',
+      '        _wState.savedSnapshot = { cap: parseFloat(capN.value)||0, a0: parseFloat(a0N.value)||0, risk: parseFloat(riskN.value)||0, years: parseFloat(yearsN.value)||0 };',
       '        saveBtn.textContent = "Saved";',
       '        setTimeout(function() { saveBtn.textContent = "Save"; loadUserScenarios(); }, 1500);',
       '        scenarioMsg.textContent = "Saved: " + (scnName.value || "Unnamed scenario");',
@@ -1037,6 +1418,7 @@ const Tool8 = {
       '      }',
       '    })',
       '    .withFailureHandler(function(err) {',
+      '      hideLoading();',
       '      isSaving = false;',
       '      saveBtn.disabled = false;',
       '      saveBtn.textContent = "Save";',
@@ -1054,8 +1436,10 @@ const Tool8 = {
       '  var btn = el("reportBtn");',
       '  btn.textContent = "Generating...";',
       '  btn.disabled = true;',
+      '  showLoading("Generating Report...", "Creating your personalized investment PDF");',
       '  google.script.run',
       '    .withSuccessHandler(function(res) {',
+      '      hideLoading();',
       '      btn.textContent = "Generate PDF";',
       '      btn.disabled = false;',
       '      isGeneratingReport = false;',
@@ -1073,6 +1457,7 @@ const Tool8 = {
       '      }',
       '    })',
       '    .withFailureHandler(function(err) {',
+      '      hideLoading();',
       '      btn.textContent = "Generate PDF";',
       '      btn.disabled = false;',
       '      isGeneratingReport = false;',
@@ -1154,8 +1539,10 @@ const Tool8 = {
       '  isGenComp = true;',
       '  compBtn.textContent = "Generating...";',
       '  compBtn.disabled = true;',
+      '  showLoading("Generating Comparison...", "Creating side-by-side analysis PDF");',
       '  google.script.run',
       '    .withSuccessHandler(function(res) {',
+      '      hideLoading();',
       '      compBtn.textContent = "Generate PDF";',
       '      checkCompareReady();',
       '      isGenComp = false;',
@@ -1173,6 +1560,7 @@ const Tool8 = {
       '      }',
       '    })',
       '    .withFailureHandler(function(err) {',
+      '      hideLoading();',
       '      compBtn.textContent = "Generate PDF";',
       '      checkCompareReady();',
       '      isGenComp = false;',
@@ -1183,18 +1571,413 @@ const Tool8 = {
       '',
       '// ===== Navigation =====',
       'function goToDashboard() {',
+      '  showLoading("Returning to Dashboard...", "Loading your overview");',
       '  google.script.run',
       '    .withSuccessHandler(function(html) {',
-      '      document.open();',
-      '      document.write(html);',
-      '      document.close();',
-      '      window.scrollTo(0, 0);',
+      '      if (html) {',
+      '        try {',
+      '          sessionStorage.setItem("_ftpCurrentLocation", JSON.stringify({',
+      '            view: "dashboard", toolId: null, page: null,',
+      '            clientId: "' + clientId + '", timestamp: Date.now()',
+      '          }));',
+      '        } catch(e) {}',
+      '        document.open();',
+      '        document.write(html);',
+      '        document.close();',
+      '        window.scrollTo(0, 0);',
+      '      } else {',
+      '        hideLoading();',
+      '        alert("Error loading dashboard");',
+      '      }',
       '    })',
       '    .withFailureHandler(function(err) {',
+      '      hideLoading();',
       '      console.error("Navigation error:", err);',
+      '      alert("Error loading dashboard: " + err.message);',
       '    })',
       '    .getDashboardPage("' + clientId + '");',
       '}',
+      '',
+      '// ===== Phase 5: Pre-populate from upstream data =====',
+      'var origValues = {};',
+      'function applyPrepop() {',
+      '  if (!PREPOP || !PREPOP.hasFinancialData) return;',
+      '  if (PREPOP.savingsCapacity !== null && PREPOP.savingsCapacity !== undefined) {',
+      '    capN.value = PREPOP.savingsCapacity;',
+      '    origValues.capN = PREPOP.savingsCapacity;',
+      '  }',
+      '  if (PREPOP.currentAssets !== null && PREPOP.currentAssets !== undefined) {',
+      '    a0N.value = PREPOP.currentAssets;',
+      '    origValues.a0N = PREPOP.currentAssets;',
+      '  }',
+      '  if (PREPOP.yearsToRetirement !== null && PREPOP.yearsToRetirement !== undefined) {',
+      '    var ytr = PREPOP.yearsToRetirement;',
+      '    years.value = ytr;',
+      '    yearsN.value = ytr;',
+      '    origValues.yearsN = ytr;',
+      '  }',
+      '  if (PREPOP.riskTolerance !== null && PREPOP.riskTolerance !== undefined) {',
+      '    var rt = PREPOP.riskTolerance;',
+      '    risk.value = rt;',
+      '    riskN.value = rt;',
+      '    origValues.riskN = rt;',
+      '  }',
+      '}',
+      'applyPrepop();',
+      '',
+      '// Reset buttons: always visible, dimmed when matching original, highlighted when drifted',
+      'function setupResetButtons() {',
+      '  var resetBtns = document.querySelectorAll(".dr-reset");',
+      '  for (var i = 0; i < resetBtns.length; i++) {',
+      '    (function(btn) {',
+      '      var fieldId = btn.getAttribute("data-field");',
+      '      var orig = parseFloat(btn.getAttribute("data-orig"));',
+      '      var sliderId = btn.getAttribute("data-slider");',
+      '      var field = el(fieldId);',
+      '      if (!field) return;',
+      '',
+      '      // Highlight reset when value drifts from original',
+      '      function checkDrift() {',
+      '        var current = parseFloat(field.value);',
+      '        if (Math.abs(current - orig) > 0.01) {',
+      '          btn.classList.add("active");',
+      '        } else {',
+      '          btn.classList.remove("active");',
+      '        }',
+      '      }',
+      '      field.addEventListener("input", checkDrift);',
+      '      field.addEventListener("change", checkDrift);',
+      '',
+      '      // Also watch the slider if paired',
+      '      if (sliderId) {',
+      '        var slider = el(sliderId);',
+      '        if (slider) slider.addEventListener("input", checkDrift);',
+      '      }',
+      '',
+      '      // Reset click handler',
+      '      btn.addEventListener("click", function() {',
+      '        field.value = orig;',
+      '        if (sliderId) {',
+      '          var slider = el(sliderId);',
+      '          if (slider) slider.value = orig;',
+      '        }',
+      '        btn.classList.remove("active");',
+      '        recalc();',
+      '      });',
+      '    })(resetBtns[i]);',
+      '  }',
+      '}',
+      'setupResetButtons();',
+      '',
+      '// "Use this instead" buttons: apply alternate Tool 4/Tool 2 value',
+      'function setupAltButtons() {',
+      '  var altBtns = document.querySelectorAll(".dr-use-alt");',
+      '  for (var i = 0; i < altBtns.length; i++) {',
+      '    (function(btn) {',
+      '      var fieldId = btn.getAttribute("data-field");',
+      '      var altValue = parseFloat(btn.getAttribute("data-value"));',
+      '      var sliderId = btn.getAttribute("data-slider");',
+      '      var field = el(fieldId);',
+      '      if (!field || isNaN(altValue)) return;',
+      '',
+      '      btn.addEventListener("click", function() {',
+      '        field.value = altValue;',
+      '        if (sliderId) {',
+      '          var slider = el(sliderId);',
+      '          if (slider) slider.value = altValue;',
+      '        }',
+      '        // Update the Reset button orig value to the new choice',
+      '        var resetBtn = document.querySelector(".dr-reset[data-field=\\"" + fieldId + "\\"]");',
+      '        if (resetBtn) {',
+      '          resetBtn.setAttribute("data-orig", altValue);',
+      '          resetBtn.style.display = "none";',
+      '        }',
+      '        // Hide the alt row after selection',
+      '        var altRow = btn.closest(".dr-alt");',
+      '        if (altRow) altRow.style.display = "none";',
+      '        recalc();',
+      '      });',
+      '    })(altBtns[i]);',
+      '  }',
+      '}',
+      'setupAltButtons();',
+      '',
+      '// Click value spans to scroll to and focus the actual calculator input',
+      'document.querySelectorAll(".dr-value[data-target]").forEach(function(span) {',
+      '  span.addEventListener("click", function() {',
+      '    var targetId = span.getAttribute("data-target");',
+      '    var target = el(targetId);',
+      '    if (target) {',
+      '      target.scrollIntoView({ behavior: "smooth", block: "center" });',
+      '      setTimeout(function() { target.focus(); target.select(); }, 300);',
+      '    }',
+      '  });',
+      '});',
+      '',
+      '// Live-sync: update profile card values when calculator inputs change',
+      'function syncProfileCard() {',
+      '  var pairs = [',
+      '    { input: "capN", display: "drv_capN", format: "usd" },',
+      '    { input: "a0N", display: "drv_a0N", format: "usd" },',
+      '    { input: "yearsN", display: "drv_yearsN", format: "years" },',
+      '    { input: "riskN", display: "drv_riskN", format: "risk" }',
+      '  ];',
+      '  pairs.forEach(function(p) {',
+      '    var inp = el(p.input);',
+      '    var disp = document.getElementById(p.display);',
+      '    if (!inp || !disp) return;',
+      '',
+      '    function update() {',
+      '      var v = parseFloat(inp.value) || 0;',
+      '      var txt = "";',
+      '      if (p.format === "usd") txt = "$" + v.toLocaleString(undefined, { maximumFractionDigits: 0 });',
+      '      else if (p.format === "years") txt = v + " years";',
+      '      else if (p.format === "risk") txt = v.toFixed(1) + " / 10";',
+      '      disp.innerHTML = txt + "<span class=\\"dr-edit-hint\\">edit</span>";',
+      '    }',
+      '',
+      '    inp.addEventListener("input", update);',
+      '    inp.addEventListener("change", update);',
+      '',
+      '    // Also watch paired slider',
+      '    var sliderId = p.input === "yearsN" ? "years" : (p.input === "riskN" ? "risk" : null);',
+      '    if (sliderId) {',
+      '      var slider = el(sliderId);',
+      '      if (slider) slider.addEventListener("input", update);',
+      '    }',
+      '  });',
+      '}',
+      'syncProfileCard();',
+      '',
+      '// Toggle detail summary text',
+      'var drDetails = document.querySelector(".data-review details");',
+      'if (drDetails) {',
+      '  drDetails.addEventListener("toggle", function() {',
+      '    var toggle = drDetails.querySelector(".dr-toggle");',
+      '    if (toggle) toggle.textContent = drDetails.open ? "Click to collapse" : "Click to expand";',
+      '  });',
+      '}',
+      '',
+      '// ===== Phase 6: Trauma Insight Toggle =====',
+      'function toggleTraumaInsight() {',
+      '  var body = el("traumaBody");',
+      '  var toggle = el("traumaToggle");',
+      '  if (!body) return;',
+      '  if (body.classList.contains("collapsed")) {',
+      '    body.classList.remove("collapsed");',
+      '    if (toggle) toggle.textContent = "\\u25BC";',
+      '  } else {',
+      '    body.classList.add("collapsed");',
+      '    if (toggle) toggle.textContent = "\\u25B6";',
+      '  }',
+      '}',
+      '',
+      '// ===== Phase 6: Backup Questions =====',
+      'function selectBackupOption(label, fieldName) {',
+      '  var group = label.closest(".backup-options");',
+      '  if (!group) return;',
+      '  var allLabels = group.querySelectorAll(".backup-option");',
+      '  for (var i = 0; i < allLabels.length; i++) { allLabels[i].classList.remove("selected"); }',
+      '  label.classList.add("selected");',
+      '  var radio = label.querySelector("input[type=radio]");',
+      '  if (radio) radio.checked = true;',
+      '  // Enable submit button when all 3 answered',
+      '  var answered = document.querySelectorAll(".backup-option.selected").length;',
+      '  var submitBtn = el("backupSubmitBtn");',
+      '  if (submitBtn) submitBtn.disabled = (answered < 3);',
+      '}',
+      '',
+      'function submitBackupQuestions() {',
+      '  var votes = { FSV: 0, ExVal: 0, Showing: 0, Receiving: 0, Control: 0, Fear: 0 };',
+      '  var fields = ["backup_stressResponse", "backup_coreBelief", "backup_consequence"];',
+      '  for (var fi = 0; fi < fields.length; fi++) {',
+      '    var checked = document.querySelector("input[name=\'" + fields[fi] + "\']:checked");',
+      '    if (checked && votes.hasOwnProperty(checked.value)) votes[checked.value]++;',
+      '  }',
+      '  var maxV = 0, winner = null;',
+      '  var pats = Object.keys(votes);',
+      '  for (var pi = 0; pi < pats.length; pi++) {',
+      '    if (votes[pats[pi]] > maxV) { maxV = votes[pats[pi]]; winner = pats[pi]; }',
+      '  }',
+      '  if (!winner) return;',
+      '  console.log("Backup pattern derived: " + winner + " votes: " + JSON.stringify(votes));',
+      '  PREPOP.traumaPattern = winner;',
+      '  PREPOP.hasTool1 = false;',
+      '  PREPOP.hasBackupPattern = true;',
+      '  showDerivedInsight(winner);',
+      '}',
+      '',
+      'function showDerivedInsight(pattern) {',
+      '  var insights = ' + JSON.stringify(TOOL8_TRAUMA_INSIGHTS) + ';',
+      '  var insight = insights[pattern];',
+      '  if (!insight) return;',
+      '  var section = el("backupSection");',
+      '  if (!section) return;',
+      '  var html = "<div class=\\"trauma-insight\\">" +',
+      '    "<div class=\\"trauma-header\\" onclick=\\"toggleTraumaInsight()\\">" +',
+      '    "<div class=\\"trauma-title-wrap\\">" +',
+      '    "<span class=\\"trauma-icon\\">" + insight.icon + "</span>" +',
+      '    "<div><div class=\\"trauma-name\\">Your Money Pattern: " + insight.name + "</div>" +',
+      '    "<div class=\\"trauma-type\\">" + insight.type + "</div></div>" +',
+      '    "</div>" +',
+      '    "<span class=\\"trauma-toggle\\" id=\\"traumaToggle\\">\\u25BC</span>" +',
+      '    "</div>" +',
+      '    "<div class=\\"trauma-body\\" id=\\"traumaBody\\">" +',
+      '    "<div class=\\"trauma-card\\">" +',
+      '    "<div class=\\"trauma-card-title\\">How This Shows Up in Investment Planning</div>" +',
+      '    "<div class=\\"trauma-card-content\\">" + insight.pattern + "</div></div>" +',
+      '    "<div class=\\"trauma-card\\">" +',
+      '    "<div class=\\"trauma-card-title\\">Watch For These Tendencies</div>" +',
+      '    "<div class=\\"trauma-card-content\\">" + insight.watchFor + "</div></div>" +',
+      '    "<div class=\\"trauma-card healing\\">" +',
+      '    "<div class=\\"trauma-card-title\\">Your Healing Direction</div>" +',
+      '    "<div class=\\"trauma-card-content\\">" + insight.healing + "</div></div>" +',
+      '    "</div></div>";',
+      '  section.innerHTML = html;',
+      '  section.classList.remove("backup-section");',
+      '  section.classList.add("trauma-section");',
+      '  PREPOP.hasBackupPattern = true;',
+      '  recalc();',
+      '}',
+      '',
+      '// ===== Phase 6: Contextual Warning System (centralized) =====',
+      'var WARNINGS = ' + JSON.stringify(TOOL8_CONTEXTUAL_WARNINGS) + ';',
+      'var shownWarnings = {};',
+      '',
+      '// State tracking for behavioral triggers',
+      'var _wState = {',
+      '  pageLoadTime: Date.now(),',
+      '  recalcCount: 0,',
+      '  hasSaved: false,',
+      '  dataReviewOpened: false,',
+      '  advancedOpened: false,',
+      '  advancedChanges: 0,',
+      '  prepopOriginals: {},',
+      '  prepopChangedFields: {}',
+      '};',
+      '',
+      '// Capture original prepop values for drift detection',
+      'if (PREPOP.savingsCapacity != null) _wState.prepopOriginals.capN = String(PREPOP.savingsCapacity);',
+      'if (PREPOP.currentAssets != null) _wState.prepopOriginals.a0N = String(PREPOP.currentAssets);',
+      'if (PREPOP.yearsToRetirement != null) _wState.prepopOriginals.yearsN = String(PREPOP.yearsToRetirement);',
+      'if (PREPOP.riskTolerance != null) _wState.prepopOriginals.riskN = String(PREPOP.riskTolerance);',
+      '',
+      '// Track data review section open',
+      'var _drEl = document.querySelector(".data-review details");',
+      'if (_drEl) _drEl.addEventListener("toggle", function() { if (_drEl.open) _wState.dataReviewOpened = true; });',
+      '',
+      '// Track advanced settings open + changes',
+      'var _advEl = el("advancedDetails");',
+      'if (_advEl) _advEl.addEventListener("toggle", function() { if (_advEl.open) _wState.advancedOpened = true; });',
+      'var _advDefaults = { inflAdvN: "2.5", drawAdvN: "30", rRetAdvN: "10", dragAdvN: "20" };',
+      'var _advFields = ["inflAdvN", "drawAdvN", "rRetAdvN", "dragAdvN"];',
+      'for (var _ai = 0; _ai < _advFields.length; _ai++) {',
+      '  (function(fid) {',
+      '    var f = el(fid);',
+      '    if (f) f.addEventListener("input", function() {',
+      '      if (f.value !== _advDefaults[fid]) _wState.advancedChanges++;',
+      '    });',
+      '  })(_advFields[_ai]);',
+      '}',
+      '',
+      'function showWarning(warningId) {',
+      '  if (shownWarnings[warningId]) return;',
+      '  var w = WARNINGS[warningId];',
+      '  if (!w || w.trigger === "pdf_only") return;',
+      '  var scoring = PREPOP[w.tool];',
+      '  if (!scoring || !scoring.subdomainQuotients) return;',
+      '  var quotient = scoring.subdomainQuotients[w.subdomain];',
+      '  if (!quotient || quotient <= 50) return;',
+      '  shownWarnings[warningId] = true;',
+      '  var container = el("warningContainer");',
+      '  if (!container) return;',
+      '  var div = document.createElement("div");',
+      '  div.className = "ctx-warning";',
+      '  div.id = "warn_" + warningId;',
+      '  div.innerHTML = "<span class=\\"ctx-warning-icon\\">\\uD83D\\uDCA1</span>" +',
+      '    "<div class=\\"ctx-warning-text\\">" + w.message + "</div>" +',
+      '    "<button class=\\"ctx-warning-dismiss\\" onclick=\\"dismissWarning(\'" + warningId + "\')\\">\\u2715</button>";',
+      '  container.appendChild(div);',
+      '}',
+      '',
+      'function dismissWarning(warningId) {',
+      '  var wEl = document.getElementById("warn_" + warningId);',
+      '  if (wEl) wEl.remove();',
+      '}',
+      '',
+      '// Centralized warning check — called from recalc() on every change',
+      'function checkWarnings() {',
+      '  if (!PREPOP.traumaPattern && !PREPOP.hasBackupPattern) return;',
+      '  _wState.recalcCount++;',
+      '',
+      '  var cap = parseFloat(capN.value) || 0;',
+      '  var a0 = parseFloat(a0N.value) || 0;',
+      '  var rsk = parseFloat(riskN.value) || 0;',
+      '  var inc = parseFloat(incomeN.value) || 0;',
+      '  var infl = parseFloat(el("inflAdvN").value);',
+      '  var overrideOn = el("overrideToggle").checked;',
+      '  var rAccOvr = parseFloat(el("rAccOverrideN").value) || 0;',
+      '',
+      '  // Track which prepop fields have drifted',
+      '  if (_wState.prepopOriginals.capN && String(cap) !== _wState.prepopOriginals.capN) _wState.prepopChangedFields.capN = true;',
+      '  if (_wState.prepopOriginals.a0N && String(a0) !== _wState.prepopOriginals.a0N) _wState.prepopChangedFields.a0N = true;',
+      '  if (_wState.prepopOriginals.yearsN && String(parseFloat(yearsN.value)) !== _wState.prepopOriginals.yearsN) _wState.prepopChangedFields.yearsN = true;',
+      '  if (_wState.prepopOriginals.riskN && String(rsk) !== _wState.prepopOriginals.riskN) _wState.prepopChangedFields.riskN = true;',
+      '  var changedCount = Object.keys(_wState.prepopChangedFields).length;',
+      '',
+      '  // --- Tool 3 triggers ---',
+      '',
+      '  // 3_1_1 / avoidance: poverty-level retirement goal signals unworthiness',
+      '  if (inc > 0 && inc < 2000) showWarning("3_1_1");',
+      '',
+      '  // 3_1_2 / unrealistic_target: income > $25K/mo or contribution > $50K/mo',
+      '  if (inc > 25000 || cap > 50000) showWarning("3_1_2");',
+      '',
+      '  // 3_2_1 / inflate_assets: claiming 50%+ more assets than profile shows',
+      '  if (PREPOP.currentAssets && PREPOP.currentAssets > 0 && a0 > PREPOP.currentAssets * 1.5) showWarning("3_2_1");',
+      '',
+      '  // 3_2_3 / max_risk: risk dial at 7+ or return override > 20%',
+      '  if (rsk >= 7 || (overrideOn && rAccOvr > 20)) showWarning("3_2_3");',
+      '',
+      '  // --- Tool 5 triggers ---',
+      '',
+      '  // 5_1_1 / near-zero contribution: saving < 10% of capacity',
+      '  if (PREPOP.savingsCapacity && PREPOP.savingsCapacity > 200 && cap < PREPOP.savingsCapacity * 0.10) showWarning("5_1_1");',
+      '',
+      '  // 5_1_2 / low_contribution: saving < 25% of capacity',
+      '  if (PREPOP.savingsCapacity && PREPOP.savingsCapacity > 200 && cap > 0 && cap < PREPOP.savingsCapacity * 0.25) showWarning("5_1_2");',
+      '',
+      '  // 5_1_3 / override_all_prepop: all 4 prepop fields changed',
+      '  if (changedCount >= 4) showWarning("5_1_3");',
+      '',
+      '  // --- Tool 7 triggers ---',
+      '',
+      '  // 7_1_1 / lower_income: savings cut to < 50% of capacity (devaluing self)',
+      '  if (PREPOP.savingsCapacity && PREPOP.savingsCapacity > 200 && cap < PREPOP.savingsCapacity * 0.50) showWarning("7_1_1");',
+      '',
+      '  // 7_1_2 / hoard_assets: acknowledging < 25% of actual assets',
+      '  if (PREPOP.currentAssets && PREPOP.currentAssets > 1000 && a0 < PREPOP.currentAssets * 0.25) showWarning("7_1_2");',
+      '',
+      '  // 7_1_3 / change_everything: advanced opened + 3+ adv changes + 3+ prepop changes',
+      '  if (_wState.advancedOpened && _wState.advancedChanges >= 3 && changedCount >= 3) showWarning("7_1_3");',
+      '',
+      '  // 7_2_1 / no_protection: inflation under 0.5% (denial of reality)',
+      '  if (!isNaN(infl) && infl < 0.5) showWarning("7_2_1");',
+      '',
+      '  // 7_2_2 / sabotage_success: after saving, user worsens 3+ params',
+      '  if (_wState.hasSaved && _wState.savedSnapshot) {',
+      '    var ss = _wState.savedSnapshot;',
+      '    var worse = 0;',
+      '    if (cap < ss.cap * 0.7) worse++;',
+      '    if (a0 < ss.a0 * 0.7 && ss.a0 > 0) worse++;',
+      '    if (rsk > ss.risk + 2) worse++;',
+      '    if (parseFloat(yearsN.value) < ss.years * 0.7 && ss.years > 0) worse++;',
+      '    if (worse >= 3) showWarning("7_2_2");',
+      '  }',
+      '}',
+      '',
+      '// Note: 3_1_3 (skip_review), 3_2_2 (hesitate_save), 5_2_1 (instant_save)',
+      '// are checked at save-time in the save button handler.',
       '',
       '// ===== Initialize =====',
       'recalc();',
@@ -1436,6 +2219,308 @@ const Tool8 = {
       Logger.log('[Tool8.getUserScenarios] Error: ' + error);
       return [];
     }
+  },
+
+  // ============================================================================
+  // UPSTREAM DATA PRE-POPULATION (Phase 5)
+  // ============================================================================
+
+  /**
+   * Resolve upstream tool data for calculator pre-population
+   * Pulls from Tools 1, 2, 3, 4, 5, 6, 7 with safe fallbacks
+   * @param {string} clientId
+   * @returns {Object} Resolved data with pre-population fields, timestamps, trauma data, and flags
+   */
+  resolveClientData(clientId) {
+    try {
+      Logger.log('[Tool8.resolveClientData] Resolving for client ' + clientId);
+
+      // Get all upstream tool data
+      var tool1Data = DataService.getLatestResponse(clientId, 'tool1');
+      var tool2Data = DataService.getLatestResponse(clientId, 'tool2');
+      var tool3Data = DataService.getLatestResponse(clientId, 'tool3');
+      var tool4Data = DataService.getLatestResponse(clientId, 'tool4');
+      var tool5Data = DataService.getLatestResponse(clientId, 'tool5');
+      var tool6Data = DataService.getLatestResponse(clientId, 'tool6');
+      var tool6PreSurvey = this.getTool6PreSurvey(clientId);
+      var tool7Data = DataService.getLatestResponse(clientId, 'tool7');
+
+      // ---------------------------------------------------------------
+      // PRIMARY SOURCE: Tool 6 latest scenario (the refined output)
+      // Tool 6 already resolved Tool 4 data + pre-survey + backup questions
+      // into a final scenario. Use that as the authoritative source.
+      // ---------------------------------------------------------------
+      var t6Scenario = this.getLatestTool6Scenario(clientId);
+
+      // ---------------------------------------------------------------
+      // FALLBACK: Raw Tool 4 + Tool 2 data (if no Tool 6 scenario)
+      // ---------------------------------------------------------------
+      var t2 = (tool2Data && tool2Data.data && tool2Data.data.data) ? tool2Data.data.data : {};
+      var t4 = (tool4Data && tool4Data.data) ? tool4Data.data : {};
+
+      // ---------------------------------------------------------------
+      // ALWAYS compute raw Tool 4 values (for comparison display)
+      // ---------------------------------------------------------------
+      var t4MonthlyIncome = parseFloat(t4.monthlyIncome) || null;
+      var t4Multiply = parseFloat(t4.multiply) || null;
+      var t4SavingsCapacity = (t4MonthlyIncome && t4Multiply)
+        ? Math.round(t4MonthlyIncome * t4Multiply / 100) : null;
+      var t4InvestmentScore = t4.investmentScore ? parseFloat(t4.investmentScore) : null;
+      var t4RiskDial = t4InvestmentScore
+        ? Math.round(((t4InvestmentScore - 1) / 6) * 10 * 10) / 10 : null;
+      var t2Age = t2.age ? parseInt(t2.age) : null;
+      var t2YearsToRetirement = t2Age ? Math.max(0, 65 - t2Age) : null;
+
+      // ---------------------------------------------------------------
+      // Monthly savings capacity:
+      //   PRIMARY: Tool 6 scenario monthlyBudget (refined output)
+      //   FALLBACK: Raw Tool 4 (monthlyIncome * multiply / 100)
+      //   COMPARE: Always include Tool 4 raw value so UI can show difference
+      // ---------------------------------------------------------------
+      var savingsCapacity = null;
+      var savingsSource = null;
+      if (t6Scenario && t6Scenario.monthlyBudget > 0) {
+        savingsCapacity = Math.round(t6Scenario.monthlyBudget);
+        savingsSource = 'your Tool 6 investment plan';
+      } else if (t4SavingsCapacity) {
+        savingsCapacity = t4SavingsCapacity;
+        savingsSource = 'Tool 4 budget';
+      }
+
+      // Current investment balance:
+      //   Tool 6 pre-survey retirement balances (a12-a15) are the authoritative source
+      var currentAssets = this.sumRetirementBalances(tool6PreSurvey);
+
+      // ---------------------------------------------------------------
+      // Risk tolerance (1-7 investmentScore → 0-10 dial):
+      //   PRIMARY: Tool 6 scenario investmentScore
+      //   FALLBACK: Tool 4 investmentScore → Tool 2 investmentConfidence
+      //   COMPARE: Include Tool 4 value so UI can show difference
+      // ---------------------------------------------------------------
+      var riskTolerance = null;
+      var riskSource = null;
+      var investmentScore = null;
+      if (t6Scenario && t6Scenario.investmentScore) {
+        investmentScore = parseFloat(t6Scenario.investmentScore);
+        riskSource = 'your Tool 6 investment plan';
+      } else if (t4InvestmentScore) {
+        investmentScore = t4InvestmentScore;
+        riskSource = 'Tool 4 risk assessment';
+      }
+      if (investmentScore) {
+        riskTolerance = Math.round(((investmentScore - 1) / 6) * 10 * 10) / 10;
+      } else if (t2.investmentConfidence !== undefined && t2.investmentConfidence !== null && t2.investmentConfidence !== '') {
+        riskTolerance = this.mapConfidenceToRisk(t2.investmentConfidence);
+        riskSource = 'Tool 2 confidence';
+      }
+
+      // ---------------------------------------------------------------
+      // Years to retirement:
+      //   PRIMARY: Tool 6 scenario yearsToRetirement
+      //   FALLBACK: 65 - Tool 2 age
+      //   COMPARE: Include Tool 2 calc so UI can show difference
+      // ---------------------------------------------------------------
+      var age = null;
+      var yearsToRetirement = null;
+      if (t6Scenario && t6Scenario.yearsToRetirement > 0) {
+        yearsToRetirement = t6Scenario.yearsToRetirement;
+        age = t6Scenario.age || t2Age;
+      } else if (t2Age) {
+        age = t2Age;
+        yearsToRetirement = t2YearsToRetirement;
+      }
+
+      // Source timestamp: prefer Tool 6 scenario, fall back to tool completion
+      var scenarioTimestamp = t6Scenario ? t6Scenario.timestamp : null;
+
+      var result = {
+        // Pre-population fields (primary values used for calculator)
+        savingsCapacity: savingsCapacity,
+        savingsSource: savingsSource,
+        currentAssets: currentAssets,
+        riskTolerance: riskTolerance,
+        riskSource: riskSource,
+        age: age,
+        yearsToRetirement: yearsToRetirement,
+
+        // Raw Tool 4 / Tool 2 values for comparison display
+        // (null if same as primary or unavailable)
+        t4SavingsCapacity: (t6Scenario && t4SavingsCapacity && t4SavingsCapacity !== savingsCapacity)
+          ? t4SavingsCapacity : null,
+        t4RiskDial: (t6Scenario && t4RiskDial !== null && t4RiskDial !== riskTolerance)
+          ? t4RiskDial : null,
+        t2YearsToRetirement: (t6Scenario && t2YearsToRetirement !== null && t2YearsToRetirement !== yearsToRetirement)
+          ? t2YearsToRetirement : null,
+        t2Age: t2Age,
+
+        // Tool 6 vehicle allocations (for context in data review)
+        vehicleAllocations: (t6Scenario && t6Scenario.allocations) ? t6Scenario.allocations : null,
+        scenarioName: (t6Scenario && t6Scenario.name) ? t6Scenario.name : null,
+
+        // Source timestamps
+        scenarioTimestamp: scenarioTimestamp,
+        tool2Timestamp: (tool2Data && tool2Data.timestamp) ? String(tool2Data.timestamp) : null,
+        tool4Timestamp: (tool4Data && tool4Data.timestamp) ? String(tool4Data.timestamp) : null,
+        tool6Timestamp: (tool6Data && tool6Data.timestamp) ? String(tool6Data.timestamp) : null,
+
+        // Trauma data (for Phase 6)
+        traumaPattern: (tool1Data && tool1Data.data) ? (tool1Data.data.winner || null) : null,
+        traumaScores: (tool1Data && tool1Data.data) ? (tool1Data.data.scores || null) : null,
+        tool3Scoring: (tool3Data && tool3Data.data && tool3Data.data.scoring) ? tool3Data.data.scoring : null,
+        tool5Scoring: (tool5Data && tool5Data.data && tool5Data.data.scoring) ? tool5Data.data.scoring : null,
+        tool7Scoring: (tool7Data && tool7Data.data && tool7Data.data.scoring) ? tool7Data.data.scoring : null,
+
+        // Flags
+        hasTool1: !!tool1Data,
+        hasTool3: !!tool3Data,
+        hasTool5: !!tool5Data,
+        hasTool7: !!tool7Data,
+        hasTool6Scenario: !!t6Scenario,
+        hasFinancialData: !!(t6Scenario || tool4Data || tool6PreSurvey)
+      };
+
+      Logger.log('[Tool8.resolveClientData] Resolved: savings=' + savingsCapacity +
+        ' (source: ' + savingsSource + '), assets=' + currentAssets +
+        ', years=' + yearsToRetirement + ', risk=' + riskTolerance +
+        ', hasTool6Scenario=' + !!t6Scenario);
+
+      return result;
+    } catch (error) {
+      Logger.log('[Tool8.resolveClientData] Error: ' + error);
+      Logger.log('[Tool8.resolveClientData] Stack: ' + (error.stack || ''));
+      return { hasFinancialData: false };
+    }
+  },
+
+  /**
+   * Get the latest Tool 6 scenario for a client from TOOL6_SCENARIOS sheet
+   * This is the refined output that already incorporates Tool 4 data + pre-survey + backups
+   * @param {string} clientId
+   * @returns {Object|null} Latest scenario or null
+   */
+  getLatestTool6Scenario(clientId) {
+    try {
+      var scenariosSheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.TOOL6_SCENARIOS);
+      if (!scenariosSheet) return null;
+
+      var allData = scenariosSheet.getDataRange().getValues();
+      if (allData.length <= 1) return null;
+
+      // Column indices (0-indexed) matching Tool6.getScenarios() schema
+      var COL = {
+        TIMESTAMP: 0, CLIENT_ID: 1, SCENARIO_NAME: 2, PROFILE_ID: 3,
+        MONTHLY_BUDGET: 4, DOMAIN_WEIGHTS: 5, ALLOCATIONS: 6,
+        INVESTMENT_SCORE: 7, TAX_STRATEGY: 8, PROJECTED_BALANCE: 9,
+        CURRENT_BALANCES: 10, CURRENT_CONTRIBUTIONS: 11,
+        EDUCATION_INPUTS: 12, EDUCATION_PROJECTION: 13,
+        IS_LATEST: 14, YEARS_TO_RETIREMENT: 15, AGE: 16,
+        GROSS_INCOME: 17, FILING_STATUS: 18, WORK_SITUATION: 19
+      };
+
+      // Find latest scenario for this client (Is_Latest = true, or newest by timestamp)
+      var latest = null;
+      var latestTimestamp = null;
+
+      for (var i = 1; i < allData.length; i++) {
+        var row = allData[i];
+        if (String(row[COL.CLIENT_ID]) !== String(clientId)) continue;
+
+        // Prefer Is_Latest = true
+        if (row[COL.IS_LATEST] === true) {
+          latest = row;
+          break;
+        }
+
+        // Otherwise track newest by timestamp
+        var ts = row[COL.TIMESTAMP];
+        if (!latestTimestamp || (ts instanceof Date && ts > latestTimestamp)) {
+          latestTimestamp = ts;
+          latest = row;
+        }
+      }
+
+      if (!latest) return null;
+
+      // Parse allocations JSON safely
+      var allocations = null;
+      try {
+        var allocStr = latest[COL.ALLOCATIONS];
+        if (allocStr && typeof allocStr === 'string') {
+          allocations = JSON.parse(allocStr);
+        } else if (allocStr && typeof allocStr === 'object') {
+          allocations = allocStr;
+        }
+      } catch (e) {
+        Logger.log('[Tool8.getLatestTool6Scenario] Allocations parse error: ' + e);
+      }
+
+      var ts = latest[COL.TIMESTAMP];
+      var tsStr = (ts instanceof Date) ? ts.toISOString() : (ts ? String(ts) : null);
+
+      var scenario = {
+        timestamp: tsStr,
+        name: String(latest[COL.SCENARIO_NAME] || ''),
+        monthlyBudget: parseFloat(latest[COL.MONTHLY_BUDGET]) || 0,
+        allocations: allocations,
+        investmentScore: parseFloat(latest[COL.INVESTMENT_SCORE]) || null,
+        yearsToRetirement: parseFloat(latest[COL.YEARS_TO_RETIREMENT]) || null,
+        age: parseFloat(latest[COL.AGE]) || null,
+        projectedBalance: parseFloat(latest[COL.PROJECTED_BALANCE]) || null,
+        grossIncome: parseFloat(latest[COL.GROSS_INCOME]) || null
+      };
+
+      Logger.log('[Tool8.getLatestTool6Scenario] Found scenario "' + scenario.name +
+        '" with budget=' + scenario.monthlyBudget + ', score=' + scenario.investmentScore);
+
+      return scenario;
+    } catch (error) {
+      Logger.log('[Tool8.getLatestTool6Scenario] Error: ' + error);
+      return null;
+    }
+  },
+
+  /**
+   * Get Tool 6 pre-survey data from UserProperties
+   * @param {string} clientId
+   * @returns {Object|null} Pre-survey data
+   */
+  getTool6PreSurvey(clientId) {
+    try {
+      var key = 'tool6_presurvey_' + clientId;
+      var data = PropertiesService.getUserProperties().getProperty(key);
+      return data ? JSON.parse(data) : null;
+    } catch (e) {
+      Logger.log('[Tool8.getTool6PreSurvey] Error: ' + e);
+      return null;
+    }
+  },
+
+  /**
+   * Sum retirement balances from Tool 6 pre-survey fields a12-a15
+   * @param {Object} preSurveyData - Tool 6 pre-survey data
+   * @returns {number|null} Total retirement balance, or null if no data
+   */
+  sumRetirementBalances(preSurveyData) {
+    if (!preSurveyData) return null;
+    var b401k = parseFloat(preSurveyData.a12_current401kBalance) || 0;
+    var ira = parseFloat(preSurveyData.a13_currentIRABalance) || 0;
+    var hsa = parseFloat(preSurveyData.a14_currentHSABalance) || 0;
+    var edu = parseFloat(preSurveyData.a15_currentEducationBalance) || 0;
+    var total = b401k + ira + hsa + edu;
+    return total > 0 ? total : null;
+  },
+
+  /**
+   * Map Tool 2 investmentConfidence (-5 to +5) to risk dial (0 to 10)
+   * @param {number|string} confidence - Investment confidence value
+   * @returns {number|null} Risk dial value (0-10) or null
+   */
+  mapConfidenceToRisk(confidence) {
+    if (confidence === null || confidence === undefined || confidence === '') return null;
+    var conf = parseFloat(confidence);
+    if (isNaN(conf)) return null;
+    // -5 → 0, 0 → 5, +5 → 10
+    return Math.round(Math.max(0, Math.min(10, conf + 5)) * 10) / 10;
   },
 
   /**

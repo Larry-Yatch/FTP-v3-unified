@@ -380,18 +380,19 @@ Majority voting derives pattern. Enables lighter versions of Layers 1 and 2 (pat
 
 ---
 
-### Phase 5: Upstream Data Pre-Population
+### Phase 5: Upstream Data Pre-Population ✅ COMPLETE
 
 **Goal:** Calculator pre-fills from Tools 2, 4, 6 with source attribution and "Reset to my data" functionality.
+**Completed:** Full upstream data resolution with 4 pre-populated fields (savings capacity, current assets, years to retirement, risk tolerance). Collapsible data review section with source dates and per-field Reset buttons. Safe fallback chains (Tool 4 investmentScore → Tool 2 investmentConfidence → null). Tool 6 pre-survey retirement balances (a12-a15). Standalone mode works when no upstream data exists.
 
 | Step | File | Change |
 |------|------|--------|
-| 5.1 | `tools/tool8/Tool8.js` | Implement `resolveClientData(clientId)` — pulls from DataService + DraftService |
-| 5.2 | `tools/tool8/Tool8.js` | Implement `sumRetirementBalances()` — reads Tool 6 pre-survey fields a12-a15 |
-| 5.3 | `tools/tool8/Tool8.js` | Implement risk tolerance derivation (investmentScore → investmentConfidence → default 5) |
-| 5.4 | `tools/tool8/Tool8.js` | Build `buildDataReviewSection(resolvedData)` — inline confirmation with source dates |
-| 5.5 | `tools/tool8/Tool8.js` | Add client-side "Reset to my data" button logic per field |
-| 5.6 | `tools/tool8/Tool8.js` | Wire pre-populated values into calculator initial state |
+| 5.1 | `tools/tool8/Tool8.js` | Implemented `resolveClientData(clientId)` — pulls Tool 1-7 data via DataService + Tool 6 pre-survey via UserProperties |
+| 5.2 | `tools/tool8/Tool8.js` | Implemented `sumRetirementBalances()` — sums a12-a15 (401k, IRA, HSA, education) |
+| 5.3 | `tools/tool8/Tool8.js` | Implemented `mapConfidenceToRisk()` — maps -5..+5 to 0..10, with investmentScore (1-7 → 0-10) as primary |
+| 5.4 | `tools/tool8/Tool8.js` | Built `_buildDataReviewSection(resolvedData)` — collapsible panel with source dates and dr-item cards |
+| 5.5 | `tools/tool8/Tool8.js` | Added client-side `setupResetButtons()` — per-field reset with drift detection, syncs slider+number pairs |
+| 5.6 | `tools/tool8/Tool8.js` | Wired `applyPrepop()` into init — sets capN, a0N, years/yearsN, risk/riskN from PREPOP JSON |
 
 **resolveClientData() implementation:**
 ```javascript
