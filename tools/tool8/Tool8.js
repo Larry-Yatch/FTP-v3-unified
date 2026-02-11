@@ -1026,7 +1026,7 @@ const Tool8 = {
       '    .withSuccessHandler(function(res) {',
       '      isSaving = false;',
       '      saveBtn.disabled = false;',
-      '      if (res && res.ok) {',
+      '      if (res && res.success) {',
       '        saveBtn.textContent = "Saved";',
       '        setTimeout(function() { saveBtn.textContent = "Save"; loadUserScenarios(); }, 1500);',
       '        scenarioMsg.textContent = "Saved: " + (scnName.value || "Unnamed scenario");',
@@ -1042,7 +1042,7 @@ const Tool8 = {
       '      saveBtn.textContent = "Save";',
       '      scenarioMsg.textContent = "Save failed: " + err;',
       '    })',
-      '    .tool8SaveScenario(lastScenario);',
+      '    .tool8SaveScenario(CLIENT_ID, lastScenario);',
       '});',
       '',
       '// Generate PDF',
@@ -1059,11 +1059,10 @@ const Tool8 = {
       '      btn.textContent = "Generate PDF";',
       '      btn.disabled = false;',
       '      isGeneratingReport = false;',
-      '      if (res && res.ok) {',
+      '      if (res && res.success) {',
       '        var link = document.createElement("a");',
-      '        link.href = res.pdfUrl;',
+      '        link.href = "data:application/pdf;base64," + res.pdf;',
       '        link.download = res.fileName || "Investment_Report.pdf";',
-      '        link.target = "_blank";',
       '        document.body.appendChild(link);',
       '        link.click();',
       '        document.body.removeChild(link);',
@@ -1079,7 +1078,7 @@ const Tool8 = {
       '      isGeneratingReport = false;',
       '      scenarioMsg.textContent = "Report failed: " + err;',
       '    })',
-      '    .generateTool8PDF(lastScenario);',
+      '    .generateTool8PDF(CLIENT_ID, lastScenario);',
       '});',
       '',
       '// Comparison selection',
@@ -1160,11 +1159,10 @@ const Tool8 = {
       '      compBtn.textContent = "Generate PDF";',
       '      checkCompareReady();',
       '      isGenComp = false;',
-      '      if (res && res.ok) {',
+      '      if (res && res.success) {',
       '        var link = document.createElement("a");',
-      '        link.href = res.pdfUrl;',
+      '        link.href = "data:application/pdf;base64," + res.pdf;',
       '        link.download = res.fileName || "Comparison_Report.pdf";',
-      '        link.target = "_blank";',
       '        document.body.appendChild(link);',
       '        link.click();',
       '        document.body.removeChild(link);',
@@ -1180,7 +1178,7 @@ const Tool8 = {
       '      isGenComp = false;',
       '      compMsg.textContent = "Failed: " + err;',
       '    })',
-      '    .generateTool8ComparisonPDF(s1, s2);',
+      '    .generateTool8ComparisonPDF(CLIENT_ID, s1, s2);',
       '});',
       '',
       '// ===== Navigation =====',
@@ -1202,6 +1200,259 @@ const Tool8 = {
       'recalc();',
       'loadUserScenarios();'
     ].join('\n');
+  },
+
+  // ============================================================================
+  // SCENARIO MANAGEMENT (Phase 4)
+  // ============================================================================
+
+  /**
+   * Column header for the TOOL8_SCENARIOS sheet (22 columns A-V)
+   */
+  SCENARIO_HEADERS: [
+    'Timestamp',              // A
+    'Client_ID',              // B
+    'Scenario_Name',          // C
+    'Monthly_Income_Real',    // D
+    'Years_To_Goal',          // E
+    'Risk_Dial',              // F
+    'Target_Return',          // G
+    'Effective_Return',       // H
+    'Contribution_Capacity',  // I
+    'Current_Assets',         // J
+    'Inflation',              // K
+    'Draw_Years',             // L
+    'Maintenance_Return',     // M
+    'Nominal_Income_At_Start', // N
+    'Required_Nest_Egg',      // O
+    'Required_Contribution',  // P
+    'Solved_Return',          // Q
+    'Solved_Years',           // R
+    'Mode',                   // S
+    'Is_Latest',              // T
+    'First_Name',             // U
+    'Last_Name'               // V
+  ],
+
+  /**
+   * Save a scenario to the TOOL8_SCENARIOS sheet
+   * @param {string} clientId - Client ID
+   * @param {Object} scenario - Scenario data from calculator
+   * @returns {Object} {success, message, totalScenarios} or {success: false, error}
+   */
+  saveScenario(clientId, scenario) {
+    try {
+      Logger.log('[Tool8.saveScenario] Called for client ' + clientId);
+
+      if (!scenario || typeof scenario !== 'object') {
+        return { success: false, error: 'Invalid scenario data' };
+      }
+      if (!clientId) {
+        return { success: false, error: 'Client ID is required' };
+      }
+
+      // Get or create TOOL8_SCENARIOS sheet
+      var scenariosSheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.TOOL8_SCENARIOS);
+
+      if (!scenariosSheet) {
+        Logger.log('[Tool8.saveScenario] Creating TOOL8_SCENARIOS sheet');
+        var ss = SpreadsheetCache.getSpreadsheet();
+        scenariosSheet = ss.insertSheet(CONFIG.SHEETS.TOOL8_SCENARIOS);
+        scenariosSheet.appendRow(this.SCENARIO_HEADERS);
+        scenariosSheet.getRange(1, 1, 1, this.SCENARIO_HEADERS.length).setFontWeight('bold');
+        SpreadsheetApp.flush();
+      }
+
+      // Mark previous scenarios for this client as not latest
+      var allData = scenariosSheet.getDataRange().getValues();
+      var clientIdCol = 1;  // Column B (0-indexed)
+      var isLatestCol = 19; // Column T (0-indexed)
+
+      for (var i = 1; i < allData.length; i++) {
+        if (String(allData[i][clientIdCol]) === String(clientId) && allData[i][isLatestCol] === true) {
+          scenariosSheet.getRange(i + 1, isLatestCol + 1).setValue(false);
+        }
+      }
+
+      // Build row data (22 columns A-V)
+      var row = [
+        new Date(),                         // A: Timestamp
+        clientId,                           // B: Client_ID
+        scenario.name || '',                // C: Scenario_Name
+        scenario.M_real || 0,               // D: Monthly_Income_Real
+        scenario.T || 0,                    // E: Years_To_Goal
+        scenario.risk || 0,                 // F: Risk_Dial
+        scenario.rAccTarget || '',          // G: Target_Return
+        scenario.rAccEff || '',             // H: Effective_Return
+        scenario.C_cap || 0,                // I: Contribution_Capacity
+        scenario.A0 || 0,                   // J: Current_Assets
+        scenario.infl || 0.025,             // K: Inflation
+        scenario.D || 30,                   // L: Draw_Years
+        scenario.rRet || 0.10,              // M: Maintenance_Return
+        scenario.M0 || '',                  // N: Nominal_Income_At_Start
+        scenario.Areq || '',                // O: Required_Nest_Egg
+        scenario.Creq || '',                // P: Required_Contribution
+        scenario.rSolved || '',             // Q: Solved_Return
+        scenario.tSolved || '',             // R: Solved_Years
+        scenario.mode || 'contrib',         // S: Mode
+        true,                               // T: Is_Latest
+        scenario.firstName || '',           // U: First_Name
+        scenario.lastName || ''             // V: Last_Name
+      ];
+
+      scenariosSheet.appendRow(row);
+      SpreadsheetApp.flush();
+
+      // Count scenarios for this client and enforce 10-max limit
+      var MAX_SCENARIOS = 10;
+      var clientRows = [];
+      var refreshedData = scenariosSheet.getDataRange().getValues();
+
+      for (var j = 1; j < refreshedData.length; j++) {
+        if (String(refreshedData[j][clientIdCol]) === String(clientId)) {
+          clientRows.push({ rowIndex: j + 1, timestamp: refreshedData[j][0], name: refreshedData[j][2] });
+        }
+      }
+
+      // If over limit, delete oldest (FIFO)
+      var deletedScenario = null;
+      if (clientRows.length > MAX_SCENARIOS) {
+        clientRows.sort(function(a, b) { return new Date(a.timestamp) - new Date(b.timestamp); });
+        var oldest = clientRows[0];
+        Logger.log('[Tool8.saveScenario] Deleting oldest scenario "' + oldest.name + '" to enforce limit');
+        scenariosSheet.deleteRow(oldest.rowIndex);
+        SpreadsheetApp.flush();
+        deletedScenario = oldest.name;
+      }
+
+      var isFirstScenario = clientRows.length === 1;
+
+      // If first scenario, mark Tool 8 as completed in Responses tab
+      if (isFirstScenario) {
+        try {
+          DataService.saveToolResponse(clientId, 'tool8', {
+            scenarioName: scenario.name,
+            mode: scenario.mode,
+            M_real: scenario.M_real,
+            T: scenario.T,
+            risk: scenario.risk
+          }, 'COMPLETED');
+          Logger.log('[Tool8.saveScenario] Tool 8 marked as completed for client ' + clientId);
+        } catch (responseError) {
+          Logger.log('[Tool8.saveScenario] Warning: Could not update Responses tab: ' + responseError);
+        }
+      }
+
+      Logger.log('[Tool8.saveScenario] Saved "' + (scenario.name || 'Unnamed') + '" for client ' + clientId + ' (' + clientRows.length + ' total)');
+
+      return {
+        success: true,
+        message: 'Scenario saved successfully',
+        totalScenarios: clientRows.length - (deletedScenario ? 1 : 0),
+        isFirstScenario: isFirstScenario,
+        deletedScenario: deletedScenario
+      };
+
+    } catch (error) {
+      Logger.log('[Tool8.saveScenario] Error: ' + error);
+      Logger.log('[Tool8.saveScenario] Stack: ' + error.stack);
+      return { success: false, error: error.message };
+    }
+  },
+
+  /**
+   * Get all scenarios for a client from TOOL8_SCENARIOS sheet
+   * @param {string} clientId - Client ID
+   * @returns {Array} Array of scenario objects (newest first), or empty array
+   */
+  getUserScenarios(clientId) {
+    try {
+      if (!clientId) return [];
+
+      var scenariosSheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.TOOL8_SCENARIOS);
+      if (!scenariosSheet) return [];
+
+      var allData = scenariosSheet.getDataRange().getValues();
+      if (allData.length <= 1) return [];
+
+      // Column indices (0-indexed)
+      var COL = {
+        TIMESTAMP: 0, CLIENT_ID: 1, NAME: 2,
+        M_REAL: 3, T: 4, RISK: 5,
+        R_ACC_TARGET: 6, R_ACC_EFF: 7,
+        C_CAP: 8, A0: 9, INFL: 10,
+        D: 11, R_RET: 12, M0: 13,
+        AREQ: 14, CREQ: 15,
+        R_SOLVED: 16, T_SOLVED: 17,
+        MODE: 18, IS_LATEST: 19,
+        FIRST_NAME: 20, LAST_NAME: 21
+      };
+
+      var scenarios = [];
+
+      for (var i = 1; i < allData.length; i++) {
+        var row = allData[i];
+        if (String(row[COL.CLIENT_ID]) !== String(clientId)) continue;
+
+        // Convert Date to ISO string for serialization
+        var ts = row[COL.TIMESTAMP];
+        var tsStr = '';
+        if (ts instanceof Date) {
+          tsStr = ts.toISOString();
+        } else if (ts) {
+          tsStr = String(ts);
+        }
+
+        scenarios.push({
+          timestamp: tsStr,
+          name: String(row[COL.NAME] || ''),
+          M_real: Number(row[COL.M_REAL] || 0),
+          T: Number(row[COL.T] || 0),
+          risk: Number(row[COL.RISK] || 0),
+          rAccTarget: Number(row[COL.R_ACC_TARGET] || 0),
+          rAccEff: Number(row[COL.R_ACC_EFF] || 0),
+          C_cap: Number(row[COL.C_CAP] || 0),
+          A0: Number(row[COL.A0] || 0),
+          infl: Number(row[COL.INFL] || 0.025),
+          D: Number(row[COL.D] || 30),
+          rRet: Number(row[COL.R_RET] || 0.10),
+          M0: Number(row[COL.M0] || 0),
+          Areq: Number(row[COL.AREQ] || 0),
+          Creq: row[COL.CREQ] !== '' ? Number(row[COL.CREQ]) : '',
+          rSolved: row[COL.R_SOLVED] !== '' ? Number(row[COL.R_SOLVED]) : '',
+          tSolved: row[COL.T_SOLVED] !== '' ? Number(row[COL.T_SOLVED]) : '',
+          mode: String(row[COL.MODE] || 'contrib'),
+          isLatest: row[COL.IS_LATEST] === true
+        });
+      }
+
+      // Sort newest first
+      scenarios.sort(function(a, b) { return new Date(b.timestamp) - new Date(a.timestamp); });
+
+      Logger.log('[Tool8.getUserScenarios] Found ' + scenarios.length + ' scenarios for client ' + clientId);
+      return scenarios;
+
+    } catch (error) {
+      Logger.log('[Tool8.getUserScenarios] Error: ' + error);
+      return [];
+    }
+  },
+
+  /**
+   * Get student name from upstream tool data
+   * @param {string} clientId
+   * @returns {string} Student name or 'Student'
+   */
+  getStudentName(clientId) {
+    try {
+      var tool1Data = DataService.getLatestResponse(clientId, 'tool1');
+      if (tool1Data && tool1Data.data && tool1Data.data.name) return tool1Data.data.name;
+      var tool2Data = DataService.getLatestResponse(clientId, 'tool2');
+      if (tool2Data && tool2Data.data && tool2Data.data.name) return tool2Data.data.name;
+    } catch (e) {
+      Logger.log('[Tool8.getStudentName] Error: ' + e);
+    }
+    return 'Student';
   },
 
   /**

@@ -353,19 +353,22 @@ Majority voting derives pattern. Enables lighter versions of Layers 1 and 2 (pat
 
 ---
 
-### Phase 4: Port Scenario Management + PDF Generation
+### Phase 4: Port Scenario Management + PDF Generation ✅ COMPLETE
 
 **Goal:** Students can save, load, and compare scenarios. PDF reports generate correctly.
+**Completed:** Full scenario management (save/load/compare) with TOOL8_SCENARIOS sheet storage, 10-scenario-per-client FIFO limit, Is_Latest tracking, first-save completion marking. PDF reports use PDFGenerator infrastructure with gold/purple theme. Fixed client-side argument mismatch (CLIENT_ID now passed to all server calls) and PDF download pattern (base64 data URL).
 
 | Step | File | Change |
 |------|------|--------|
-| 4.1 | `tools/tool8/Tool8.js` | Port `getUserScenarios()`, `saveScenario()`, `ensureScenariosHeader_()` from legacy Code.js:199-327 |
-| 4.2 | `tools/tool8/Tool8.js` | Port scenario load/save UI from legacy index.html:1210-1399 |
-| 4.3 | `tools/tool8/Tool8.js` | Port scenario comparison UI from legacy index.html:1401-1607 |
-| 4.4 | `tools/tool8/Tool8.js` | Update all `google.script.run` calls to use `tool8` prefix |
-| 4.5 | `tools/tool8/Tool8Report.js` | Port `ReportFormatters` + `ReportStyles` from legacy Code.js:329-484 |
-| 4.6 | `tools/tool8/Tool8Report.js` | Port `generateReport()` from legacy Code.js:490-1079 |
-| 4.7 | `tools/tool8/Tool8Report.js` | Port `generateComparisonReport()` from legacy Code.js:1085-1841 |
+| 4.1 | `Config.js` | Added `TOOL8_SCENARIOS: 'TOOL8_SCENARIOS'` to CONFIG.SHEETS |
+| 4.2 | `tools/tool8/Tool8.js` | Fixed client→server argument mismatch: `tool8SaveScenario(CLIENT_ID, lastScenario)`, `generateTool8PDF(CLIENT_ID, lastScenario)`, `generateTool8ComparisonPDF(CLIENT_ID, s1, s2)` |
+| 4.3 | `tools/tool8/Tool8.js` | Fixed PDF download: `res.success` check + `data:application/pdf;base64,` + `res.pdf` pattern |
+| 4.4 | `tools/tool8/Tool8.js` | Implemented `saveScenario(clientId, scenario)` — 22-column sheet (A-V), auto-create, Is_Latest tracking, 10-max FIFO, first-save completion marking |
+| 4.5 | `tools/tool8/Tool8.js` | Implemented `getUserScenarios(clientId)` — reads TOOL8_SCENARIOS sheet, returns sorted array (newest first) |
+| 4.6 | `tools/tool8/Tool8.js` | Added `getStudentName(clientId)` helper for PDF reports |
+| 4.7 | `tools/tool8/Tool8Report.js` | Full implementation: `generatePDF()` single scenario report with inputs, results, feasibility, assumptions |
+| 4.8 | `tools/tool8/Tool8Report.js` | Full implementation: `generateComparisonPDF()` with side-by-side cards, comparison table, feasibility assessment, recommendation logic |
+| 4.9 | `tools/tool8/Tool8Report.js` | Updated `render()` system route handler to show saved scenarios list |
 
 **Test gate:**
 - Save a scenario → appears in spreadsheet with correct schema (columns A-V)
