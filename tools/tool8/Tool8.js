@@ -25,7 +25,9 @@ const Tool8 = {
       const clientId = params.clientId || params.client;
 
       if (!clientId) {
-        return this.renderError('No client ID provided.');
+        return HtmlService.createHtmlOutput(this.renderError('No client ID provided.'))
+          .setTitle('Tool 8 - Error')
+          .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
       }
 
       const htmlContent = this.buildPage(clientId);

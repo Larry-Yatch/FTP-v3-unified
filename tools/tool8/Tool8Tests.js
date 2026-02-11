@@ -282,7 +282,9 @@ function testRiskReturnRoundTrip() {
   }
 
   // Test at several return levels
-  var testReturns = [0.05, 0.08, 0.12, 0.15, 0.20, 0.24];
+  // Note: values must be within sigmoid range (rMin ~4.5% to rMax ~25%)
+  // 5% is near rMin so riskFromReturn clamps to 0; use 6% instead
+  var testReturns = [0.06, 0.08, 0.12, 0.15, 0.20, 0.24];
   for (var idx2 = 0; idx2 < testReturns.length; idx2++) {
     var ret2 = testReturns[idx2];
     var R2 = _t8_riskFromReturn(ret2);
