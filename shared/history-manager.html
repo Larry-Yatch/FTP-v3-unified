@@ -17,7 +17,7 @@
   var BASE_URL_KEY = '_ftpBaseUrl';
   var LOCATION_MAX_AGE_MS = 30 * 60 * 1000; // 30 minutes - expire stale locations
   var NAV_FALLBACK_MS = 10000; // 10 seconds for auto-recovery (server is slow but working)
-  var HIST_NAV_FALLBACK_MS = 2000; // 2 seconds for back/forward (callback channel likely broken)
+  var HIST_NAV_FALLBACK_MS = 500; // 0.5 seconds for back/forward — show escape hatch quickly
 
   /**
    * Save the current location to sessionStorage for refresh recovery
@@ -720,32 +720,22 @@
    */
   function loadDashboard(clientId, timeoutMs) {
     // Loading already shown by handleHistoryChange
-    var handled = false;
     var timeout = timeoutMs || NAV_FALLBACK_MS;
 
-    // Safety fallback: if google.script.run callback never arrives
-    // (stale postMessage bridge after document.write), show clickable button
+    // Show fallback button after timeout. If google.script.run callback
+    // arrives (even after fallback is shown), document.write() replaces everything.
     var fallbackTimer = setTimeout(function() {
-      if (!handled) {
-        handled = true;
-        console.warn('[HistoryManager] google.script.run callback timeout (' + timeout + 'ms) - showing fallback button');
-        saveLocation('dashboard', {});
-        showFallbackButton('dashboard', clientId);
-      }
+      console.warn('[HistoryManager] google.script.run callback timeout (' + timeout + 'ms) - showing fallback button');
+      showFallbackButton('dashboard', clientId);
     }, timeout);
 
     google.script.run
       .withSuccessHandler(function(html) {
-        if (handled) return;
-        handled = true;
         clearTimeout(fallbackTimer);
-        // Save destination location BEFORE writing (for refresh recovery)
         saveLocation('dashboard', {});
         writeAndFinishRestore(html);
       })
       .withFailureHandler(function(error) {
-        if (handled) return;
-        handled = true;
         clearTimeout(fallbackTimer);
         handleNavError(error, 'dashboard');
       })
@@ -764,32 +754,19 @@
       showLoading('Loading ' + toolId.replace('tool', 'Tool ') + ' Page ' + page);
     }
 
-    var handled = false;
     var timeout = timeoutMs || NAV_FALLBACK_MS;
     var fallbackTimer = setTimeout(function() {
-      if (!handled) {
-        handled = true;
-        console.warn('[HistoryManager] google.script.run callback timeout (' + timeout + 'ms) - showing fallback button');
-        saveLocation('tool', { toolId: toolId, page: page });
-        showFallbackButton(toolId, clientId, { page: page });
-      }
+      console.warn('[HistoryManager] google.script.run callback timeout (' + timeout + 'ms) - showing fallback button');
+      showFallbackButton(toolId, clientId, { page: page });
     }, timeout);
 
     google.script.run
       .withSuccessHandler(function(html) {
-        if (handled) return;
-        handled = true;
         clearTimeout(fallbackTimer);
-        // Remove fallback button if it was shown (race condition guard)
-        var fb = document.getElementById('historyManagerFallback');
-        if (fb) fb.remove();
-        // Save destination location BEFORE writing (for refresh recovery)
         saveLocation('tool', { toolId: toolId, page: page });
         writeAndFinishRestore(html);
       })
       .withFailureHandler(function(error) {
-        if (handled) return;
-        handled = true;
         clearTimeout(fallbackTimer);
         handleNavError(error, 'tool page');
       })
@@ -807,29 +784,19 @@
       showLoading('Loading Report');
     }
 
-    var handled = false;
     var timeout = timeoutMs || NAV_FALLBACK_MS;
     var fallbackTimer = setTimeout(function() {
-      if (!handled) {
-        handled = true;
-        console.warn('[HistoryManager] google.script.run callback timeout (' + timeout + 'ms) - showing fallback button');
-        saveLocation('report', { toolId: toolId });
-        showFallbackButton(toolId + '_report', clientId);
-      }
+      console.warn('[HistoryManager] google.script.run callback timeout (' + timeout + 'ms) - showing fallback button');
+      showFallbackButton(toolId + '_report', clientId);
     }, timeout);
 
     google.script.run
       .withSuccessHandler(function(html) {
-        if (handled) return;
-        handled = true;
         clearTimeout(fallbackTimer);
-        // Save destination location BEFORE writing (for refresh recovery)
         saveLocation('report', { toolId: toolId });
         writeAndFinishRestore(html);
       })
       .withFailureHandler(function(error) {
-        if (handled) return;
-        handled = true;
         clearTimeout(fallbackTimer);
         handleNavError(error, 'report');
       })

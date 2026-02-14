@@ -1815,7 +1815,22 @@ const Router = {
           </button>
         </div>
         <script>
-          function startTool8(){showLoading('Loading Calculator');google.script.run.withSuccessHandler(function(h){document.open();document.write(h);document.close();window.scrollTo(0,0);}).withFailureHandler(function(e){hideLoading();alert('Error: '+e.message);}).getToolPageHtml('tool8','${clientId}',1);}
+          function startTool8() {
+            showLoading('Loading Calculator');
+            google.script.run
+              .withSuccessHandler(function(pageHtml) {
+                if (typeof saveLocationForRefresh === 'function') saveLocationForRefresh('tool', 'tool8', 1, '${clientId}');
+                document.open();
+                document.write(pageHtml);
+                document.close();
+                window.scrollTo(0, 0);
+              })
+              .withFailureHandler(function(error) {
+                hideLoading();
+                alert('Error: ' + error.message);
+              })
+              .getToolPageHtml('tool8', '${clientId}', 1);
+          }
         </script>
       `;
     } else {
