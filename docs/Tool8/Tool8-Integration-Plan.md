@@ -450,9 +450,10 @@ resolveClientData(clientId) {
 
 ---
 
-### Phase 6: Trauma Integration (Insight Section + Contextual Warnings + Backup Questions)
+### Phase 6: Trauma Integration (Insight Section + Contextual Warnings + Backup Questions) ✅ COMPLETE
 
 **Goal:** Collapsible trauma insight section, subdomain-specific contextual warnings, and backup questions when Tool 1 is missing.
+**Completed:** All 4 trauma layers implemented. Collapsible insight section with primary/secondary patterns, 18 subdomain-triggered contextual warnings (dismissible, once-per-session), backup questions with majority voting when Tool 1 missing.
 
 | Step | File | Change |
 |------|------|--------|
@@ -493,20 +494,21 @@ function checkWarning(warningId, subdomainKey, quotientValue) {
 
 ---
 
-### Phase 7: PDF Action Barriers + Polish
+### Phase 7: PDF Action Barriers + Polish ✅ COMPLETE
 
 **Goal:** PDF reports include personalized action barrier section. Final polish and edge case testing.
+**Completed:** `TOOL8_ACTION_BARRIERS` added to constants (8 barriers covering Tools 3/5/7 subdomains + Fear general). `findTopBarriers()` scans subdomain quotients and returns top 2 above threshold 60. `buildActionBarrierSection()` renders styled barrier cards in single-scenario PDFs. `generatePDF()` calls `Tool8.resolveClientData(clientId)` server-side with non-fatal try/catch. Tutorial modal: not ported (decision: removed). Mobile responsive verified (768px breakpoint, grid collapse). Style audit passed (gold/purple tokens, slider track/thumb CSS, consistent with Tool4/Tool6).
 
 | Step | File | Change |
 |------|------|--------|
-| 7.1 | `tools/tool8/Tool8Constants.js` | Add `TOOL8_ACTION_BARRIERS` object (barrier/step/healing per subdomain — see Appendix E) |
-| 7.2 | `tools/tool8/Tool8Report.js` | Implement `buildActionBarrierSection(resolvedData)` |
-| 7.3 | `tools/tool8/Tool8Report.js` | Integrate action barrier into `generateReport()` (single-scenario PDF only) |
-| 7.4 | `tools/tool8/Tool8Report.js` | Pass `resolvedData` through wrapper function to report generator |
-| 7.5 | — | Decision: Keep or remove tutorial modal/Guidde video |
+| 7.1 | `tools/tool8/Tool8Constants.js` | Added `TOOL8_ACTION_BARRIERS` object (8 barriers: 3 from Tool3, 2 from Tool5, 2 from Tool7, 1 Fear general) |
+| 7.2 | `tools/tool8/Tool8Report.js` | Implemented `findTopBarriers(resolvedData)` + `buildActionBarrierSection(resolvedData)` |
+| 7.3 | `tools/tool8/Tool8Report.js` | Integrated action barrier into `generatePDF()` (single-scenario only, between feasibility and assumptions) |
+| 7.4 | `tools/tool8/Tool8Report.js` | `generatePDF()` calls `Tool8.resolveClientData(clientId)` directly (server-side, no wrapper change needed) |
+| 7.5 | — | Decision: Tutorial modal removed (never ported from legacy) |
 | 7.6 | — | Full end-to-end testing (see Section 6) |
-| 7.7 | — | Mobile responsiveness verification |
-| 7.8 | — | Style audit against Tool4/Tool6 |
+| 7.7 | — | Mobile responsiveness verified (viewport meta, 768px breakpoint, grid collapse) |
+| 7.8 | — | Style audit passed (gold/purple tokens, slider CSS, consistent with Tool4/Tool6) |
 
 **Test gate:**
 - Generate PDF for student with trauma data (subdomain > 60) → "Your Action Barrier" section present with correct content
@@ -514,6 +516,35 @@ function checkWarning(warningId, subdomainKey, quotientValue) {
 - Generate PDF without trauma data → report generates normally, no barrier section
 - Comparison PDF still works (no barrier section in comparisons)
 - All edge cases: no upstream data, partial data, missing Tool 1, missing Tools 3/5/7
+
+---
+
+### Phase 8: GPT-Enhanced Reports ✅ COMPLETE
+
+**Goal:** Add GPT-generated personalized narrative, milestone timeline, and actionable next steps to both single-scenario and comparison PDFs. Match the depth of Tool 6 reports.
+**Completed:** Created `Tool8GPTAnalysis.js` (3-tier GPT->Retry->Fallback, trauma context builder, prompt builders for single+comparison, response parsers, validators). Created `Tool8Fallbacks.js` (mode-aware and feasibility-aware fallback content). Enhanced `Tool8Report.js` with 4 new section builders: `buildGPTSection()` (overview + key insights), `buildMilestoneSection()` (projected nest egg at 5-year intervals with life events), `buildNextStepsSection()` (checkbox action items), `buildComparisonGPTSection()` (synthesis + decision guidance + trade-offs). Both `generatePDF()` and `generateComparisonPDF()` now call GPT with non-fatal try/catch. Source attribution in footer (GPT vs fallback).
+
+| Step | File | Change |
+|------|------|--------|
+| 8.1 | `tools/tool8/Tool8GPTAnalysis.js` | Created: `generateSingleReportInsights()`, `generateComparisonInsights()`, `buildTraumaContext()`, prompt builders, parsers, validators, `callGPT()` |
+| 8.2 | `tools/tool8/Tool8Fallbacks.js` | Created: `getSingleReportFallback()`, `getComparisonFallback()` with mode/feasibility-aware templates |
+| 8.3 | `tools/tool8/Tool8Report.js` | Added CSS: `.insight-box`, `.observation-item`, `.focus-box`, `.milestone-table`, `.next-step-item`, `.source-note` |
+| 8.4 | `tools/tool8/Tool8Report.js` | Added `buildGPTSection(gptInsights)` — overview + numbered key insights |
+| 8.5 | `tools/tool8/Tool8Report.js` | Added `buildMilestoneSection(scenario, resolvedData)` — projected balance at 5-year intervals with life events |
+| 8.6 | `tools/tool8/Tool8Report.js` | Added `buildNextStepsSection(gptInsights)` — checkbox-style action items |
+| 8.7 | `tools/tool8/Tool8Report.js` | Added `buildComparisonGPTSection(gptInsights)` — synthesis, decision guidance, trade-offs |
+| 8.8 | `tools/tool8/Tool8Report.js` | Modified `generatePDF()` — calls `Tool8GPTAnalysis.generateSingleReportInsights()`, integrates GPT section + milestones + next steps |
+| 8.9 | `tools/tool8/Tool8Report.js` | Modified `generateComparisonPDF()` — calls `Tool8GPTAnalysis.generateComparisonInsights()`, integrates analysis section |
+| 8.10 | `tools/tool8/tool8.manifest.json` | Added `Tool8GPTAnalysis` and `Tool8Fallbacks` to dependencies, `gptEnhancedReports` feature flag |
+
+**Test gate:**
+- Generate single PDF with GPT available → "Personalized Analysis" section with overview + insights, milestone timeline, next steps with checkboxes
+- Generate single PDF without API key → Fallback content renders, footer shows "profile-based templates"
+- Generate single PDF without trauma data → GPT section works (no trauma context in prompt), barriers section empty
+- Generate comparison PDF → "Analysis" section with synthesis, decision guidance, trade-offs using actual scenario names
+- Milestone timeline shows correct projected balances at 5-year intervals with life events
+- All existing sections (inputs, results, feasibility, barriers, assumptions) still render correctly
+- Edge cases: short timeline (<5 years) skips milestones, missing resolvedData degrades gracefully
 
 ---
 

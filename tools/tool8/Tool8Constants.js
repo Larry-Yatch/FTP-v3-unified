@@ -294,3 +294,83 @@ var TOOL8_BACKUP_QUESTIONS = [
     ]
   }
 ];
+
+/**
+ * Phase 7: Action barrier definitions for PDF reports
+ * Each barrier corresponds to a subdomain from Tools 3/5/7.
+ * Rule: Include up to 2 barriers for subdomains scoring above 60, highest first.
+ * Based on Integration Plan Appendix E
+ *
+ * Key structure:
+ *   tool: which scoring object to check (tool3Scoring, tool5Scoring, tool7Scoring)
+ *   subdomain: the subdomainQuotients key
+ *   barrier: what the student will face
+ *   step: the smallest possible first action
+ *   healing: connection to their healing journey
+ */
+var TOOL8_ACTION_BARRIERS = {
+  '3_1_1': {
+    tool: 'tool3Scoring',
+    subdomain: 'subdomain_1_1',
+    theme: 'Not Worthy',
+    barrier: 'A voice will tell you that people like you do not build wealth. That is the pattern talking, not the truth.',
+    step: 'This week, log into your retirement account. Just log in. That is it.',
+    healing: 'Every time you look at your plan, you are proving that voice wrong.'
+  },
+  '3_1_2': {
+    tool: 'tool3Scoring',
+    subdomain: 'subdomain_1_2',
+    theme: 'Never Enough',
+    barrier: 'You may look at this plan and think it is not enough — that the numbers are too small to matter. They are not.',
+    step: 'Set up a $25 automatic monthly transfer. The amount does not matter. The habit does.',
+    healing: 'Sufficiency is not a number. It is a practice.'
+  },
+  '3_1_3': {
+    tool: 'tool3Scoring',
+    subdomain: 'subdomain_1_3',
+    theme: 'Cannot See Reality',
+    barrier: 'The urge to close this report and not think about it again will be strong. That is the pattern of avoidance.',
+    step: 'Put a recurring 15-minute calendar reminder to review this plan monthly.',
+    healing: 'Seeing your financial reality clearly is the foundation of every other change.'
+  },
+  '5_1_1': {
+    tool: 'tool5Scoring',
+    subdomain: 'subdomain_1_1',
+    theme: 'Must Give to Be Loved',
+    barrier: 'When someone asks for money, you will want to redirect your investment dollars to them. That is the pattern.',
+    step: 'Before giving away money this month, open this report and read your plan.',
+    healing: 'You cannot pour from an empty cup. Building your security enables sustainable generosity.'
+  },
+  '5_1_2': {
+    tool: 'tool5Scoring',
+    subdomain: 'subdomain_1_2',
+    theme: 'Their Needs Over Mine',
+    barrier: 'You will find reasons why others need the money more than your retirement account does. They always will.',
+    step: 'Automate your contribution so it happens before you can redirect it.',
+    healing: 'Prioritizing yourself is not selfish. It is the foundation that lets you help others long-term.'
+  },
+  '7_1_2': {
+    tool: 'tool7Scoring',
+    subdomain: 'subdomain_1_2',
+    theme: 'Have Money But Will Not Use It',
+    barrier: 'You have the resources to start. The barrier is not the money — it is the permission to use it.',
+    step: 'Move one dollar from savings to an investment account. Break the seal.',
+    healing: 'Money sitting idle is not safety. Money working for your future IS safety.'
+  },
+  '7_2_2': {
+    tool: 'tool7Scoring',
+    subdomain: 'subdomain_2_2',
+    theme: 'Sabotage Success',
+    barrier: 'When this plan starts working — and it will — you will feel the pull to change it, abandon it, or find a flaw. That is the pattern.',
+    step: 'Commit to not changing your plan for 90 days. Write the date on this report.',
+    healing: 'Staying with a working plan IS the healing. The urge to quit is the pattern losing its grip.'
+  },
+  'Fear_general': {
+    tool: null,
+    subdomain: null,
+    theme: 'Fear of Markets',
+    barrier: 'The news will scare you. The market will dip. Someone will tell you a horror story. You will want to pull everything out.',
+    step: 'Write this on a sticky note and put it on your monitor: "I do not react. I review quarterly."',
+    healing: 'Courage is not the absence of fear. It is investing anyway.'
+  }
+};

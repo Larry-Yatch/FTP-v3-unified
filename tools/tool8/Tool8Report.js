@@ -5,7 +5,8 @@
  * Uses PDFGenerator infrastructure (htmlToPDF, buildHeader, buildFooter).
  *
  * Phase 4: Full implementation of scenario reports + comparison reports.
- * Phase 7: Will add action barriers and trauma-informed insights.
+ * Phase 7: Action barriers and trauma-informed insights.
+ * Phase 8: GPT-enhanced personalized analysis, milestones, next steps.
  */
 
 const Tool8Report = {
@@ -53,7 +54,33 @@ const Tool8Report = {
       '.comp-card { background: rgba(173, 145, 104, 0.06); padding: 15px; border-radius: 8px; border-top: 3px solid ' + gold + '; }',
       '.comp-card h3 { margin-top: 0; color: ' + purple + '; font-size: 16px; }',
       '.recommendation { background: #eff6ff; padding: 15px; border-radius: 8px; border-left: 4px solid #3b82f6; margin: 15px 0; }',
-      '.recommendation strong { color: #1e40af; }'
+      '.recommendation strong { color: #1e40af; }',
+      '.barrier-section { margin-top: 30px; page-break-inside: avoid; }',
+      '.barrier-card { background: linear-gradient(135deg, rgba(91, 75, 138, 0.06) 0%, rgba(173, 145, 104, 0.06) 100%); border: 1px solid rgba(91, 75, 138, 0.2); border-radius: 10px; padding: 18px 20px; margin: 12px 0; page-break-inside: avoid; }',
+      '.barrier-card h3 { color: ' + purple + '; margin: 0 0 10px; font-size: 15px; }',
+      '.barrier-quote { font-style: italic; color: #444; margin: 8px 0; padding: 10px 15px; border-left: 3px solid ' + gold + '; background: rgba(173, 145, 104, 0.04); border-radius: 0 6px 6px 0; }',
+      '.barrier-step { background: rgba(34, 197, 94, 0.06); border-left: 3px solid #22c55e; padding: 10px 15px; border-radius: 0 6px 6px 0; margin: 8px 0; }',
+      '.barrier-step strong { color: #15803d; }',
+      '.barrier-healing { font-size: 13px; color: #666; margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(0,0,0,0.06); }',
+      '.insight-box { background: linear-gradient(135deg, #fff8e1 0%, #fff3cd 100%); padding: 18px; border-radius: 8px; border-left: 4px solid ' + gold + '; margin: 15px 0; page-break-inside: avoid; }',
+      '.insight-box h3 { color: ' + purple + '; margin: 0 0 8px; font-size: 15px; }',
+      '.insight-box p { margin: 0; color: #444; font-size: 14px; line-height: 1.7; }',
+      '.observation-list { margin: 15px 0; }',
+      '.observation-item { background: #f9f9f9; padding: 15px; margin: 10px 0; border-left: 3px solid ' + purple + '; border-radius: 0 5px 5px 0; page-break-inside: avoid; }',
+      '.observation-number { display: inline-block; width: 24px; height: 24px; background: ' + purple + '; color: white; border-radius: 50%; text-align: center; line-height: 24px; font-size: 12px; font-weight: 700; margin-right: 10px; }',
+      '.focus-box { background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); padding: 18px; border-radius: 8px; border-left: 4px solid #4caf50; margin: 15px 0; page-break-inside: avoid; }',
+      '.focus-box h3 { color: #2e7d32; margin: 0 0 8px; font-size: 15px; }',
+      '.milestone-table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 13px; }',
+      '.milestone-table th { background: ' + purple + '; color: white; padding: 10px 12px; text-align: left; font-size: 12px; }',
+      '.milestone-table td { padding: 10px 12px; border-bottom: 1px solid #e5e7eb; vertical-align: top; }',
+      '.milestone-table tr:nth-child(even) { background: rgba(173, 145, 104, 0.04); }',
+      '.milestone-current { background: #e8f5e9 !important; border-left: 4px solid #4caf50; }',
+      '.milestone-table .age-cell { font-weight: 700; color: ' + purple + '; font-size: 15px; }',
+      '.milestone-table .balance-cell { font-weight: 600; color: #2d2d44; }',
+      '.milestone-table .event-cell { font-size: 12px; color: #555; }',
+      '.next-step-item { display: flex; align-items: flex-start; margin: 10px 0; padding: 12px 15px; background: #f9f9f9; border-radius: 6px; }',
+      '.next-step-checkbox { width: 18px; height: 18px; border: 2px solid ' + purple + '; border-radius: 3px; margin-right: 12px; flex-shrink: 0; margin-top: 1px; }',
+      '.source-note { font-size: 11px; color: #888; font-style: italic; margin-top: 10px; }'
     ].join('\n');
   },
 
@@ -191,13 +218,54 @@ const Tool8Report = {
         '<tr><td>Target Accumulation Return</td><td>' + this.fmtPct(scenario.rAccTarget) + '</td></tr>' +
         '</table>';
 
+      // Resolve client data (used for barriers + GPT trauma context)
+      var resolvedData = null;
+      try {
+        resolvedData = Tool8.resolveClientData(clientId);
+      } catch (resolveErr) {
+        Logger.log('[Tool8Report.generatePDF] resolveClientData error (non-fatal): ' + resolveErr);
+      }
+
+      // Phase 8: GPT-enhanced personalized analysis
+      var gptInsights = null;
+      try {
+        gptInsights = Tool8GPTAnalysis.generateSingleReportInsights({
+          scenario: scenario,
+          resolvedData: resolvedData
+        });
+      } catch (gptErr) {
+        Logger.log('[Tool8Report.generatePDF] GPT analysis error (non-fatal): ' + gptErr);
+      }
+
+      var gptSection = this.buildGPTSection(gptInsights);
+      var milestoneSection = this.buildMilestoneSection(scenario, resolvedData);
+      var nextStepsSection = this.buildNextStepsSection(gptInsights);
+
+      // Phase 7: Action barriers (single-scenario PDF only)
+      var barrierSection = '';
+      if (resolvedData) {
+        barrierSection = this.buildActionBarrierSection(resolvedData);
+      }
+
+      var sourceNote = '';
+      if (gptInsights && gptInsights.source) {
+        if (gptInsights.source === 'gpt' || gptInsights.source === 'gpt_retry') {
+          sourceNote = 'Analysis generated using AI-powered insights.';
+        } else if (gptInsights.source === 'fallback') {
+          sourceNote = 'Analysis generated using profile-based templates.';
+        }
+      }
+
       var footer = PDFGenerator.buildFooter(
         'This projection uses conservative assumptions including deployment drag. ' +
         'Actual returns will vary. Consult with a financial advisor before making investment decisions.'
       );
+      if (sourceNote) {
+        footer = footer.replace('</div>', '<p class="source-note">' + sourceNote + '</p></div>');
+      }
 
       // Combine all sections
-      var bodyContent = header + intro + modeSection + inputSection + resultsSection + feasSection + advSection + footer;
+      var bodyContent = header + intro + modeSection + inputSection + gptSection + resultsSection + milestoneSection + feasSection + nextStepsSection + barrierSection + advSection + footer;
       var htmlContent = PDFGenerator.buildHTMLDocument(styles, bodyContent);
       var fileName = PDFGenerator.generateFileName('InvestmentPlanning', studentName);
 
@@ -309,8 +377,29 @@ const Tool8Report = {
         '<div style="font-size:13px; color:#555;">' + f2.summary + '</div></div>' +
         '</div>';
 
-      // Recommendation
+      // Recommendation (rule-based)
       var recommendation = this.buildComparisonRecommendation(s1, s2, f1, f2);
+
+      // Phase 8: GPT-enhanced comparison analysis
+      var compResolvedData = null;
+      try {
+        compResolvedData = Tool8.resolveClientData(clientId);
+      } catch (resolveErr) {
+        Logger.log('[Tool8Report.generateComparisonPDF] resolveClientData error (non-fatal): ' + resolveErr);
+      }
+
+      var compGptInsights = null;
+      try {
+        compGptInsights = Tool8GPTAnalysis.generateComparisonInsights({
+          s1: s1,
+          s2: s2,
+          resolvedData: compResolvedData
+        });
+      } catch (gptErr) {
+        Logger.log('[Tool8Report.generateComparisonPDF] GPT analysis error (non-fatal): ' + gptErr);
+      }
+
+      var compGptSection = this.buildComparisonGPTSection(compGptInsights);
 
       // Assumptions
       var advSection = '<h2>Assumptions</h2>' +
@@ -325,7 +414,19 @@ const Tool8Report = {
         'This comparison uses conservative assumptions. Discuss these scenarios with your financial advisor to determine the best path forward.'
       );
 
-      var bodyContent = header + intro + overviewSection + compTable + feasCompSection + recommendation + advSection + footer;
+      var compSourceNote = '';
+      if (compGptInsights && compGptInsights.source) {
+        if (compGptInsights.source === 'gpt' || compGptInsights.source === 'gpt_retry') {
+          compSourceNote = 'Analysis generated using AI-powered insights.';
+        } else if (compGptInsights.source === 'fallback') {
+          compSourceNote = 'Analysis generated using profile-based templates.';
+        }
+      }
+      if (compSourceNote) {
+        footer = footer.replace('</div>', '<p class="source-note">' + compSourceNote + '</p></div>');
+      }
+
+      var bodyContent = header + intro + overviewSection + compTable + feasCompSection + recommendation + compGptSection + advSection + footer;
       var htmlContent = PDFGenerator.buildHTMLDocument(styles, bodyContent);
       var fileName = PDFGenerator.generateFileName('InvestmentComparison', studentName);
 
@@ -440,6 +541,299 @@ const Tool8Report = {
 
     return '<h2>Recommendation</h2>' +
       '<div class="recommendation"><p style="margin:0;">' + rec + '</p></div>';
+  },
+
+  // ============================================================================
+  // GPT-ENHANCED SECTIONS (Phase 8)
+  // ============================================================================
+
+  /**
+   * Build "Personalized Analysis" section from GPT insights
+   * @param {Object} gptInsights - {overview, keyInsights, nextSteps, source}
+   * @returns {string} HTML string (empty if no insights)
+   */
+  buildGPTSection(gptInsights) {
+    if (!gptInsights) return '';
+
+    var html = '<div class="page-break"></div><h2>Personalized Analysis</h2>';
+
+    // Overview
+    if (gptInsights.overview) {
+      html += '<div class="insight-box">' +
+        '<h3>Overview</h3>' +
+        '<p>' + gptInsights.overview + '</p>' +
+        '</div>';
+    }
+
+    // Key Insights
+    if (gptInsights.keyInsights && gptInsights.keyInsights.length > 0 &&
+        gptInsights.keyInsights[0] !== 'Analysis not available') {
+      html += '<h3>Key Insights</h3>' +
+        '<div class="observation-list">';
+      for (var i = 0; i < gptInsights.keyInsights.length; i++) {
+        html += '<div class="observation-item">' +
+          '<span class="observation-number">' + (i + 1) + '</span>' +
+          gptInsights.keyInsights[i] +
+          '</div>';
+      }
+      html += '</div>';
+    }
+
+    return html;
+  },
+
+  /**
+   * Build "Your Investment Timeline" milestone section
+   * Shows projected nest egg at 5-year intervals
+   *
+   * @param {Object} scenario - Scenario data
+   * @param {Object} resolvedData - From Tool8.resolveClientData() (for age)
+   * @returns {string} HTML string
+   */
+  buildMilestoneSection(scenario, resolvedData) {
+    var years = Number(scenario.T) || 0;
+    if (years < 5) return ''; // Too short for meaningful milestones
+
+    var age = (resolvedData && resolvedData.age) ? Number(resolvedData.age) : null;
+    var A0 = Number(scenario.A0) || 0;
+    var C = Number(scenario.C_cap) || 0;
+    var rEff = Number(scenario.rAccEff) || 0;
+    var monthlyRate = rEff / 12;
+
+    // Build milestone intervals (every 5 years, plus final year)
+    var intervals = [];
+    for (var y = 5; y < years; y += 5) {
+      intervals.push(y);
+    }
+    if (intervals[intervals.length - 1] !== years) {
+      intervals.push(years);
+    }
+
+    // Calculate projected balance at each interval
+    var milestones = [];
+    for (var m = 0; m < intervals.length; m++) {
+      var yr = intervals[m];
+      var months = yr * 12;
+      var fvPrincipal = A0 * Math.pow(1 + monthlyRate, months);
+      var fvContrib = monthlyRate > 0
+        ? C * ((Math.pow(1 + monthlyRate, months) - 1) / monthlyRate)
+        : C * months;
+      var balance = Math.round(fvPrincipal + fvContrib);
+
+      // Life events at this age
+      var events = [];
+      if (age) {
+        var milestoneAge = age + yr;
+        if (milestoneAge >= 50 && milestoneAge < 55) events.push('IRA/401(k) catch-up eligible');
+        if (milestoneAge >= 55 && milestoneAge < 59) events.push('HSA catch-up eligible');
+        if (Math.abs(milestoneAge - 59.5) < 2.5) events.push('Penalty-free IRA withdrawals at 59.5');
+        if (Math.abs(milestoneAge - 62) < 2.5) events.push('Early Social Security available');
+        if (Math.abs(milestoneAge - 65) < 2.5) events.push('Medicare eligibility');
+        if (Math.abs(milestoneAge - 67) < 2.5) events.push('Full Social Security benefits');
+        if (Math.abs(milestoneAge - 73) < 2.5) events.push('RMD planning begins');
+      }
+      if (yr === years) events.push('Target retirement date');
+
+      milestones.push({
+        year: yr,
+        age: age ? age + yr : null,
+        balance: balance,
+        events: events.join('; ') || 'Continued growth',
+        isTarget: yr === years
+      });
+    }
+
+    var html = '<h2>Your Investment Timeline</h2>' +
+      '<p style="font-size:14px; color:#555; margin-bottom:12px;">Projected nest egg growth based on your current plan.</p>' +
+      '<table class="milestone-table">' +
+      '<thead><tr>' +
+      '<th>Year</th>' +
+      (age ? '<th>Age</th>' : '') +
+      '<th>Projected Balance</th>' +
+      '<th>What Happens</th>' +
+      '</tr></thead><tbody>';
+
+    for (var k = 0; k < milestones.length; k++) {
+      var ms = milestones[k];
+      html += '<tr class="' + (ms.isTarget ? 'milestone-current' : '') + '">' +
+        '<td>' + ms.year + ' yrs</td>' +
+        (age ? '<td class="age-cell">' + ms.age + '</td>' : '') +
+        '<td class="balance-cell">' + this.fmtUSD(ms.balance) + '</td>' +
+        '<td class="event-cell">' + ms.events + '</td>' +
+        '</tr>';
+    }
+
+    html += '</tbody></table>';
+
+    // Comparison to required nest egg
+    var lastBalance = milestones[milestones.length - 1].balance;
+    var Areq = Number(scenario.Areq) || 0;
+    if (Areq > 0) {
+      var pct = Math.round((lastBalance / Areq) * 100);
+      var statusClass = pct >= 100 ? 'feasibility-ok' : pct >= 75 ? 'feasibility-warn' : 'feasibility-bad';
+      html += '<div class="feasibility-box ' + statusClass + '" style="margin-top:12px;">' +
+        '<div style="font-size:14px;">At year ' + years + ', your projected balance of ' + this.fmtUSD(lastBalance) +
+        ' reaches <strong>' + pct + '%</strong> of your ' + this.fmtUSD(Areq) + ' target nest egg.</div></div>';
+    }
+
+    return html;
+  },
+
+  /**
+   * Build "Your Next Steps" section from GPT insights
+   * @param {Object} gptInsights - {nextSteps: [...]}
+   * @returns {string} HTML string (empty if no insights)
+   */
+  buildNextStepsSection(gptInsights) {
+    if (!gptInsights || !gptInsights.nextSteps || gptInsights.nextSteps.length === 0 ||
+        gptInsights.nextSteps[0] === 'Analysis not available') {
+      return '';
+    }
+
+    var html = '<h2>Your Next Steps</h2>' +
+      '<p style="font-size:14px; color:#555; margin-bottom:12px;">Concrete actions to move from plan to execution.</p>';
+
+    for (var i = 0; i < gptInsights.nextSteps.length; i++) {
+      html += '<div class="next-step-item">' +
+        '<div class="next-step-checkbox"></div>' +
+        '<span style="font-size:14px;">' + gptInsights.nextSteps[i] + '</span>' +
+        '</div>';
+    }
+
+    return html;
+  },
+
+  /**
+   * Build GPT analysis section for comparison PDF
+   * @param {Object} gptInsights - {synthesis, guidance, tradeoffs, source}
+   * @returns {string} HTML string (empty if no insights)
+   */
+  buildComparisonGPTSection(gptInsights) {
+    if (!gptInsights) return '';
+
+    var html = '<div class="page-break"></div><h2>Analysis</h2>';
+
+    // Synthesis
+    if (gptInsights.synthesis) {
+      html += '<div class="insight-box">' +
+        '<h3>What Changed</h3>' +
+        '<p>' + gptInsights.synthesis + '</p>' +
+        '</div>';
+    }
+
+    // Decision Guidance
+    if (gptInsights.guidance) {
+      html += '<div class="focus-box">' +
+        '<h3>Decision Guidance</h3>' +
+        '<p style="margin:0; color:#333;">' + gptInsights.guidance + '</p>' +
+        '</div>';
+    }
+
+    // Trade-offs
+    if (gptInsights.tradeoffs && gptInsights.tradeoffs.length > 0 &&
+        gptInsights.tradeoffs[0] !== 'Analysis not available') {
+      html += '<h3>Key Trade-offs to Consider</h3>' +
+        '<div class="observation-list">';
+      for (var i = 0; i < gptInsights.tradeoffs.length; i++) {
+        html += '<div class="observation-item">' +
+          '<span class="observation-number">' + (i + 1) + '</span>' +
+          gptInsights.tradeoffs[i] +
+          '</div>';
+      }
+      html += '</div>';
+    }
+
+    return html;
+  },
+
+  // ============================================================================
+  // ACTION BARRIER SECTION (Phase 7)
+  // ============================================================================
+
+  /**
+   * Find the top subdomains scoring above the threshold.
+   * Checks Tools 3, 5, and 7 subdomain quotients.
+   * Also checks for Fear pattern-level match.
+   *
+   * @param {Object} resolvedData - From Tool8.resolveClientData()
+   * @param {number} threshold - Minimum quotient to include (default 60)
+   * @param {number} maxBarriers - Maximum barriers to return (default 2)
+   * @returns {Array} Sorted array of {key, quotient, barrier} objects, highest first
+   */
+  findTopBarriers(resolvedData, threshold, maxBarriers) {
+    threshold = threshold || 60;
+    maxBarriers = maxBarriers || 2;
+    var candidates = [];
+
+    // Check each defined barrier against its corresponding tool scoring
+    var barrierKeys = Object.keys(TOOL8_ACTION_BARRIERS);
+    for (var i = 0; i < barrierKeys.length; i++) {
+      var key = barrierKeys[i];
+      var def = TOOL8_ACTION_BARRIERS[key];
+
+      // Skip Fear_general — handled separately below
+      if (!def.tool || !def.subdomain) continue;
+
+      // Get the scoring object for the relevant tool
+      var scoring = resolvedData[def.tool];
+      if (!scoring || !scoring.subdomainQuotients) continue;
+
+      var quotient = Number(scoring.subdomainQuotients[def.subdomain] || 0);
+      if (quotient > threshold) {
+        candidates.push({ key: key, quotient: quotient, barrier: def });
+      }
+    }
+
+    // Sort by quotient descending
+    candidates.sort(function(a, b) { return b.quotient - a.quotient; });
+
+    // If the primary trauma pattern is Fear and we have fewer than max barriers,
+    // add the general Fear barrier
+    if (candidates.length < maxBarriers && resolvedData.traumaPattern === 'Fear') {
+      var fearDef = TOOL8_ACTION_BARRIERS['Fear_general'];
+      if (fearDef) {
+        candidates.push({ key: 'Fear_general', quotient: 0, barrier: fearDef });
+      }
+    }
+
+    return candidates.slice(0, maxBarriers);
+  },
+
+  /**
+   * Build the "Your Action Barriers" section for the single-scenario PDF.
+   * Only included when trauma data exists and at least one subdomain > 60.
+   *
+   * @param {Object} resolvedData - From Tool8.resolveClientData()
+   * @returns {string} HTML string (empty if no barriers apply)
+   */
+  buildActionBarrierSection(resolvedData) {
+    if (!resolvedData) return '';
+
+    // Need at least one of Tools 3/5/7 or Fear pattern
+    var hasTraumaScoring = resolvedData.tool3Scoring || resolvedData.tool5Scoring || resolvedData.tool7Scoring;
+    if (!hasTraumaScoring && resolvedData.traumaPattern !== 'Fear') return '';
+
+    var barriers = this.findTopBarriers(resolvedData);
+    if (barriers.length === 0) return '';
+
+    var html = '<div class="barrier-section">' +
+      '<h2>Your Action Barriers</h2>' +
+      '<p style="font-size:14px; color:#555; margin-bottom:15px;">' +
+      'Based on your earlier work, here is what will most likely try to stop you from following through on this plan ' +
+      '— and what to do about it.</p>';
+
+    for (var i = 0; i < barriers.length; i++) {
+      var b = barriers[i].barrier;
+      html += '<div class="barrier-card">' +
+        '<h3>Barrier ' + (i + 1) + ': ' + b.theme + '</h3>' +
+        '<div class="barrier-quote">' + b.barrier + '</div>' +
+        '<div class="barrier-step"><strong>Your first step:</strong> ' + b.step + '</div>' +
+        '<div class="barrier-healing">' + b.healing + '</div>' +
+        '</div>';
+    }
+
+    html += '</div>';
+    return html;
   },
 
   // ============================================================================

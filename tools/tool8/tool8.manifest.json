@@ -12,7 +12,9 @@
     "processor": null,
     "dependencies": [
       "Tool8Constants",
-      "Tool8Report"
+      "Tool8Report",
+      "Tool8GPTAnalysis",
+      "Tool8Fallbacks"
     ]
   },
   "architecture": {
@@ -30,6 +32,7 @@
     "upstreamDataPrePopulation": true,
     "traumaIntegration": true,
     "actionBarriers": true,
+    "gptEnhancedReports": true,
     "backupQuestions": true,
     "advancedSettings": true
   },

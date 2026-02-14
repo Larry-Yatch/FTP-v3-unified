@@ -3,10 +3,15 @@
 ## Bugs
 
 - we have an issue with multiple drafts and completed lines on the responses sheet having TRUE - which creates a draft issue
-
+- Valeria - tool4 wrong profile suggested - stuck on get out of debt
+- add 8 to admin 
 
 
 - add "Attended by Watching" to admin panel - count toward participated
+
+Tool 6:
+- can we make it so that the user can select what scenario they pull from , we should default to the latest one
+
 
 Tool 8
 
