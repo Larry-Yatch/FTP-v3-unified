@@ -12,6 +12,7 @@
   var _baseUrl = null;
   var _isRestoring = false;
   var _initialized = false;
+  var _fallbackClicked = false;
   var RESTORE_FLAG_KEY = '_historyManagerRestoring';
   var LOCATION_KEY = '_ftpCurrentLocation';
   var BASE_URL_KEY = '_ftpBaseUrl';
@@ -310,6 +311,7 @@
     }
 
     _isRestoring = true;
+    _fallbackClicked = false; // Reset for this navigation attempt
     var clientId = state.clientId || _clientId;
 
     // Show loading IMMEDIATELY for instant feedback
@@ -692,24 +694,59 @@
 
     console.log('[HistoryManager] Showing fallback button for:', url);
 
-    // Remove any existing loading overlay
+    // Remove any existing loading overlay and previous fallback
     if (typeof hideLoading === 'function') hideLoading();
+    var existing = document.getElementById('historyManagerFallback');
+    if (existing) existing.remove();
 
-    // Create a clickable overlay — target="_top" navigates the parent frame
-    // and the user's click provides the activation the sandbox requires
+    // Build overlay with clickable button
     var overlay = document.createElement('div');
     overlay.id = 'historyManagerFallback';
     overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;' +
       'background:rgba(0,0,0,0.85);z-index:99999;display:flex;align-items:center;' +
       'justify-content:center;';
-    overlay.innerHTML = '<div style="background:#fff;padding:32px 40px;border-radius:12px;' +
-      'text-align:center;max-width:420px;font-family:sans-serif;">' +
-      '<p style="margin:0 0 8px;font-size:18px;font-weight:600;color:#333;">Loading is taking longer than expected</p>' +
-      '<p style="margin:0 0 20px;font-size:14px;color:#666;">Click the button below to continue.</p>' +
-      '<a href="' + url + '" target="_top" style="display:inline-block;padding:12px 32px;' +
-      'background:#4285f4;color:#fff;text-decoration:none;border-radius:6px;font-size:16px;' +
-      'font-weight:500;">Continue</a></div>';
 
+    var card = document.createElement('div');
+    card.style.cssText = 'background:#fff;padding:32px 40px;border-radius:12px;' +
+      'text-align:center;max-width:420px;font-family:sans-serif;';
+
+    var subtitle = document.createElement('p');
+    subtitle.style.cssText = 'margin:0 0 20px;font-size:14px;color:#666;';
+    subtitle.textContent = 'Click the button below to continue.';
+
+    var link = document.createElement('a');
+    link.href = url;
+    link.target = '_top';
+    link.style.cssText = 'display:inline-block;padding:12px 32px;' +
+      'background:#4285f4;color:#fff;text-decoration:none;border-radius:6px;font-size:16px;' +
+      'font-weight:500;transition:opacity 0.2s;';
+    link.textContent = 'Continue';
+
+    // On click: show loading feedback and block g.s.r callback from double-loading
+    link.addEventListener('click', function() {
+      _fallbackClicked = true;
+      subtitle.textContent = 'Loading page...';
+      link.textContent = 'Loading...';
+      link.style.opacity = '0.6';
+      link.style.pointerEvents = 'none';
+      // Add a simple spinner below the button
+      var spinner = document.createElement('div');
+      spinner.style.cssText = 'margin:16px auto 0;width:24px;height:24px;' +
+        'border:3px solid #e0e0e0;border-top-color:#4285f4;border-radius:50%;' +
+        'animation:_hm_spin 0.8s linear infinite;';
+      card.appendChild(spinner);
+      // Inject spinner keyframes if not already present
+      if (!document.getElementById('_hmSpinStyle')) {
+        var style = document.createElement('style');
+        style.id = '_hmSpinStyle';
+        style.textContent = '@keyframes _hm_spin{to{transform:rotate(360deg)}}';
+        document.head.appendChild(style);
+      }
+    });
+
+    card.appendChild(subtitle);
+    card.appendChild(link);
+    overlay.appendChild(card);
     document.body.appendChild(overlay);
   }
 
@@ -732,11 +769,13 @@
     google.script.run
       .withSuccessHandler(function(html) {
         clearTimeout(fallbackTimer);
+        if (_fallbackClicked) return; // User already navigating via fallback
         saveLocation('dashboard', {});
         writeAndFinishRestore(html);
       })
       .withFailureHandler(function(error) {
         clearTimeout(fallbackTimer);
+        if (_fallbackClicked) return;
         handleNavError(error, 'dashboard');
       })
       .getDashboardPage(clientId);
@@ -763,11 +802,13 @@
     google.script.run
       .withSuccessHandler(function(html) {
         clearTimeout(fallbackTimer);
+        if (_fallbackClicked) return; // User already navigating via fallback
         saveLocation('tool', { toolId: toolId, page: page });
         writeAndFinishRestore(html);
       })
       .withFailureHandler(function(error) {
         clearTimeout(fallbackTimer);
+        if (_fallbackClicked) return;
         handleNavError(error, 'tool page');
       })
       .getToolPageHtml(toolId, clientId, page);
@@ -793,11 +834,13 @@
     google.script.run
       .withSuccessHandler(function(html) {
         clearTimeout(fallbackTimer);
+        if (_fallbackClicked) return; // User already navigating via fallback
         saveLocation('report', { toolId: toolId });
         writeAndFinishRestore(html);
       })
       .withFailureHandler(function(error) {
         clearTimeout(fallbackTimer);
+        if (_fallbackClicked) return;
         handleNavError(error, 'report');
       })
       .getReportPage(clientId, toolId);
