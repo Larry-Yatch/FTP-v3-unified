@@ -16,7 +16,8 @@
   var LOCATION_KEY = '_ftpCurrentLocation';
   var BASE_URL_KEY = '_ftpBaseUrl';
   var LOCATION_MAX_AGE_MS = 30 * 60 * 1000; // 30 minutes - expire stale locations
-  var NAV_FALLBACK_MS = 10000; // 10 seconds before showing fallback UI
+  var NAV_FALLBACK_MS = 10000; // 10 seconds for auto-recovery (server is slow but working)
+  var HIST_NAV_FALLBACK_MS = 2000; // 2 seconds for back/forward (callback channel likely broken)
 
   /**
    * Save the current location to sessionStorage for refresh recovery
@@ -316,31 +317,37 @@
       showLoading('Navigating...');
     }
 
+    // Save the DESTINATION location now so that if the fallback button triggers
+    // a full page reload, auto-recovery will navigate to the correct destination
+    saveLocation(state.view, { toolId: state.toolId, page: state.page });
+
     // Navigation helper - called after save completes (or immediately if no form)
+    // Uses short timeout because after document.write(), the google.script.run
+    // callback channel is typically broken (postMessage bridge is stale)
     function navigateToState() {
       switch(state.view) {
         case 'dashboard':
-          loadDashboard(clientId);
+          loadDashboard(clientId, HIST_NAV_FALLBACK_MS);
           break;
         case 'tool':
           if (state.toolId && state.page) {
-            loadToolPage(state.toolId, clientId, state.page);
+            loadToolPage(state.toolId, clientId, state.page, HIST_NAV_FALLBACK_MS);
           } else {
             console.warn('[HistoryManager] Tool state missing toolId or page, going to dashboard');
-            loadDashboard(clientId);
+            loadDashboard(clientId, HIST_NAV_FALLBACK_MS);
           }
           break;
         case 'report':
           if (state.toolId) {
-            loadReport(state.toolId, clientId);
+            loadReport(state.toolId, clientId, HIST_NAV_FALLBACK_MS);
           } else {
             console.warn('[HistoryManager] Report state missing toolId, going to dashboard');
-            loadDashboard(clientId);
+            loadDashboard(clientId, HIST_NAV_FALLBACK_MS);
           }
           break;
         default:
           console.warn('[HistoryManager] Unknown view:', state.view);
-          loadDashboard(clientId);
+          loadDashboard(clientId, HIST_NAV_FALLBACK_MS);
       }
     }
 
@@ -709,21 +716,23 @@
   /**
    * Load dashboard page
    * @param {string} clientId
+   * @param {number} [timeoutMs] - Fallback timeout (default NAV_FALLBACK_MS)
    */
-  function loadDashboard(clientId) {
+  function loadDashboard(clientId, timeoutMs) {
     // Loading already shown by handleHistoryChange
     var handled = false;
+    var timeout = timeoutMs || NAV_FALLBACK_MS;
 
     // Safety fallback: if google.script.run callback never arrives
     // (stale postMessage bridge after document.write), show clickable button
     var fallbackTimer = setTimeout(function() {
       if (!handled) {
         handled = true;
-        console.warn('[HistoryManager] google.script.run callback timeout - showing fallback button');
+        console.warn('[HistoryManager] google.script.run callback timeout (' + timeout + 'ms) - showing fallback button');
         saveLocation('dashboard', {});
         showFallbackButton('dashboard', clientId);
       }
-    }, NAV_FALLBACK_MS);
+    }, timeout);
 
     google.script.run
       .withSuccessHandler(function(html) {
@@ -748,21 +757,23 @@
    * @param {string} toolId - e.g., 'tool1'
    * @param {string} clientId
    * @param {number} page - Page number
+   * @param {number} [timeoutMs] - Fallback timeout (default NAV_FALLBACK_MS)
    */
-  function loadToolPage(toolId, clientId, page) {
+  function loadToolPage(toolId, clientId, page, timeoutMs) {
     if (typeof showLoading === 'function') {
       showLoading('Loading ' + toolId.replace('tool', 'Tool ') + ' Page ' + page);
     }
 
     var handled = false;
+    var timeout = timeoutMs || NAV_FALLBACK_MS;
     var fallbackTimer = setTimeout(function() {
       if (!handled) {
         handled = true;
-        console.warn('[HistoryManager] google.script.run callback timeout - showing fallback button');
+        console.warn('[HistoryManager] google.script.run callback timeout (' + timeout + 'ms) - showing fallback button');
         saveLocation('tool', { toolId: toolId, page: page });
         showFallbackButton(toolId, clientId, { page: page });
       }
-    }, NAV_FALLBACK_MS);
+    }, timeout);
 
     google.script.run
       .withSuccessHandler(function(html) {
@@ -789,21 +800,23 @@
    * Load a report page
    * @param {string} toolId - e.g., 'tool1'
    * @param {string} clientId
+   * @param {number} [timeoutMs] - Fallback timeout (default NAV_FALLBACK_MS)
    */
-  function loadReport(toolId, clientId) {
+  function loadReport(toolId, clientId, timeoutMs) {
     if (typeof showLoading === 'function') {
       showLoading('Loading Report');
     }
 
     var handled = false;
+    var timeout = timeoutMs || NAV_FALLBACK_MS;
     var fallbackTimer = setTimeout(function() {
       if (!handled) {
         handled = true;
-        console.warn('[HistoryManager] google.script.run callback timeout - showing fallback button');
+        console.warn('[HistoryManager] google.script.run callback timeout (' + timeout + 'ms) - showing fallback button');
         saveLocation('report', { toolId: toolId });
         showFallbackButton(toolId + '_report', clientId);
       }
-    }, NAV_FALLBACK_MS);
+    }, timeout);
 
     google.script.run
       .withSuccessHandler(function(html) {
