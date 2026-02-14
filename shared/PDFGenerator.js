@@ -954,11 +954,13 @@ const PDFGenerator = {
   },
 
   /**
-   * Generate Tool 4 Main Report PDF
+   * Generate Tool 4 Main Report HTML (without PDF conversion)
+   * Used by admin dashboard for report viewing
    * @param {string} clientId - Client ID
    * @param {Object} [allocationOverride] - Optional allocation percentages to use instead of recalculating
+   * @returns {Object} {success, html, studentName} or {success: false, error}
    */
-  generateTool4MainPDF(clientId, allocationOverride) {
+  generateTool4MainHTML(clientId, allocationOverride) {
     try {
       var preSurveyData = Tool4.getPreSurvey(clientId);
       if (!preSurveyData) return { success: false, error: 'No Tool 4 data found. Please complete the pre-survey first.' };
@@ -1142,13 +1144,28 @@ const PDFGenerator = {
 
       var bodyContent = header + executiveSummary + allocationSection + gptSection + insightsSection + influencesSection + validationSection + nextStepsSection + footer;
       var htmlContent = this.buildHTMLDocument(this.getTool4Styles(), bodyContent);
-      var fileName = this.generateFileName('FinancialFreedomFramework', studentName);
-      return this.htmlToPDF(htmlContent, fileName);
+
+      return { success: true, html: htmlContent, studentName: studentName };
 
     } catch (error) {
-      Logger.log('[PDFGenerator] Error generating Tool 4 Main PDF: ' + error);
+      Logger.log('[PDFGenerator] Error generating Tool 4 Main HTML: ' + error);
       return { success: false, error: error.toString() };
     }
+  },
+
+  /**
+   * Generate Tool 4 Main Report PDF
+   * @param {string} clientId - Client ID
+   * @param {Object} [allocationOverride] - Optional allocation percentages to use instead of recalculating
+   */
+  generateTool4MainPDF(clientId, allocationOverride) {
+    var htmlResult = this.generateTool4MainHTML(clientId, allocationOverride);
+    if (!htmlResult.success) {
+      return htmlResult;
+    }
+
+    var fileName = this.generateFileName('FinancialFreedomFramework', htmlResult.studentName);
+    return this.htmlToPDF(htmlResult.html, fileName);
   },
 
   /**

@@ -556,6 +556,75 @@ function generateTool8ComparisonPDF(clientId, scenario1, scenario2) {
   }
 }
 
+// ========================================
+// ADMIN PDF WRAPPER FUNCTIONS
+// These fetch scenario data server-side so admin dashboard only needs clientId
+// ========================================
+
+/**
+ * Admin: Generate Tool 4 PDF using saved allocation data
+ * @param {string} clientId - Client ID
+ * @returns {Object} {success, pdf, fileName, mimeType} or {success: false, error}
+ */
+function adminGenerateTool4PDF(clientId) {
+  try {
+    registerTools();
+    var response = DataService.getToolResponse(clientId, 'tool4');
+    var allocation = null;
+    if (response && response.data) {
+      var data = typeof response.data === 'string' ? JSON.parse(response.data) : response.data;
+      allocation = {
+        Multiply: data.multiply,
+        Essentials: data.essentials,
+        Freedom: data.freedom,
+        Enjoyment: data.enjoyment
+      };
+    }
+    return generateTool4MainPDF(clientId, allocation);
+  } catch (error) {
+    Logger.log('Error in adminGenerateTool4PDF: ' + error);
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Admin: Generate Tool 6 PDF using latest saved scenario
+ * @param {string} clientId - Client ID
+ * @returns {Object} {success, pdf, fileName, mimeType} or {success: false, error}
+ */
+function adminGenerateTool6PDF(clientId) {
+  try {
+    registerTools();
+    var scenario = Tool6.getLatestScenario(clientId);
+    if (!scenario) {
+      return { success: false, error: 'No Tool 6 scenario found for this student' };
+    }
+    return Tool6.generatePDF(clientId, scenario);
+  } catch (error) {
+    Logger.log('Error in adminGenerateTool6PDF: ' + error);
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Admin: Generate Tool 8 PDF using latest saved scenario
+ * @param {string} clientId - Client ID
+ * @returns {Object} {success, pdf, fileName, mimeType} or {success: false, error}
+ */
+function adminGenerateTool8PDF(clientId) {
+  try {
+    registerTools();
+    var scenarios = Tool8.getUserScenarios(clientId);
+    if (!scenarios || scenarios.length === 0) {
+      return { success: false, error: 'No Tool 8 scenario found for this student' };
+    }
+    return Tool8Report.generatePDF(clientId, scenarios[0]);
+  } catch (error) {
+    Logger.log('Error in adminGenerateTool8PDF: ' + error);
+    return { success: false, error: error.toString() };
+  }
+}
+
 /**
  * Save Tool 8 scenario to spreadsheet
  * @param {string} clientId - Client ID

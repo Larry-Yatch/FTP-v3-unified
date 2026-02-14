@@ -80,7 +80,8 @@ const Tool8Report = {
       '.milestone-table .event-cell { font-size: 12px; color: #555; }',
       '.next-step-item { display: flex; align-items: flex-start; margin: 10px 0; padding: 12px 15px; background: #f9f9f9; border-radius: 6px; }',
       '.next-step-checkbox { width: 18px; height: 18px; border: 2px solid ' + purple + '; border-radius: 3px; margin-right: 12px; flex-shrink: 0; margin-top: 1px; }',
-      '.source-note { font-size: 11px; color: #888; font-style: italic; margin-top: 10px; }'
+      '.source-note { font-size: 11px; color: #888; font-style: italic; margin-top: 10px; }',
+      '.milestone-table .balance-winner { color: #15803d; font-weight: 700; }'
     ].join('\n');
   },
 
@@ -121,14 +122,15 @@ const Tool8Report = {
   // ============================================================================
 
   /**
-   * Generate PDF for a single investment scenario
+   * Generate report HTML for a single investment scenario (without PDF conversion)
+   * Used by admin dashboard for report viewing
    * @param {string} clientId - Client ID
    * @param {Object} scenario - Scenario data from calculator
-   * @returns {Object} {success, pdf, fileName, mimeType} or {success: false, error}
+   * @returns {Object} {success, html, studentName} or {success: false, error}
    */
-  generatePDF(clientId, scenario) {
+  generateReportHTML(clientId, scenario) {
     try {
-      Logger.log('[Tool8Report.generatePDF] Called for client ' + clientId);
+      Logger.log('[Tool8Report.generateReportHTML] Called for client ' + clientId);
 
       if (!scenario) {
         return { success: false, error: 'No scenario data provided' };
@@ -223,7 +225,7 @@ const Tool8Report = {
       try {
         resolvedData = Tool8.resolveClientData(clientId);
       } catch (resolveErr) {
-        Logger.log('[Tool8Report.generatePDF] resolveClientData error (non-fatal): ' + resolveErr);
+        Logger.log('[Tool8Report.generateReportHTML] resolveClientData error (non-fatal): ' + resolveErr);
       }
 
       // Phase 8: GPT-enhanced personalized analysis
@@ -234,7 +236,7 @@ const Tool8Report = {
           resolvedData: resolvedData
         });
       } catch (gptErr) {
-        Logger.log('[Tool8Report.generatePDF] GPT analysis error (non-fatal): ' + gptErr);
+        Logger.log('[Tool8Report.generateReportHTML] GPT analysis error (non-fatal): ' + gptErr);
       }
 
       var gptSection = this.buildGPTSection(gptInsights);
@@ -267,15 +269,30 @@ const Tool8Report = {
       // Combine all sections
       var bodyContent = header + intro + modeSection + inputSection + gptSection + resultsSection + milestoneSection + feasSection + nextStepsSection + barrierSection + advSection + footer;
       var htmlContent = PDFGenerator.buildHTMLDocument(styles, bodyContent);
-      var fileName = PDFGenerator.generateFileName('InvestmentPlanning', studentName);
 
-      return PDFGenerator.htmlToPDF(htmlContent, fileName);
+      return { success: true, html: htmlContent, studentName: studentName };
 
     } catch (error) {
-      Logger.log('[Tool8Report.generatePDF] Error: ' + error);
-      Logger.log('[Tool8Report.generatePDF] Stack: ' + error.stack);
+      Logger.log('[Tool8Report.generateReportHTML] Error: ' + error);
+      Logger.log('[Tool8Report.generateReportHTML] Stack: ' + error.stack);
       return { success: false, error: error.toString() };
     }
+  },
+
+  /**
+   * Generate PDF for a single investment scenario
+   * @param {string} clientId - Client ID
+   * @param {Object} scenario - Scenario data from calculator
+   * @returns {Object} {success, pdf, fileName, mimeType} or {success: false, error}
+   */
+  generatePDF(clientId, scenario) {
+    var htmlResult = this.generateReportHTML(clientId, scenario);
+    if (!htmlResult.success) {
+      return htmlResult;
+    }
+
+    var fileName = PDFGenerator.generateFileName('InvestmentPlanning', htmlResult.studentName);
+    return PDFGenerator.htmlToPDF(htmlResult.html, fileName);
   },
 
   // ============================================================================

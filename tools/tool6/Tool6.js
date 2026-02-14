@@ -8186,6 +8186,19 @@ const Tool6 = {
   },
 
   /**
+   * Get the latest (most recent) scenario for a client
+   * Used by admin dashboard for report viewing and PDF generation
+   * @param {string} clientId - Client ID
+   * @returns {Object|null} Latest scenario object or null if none found
+   */
+  getLatestScenario(clientId) {
+    const scenarios = this.getScenarios(clientId);
+    if (!scenarios || scenarios.length === 0) return null;
+    // Prefer the one marked isLatest, otherwise take newest (already sorted)
+    return scenarios.find(s => s.isLatest) || scenarios[0];
+  },
+
+  /**
    * Safely parse JSON string, return default on error
    */
   safeJsonParse(str, defaultVal) {
@@ -8243,16 +8256,17 @@ const Tool6 = {
   },
 
   /**
-   * Generate PDF report for a single scenario
-   * Sprint 7.4: PDF Generation with GPT insights
+   * Generate report HTML for a single scenario (without PDF conversion)
+   * Used by admin dashboard for report viewing
+   * Sprint 7.4: HTML Generation with GPT insights
    *
    * @param {string} clientId - Client ID
    * @param {Object} scenarioData - Scenario data (from saved scenario or current state)
-   * @returns {Object} { success, pdf, fileName, mimeType } or { success: false, error }
+   * @returns {Object} { success, html, clientName } or { success: false, error }
    */
-  generatePDF(clientId, scenarioData) {
+  generateReportHTML(clientId, scenarioData) {
     try {
-      Logger.log(`[Tool6.generatePDF] Generating PDF for client ${clientId}`);
+      Logger.log(`[Tool6.generateReportHTML] Generating HTML for client ${clientId}`);
 
       // Get client name
       const clientName = this.getClientName(clientId);
@@ -8271,7 +8285,7 @@ const Tool6 = {
       // ========================================================================
       const resolvedData = this.resolveClientData(clientId);
 
-      Logger.log(`[Tool6.generatePDF] Data sources:`);
+      Logger.log(`[Tool6.generateReportHTML] Data sources:`);
       Logger.log(`  ScenarioData - age: ${scenarioData.age}, yearsToRetirement: ${scenarioData.yearsToRetirement}, grossIncome: ${scenarioData.grossIncome}, monthlyBudget: ${scenarioData.monthlyBudget}`);
       Logger.log(`  ResolvedData - age: ${resolvedData.age}, yearsToRetirement: ${resolvedData.yearsToRetirement}, grossIncome: ${resolvedData.grossIncome}, monthlyBudget: ${resolvedData.monthlyBudget}`);
 
@@ -8295,7 +8309,7 @@ const Tool6 = {
       // If critical data is missing, return error - do NOT use defaults
       if (missingFields.length > 0) {
         const errorMsg = `Missing required data: ${missingFields.join('; ')}. Please complete the questionnaire or re-save your scenario.`;
-        Logger.log(`[Tool6.generatePDF] ERROR: Missing critical data - ${missingFields.join(', ')}`);
+        Logger.log(`[Tool6.generateReportHTML] ERROR: Missing critical data - ${missingFields.join(', ')}`);
         return {
           success: false,
           error: errorMsg,
@@ -8303,7 +8317,7 @@ const Tool6 = {
         };
       }
 
-      Logger.log(`[Tool6.generatePDF] Validated inputs - age: ${age}, yearsToRetirement: ${yearsToRetirement}, grossIncome: ${grossIncome}, monthlyBudget: ${monthlyBudget}`);
+      Logger.log(`[Tool6.generateReportHTML] Validated inputs - age: ${age}, yearsToRetirement: ${yearsToRetirement}, grossIncome: ${grossIncome}, monthlyBudget: ${monthlyBudget}`);
 
       // Build inputs object - all critical fields are now validated
       // Use scenario-specific values with fallback to resolved data
@@ -8358,7 +8372,7 @@ const Tool6 = {
 
       const savedBalance = scenarioData.projectedBalance || 0;
       if (savedBalance !== projectedBalance) {
-        Logger.log(`[Tool6.generatePDF] Recalculated projectedBalance: saved=$${savedBalance.toLocaleString()}, calculated=$${projectedBalance.toLocaleString()}`);
+        Logger.log(`[Tool6.generateReportHTML] Recalculated projectedBalance: saved=$${savedBalance.toLocaleString()}, calculated=$${projectedBalance.toLocaleString()}`);
       }
 
       // Sprint 13 Fix: ALWAYS recalculate derived values for consistency
@@ -8379,7 +8393,7 @@ const Tool6 = {
         (taxPercentSum === 0 || taxPercentSum < 95 || taxPercentSum > 105);
 
       if (needsTaxRecalc) {
-        Logger.log(`[Tool6.generatePDF] Tax percentages invalid (sum=${taxPercentSum}%), recalculating from allocations...`);
+        Logger.log(`[Tool6.generateReportHTML] Tax percentages invalid (sum=${taxPercentSum}%), recalculating from allocations...`);
         let taxFree = 0, traditional = 0, taxable = 0, total = 0;
 
         for (const [vehicle, amount] of Object.entries(allocations)) {
@@ -8410,7 +8424,7 @@ const Tool6 = {
           taxFreePercent = Math.round((taxFree / total) * 100);
           traditionalPercent = Math.round((traditional / total) * 100);
           taxablePercent = Math.round((taxable / total) * 100);
-          Logger.log(`[Tool6.generatePDF] Tax breakdown: Free=${taxFreePercent}%, Deferred=${traditionalPercent}%, Taxable=${taxablePercent}%`);
+          Logger.log(`[Tool6.generateReportHTML] Tax breakdown: Free=${taxFreePercent}%, Deferred=${traditionalPercent}%, Taxable=${taxablePercent}%`);
         }
       }
 
@@ -8427,16 +8441,15 @@ const Tool6 = {
       };
 
       // Get GPT insights (3-tier fallback)
-      // Validate allocations before GPT call - warn if empty (unusual state)
       const allocationData = scenarioData.allocations || {};
       const allocationCount = Object.keys(allocationData).length;
       if (allocationCount === 0) {
-        Logger.log('[Tool6.generatePDF] WARNING: No allocations found in scenario data - PDF will have empty allocation section');
+        Logger.log('[Tool6.generateReportHTML] WARNING: No allocations found in scenario data');
       } else {
-        Logger.log(`[Tool6.generatePDF] Processing ${allocationCount} vehicle allocations`);
+        Logger.log(`[Tool6.generateReportHTML] Processing ${allocationCount} vehicle allocations`);
       }
 
-      Logger.log('[Tool6.generatePDF] Generating GPT insights...');
+      Logger.log('[Tool6.generateReportHTML] Generating GPT insights...');
       const gptInsights = Tool6GPTAnalysis.generateSingleReportInsights({
         clientId,
         profile,
@@ -8447,11 +8460,10 @@ const Tool6 = {
         tool3Data
       });
 
-      Logger.log(`[Tool6.generatePDF] GPT source: ${gptInsights.source}`);
+      Logger.log(`[Tool6.generateReportHTML] GPT source: ${gptInsights.source}`);
 
       // Sprint 13: Get enhanced implementation blueprint insights
-      // Use the calculated fallback values (projectedBalance, inflationAdjusted, etc.) not scenarioData
-      Logger.log('[Tool6.generatePDF] Generating enhanced report insights...');
+      Logger.log('[Tool6.generateReportHTML] Generating enhanced report insights...');
       const savingsRate = grossIncome > 0 ? Math.round((inputs.monthlyBudget * 12 / grossIncome) * 100) : 0;
       const enhancedInsights = Tool6GPTAnalysis.generateEnhancedReportInsights({
         clientId,
@@ -8460,10 +8472,10 @@ const Tool6 = {
         userInputs: inputs,
         projections: {
           projectedBalance: projectedBalance,
-          balance: projectedBalance,  // Alias for GPT prompt compatibility
+          balance: projectedBalance,
           inflationAdjusted: inflationAdjusted,
           monthlyRetirementIncome: monthlyRetirementIncome,
-          monthlyIncome: monthlyRetirementIncome,  // Alias for GPT prompt compatibility
+          monthlyIncome: monthlyRetirementIncome,
           currentBalance: currentBalance,
           savingsRate: savingsRate
         },
@@ -8471,7 +8483,7 @@ const Tool6 = {
         tool3Data
       });
 
-      Logger.log(`[Tool6.generatePDF] Enhanced insights source: ${enhancedInsights.source}`);
+      Logger.log(`[Tool6.generateReportHTML] Enhanced insights source: ${enhancedInsights.source}`);
 
       // Generate HTML report
       const htmlContent = Tool6Report.generateSingleReportHTML({
@@ -8481,34 +8493,50 @@ const Tool6 = {
         projections,
         inputs,
         gptInsights,
-        enhancedInsights  // Sprint 13: Implementation blueprint content
+        enhancedInsights
       });
 
-      // Convert to PDF
-      const fileName = Tool6Report.generateFileName(clientName, 'single');
-      const pdfResult = PDFGenerator.htmlToPDF(htmlContent, fileName);
-
-      if (!pdfResult.success) {
-        throw new Error(pdfResult.error || 'PDF generation failed');
-      }
-
-      Logger.log(`[Tool6.generatePDF] PDF generated successfully: ${fileName}`);
-
-      return {
-        success: true,
-        pdf: pdfResult.pdf,
-        fileName: pdfResult.fileName,
-        mimeType: pdfResult.mimeType
-      };
+      return { success: true, html: htmlContent, clientName: clientName };
 
     } catch (error) {
-      Logger.log(`[Tool6.generatePDF] Error: ${error.message}`);
-      Logger.log(`[Tool6.generatePDF] Stack: ${error.stack}`);
+      Logger.log(`[Tool6.generateReportHTML] Error: ${error.message}`);
+      Logger.log(`[Tool6.generateReportHTML] Stack: ${error.stack}`);
       return {
         success: false,
         error: error.message
       };
     }
+  },
+
+  /**
+   * Generate PDF report for a single scenario
+   * Sprint 7.4: PDF Generation with GPT insights
+   *
+   * @param {string} clientId - Client ID
+   * @param {Object} scenarioData - Scenario data (from saved scenario or current state)
+   * @returns {Object} { success, pdf, fileName, mimeType } or { success: false, error }
+   */
+  generatePDF(clientId, scenarioData) {
+    var htmlResult = this.generateReportHTML(clientId, scenarioData);
+    if (!htmlResult.success) {
+      return htmlResult;
+    }
+
+    var fileName = Tool6Report.generateFileName(htmlResult.clientName, 'single');
+    var pdfResult = PDFGenerator.htmlToPDF(htmlResult.html, fileName);
+
+    if (!pdfResult.success) {
+      return { success: false, error: pdfResult.error || 'PDF generation failed' };
+    }
+
+    Logger.log(`[Tool6.generatePDF] PDF generated successfully: ${fileName}`);
+
+    return {
+      success: true,
+      pdf: pdfResult.pdf,
+      fileName: pdfResult.fileName,
+      mimeType: pdfResult.mimeType
+    };
   },
 
   /**

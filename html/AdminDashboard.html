@@ -1795,7 +1795,7 @@
       subtitle.style.display = 'none';
 
       // Add PDF download button for tools that support it
-      const pdfTools = ['tool1', 'tool2', 'tool3', 'tool5'];
+      const pdfTools = ['tool1', 'tool2', 'tool3', 'tool4', 'tool5', 'tool6', 'tool8'];
       if (pdfTools.includes(toolId)) {
         pdfButton.innerHTML = `
           <button class="btn btn-primary" onclick="downloadReportPDF('${currentReportStudent.clientId}', '${toolId}')">
@@ -1874,7 +1874,10 @@
         'tool1': 'generateTool1PDF',
         'tool2': 'generateTool2PDF',
         'tool3': 'generateTool3PDF',
-        'tool5': 'generateTool5PDF'
+        'tool4': 'adminGenerateTool4PDF',
+        'tool5': 'generateTool5PDF',
+        'tool6': 'adminGenerateTool6PDF',
+        'tool8': 'adminGenerateTool8PDF'
       };
 
       const functionName = functionMap[toolId];

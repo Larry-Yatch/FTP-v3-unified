@@ -729,6 +729,34 @@ function handleGetToolReportHTMLRequest(clientId, toolId) {
         }
         break;
 
+      case 'tool4':
+        // Get saved allocations from completion response
+        const tool4Allocation = response.data ? {
+          Multiply: response.data.multiply,
+          Essentials: response.data.essentials,
+          Freedom: response.data.freedom,
+          Enjoyment: response.data.enjoyment
+        } : null;
+        const tool4Result = PDFGenerator.generateTool4MainHTML(clientId, tool4Allocation);
+        if (tool4Result.success) reportHTML = tool4Result.html;
+        break;
+
+      case 'tool6':
+        const latestScenario6 = Tool6.getLatestScenario(clientId);
+        if (latestScenario6) {
+          const tool6Result = Tool6.generateReportHTML(clientId, latestScenario6);
+          if (tool6Result.success) reportHTML = tool6Result.html;
+        }
+        break;
+
+      case 'tool8':
+        const scenarios8 = Tool8.getUserScenarios(clientId);
+        if (scenarios8 && scenarios8.length > 0) {
+          const tool8Result = Tool8Report.generateReportHTML(clientId, scenarios8[0]);
+          if (tool8Result.success) reportHTML = tool8Result.html;
+        }
+        break;
+
       default:
         return {
           success: false,
