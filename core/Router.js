@@ -45,7 +45,7 @@ const Router = {
    * @private
    */
   _isSystemRoute(route) {
-    const systemRoutes = ['login', 'dashboard', 'admin', 'admin-login', 'admin-dashboard', 'logout', 'tool1_report', 'tool2_report', 'tool3_report', 'tool5_report', 'tool7_report', 'tool8_report'];
+    const systemRoutes = ['login', 'dashboard', 'admin', 'admin-login', 'admin-dashboard', 'logout', 'tool1_report', 'tool2_report', 'tool3_report', 'tool5_report', 'tool7_report', 'tool8_report', 'results_summary'];
     return systemRoutes.includes(route);
   },
 
@@ -88,6 +88,9 @@ const Router = {
 
       case 'tool8_report':
         return Tool8Report.render(params.client || params.clientId);
+
+      case 'results_summary':
+        return CollectiveResults.render(params.client || params.clientId);
 
       default:
         return this._handle404(route);
@@ -618,6 +621,12 @@ const Router = {
     const tool8Completed = tool8Latest && tool8Latest.status === 'COMPLETED';
     const tool8Access = ToolAccessControl.canAccessTool(clientId, 'tool8');
 
+    // Calculate completion count for summary card
+    const completedToolCount = [tool1Completed, tool2Completed, tool3Completed, tool4Completed,
+                                tool5Completed, tool6Completed, tool7Completed, tool8Completed]
+                                .filter(Boolean).length;
+    const completionPct = Math.round((completedToolCount / 8) * 100);
+
     // Build Tool 1 card HTML based on status
     let tool1CardHTML = '';
 
@@ -729,6 +738,23 @@ const Router = {
             </div>
           </div>
 
+          <!-- Results Summary Card -->
+          <div class="card" style="border: 1px solid var(--gold, #ad9168); background: linear-gradient(135deg, rgba(173, 145, 104, 0.12) 0%, rgba(20, 15, 35, 0.95) 100%);">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+              <div>
+                <h2 style="margin-bottom: 4px;">Your Results Summary</h2>
+                <p class="muted" style="margin: 0;">${completedToolCount} of 8 tools completed</p>
+              </div>
+              <span class="badge" style="background: var(--gold, #ad9168); color: #140f23; font-weight: 600;">${completionPct}%</span>
+            </div>
+            <div style="margin: 12px 0 8px; height: 6px; background: rgba(173, 145, 104, 0.15); border-radius: 3px; overflow: hidden;">
+              <div style="height: 100%; width: ${completionPct}%; background: var(--gold, #ad9168); border-radius: 3px; transition: width 0.6s ease;"></div>
+            </div>
+            ${completedToolCount > 0
+              ? '<button class="btn-primary" onclick="viewResultsSummary()" style="margin-top: 8px;">View Collective Results</button>'
+              : '<p class="muted" style="margin-top: 8px; font-size: 0.9rem;">Complete your first tool to see results here.</p>'}
+          </div>
+
           <div class="card">
             <h2>Your Tools</h2>
             <p class="muted mb-20">Complete each tool in order to unlock the next.</p>
@@ -770,6 +796,7 @@ const Router = {
             window.discardTool1Draft = discardTool1Draft;
             window.startTool1 = startTool1;
             window.logout = logout;
+            window.viewResultsSummary = viewResultsSummary;
 
             // Helper to save location to sessionStorage for refresh recovery
             function saveLocationForRefresh(view, toolId, page) {
@@ -906,6 +933,26 @@ const Router = {
                   alert('Error starting assessment: ' + error.message);
                 })
                 .getToolPageHtml('tool1', clientId, 1);
+            }
+
+            // View Results Summary - navigate using document.write() pattern
+            function viewResultsSummary() {
+              showLoading('Loading Results Summary');
+
+              google.script.run
+                .withSuccessHandler(function(summaryHtml) {
+                  saveLocationForRefresh('results_summary', null, null);
+                  document.open();
+                  document.write(summaryHtml);
+                  document.close();
+                  window.scrollTo(0, 0);
+                })
+                .withFailureHandler(function(error) {
+                  hideLoading();
+                  console.error('Results summary navigation error:', error);
+                  alert('Error loading results summary: ' + error.message);
+                })
+                .getResultsSummaryPage(clientId);
             }
 
             // Logout - navigate to login page

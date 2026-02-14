@@ -89,6 +89,31 @@ const NavigationHelpers = {
   },
 
   /**
+   * Get results summary page HTML for client-side navigation
+   * @param {string} clientId - Client ID
+   * @returns {string} Results summary HTML content
+   */
+  getResultsSummaryPage(clientId) {
+    try {
+      registerTools();
+
+      const fakeRequest = {
+        parameter: {
+          route: 'results_summary',
+          client: clientId
+        }
+      };
+
+      const pageOutput = Router.route(fakeRequest);
+      return pageOutput.getContent();
+
+    } catch (error) {
+      Logger.log(`[NavigationHelpers] Error getting results summary: ${error}`);
+      return this.renderErrorPage('Error Loading Results Summary', error, clientId, true);
+    }
+  },
+
+  /**
    * Get specific tool page HTML for client-side navigation
    * @param {string} toolId - Tool identifier (e.g., 'tool2')
    * @param {string} clientId - Client ID

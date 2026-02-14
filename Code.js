@@ -259,6 +259,9 @@ function registerTools() {
  */
 function doGet(e) {
   try {
+    // Log incoming params for debugging refresh/history navigation
+    console.log('doGet params:', JSON.stringify(e.parameter || {}));
+
     // Validate configuration
     const configValidation = validateConfig();
     if (!configValidation.valid) {
@@ -926,6 +929,15 @@ function getLoginPage(message) {
  */
 function getReportPage(clientId, toolId) {
   return NavigationHelpers.getReportPage(clientId, toolId);
+}
+
+/**
+ * Get collective results summary page HTML (for document.write() navigation)
+ * @param {string} clientId - Client ID
+ * @returns {string} Results summary HTML
+ */
+function getResultsSummaryPage(clientId) {
+  return NavigationHelpers.getResultsSummaryPage(clientId);
 }
 
 /**
