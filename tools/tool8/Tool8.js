@@ -55,12 +55,16 @@ const Tool8 = {
     var resolvedData = this.resolveClientData(clientId);
     var prepopJson = JSON.stringify(resolvedData);
 
+    // Load history manager for back button and refresh support
+    var historyManager = HtmlService.createHtmlOutputFromFile('shared/history-manager').getContent();
+
     return '<!DOCTYPE html>\n' +
 '<html>\n' +
 '<head>\n' +
 '  <meta charset="utf-8">\n' +
 '  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n' +
 '  <title>Investment Planning Tool</title>\n' +
+    historyManager +
 '  <style>\n' +
     this._buildCSS() +
 '  </style>\n' +
@@ -72,6 +76,11 @@ const Tool8 = {
 '    var CLIENT_ID = "' + clientId + '";\n' +
 '    var PREPOP = ' + prepopJson + ';\n' +
     this._buildJS(clientId) +
+'  </script>\n' +
+'  <script>\n' +
+'    if (typeof initHistoryManager === "function") {\n' +
+'      initHistoryManager("' + clientId + '");\n' +
+'    }\n' +
 '  </script>\n' +
 '</body>\n' +
 '</html>';
@@ -378,7 +387,7 @@ const Tool8 = {
       '  </div>',
       '</div>',
       // Header bar
-      '<div class="wrap">',
+      '<div class="wrap tool8-container">',
       '  <div style="grid-column: 1 / -1; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; padding: 15px 20px; background: rgba(20, 15, 35, 0.6); border-radius: 15px; backdrop-filter: blur(10px);">',
       '    <div style="font-size: 14px; color: #94a3b8;">Investment Planning Tool</div>',
       '    <button class="btn" style="padding: 6px 16px; font-size: 11px;" onclick="goToDashboard()">Back to Dashboard</button>',

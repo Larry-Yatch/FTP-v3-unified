@@ -355,7 +355,7 @@
       }
     }
 
-    // Check for calculator tool containers (Tool 4, Tool 6)
+    // Check for calculator tool containers (Tool 4, Tool 6, Tool 8)
     var tool4Container = document.querySelector('.tool4-container, #tool4-app');
     if (tool4Container) {
       return { view: 'tool', options: { toolId: 'tool4', page: 1 }};
@@ -364,6 +364,11 @@
     var tool6Container = document.querySelector('.tool6-container, #tool6-app');
     if (tool6Container) {
       return { view: 'tool', options: { toolId: 'tool6', page: 1 }};
+    }
+
+    var tool8Container = document.querySelector('.tool8-container');
+    if (tool8Container) {
+      return { view: 'tool', options: { toolId: 'tool8', page: 1 }};
     }
 
     // Check for report page
@@ -499,6 +504,14 @@
     if (tool6Form && tool6Container) {
       startSafetyTimeout();
       saveTool6DataAsync(safeCallback);
+      return;
+    }
+
+    // Tool 8 calculator - no persistent draft to save (state is ephemeral,
+    // pre-populated from upstream data on each visit). Just navigate.
+    var tool8Container = document.querySelector('.tool8-container');
+    if (tool8Container) {
+      safeCallback();
       return;
     }
 

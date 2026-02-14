@@ -1047,9 +1047,11 @@ const Tool8Report = {
     try {
       var scenarios = Tool8.getUserScenarios(clientId);
       var studentName = Tool8.getStudentName(clientId);
+      var historyManager = HtmlService.createHtmlOutputFromFile('shared/history-manager').getContent();
 
       var html = '<!DOCTYPE html>' +
         '<html><head><meta charset="utf-8"><title>Investment Planning Report</title>' +
+        historyManager +
         '<style>' +
         'body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #1a1a2e; color: #e0e0e0; padding: 40px; }' +
         'h1 { color: #ad9168; }' +
@@ -1057,7 +1059,16 @@ const Tool8Report = {
         '.btn { appearance: none; border: 2px solid #ad9168; background: transparent; color: #ad9168; padding: 10px 20px; border-radius: 50px; cursor: pointer; font-size: 13px; }' +
         '.btn:hover { background: #ad9168; color: #140f23; }' +
         'p { color: #a0a0a0; }' +
+        '.loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 9999; opacity: 0; pointer-events: none; transition: opacity 0.3s; }' +
+        '.loading-overlay.active { opacity: 1; pointer-events: all; }' +
+        '.loading-spinner { width: 40px; height: 40px; border: 3px solid rgba(173,145,104,0.3); border-top: 3px solid #ad9168; border-radius: 50%; animation: spin 1s linear infinite; }' +
+        '@keyframes spin { to { transform: rotate(360deg); } }' +
+        '.loading-content { text-align: center; color: #e0e0e0; }' +
+        '.loading-text { margin-top: 16px; font-size: 14px; }' +
         '</style></head><body>' +
+        '<div class="report-container">' +
+        '<div class="loading-overlay" id="loadingOverlay"><div class="loading-content"><div class="loading-spinner"></div><div class="loading-text" id="loadingText">Loading...</div></div></div>' +
+        '<div style="margin-bottom: 20px;"><button class="btn" onclick="backToDashboard()">Back to Dashboard</button></div>' +
         '<h1>Investment Planning Report</h1>' +
         '<p>Student: ' + studentName + '</p>';
 
@@ -1077,7 +1088,61 @@ const Tool8Report = {
         }
       }
 
-      html += '</body></html>';
+      html += '</div>' +  // close report-container
+        '<script>' +
+        '(function() {' +
+        '  var clientId = "' + clientId + '";' +
+        '' +
+        '  function showLoading(msg) {' +
+        '    var overlay = document.getElementById("loadingOverlay");' +
+        '    var text = document.getElementById("loadingText");' +
+        '    if (text) text.textContent = msg || "Loading...";' +
+        '    if (overlay) overlay.classList.add("active");' +
+        '  }' +
+        '' +
+        '  function hideLoading() {' +
+        '    var overlay = document.getElementById("loadingOverlay");' +
+        '    if (overlay) overlay.classList.remove("active");' +
+        '  }' +
+        '' +
+        '  window.backToDashboard = function() {' +
+        '    showLoading("Loading Dashboard");' +
+        '    google.script.run' +
+        '      .withSuccessHandler(function(dashboardHtml) {' +
+        '        try {' +
+        '          sessionStorage.setItem("_ftpCurrentLocation", JSON.stringify({' +
+        '            view: "dashboard", toolId: null, page: null,' +
+        '            clientId: clientId, timestamp: Date.now()' +
+        '          }));' +
+        '        } catch(e) {}' +
+        '        document.open();' +
+        '        document.write(dashboardHtml);' +
+        '        document.close();' +
+        '        window.scrollTo(0, 0);' +
+        '      })' +
+        '      .withFailureHandler(function(error) {' +
+        '        hideLoading();' +
+        '        console.error("Dashboard navigation error:", error);' +
+        '        alert("Error loading dashboard: " + error.message);' +
+        '      })' +
+        '      .getDashboardPage(clientId);' +
+        '  };' +
+        '' +
+        '  // Save report location for refresh recovery' +
+        '  try {' +
+        '    sessionStorage.setItem("_ftpCurrentLocation", JSON.stringify({' +
+        '      view: "report", toolId: "tool8", page: null,' +
+        '      clientId: clientId, timestamp: Date.now()' +
+        '    }));' +
+        '  } catch(e) {}' +
+        '' +
+        '  // Initialize history manager for back button support' +
+        '  if (typeof initHistoryManager === "function") {' +
+        '    initHistoryManager(clientId);' +
+        '  }' +
+        '})();' +
+        '</script>' +
+        '</body></html>';
 
       return HtmlService.createHtmlOutput(html)
         .setTitle('Investment Planning Report')
