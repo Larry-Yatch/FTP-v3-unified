@@ -938,7 +938,7 @@ const Router = {
 
             // Initialize history manager for browser back button support
             if (typeof initHistoryManager === 'function') {
-              initHistoryManager(clientId);
+              initHistoryManager(clientId, baseUrl);
             }
           });
 

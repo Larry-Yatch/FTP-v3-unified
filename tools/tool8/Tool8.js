@@ -79,7 +79,7 @@ const Tool8 = {
 '  </script>\n' +
 '  <script>\n' +
 '    if (typeof initHistoryManager === "function") {\n' +
-'      initHistoryManager("' + clientId + '");\n' +
+'      initHistoryManager("' + clientId + '", "' + ScriptApp.getService().getUrl() + '");\n' +
 '    }\n' +
 '  </script>\n' +
 '</body>\n' +

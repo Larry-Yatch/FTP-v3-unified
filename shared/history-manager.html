@@ -9,11 +9,14 @@
 
   // Private state
   var _clientId = null;
+  var _baseUrl = null;
   var _isRestoring = false;
   var _initialized = false;
   var RESTORE_FLAG_KEY = '_historyManagerRestoring';
   var LOCATION_KEY = '_ftpCurrentLocation';
+  var BASE_URL_KEY = '_ftpBaseUrl';
   var LOCATION_MAX_AGE_MS = 30 * 60 * 1000; // 30 minutes - expire stale locations
+  var NAV_FALLBACK_MS = 3000; // 3 seconds before falling back to URL navigation
 
   /**
    * Save the current location to sessionStorage for refresh recovery
@@ -111,14 +114,23 @@
   /**
    * Initialize the history manager
    * @param {string} clientId - The current client/student ID
+   * @param {string} [baseUrl] - The GAS deployment base URL for fallback navigation
    */
-  window.initHistoryManager = function(clientId) {
+  window.initHistoryManager = function(clientId, baseUrl) {
     if (_initialized) {
       console.log('[HistoryManager] Already initialized');
       return;
     }
 
     _clientId = clientId;
+
+    // Store baseUrl for fallback navigation (persist in sessionStorage for recovery paths)
+    if (baseUrl) {
+      _baseUrl = baseUrl;
+      try { sessionStorage.setItem(BASE_URL_KEY, baseUrl); } catch(e) {}
+    } else {
+      try { _baseUrl = sessionStorage.getItem(BASE_URL_KEY); } catch(e) {}
+    }
 
     // Check if we're restoring from a back/forward navigation (flag set by previous page)
     var wasRestoring = false;
@@ -630,18 +642,70 @@
   }
 
   /**
+   * Navigate via URL as a fallback when google.script.run callbacks fail
+   * (happens when postMessage bridge is stale after document.write)
+   * @param {string} route - Route name (e.g., 'dashboard', 'tool1')
+   * @param {string} clientId
+   * @param {Object} [params] - Additional URL params
+   */
+  function navigateViaUrl(route, clientId, params) {
+    var url = _baseUrl;
+    if (!url) {
+      try { url = sessionStorage.getItem(BASE_URL_KEY); } catch(e) {}
+    }
+    if (!url) {
+      console.error('[HistoryManager] No baseUrl available for fallback navigation');
+      _isRestoring = false;
+      if (typeof hideLoading === 'function') hideLoading();
+      alert('Navigation error. Please refresh the page.');
+      return;
+    }
+
+    var queryParams = '?route=' + encodeURIComponent(route) + '&client=' + encodeURIComponent(clientId);
+    if (params) {
+      for (var key in params) {
+        if (params.hasOwnProperty(key) && params[key] != null) {
+          queryParams += '&' + encodeURIComponent(key) + '=' + encodeURIComponent(params[key]);
+        }
+      }
+    }
+
+    console.log('[HistoryManager] Fallback URL navigation to:', url + queryParams);
+    window.top.location.href = url + queryParams;
+  }
+
+  /**
    * Load dashboard page
    * @param {string} clientId
    */
   function loadDashboard(clientId) {
     // Loading already shown by handleHistoryChange
+    var handled = false;
+
+    // Safety fallback: if google.script.run callback never arrives
+    // (stale postMessage bridge after document.write), navigate via URL
+    var fallbackTimer = setTimeout(function() {
+      if (!handled) {
+        handled = true;
+        console.warn('[HistoryManager] google.script.run callback timeout - using URL fallback');
+        saveLocation('dashboard', {});
+        navigateViaUrl('dashboard', clientId);
+      }
+    }, NAV_FALLBACK_MS);
+
     google.script.run
       .withSuccessHandler(function(html) {
+        if (handled) return;
+        handled = true;
+        clearTimeout(fallbackTimer);
         // Save destination location BEFORE writing (for refresh recovery)
         saveLocation('dashboard', {});
         writeAndFinishRestore(html);
       })
       .withFailureHandler(function(error) {
+        if (handled) return;
+        handled = true;
+        clearTimeout(fallbackTimer);
         handleNavError(error, 'dashboard');
       })
       .getDashboardPage(clientId);
@@ -658,13 +722,29 @@
       showLoading('Loading ' + toolId.replace('tool', 'Tool ') + ' Page ' + page);
     }
 
+    var handled = false;
+    var fallbackTimer = setTimeout(function() {
+      if (!handled) {
+        handled = true;
+        console.warn('[HistoryManager] google.script.run callback timeout - using URL fallback');
+        saveLocation('tool', { toolId: toolId, page: page });
+        navigateViaUrl(toolId, clientId, { page: page });
+      }
+    }, NAV_FALLBACK_MS);
+
     google.script.run
       .withSuccessHandler(function(html) {
+        if (handled) return;
+        handled = true;
+        clearTimeout(fallbackTimer);
         // Save destination location BEFORE writing (for refresh recovery)
         saveLocation('tool', { toolId: toolId, page: page });
         writeAndFinishRestore(html);
       })
       .withFailureHandler(function(error) {
+        if (handled) return;
+        handled = true;
+        clearTimeout(fallbackTimer);
         handleNavError(error, 'tool page');
       })
       .getToolPageHtml(toolId, clientId, page);
@@ -680,13 +760,29 @@
       showLoading('Loading Report');
     }
 
+    var handled = false;
+    var fallbackTimer = setTimeout(function() {
+      if (!handled) {
+        handled = true;
+        console.warn('[HistoryManager] google.script.run callback timeout - using URL fallback');
+        saveLocation('report', { toolId: toolId });
+        navigateViaUrl(toolId + '_report', clientId);
+      }
+    }, NAV_FALLBACK_MS);
+
     google.script.run
       .withSuccessHandler(function(html) {
+        if (handled) return;
+        handled = true;
+        clearTimeout(fallbackTimer);
         // Save destination location BEFORE writing (for refresh recovery)
         saveLocation('report', { toolId: toolId });
         writeAndFinishRestore(html);
       })
       .withFailureHandler(function(error) {
+        if (handled) return;
+        handled = true;
+        clearTimeout(fallbackTimer);
         handleNavError(error, 'report');
       })
       .getReportPage(clientId, toolId);

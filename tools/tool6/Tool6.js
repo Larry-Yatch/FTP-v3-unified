@@ -7013,7 +7013,7 @@ const Tool6 = {
   <script>
     // Initialize history manager for back button and refresh support
     if (typeof initHistoryManager === 'function') {
-      initHistoryManager('${clientId}');
+      initHistoryManager('${clientId}', '${ScriptApp.getService().getUrl()}');
     }
   </script>
 </body>

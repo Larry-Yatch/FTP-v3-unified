@@ -1138,7 +1138,7 @@ const Tool8Report = {
         '' +
         '  // Initialize history manager for back button support' +
         '  if (typeof initHistoryManager === "function") {' +
-        '    initHistoryManager(clientId);' +
+        '    initHistoryManager(clientId, "' + ScriptApp.getService().getUrl() + '");' +
         '  }' +
         '})();' +
         '</script>' +

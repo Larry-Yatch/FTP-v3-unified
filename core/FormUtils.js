@@ -426,7 +426,7 @@ const FormUtils = {
 
           // Initialize history manager for browser back button support
           if (typeof initHistoryManager === 'function') {
-            initHistoryManager('${clientId}');
+            initHistoryManager('${clientId}', '${ScriptApp.getService().getUrl()}');
           }
         </script>
       </body>
