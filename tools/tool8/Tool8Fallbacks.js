@@ -47,9 +47,10 @@ var Tool8Fallbacks = {
    *
    * @param {Object} s1 - First scenario
    * @param {Object} s2 - Second scenario
+   * @param {Object} resolvedData - From Tool8.resolveClientData() (for trauma context, optional)
    * @returns {Object} {synthesis, guidance, tradeoffs, source: 'fallback'}
    */
-  getComparisonFallback: function(s1, s2) {
+  getComparisonFallback: function(s1, s2, resolvedData) {
     var name1 = s1.name || 'Scenario A';
     var name2 = s2.name || 'Scenario B';
     var f1 = this._isFeasible(s1);
@@ -71,22 +72,85 @@ var Tool8Fallbacks = {
       guidance = 'Neither scenario is fully feasible with current inputs. Consider increasing your savings capacity, extending your timeline, or adjusting your retirement income goal.';
     }
 
+    // Trauma-informed guidance supplement (fallback path)
+    if (resolvedData && resolvedData.traumaPattern && TOOL8_TRAUMA_INSIGHTS[resolvedData.traumaPattern]) {
+      var traumaInsight = TOOL8_TRAUMA_INSIGHTS[resolvedData.traumaPattern];
+      guidance += ' As you weigh these options, keep in mind: ' + traumaInsight.healing;
+
+      if (resolvedData.traumaPattern === 'Control') {
+        guidance += ' Choosing either scenario and committing to it is more powerful than endlessly comparing them.';
+      } else if (resolvedData.traumaPattern === 'Fear') {
+        guidance += ' Both scenarios represent forward movement. Picking one does not lock you in forever.';
+      } else if (resolvedData.traumaPattern === 'FSV') {
+        guidance += ' Neither scenario needs to be perfect to be worthwhile. The one you can sustain matters most.';
+      }
+    }
+
     var tradeoffs = [];
+
+    // Compute terminal FVs for impact calculations
+    var fv1 = this._computeFV(s1);
+    var fv2 = this._computeFV(s2);
+
     // Income goal difference
     if (Math.abs((s1.M_real || 0) - (s2.M_real || 0)) > 100) {
-      tradeoffs.push('"' + name1 + '" targets $' + Math.round(s1.M_real).toLocaleString() + '/month while "' + name2 + '" targets $' + Math.round(s2.M_real).toLocaleString() + '/month. A higher income goal requires a larger nest egg and either more savings or higher returns.');
+      var nestEggDiff = Math.abs((s1.Areq || 0) - (s2.Areq || 0));
+      var higherIncomeName = (s1.M_real || 0) > (s2.M_real || 0) ? name1 : name2;
+      var lowerIncomeName = higherIncomeName === name1 ? name2 : name1;
+      var higherIncome = Math.max(s1.M_real || 0, s2.M_real || 0);
+      var lowerIncome = Math.min(s1.M_real || 0, s2.M_real || 0);
+      tradeoffs.push('"' + higherIncomeName + '" targets $' + Math.round(higherIncome).toLocaleString() +
+        '/month while "' + lowerIncomeName + '" targets $' + Math.round(lowerIncome).toLocaleString() +
+        '/month. That extra $' + Math.round(higherIncome - lowerIncome).toLocaleString() +
+        '/month in retirement requires a nest egg $' + Math.round(nestEggDiff).toLocaleString() +
+        ' larger, which means saving more each month or accepting higher risk to close the gap.');
     }
     // Risk difference
     if (Math.abs((s1.risk || 0) - (s2.risk || 0)) > 1) {
-      tradeoffs.push('Risk levels differ: ' + Number(s1.risk).toFixed(1) + '/10 versus ' + Number(s2.risk).toFixed(1) + '/10. Higher risk may increase potential returns but also increases the chance of significant short-term losses.');
+      var returnDiff = Math.abs((s1.rAccEff || 0) - (s2.rAccEff || 0));
+      var higherRiskName = (s1.risk || 0) > (s2.risk || 0) ? name1 : name2;
+      var fvDiff = Math.abs(fv1 - fv2);
+      var avgT = Math.round(((s1.T || 0) + (s2.T || 0)) / 2);
+      tradeoffs.push('Risk levels differ: ' + Number(s1.risk).toFixed(1) + '/10 versus ' +
+        Number(s2.risk).toFixed(1) + '/10, translating to a ' +
+        (returnDiff * 100).toFixed(1) + '% difference in effective return. Over ' +
+        avgT + ' years, that compounds to a projected difference of approximately $' +
+        Math.round(fvDiff).toLocaleString() +
+        ' in your nest egg — but the higher-risk path in "' + higherRiskName +
+        '" comes with larger year-to-year swings.');
     }
     // Timeline difference
     if (Math.abs((s1.T || 0) - (s2.T || 0)) > 2) {
-      tradeoffs.push('Timelines differ by ' + Math.abs((s1.T || 0) - (s2.T || 0)) + ' years. A longer timeline gives compound growth more time to work but delays the transition to retirement.');
+      var longerTimeName = (s1.T || 0) > (s2.T || 0) ? name1 : name2;
+      var shorterTimeName = longerTimeName === name1 ? name2 : name1;
+      var extraYears = Math.abs((s1.T || 0) - (s2.T || 0));
+      var longerScenario = (s1.T || 0) > (s2.T || 0) ? s1 : s2;
+      var shorterScenario = longerScenario === s1 ? s2 : s1;
+      var fvLonger = this._computeFV(longerScenario);
+      var fvShorter = this._computeFV(shorterScenario);
+      tradeoffs.push('"' + longerTimeName + '" has ' + extraYears + ' more years than "' + shorterTimeName +
+        '", allowing compound growth to build to a projected $' +
+        Math.round(fvLonger).toLocaleString() + ' versus $' +
+        Math.round(fvShorter).toLocaleString() +
+        '. That extra time is powerful, but it also means ' + extraYears +
+        ' more years before transitioning to retirement.');
+    }
+    // Savings capacity difference
+    if (Math.abs((s1.C_cap || 0) - (s2.C_cap || 0)) > 100 && tradeoffs.length < 3) {
+      var higherSavName = (s1.C_cap || 0) > (s2.C_cap || 0) ? name1 : name2;
+      var lowerSavName = higherSavName === name1 ? name2 : name1;
+      var savDiff = Math.abs((s1.C_cap || 0) - (s2.C_cap || 0));
+      var avgYears = Math.round(((s1.T || 0) + (s2.T || 0)) / 2);
+      var rawExtra = savDiff * avgYears * 12;
+      tradeoffs.push('"' + higherSavName + '" saves $' + Math.round(savDiff).toLocaleString() +
+        '/month more than "' + lowerSavName + '". Even without investment returns, that is $' +
+        Math.round(rawExtra).toLocaleString() + ' more over ' + avgYears +
+        ' years — and with compounding, the difference grows further.');
     }
     // Generic if no specific differences
     if (tradeoffs.length === 0) {
-      tradeoffs.push('Both scenarios share similar parameters. Small differences in savings capacity or risk level can compound significantly over time.');
+      var avgTimeline = Math.round(((s1.T || 20) + (s2.T || 20)) / 2);
+      tradeoffs.push('Both scenarios share similar parameters. Small differences in savings capacity or risk level can compound significantly over time — even a $50/month difference grows to over $' + Math.round(50 * 12 * avgTimeline).toLocaleString() + ' before investment returns.');
       tradeoffs.push('Consider which scenario you are most likely to follow through on consistently. The best plan is the one you actually execute.');
     }
 
@@ -210,5 +274,29 @@ var Tool8Fallbacks = {
     }
 
     return steps;
+  },
+
+  /**
+   * Compute future value of a scenario at its terminal year.
+   * Uses the same FV formula as Tool8Report.buildMilestoneSection.
+   *
+   * @param {Object} scenario - Scenario data
+   * @returns {number} Projected balance at year T
+   */
+  _computeFV: function(scenario) {
+    var A0 = Number(scenario.A0) || 0;
+    var C = Number(scenario.C_cap) || 0;
+    var rEff = Number(scenario.rAccEff) || 0;
+    var T = Number(scenario.T) || 0;
+    var monthlyRate = rEff / 12;
+    var months = T * 12;
+
+    if (months <= 0) return A0;
+
+    var fvPrincipal = A0 * Math.pow(1 + monthlyRate, months);
+    var fvContrib = monthlyRate > 0
+      ? C * ((Math.pow(1 + monthlyRate, months) - 1) / monthlyRate)
+      : C * months;
+    return Math.round(fvPrincipal + fvContrib);
   }
 };

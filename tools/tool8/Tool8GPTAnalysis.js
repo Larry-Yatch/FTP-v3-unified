@@ -114,7 +114,7 @@ var Tool8GPTAnalysis = {
         userPrompt: userPrompt,
         model: 'gpt-4o',
         temperature: 0.3,
-        maxTokens: 600
+        maxTokens: 750
       });
 
       var parsed = this.parseComparisonResponse(raw);
@@ -140,7 +140,7 @@ var Tool8GPTAnalysis = {
         userPrompt: userPrompt2,
         model: 'gpt-4o',
         temperature: 0.3,
-        maxTokens: 600
+        maxTokens: 750
       });
 
       var parsed2 = this.parseComparisonResponse(raw2);
@@ -157,7 +157,7 @@ var Tool8GPTAnalysis = {
     // TIER 3: Fallback
     Logger.log('[Tool8GPT] Comparison Tier 3: Using fallback');
     this.logFallbackUsage('', 'comparison_report', 'GPT unavailable');
-    return Tool8Fallbacks.getComparisonFallback(s1, s2);
+    return Tool8Fallbacks.getComparisonFallback(s1, s2, resolvedData);
   },
 
   // ============================================================
@@ -381,6 +381,8 @@ var Tool8GPTAnalysis = {
     prompt.push('- Reference specific numbers from BOTH scenarios');
     prompt.push('- If trauma data exists, consider how patterns might affect the choice between scenarios');
     prompt.push('- Be clear on trade-offs without being prescriptive');
+    prompt.push('- For each trade-off, show the long-term compounding impact — how the difference between scenarios grows over time, with approximate dollar amounts');
+    prompt.push('- Reference the timeline to show how small differences become large through compounding');
     prompt.push('- NO markdown formatting');
     prompt.push('- BE CONCISE');
     prompt.push('- Use "do not" instead of "don\'t", "cannot" instead of "can\'t"');
@@ -402,9 +404,9 @@ var Tool8GPTAnalysis = {
       '(2-3 sentences on which scenario might work better and why. Consider any psychological patterns if data is available. Use scenario names.)',
       '',
       'Key Trade-offs:',
-      '1. [First trade-off with specific numbers from both scenarios. 1-2 sentences.]',
-      '2. [Second trade-off. 1-2 sentences.]',
-      '3. [Third trade-off. 1-2 sentences.]'
+      '1. [First trade-off with specific numbers. Show how this difference compounds over the full timeline with approximate dollar impact. 2-3 sentences.]',
+      '2. [Second trade-off with compounding impact over time. 2-3 sentences.]',
+      '3. [Third trade-off with long-term dollar impact. 2-3 sentences.]'
     ].join('\n');
   },
 

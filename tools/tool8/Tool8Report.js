@@ -443,7 +443,9 @@ const Tool8Report = {
         footer = footer.replace('</div>', '<p class="source-note">' + compSourceNote + '</p></div>');
       }
 
-      var bodyContent = header + intro + overviewSection + compTable + feasCompSection + recommendation + compGptSection + advSection + footer;
+      var compMilestoneSection = this.buildComparisonMilestoneSection(s1, s2, compResolvedData);
+
+      var bodyContent = header + intro + overviewSection + compTable + feasCompSection + recommendation + compGptSection + compMilestoneSection + advSection + footer;
       var htmlContent = PDFGenerator.buildHTMLDocument(styles, bodyContent);
       var fileName = PDFGenerator.generateFileName('InvestmentComparison', studentName);
 
@@ -691,6 +693,185 @@ const Tool8Report = {
       html += '<div class="feasibility-box ' + statusClass + '" style="margin-top:12px;">' +
         '<div style="font-size:14px;">At year ' + years + ', your projected balance of ' + this.fmtUSD(lastBalance) +
         ' reaches <strong>' + pct + '%</strong> of your ' + this.fmtUSD(Areq) + ' target nest egg.</div></div>';
+    }
+
+    return html;
+  },
+
+  /**
+   * Build side-by-side milestone projection for comparison PDF.
+   * Shows projected nest egg at unified 5-year intervals for both scenarios.
+   *
+   * @param {Object} s1 - First scenario
+   * @param {Object} s2 - Second scenario
+   * @param {Object} resolvedData - From Tool8.resolveClientData() (for age)
+   * @returns {string} HTML string (empty if both timelines < 5 years)
+   */
+  buildComparisonMilestoneSection(s1, s2, resolvedData) {
+    var years1 = Number(s1.T) || 0;
+    var years2 = Number(s2.T) || 0;
+    var maxYears = Math.max(years1, years2);
+    if (maxYears < 5) return '';
+
+    var age = (resolvedData && resolvedData.age) ? Number(resolvedData.age) : null;
+
+    // Build unified intervals (union of both scenarios' 5-year marks + both terminal years)
+    var intervalSet = {};
+    var y;
+    for (y = 5; y <= maxYears; y += 5) {
+      intervalSet[y] = true;
+    }
+    if (years1 > 0) intervalSet[years1] = true;
+    if (years2 > 0) intervalSet[years2] = true;
+
+    var intervals = Object.keys(intervalSet).map(function(k) { return Number(k); });
+    intervals.sort(function(a, b) { return a - b; });
+
+    // Pre-compute monthly rates
+    var A0_1 = Number(s1.A0) || 0;
+    var C1 = Number(s1.C_cap) || 0;
+    var r1 = Number(s1.rAccEff) || 0;
+    var mr1 = r1 / 12;
+
+    var A0_2 = Number(s2.A0) || 0;
+    var C2 = Number(s2.C_cap) || 0;
+    var r2 = Number(s2.rAccEff) || 0;
+    var mr2 = r2 / 12;
+
+    var Areq1 = Number(s1.Areq) || 0;
+    var Areq2 = Number(s2.Areq) || 0;
+
+    // Calculate balances at each interval
+    var rows = [];
+    var s1ReachedAreqYear = null;
+    var s2ReachedAreqYear = null;
+
+    for (var i = 0; i < intervals.length; i++) {
+      var yr = intervals[i];
+      var months = yr * 12;
+
+      // Scenario 1 balance (only if within its timeline)
+      var bal1 = null;
+      if (yr <= years1) {
+        var fvP1 = A0_1 * Math.pow(1 + mr1, months);
+        var fvC1 = mr1 > 0
+          ? C1 * ((Math.pow(1 + mr1, months) - 1) / mr1)
+          : C1 * months;
+        bal1 = Math.round(fvP1 + fvC1);
+        if (s1ReachedAreqYear === null && Areq1 > 0 && bal1 >= Areq1) {
+          s1ReachedAreqYear = yr;
+        }
+      }
+
+      // Scenario 2 balance (only if within its timeline)
+      var bal2 = null;
+      if (yr <= years2) {
+        var fvP2 = A0_2 * Math.pow(1 + mr2, months);
+        var fvC2 = mr2 > 0
+          ? C2 * ((Math.pow(1 + mr2, months) - 1) / mr2)
+          : C2 * months;
+        bal2 = Math.round(fvP2 + fvC2);
+        if (s2ReachedAreqYear === null && Areq2 > 0 && bal2 >= Areq2) {
+          s2ReachedAreqYear = yr;
+        }
+      }
+
+      // Life events at this age
+      var events = [];
+      if (age) {
+        var milestoneAge = age + yr;
+        if (milestoneAge >= 50 && milestoneAge < 55) events.push('IRA/401(k) catch-up eligible');
+        if (milestoneAge >= 55 && milestoneAge < 59) events.push('HSA catch-up eligible');
+        if (Math.abs(milestoneAge - 59.5) < 2.5) events.push('Penalty-free IRA withdrawals at 59.5');
+        if (Math.abs(milestoneAge - 62) < 2.5) events.push('Early Social Security available');
+        if (Math.abs(milestoneAge - 65) < 2.5) events.push('Medicare eligibility');
+        if (Math.abs(milestoneAge - 67) < 2.5) events.push('Full Social Security benefits');
+        if (Math.abs(milestoneAge - 73) < 2.5) events.push('RMD planning begins');
+      }
+
+      var isTarget1 = (yr === years1);
+      var isTarget2 = (yr === years2);
+      if (isTarget1) events.push((s1.name || 'A') + ' target date');
+      if (isTarget2) events.push((s2.name || 'B') + ' target date');
+
+      rows.push({
+        year: yr,
+        age: age ? age + yr : null,
+        bal1: bal1,
+        bal2: bal2,
+        events: events.join('; ') || 'Continued growth',
+        isTarget1: isTarget1,
+        isTarget2: isTarget2
+      });
+    }
+
+    // Build HTML table
+    var name1 = s1.name || 'Scenario A';
+    var name2 = s2.name || 'Scenario B';
+
+    var html = '<div class="page-break"></div>' +
+      '<h2>Investment Timeline Comparison</h2>' +
+      '<p style="font-size:14px; color:#555; margin-bottom:12px;">Projected nest egg growth for both scenarios at key milestones.</p>' +
+      '<table class="milestone-table">' +
+      '<thead><tr>' +
+      '<th>Year</th>' +
+      (age ? '<th>Age</th>' : '') +
+      '<th>' + name1 + '</th>' +
+      '<th>' + name2 + '</th>' +
+      '<th>Life Events</th>' +
+      '</tr></thead><tbody>';
+
+    for (var k = 0; k < rows.length; k++) {
+      var row = rows[k];
+      var rowClass = (row.isTarget1 || row.isTarget2) ? 'milestone-current' : '';
+
+      // Determine which balance is higher for winner highlight
+      var b1Class = 'balance-cell';
+      var b2Class = 'balance-cell';
+      if (row.bal1 !== null && row.bal2 !== null && row.bal1 > row.bal2) {
+        b1Class += ' balance-winner';
+      } else if (row.bal2 !== null && row.bal1 !== null && row.bal2 > row.bal1) {
+        b2Class += ' balance-winner';
+      }
+
+      html += '<tr class="' + rowClass + '">' +
+        '<td>' + row.year + ' yrs</td>' +
+        (age ? '<td class="age-cell">' + row.age + '</td>' : '') +
+        '<td class="' + b1Class + '">' + (row.bal1 !== null ? this.fmtUSD(row.bal1) : '--') + '</td>' +
+        '<td class="' + b2Class + '">' + (row.bal2 !== null ? this.fmtUSD(row.bal2) : '--') + '</td>' +
+        '<td class="event-cell">' + row.events + '</td>' +
+        '</tr>';
+    }
+
+    html += '</tbody></table>';
+
+    // Summary: which reaches Areq first
+    if (s1ReachedAreqYear !== null || s2ReachedAreqYear !== null) {
+      var summaryText = '';
+      if (s1ReachedAreqYear !== null && s2ReachedAreqYear !== null) {
+        if (s1ReachedAreqYear < s2ReachedAreqYear) {
+          summaryText = '"' + name1 + '" reaches its target nest egg of ' + this.fmtUSD(Areq1) +
+            ' by year ' + s1ReachedAreqYear + ', while "' + name2 + '" reaches ' +
+            this.fmtUSD(Areq2) + ' by year ' + s2ReachedAreqYear + '.';
+        } else if (s2ReachedAreqYear < s1ReachedAreqYear) {
+          summaryText = '"' + name2 + '" reaches its target nest egg of ' + this.fmtUSD(Areq2) +
+            ' by year ' + s2ReachedAreqYear + ', while "' + name1 + '" reaches ' +
+            this.fmtUSD(Areq1) + ' by year ' + s1ReachedAreqYear + '.';
+        } else {
+          summaryText = 'Both scenarios reach their respective targets by year ' + s1ReachedAreqYear + '.';
+        }
+      } else if (s1ReachedAreqYear !== null) {
+        summaryText = '"' + name1 + '" reaches its ' + this.fmtUSD(Areq1) +
+          ' target by year ' + s1ReachedAreqYear +
+          '. "' + name2 + '" does not reach its ' + this.fmtUSD(Areq2) + ' target within its timeline.';
+      } else {
+        summaryText = '"' + name2 + '" reaches its ' + this.fmtUSD(Areq2) +
+          ' target by year ' + s2ReachedAreqYear +
+          '. "' + name1 + '" does not reach its ' + this.fmtUSD(Areq1) + ' target within its timeline.';
+      }
+
+      html += '<div class="feasibility-box feasibility-ok" style="margin-top:12px;">' +
+        '<div style="font-size:14px;">' + summaryText + '</div></div>';
     }
 
     return html;
