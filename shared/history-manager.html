@@ -16,7 +16,7 @@
   var LOCATION_KEY = '_ftpCurrentLocation';
   var BASE_URL_KEY = '_ftpBaseUrl';
   var LOCATION_MAX_AGE_MS = 30 * 60 * 1000; // 30 minutes - expire stale locations
-  var NAV_FALLBACK_MS = 3000; // 3 seconds before falling back to URL navigation
+  var NAV_FALLBACK_MS = 10000; // 10 seconds before showing fallback UI
 
   /**
    * Save the current location to sessionStorage for refresh recovery
@@ -642,24 +642,18 @@
   }
 
   /**
-   * Navigate via URL as a fallback when google.script.run callbacks fail
-   * (happens when postMessage bridge is stale after document.write)
+   * Build a fallback URL for manual navigation
    * @param {string} route - Route name (e.g., 'dashboard', 'tool1')
    * @param {string} clientId
    * @param {Object} [params] - Additional URL params
+   * @returns {string|null} Full URL or null if baseUrl unavailable
    */
-  function navigateViaUrl(route, clientId, params) {
+  function buildFallbackUrl(route, clientId, params) {
     var url = _baseUrl;
     if (!url) {
       try { url = sessionStorage.getItem(BASE_URL_KEY); } catch(e) {}
     }
-    if (!url) {
-      console.error('[HistoryManager] No baseUrl available for fallback navigation');
-      _isRestoring = false;
-      if (typeof hideLoading === 'function') hideLoading();
-      alert('Navigation error. Please refresh the page.');
-      return;
-    }
+    if (!url) return null;
 
     var queryParams = '?route=' + encodeURIComponent(route) + '&client=' + encodeURIComponent(clientId);
     if (params) {
@@ -669,9 +663,47 @@
         }
       }
     }
+    return url + queryParams;
+  }
 
-    console.log('[HistoryManager] Fallback URL navigation to:', url + queryParams);
-    window.top.location.href = url + queryParams;
+  /**
+   * Show a clickable fallback button when google.script.run callback times out.
+   * Uses an <a target="_top"> link so the user's click provides the
+   * user-activation required by the GAS iframe sandbox for top-frame navigation.
+   * @param {string} route - Route name
+   * @param {string} clientId
+   * @param {Object} [params] - Additional URL params
+   */
+  function showFallbackButton(route, clientId, params) {
+    var url = buildFallbackUrl(route, clientId, params);
+    if (!url) {
+      _isRestoring = false;
+      if (typeof hideLoading === 'function') hideLoading();
+      alert('Navigation error. Please refresh the page.');
+      return;
+    }
+
+    console.log('[HistoryManager] Showing fallback button for:', url);
+
+    // Remove any existing loading overlay
+    if (typeof hideLoading === 'function') hideLoading();
+
+    // Create a clickable overlay — target="_top" navigates the parent frame
+    // and the user's click provides the activation the sandbox requires
+    var overlay = document.createElement('div');
+    overlay.id = 'historyManagerFallback';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;' +
+      'background:rgba(0,0,0,0.85);z-index:99999;display:flex;align-items:center;' +
+      'justify-content:center;';
+    overlay.innerHTML = '<div style="background:#fff;padding:32px 40px;border-radius:12px;' +
+      'text-align:center;max-width:420px;font-family:sans-serif;">' +
+      '<p style="margin:0 0 8px;font-size:18px;font-weight:600;color:#333;">Loading is taking longer than expected</p>' +
+      '<p style="margin:0 0 20px;font-size:14px;color:#666;">Click the button below to continue.</p>' +
+      '<a href="' + url + '" target="_top" style="display:inline-block;padding:12px 32px;' +
+      'background:#4285f4;color:#fff;text-decoration:none;border-radius:6px;font-size:16px;' +
+      'font-weight:500;">Continue</a></div>';
+
+    document.body.appendChild(overlay);
   }
 
   /**
@@ -683,13 +715,13 @@
     var handled = false;
 
     // Safety fallback: if google.script.run callback never arrives
-    // (stale postMessage bridge after document.write), navigate via URL
+    // (stale postMessage bridge after document.write), show clickable button
     var fallbackTimer = setTimeout(function() {
       if (!handled) {
         handled = true;
-        console.warn('[HistoryManager] google.script.run callback timeout - using URL fallback');
+        console.warn('[HistoryManager] google.script.run callback timeout - showing fallback button');
         saveLocation('dashboard', {});
-        navigateViaUrl('dashboard', clientId);
+        showFallbackButton('dashboard', clientId);
       }
     }, NAV_FALLBACK_MS);
 
@@ -726,9 +758,9 @@
     var fallbackTimer = setTimeout(function() {
       if (!handled) {
         handled = true;
-        console.warn('[HistoryManager] google.script.run callback timeout - using URL fallback');
+        console.warn('[HistoryManager] google.script.run callback timeout - showing fallback button');
         saveLocation('tool', { toolId: toolId, page: page });
-        navigateViaUrl(toolId, clientId, { page: page });
+        showFallbackButton(toolId, clientId, { page: page });
       }
     }, NAV_FALLBACK_MS);
 
@@ -737,6 +769,9 @@
         if (handled) return;
         handled = true;
         clearTimeout(fallbackTimer);
+        // Remove fallback button if it was shown (race condition guard)
+        var fb = document.getElementById('historyManagerFallback');
+        if (fb) fb.remove();
         // Save destination location BEFORE writing (for refresh recovery)
         saveLocation('tool', { toolId: toolId, page: page });
         writeAndFinishRestore(html);
@@ -764,9 +799,9 @@
     var fallbackTimer = setTimeout(function() {
       if (!handled) {
         handled = true;
-        console.warn('[HistoryManager] google.script.run callback timeout - using URL fallback');
+        console.warn('[HistoryManager] google.script.run callback timeout - showing fallback button');
         saveLocation('report', { toolId: toolId });
-        navigateViaUrl(toolId + '_report', clientId);
+        showFallbackButton(toolId + '_report', clientId);
       }
     }, NAV_FALLBACK_MS);
 
