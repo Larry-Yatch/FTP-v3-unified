@@ -128,53 +128,36 @@ Converted all server-side calls in 20 tool files:
 
 ---
 
-## Phase 4: Shared Utility Extraction
+## Phase 4: Shared Utility Extraction — COMPLETE
+
+> **Status:** Done
+> Created `shared/FormatUtils.js` with `currency()`, `percentage()`, `escapeHtml()`.
+> Tool4 server-side `formatDollars` (line 6676, in `generateComparisonNarrative`) now uses `FormatUtils.currency()`.
 
 ### The Problem
-- `formatDollars()` defined **twice** in Tool 4 (lines 2714 and 6676)
+- `formatDollars()` defined twice in Tool 4 (lines 2714 and 6676)
 - `formatCurrency()` in Tool 6 (line 5750) — same concept, different name
 - `escapeHtml()` in Tool 6 (line 6228) — generic utility stuck in tool-specific file
 
-### Files to Create
+### What Was Built
 
-**`shared/FormatUtils.js`** (~40 lines)
-```javascript
-const FormatUtils = {
-  currency(amount) {
-    if (typeof amount !== 'number' || isNaN(amount)) return '$0';
-    return '$' + Math.round(amount).toLocaleString();
-  },
+**`shared/FormatUtils.js`** — Server-side formatting utilities:
+- `FormatUtils.currency(amount)` — returns `'$1,250'`
+- `FormatUtils.percentage(value, decimals)` — returns `'25%'`
+- `FormatUtils.escapeHtml(text)` — regex-based HTML entity escaping
 
-  percentage(value, decimals) {
-    decimals = decimals || 0;
-    return (Math.round(value * Math.pow(10, decimals)) / Math.pow(10, decimals)) + '%';
-  },
+### Audit Findings
 
-  escapeHtml(text) {
-    if (!text) return '';
-    return String(text)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#039;');
-  }
-};
-```
+| Function | Location | Context | Action |
+|----------|----------|---------|--------|
+| `formatDollars` | Tool4.js:2714 | Client-side | Kept (only definition in its script scope) |
+| `formatDollars` | Tool4.js:6676 | **Server-side** (`generateComparisonNarrative`) | Replaced with `FormatUtils.currency()` |
+| `formatCurrency` | Tool6.js:5750 | Client-side | Kept (only definition in its script scope) |
+| `escapeHtml` | Tool6.js:6228 | Client-side | Kept (only definition in its scope) |
+| `escapeHtml` | GroundingFormBuilder.js:617 | Server-side | Kept (class method, FormatUtils available for future use) |
+| `escapeHtml` | AdminDashboard.html:1127 | Client-side | Kept |
 
-### Files to Modify
-
-**`tools/tool4/Tool4.js`**
-- Line 2714: Replace `formatDollars` definition with `FormatUtils.currency` usage
-- Line 6676: Remove duplicate `formatDollars` definition, use `FormatUtils.currency`
-- **Note:** These are inside client-side `<script>` blocks in template literals — they cannot call server-side `FormatUtils`. Instead, consolidate the two definitions into one at the top of the client-side script.
-
-**`tools/tool6/Tool6.js`**
-- Line 5750: Same client-side constraint applies for `formatCurrency`
-- Line 6228: Same for `escapeHtml`
-- **Server-side usages** can use `FormatUtils` directly
-
-**Important:** Client-side functions inside `<script>` tags cannot access server-side GAS globals. The shared `FormatUtils` is for server-side code. Client-side duplicates should be consolidated within each tool's script block (one definition, not two).
+**Key finding:** The plan originally assumed both Tool4 `formatDollars` definitions were client-side. The second (line 6676) is actually server-side and was directly updated to use `FormatUtils.currency()`. Tool6's `formatCurrency` and `escapeHtml` are each defined once in their client-side scope, so no consolidation was needed.
 
 ### Verification
 1. Tool 4 guardrail messages display correct dollar amounts
@@ -183,41 +166,39 @@ const FormatUtils = {
 
 ---
 
-## Phase 5: Code.js PDF Wrapper Consolidation
+## Phase 5: Code.js PDF Wrapper Consolidation — COMPLETE
+
+> **Status:** Done
+> Created `_generatePDFForTool(clientId, toolId, generatorFn)` shared helper.
+> 9 PDF wrapper functions (150+ lines) consolidated to ~30 lines + 23-line helper.
+> Uses `LogUtils.error` (not `Logger.log`). Admin wrappers unchanged (unique logic).
 
 ### The Problem
-Code.js has ~10 nearly identical PDF generation wrapper functions taking ~150 lines.
+Code.js had 9 nearly identical PDF generation wrapper functions taking ~150 lines.
 
-### Files to Modify
+### What Was Built
 
-**`Code.js`**
-- Create one shared implementation:
-```javascript
-function _generatePDFForTool(clientId, toolId, generatorFn) {
-  try {
-    const result = generatorFn(clientId);
-    if (result.success) {
-      DataService.logActivity(clientId, 'pdf_downloaded', {
-        toolId: toolId,
-        details: 'Downloaded ' + toolId + ' PDF'
-      });
-    }
-    return result;
-  } catch(error) {
-    Logger.log('Error generating ' + toolId + ' PDF: ' + error);
-    return { success: false, error: error.toString() };
-  }
-}
-```
+**`Code.js`** — Added `_generatePDFForTool(clientId, toolId, generatorFn)`:
+- Accepts a no-arg closure as `generatorFn` (enables any argument signature)
+- Handles activity logging on success
+- Wraps in try/catch with `LogUtils.error`
+- Returns `{ success: false, error }` on failure
 
-- Reduce each wrapper to 1 line:
-```javascript
-function generateTool1PDF(clientId) {
-  return _generatePDFForTool(clientId, 'tool1', PDFGenerator.generateTool1PDF.bind(PDFGenerator));
-}
-```
+**9 wrappers consolidated:**
 
-**Note:** Named global functions MUST stay (GAS requires them for `google.script.run`). Only the body changes.
+| Function | Before | After |
+|----------|--------|-------|
+| `generateTool1PDF` | 12 lines | 1-line delegation |
+| `generateTool2PDF` | 12 lines | 1-line delegation |
+| `generateTool3PDF` | 12 lines | 1-line delegation |
+| `generateTool5PDF` | 12 lines | 1-line delegation |
+| `generateTool7PDF` | 12 lines | 1-line delegation |
+| `generateTool4MainPDF` | 12 lines | 1-line delegation |
+| `generateTool4ComparisonPDF` | 12 lines | 1-line delegation |
+| `generateTool8PDF` | 18 lines | 2-line delegation (registerTools + helper) |
+| `generateTool8ComparisonPDF` | 18 lines | 2-line delegation (registerTools + helper) |
+
+**Not changed:** Admin wrappers (`adminGenerateTool4PDF`, `adminGenerateTool6PDF`, `adminGenerateTool8PDF`) — these have unique server-side data-fetching logic.
 
 ### Verification
 1. Generate PDF for Tool 1 and Tool 6 — verify PDFs are correct
@@ -225,22 +206,37 @@ function generateTool1PDF(clientId) {
 
 ---
 
-## Phase 6: Constants Extraction
+## Phase 6: Constants Extraction — COMPLETE
+
+> **Status:** Done
+> Created `Tool2Constants.js` (5 config objects) and `Tool4Constants.js` (4 config objects).
+> Tool2.js and Tool4.js updated to reference constants. ~95 lines of inline config relocated.
 
 ### The Problem
-Only Tools 6 and 8 have dedicated Constants files. Other tools embed configuration inline.
+Only Tools 6 and 8 had dedicated Constants files. Tools 2 and 4 embedded configuration inline.
 
-### Files to Create
+### What Was Built
 
-**`tools/tool2/Tool2Constants.js`** — Extract scoring categories, domain definitions, thresholds
-**`tools/tool4/Tool4Constants.js`** — Extract MEFJ bucket definitions, priority thresholds, unlock rules
+**`tools/tool2/Tool2Constants.js`:**
+- `DOMAIN_QUESTIONS` — 5 domains with their question field arrays
+- `MAX_SCORES` — max possible points per domain
+- `STRESS_WEIGHTS` — priority weighting factors
+- `ARCHETYPES` — domain-to-archetype display labels
+- `REQUIRED_INSIGHTS` — insight types needed for final submission
 
-**Note:** Tools 1, 3, 5, 7 may not need individual constants files:
-- Tool 1 has `Tool1Templates.js` (306 lines) which serves a similar purpose
-- Tools 3, 5, 7 share the Grounding framework — their config lives in `core/grounding/`
+**`tools/tool4/Tool4Constants.js`:**
+- `ALLOCATION_CONFIG` — V1 algorithm parameters (satisfaction, essential tiers, mod limits)
+- `BASE_WEIGHTS` — 10 priorities with MEFJ allocation percentages
+- `DEFAULT_WEIGHTS` — fallback when priority not found
+- `TRAUMA_PRIORITY_MAP` — 6 trauma patterns with boost/penalty priority lists
 
-### Files to Modify
-- Tool 2 and Tool 4 main files: replace inline config with references to new Constants files
+### Files Modified
+- `tools/tool2/Tool2.js` — 4 methods updated: `calculateDomainScores`, `applyBenchmarks`, `applyStressWeights`, `determineArchetype`, plus `requiredInsights` in `processFinalSubmission`
+- `tools/tool4/Tool4.js` — 2 methods updated: `calculateAllocationV1`, `getTraumaPriorityModifiers`
+
+### Not Extracted (correct)
+- Tools 1, 3, 5, 7: Tool 1 has `Tool1Templates.js`, Tools 3/5/7 use shared `core/grounding/` config
+- Client-side config (inside template literals): cannot reference server-side constants
 
 ### Verification
 1. Tool 2 scoring produces same results

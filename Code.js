@@ -379,189 +379,74 @@ function startFreshAttempt(clientId, toolId) {
 }
 
 /**
- * Generate PDF for Tool 1 report
- * Called from client-side via google.script.run
+ * Shared PDF generation helper — handles activity logging and error handling.
+ * Each public wrapper stays as a named global (required by google.script.run).
+ * @param {string} clientId - Client ID
+ * @param {string} toolId - Tool identifier for logging
+ * @param {Function} generatorFn - No-arg closure that returns the PDF result
+ * @returns {object} {success, pdf, fileName, mimeType} or {success: false, error}
  */
+function _generatePDFForTool(clientId, toolId, generatorFn) {
+  try {
+    const result = generatorFn();
+    if (result && result.success) {
+      DataService.logActivity(clientId, 'pdf_downloaded', {
+        toolId: toolId,
+        details: 'Downloaded ' + toolId + ' PDF report'
+      });
+    }
+    return result;
+  } catch (error) {
+    LogUtils.error('Error generating ' + toolId + ' PDF: ' + error);
+    return { success: false, error: error.toString() };
+  }
+}
+
+/** Generate PDF for Tool 1 report */
 function generateTool1PDF(clientId) {
-  const result = PDFGenerator.generateTool1PDF(clientId);
-
-  // Log PDF download activity if successful
-  if (result.success) {
-    DataService.logActivity(clientId, 'pdf_downloaded', {
-      toolId: 'tool1',
-      details: 'Downloaded Tool 1 PDF report'
-    });
-  }
-
-  return result;
+  return _generatePDFForTool(clientId, 'tool1', function() { return PDFGenerator.generateTool1PDF(clientId); });
 }
 
-/**
- * Generate PDF for Tool 2 Financial Clarity Report
- * @param {string} clientId - Client ID
- * @returns {object} {success, pdf, fileName, mimeType} or {success: false, error}
- */
+/** Generate PDF for Tool 2 Financial Clarity Report */
 function generateTool2PDF(clientId) {
-  const result = PDFGenerator.generateTool2PDF(clientId);
-
-  // Log PDF download activity if successful
-  if (result.success) {
-    DataService.logActivity(clientId, 'pdf_downloaded', {
-      toolId: 'tool2',
-      details: 'Downloaded Tool 2 PDF report'
-    });
-  }
-
-  return result;
+  return _generatePDFForTool(clientId, 'tool2', function() { return PDFGenerator.generateTool2PDF(clientId); });
 }
 
-/**
- * Generate PDF for Tool 3 Identity & Validation Report
- * @param {string} clientId - Client ID
- * @returns {object} {success, pdf, fileName, mimeType} or {success: false, error}
- */
+/** Generate PDF for Tool 3 Identity & Validation Report */
 function generateTool3PDF(clientId) {
-  const result = PDFGenerator.generateTool3PDF(clientId);
-
-  // Log PDF download activity if successful
-  if (result.success) {
-    DataService.logActivity(clientId, 'pdf_downloaded', {
-      toolId: 'tool3',
-      details: 'Downloaded Tool 3 PDF report'
-    });
-  }
-
-  return result;
+  return _generatePDFForTool(clientId, 'tool3', function() { return PDFGenerator.generateTool3PDF(clientId); });
 }
 
-/**
- * Generate PDF for Tool 5 Love & Connection Report
- * @param {string} clientId - Client ID
- * @returns {object} {success, pdf, fileName, mimeType} or {success: false, error}
- */
+/** Generate PDF for Tool 5 Love & Connection Report */
 function generateTool5PDF(clientId) {
-  const result = PDFGenerator.generateTool5PDF(clientId);
-
-  // Log PDF download activity if successful
-  if (result.success) {
-    DataService.logActivity(clientId, 'pdf_downloaded', {
-      toolId: 'tool5',
-      details: 'Downloaded Tool 5 PDF report'
-    });
-  }
-
-  return result;
+  return _generatePDFForTool(clientId, 'tool5', function() { return PDFGenerator.generateTool5PDF(clientId); });
 }
 
-/**
- * Generate PDF for Tool 7 Security & Control Report
- * @param {string} clientId - Client ID
- * @returns {object} {success, pdf, fileName, mimeType} or {success: false, error}
- */
+/** Generate PDF for Tool 7 Security & Control Report */
 function generateTool7PDF(clientId) {
-  const result = PDFGenerator.generateTool7PDF(clientId);
-
-  // Log PDF download activity if successful
-  if (result.success) {
-    DataService.logActivity(clientId, 'pdf_downloaded', {
-      toolId: 'tool7',
-      details: 'Downloaded Tool 7 PDF report'
-    });
-  }
-
-  return result;
+  return _generatePDFForTool(clientId, 'tool7', function() { return PDFGenerator.generateTool7PDF(clientId); });
 }
 
-/**
- * Generate PDF for Tool 4 Financial Freedom Framework Main Report
- * @param {string} clientId - Client ID
- * @param {Object} [allocationOverride] - Optional allocation percentages to use instead of recalculating
- * @returns {object} {success, pdf, fileName, mimeType} or {success: false, error}
- */
+/** Generate PDF for Tool 4 Main Report */
 function generateTool4MainPDF(clientId, allocationOverride) {
-  const result = PDFGenerator.generateTool4MainPDF(clientId, allocationOverride);
-
-  // Log PDF download activity if successful
-  if (result.success) {
-    DataService.logActivity(clientId, 'pdf_downloaded', {
-      toolId: 'tool4',
-      details: 'Downloaded Tool 4 Main PDF report'
-    });
-  }
-
-  return result;
+  return _generatePDFForTool(clientId, 'tool4', function() { return PDFGenerator.generateTool4MainPDF(clientId, allocationOverride); });
 }
 
-/**
- * Generate PDF for Tool 4 Scenario Comparison Report
- * @param {string} clientId - Client ID
- * @param {Object} scenario1 - First scenario data
- * @param {Object} scenario2 - Second scenario data
- * @returns {object} {success, pdf, fileName, mimeType} or {success: false, error}
- */
+/** Generate PDF for Tool 4 Scenario Comparison Report */
 function generateTool4ComparisonPDF(clientId, scenario1, scenario2) {
-  const result = PDFGenerator.generateTool4ComparisonPDF(clientId, scenario1, scenario2);
-
-  // Log PDF download activity if successful
-  if (result.success) {
-    DataService.logActivity(clientId, 'pdf_downloaded', {
-      toolId: 'tool4',
-      details: 'Downloaded Tool 4 Comparison PDF report'
-    });
-  }
-
-  return result;
+  return _generatePDFForTool(clientId, 'tool4', function() { return PDFGenerator.generateTool4ComparisonPDF(clientId, scenario1, scenario2); });
 }
 
-/**
- * Generate PDF for Tool 8 Investment Planning Report (single scenario)
- * @param {string} clientId - Client ID
- * @param {Object} scenarioData - Scenario data for the report
- * @returns {object} {success, pdf, fileName, mimeType} or {success: false, error}
- */
+/** Generate PDF for Tool 8 Investment Planning Report (single scenario) */
 function generateTool8PDF(clientId, scenarioData) {
-  try {
-    registerTools();
-    const result = Tool8Report.generatePDF(clientId, scenarioData);
-
-    if (result && result.success) {
-      DataService.logActivity(clientId, 'pdf_downloaded', {
-        toolId: 'tool8',
-        details: 'Downloaded Tool 8 Investment Planning PDF report'
-      });
-    }
-
-    return result;
-  } catch (error) {
-    Logger.log('Error generating Tool 8 PDF: ' + error);
-    return { success: false, error: error.toString() };
-  }
+  registerTools();
+  return _generatePDFForTool(clientId, 'tool8', function() { return Tool8Report.generatePDF(clientId, scenarioData); });
 }
 
-/**
- * Generate PDF for Tool 8 Scenario Comparison Report
- * @param {string} clientId - Client ID
- * @param {Object} scenario1 - First scenario data
- * @param {Object} scenario2 - Second scenario data
- * @returns {object} {success, pdf, fileName, mimeType} or {success: false, error}
- */
+/** Generate PDF for Tool 8 Scenario Comparison Report */
 function generateTool8ComparisonPDF(clientId, scenario1, scenario2) {
-  try {
-    registerTools();
-    const result = Tool8Report.generateComparisonPDF(clientId, scenario1, scenario2);
-
-    if (result && result.success) {
-      DataService.logActivity(clientId, 'pdf_downloaded', {
-        toolId: 'tool8',
-        details: 'Downloaded Tool 8 Comparison PDF report'
-      });
-    }
-
-    return result;
-  } catch (error) {
-    Logger.log('Error generating Tool 8 Comparison PDF: ' + error);
-    return { success: false, error: error.toString() };
-  }
+  registerTools();
+  return _generatePDFForTool(clientId, 'tool8', function() { return Tool8Report.generateComparisonPDF(clientId, scenario1, scenario2); });
 }
 
 // ========================================

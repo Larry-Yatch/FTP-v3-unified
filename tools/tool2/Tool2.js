@@ -1603,15 +1603,7 @@ const Tool2 = {
       const gptInsights = this.getExistingInsights(clientId);
 
       // Step 2: Check for missing or failed insights
-      const requiredInsights = [
-        'income_sources',
-        'major_expenses',
-        'wasteful_spending',
-        'debt_list',
-        'investments',
-        'emotions',
-        'adaptive_trauma'
-      ];
+      const requiredInsights = Tool2Constants.REQUIRED_INSIGHTS;
 
       const missingInsights = requiredInsights.filter(key =>
         !gptInsights[key] || gptInsights[`${key}_error`]
@@ -1725,44 +1717,12 @@ const Tool2 = {
    * Each domain sums its scale questions (excluding free-text)
    */
   calculateDomainScores(data) {
-    return {
-      // Money Flow: 8 scale questions, max 80 points (normalized 0-10 scale)
-      // Includes: Q14-Q17 (income), Q19-Q22 (spending)
-      // Excludes: Q18 (income sources text), Q23-Q24 (spending text)
-      moneyFlow: this.sumScaleQuestions(data, [
-        'incomeClarity', 'incomeSufficiency', 'incomeConsistency', 'incomeStress',
-        'spendingClarity', 'spendingConsistency', 'spendingReview', 'spendingStress'
-      ]),
-
-      // Obligations: 9 scale questions, max 90 points (normalized 0-10 scale)
-      // Includes: Q25-Q28 (debt), Q30-Q34 (emergency fund)
-      // Excludes: Q29 (debts text)
-      obligations: this.sumScaleQuestions(data, [
-        'debtClarity', 'debtTrending', 'debtReview', 'debtStress',
-        'emergencyFundMaintenance', 'emergencyFundMonths', 'emergencyFundFrequency',
-        'emergencyFundReplenishment', 'emergencyFundStress'
-      ]),
-
-      // Liquidity: 4 scale questions, max 40 points (normalized 0-10 scale)
-      // All savings questions are scales
-      liquidity: this.sumScaleQuestions(data, [
-        'savingsLevel', 'savingsRegularity', 'savingsClarity', 'savingsStress'
-      ]),
-
-      // Growth: 8 scale questions, max 80 points (normalized 0-10 scale)
-      // Includes: Q39-Q42 (investments), Q44-Q47 (retirement)
-      // Excludes: Q43 (investment types text)
-      growth: this.sumScaleQuestions(data, [
-        'investmentActivity', 'investmentClarity', 'investmentConfidence', 'investmentStress',
-        'retirementAccounts', 'retirementFunding', 'retirementConfidence', 'retirementStress'
-      ]),
-
-      // Protection: 4 scale questions, max 40 points (normalized 0-10 scale)
-      // All insurance questions are scales
-      protection: this.sumScaleQuestions(data, [
-        'insurancePolicies', 'insuranceClarity', 'insuranceConfidence', 'insuranceStress'
-      ])
-    };
+    const questions = Tool2Constants.DOMAIN_QUESTIONS;
+    const scores = {};
+    Object.keys(questions).forEach(domain => {
+      scores[domain] = this.sumScaleQuestions(data, questions[domain]);
+    });
+    return scores;
   },
 
   /**
@@ -1795,13 +1755,7 @@ const Tool2 = {
    * High: 60% or above, Medium: 20-59%, Low: Below 20%
    */
   applyBenchmarks(domainScores) {
-    const maxScores = {
-      moneyFlow: 80,    // 8 questions × 10 max points (normalized from -5 to +5)
-      obligations: 90,  // 9 questions × 10 max points
-      liquidity: 40,    // 4 questions × 10 max points
-      growth: 80,       // 8 questions × 10 max points
-      protection: 40    // 4 questions × 10 max points
-    };
+    const maxScores = Tool2Constants.MAX_SCORES;
 
     const benchmarks = {};
 
@@ -1835,13 +1789,7 @@ const Tool2 = {
    * Money Flow: 5, Obligations: 4, Liquidity: 2, Growth: 1, Protection: 1
    */
   applyStressWeights(domainScores) {
-    const stressWeights = {
-      moneyFlow: 5,     // Highest - daily decisions, visible to others
-      obligations: 4,   // High - constant pressure, fear
-      liquidity: 2,     // Medium - safety anxiety
-      growth: 1,        // Low - less immediate
-      protection: 1     // Low - background concern
-    };
+    const stressWeights = Tool2Constants.STRESS_WEIGHTS;
 
     const weighted = {};
 
@@ -1870,13 +1818,7 @@ const Tool2 = {
   determineArchetype(priorityList) {
     const topDomain = priorityList[0].domain;
 
-    const archetypes = {
-      moneyFlow: 'Money Flow Optimizer',
-      obligations: 'Debt Freedom Builder',
-      liquidity: 'Security Seeker',
-      growth: 'Wealth Architect',
-      protection: 'Protection Planner'
-    };
+    const archetypes = Tool2Constants.ARCHETYPES;
 
     return archetypes[topDomain] || 'Financial Clarity Seeker';
   },

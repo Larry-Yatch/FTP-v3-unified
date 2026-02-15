@@ -4688,29 +4688,10 @@ buildUnifiedPage(clientId, toolStatus, preSurveyData, allocation) {
    */
   calculateAllocationV1(input) {
     // Configuration
-    const CONFIG = {
-      satisfaction: { neutralScore: 5, step: 0.1, maxBoost: 0.3 },
-      essentialPctMap: { A: 5, B: 15, C: 25, D: 35, E: 45, F: 55 },
-      minEssentialsAbsolutePct: 40,
-      maxRecommendedEssentialsPct: 35,
-      maxPositiveMod: 50,
-      maxNegativeMod: 20
-    };
+    const CONFIG = Tool4Constants.ALLOCATION_CONFIG;
 
     // Base weights map (V1 priorities)
-    const baseMap = {
-      'Build Long-Term Wealth':        { M:40, E:25, F:20, J:15 },
-      'Get Out of Debt':               { M:15, E:25, F:45, J:15 },
-      'Feel Financially Secure':       { M:25, E:35, F:30, J:10 },
-      'Enjoy Life Now':                { M:20, E:20, F:15, J:45 },
-      'Save for a Big Goal':           { M:15, E:25, F:45, J:15 },
-      'Stabilize to Survive':          { M:5,  E:45, F:40, J:10 },
-      'Build or Stabilize a Business': { M:20, E:30, F:35, J:15 },
-      'Create Generational Wealth':    { M:45, E:25, F:20, J:10 },
-      'Create Life Balance':           { M:15, E:25, F:25, J:35 },
-      'Reclaim Financial Control':     { M:10, E:35, F:40, J:15 }
-    };
-    const base = baseMap[input.priority] || { M:25, E:25, F:25, J:25 };
+    const base = Tool4Constants.BASE_WEIGHTS[input.priority] || Tool4Constants.DEFAULT_WEIGHTS;
 
     // Initialize modifiers and notes
     const mods = { Multiply:0, Essentials:0, Freedom:0, Enjoyment:0 };
@@ -6145,38 +6126,7 @@ buildUnifiedPage(clientId, toolStatus, preSurveyData, allocation) {
     const BASE_PENALTY = -15;   // Points to subtract for penalized priorities
 
     // Priority modifier map for each trauma pattern
-    const traumaPriorityMap = {
-      'FSV': {
-        // False Self-View: Creates confusion/scarcity, needs structure and self-care permission
-        boosts: ['Feel Financially Secure', 'Create Life Balance', 'Stabilize to Survive'],
-        penalties: ['Create Generational Wealth']  // Too aggressive/complex feeds confusion
-      },
-      'ExVal': {
-        // External Validation: Image spending, needs internal focus
-        boosts: ['Build Long-Term Wealth', 'Feel Financially Secure', 'Reclaim Financial Control'],
-        penalties: ['Enjoy Life Now', 'Create Life Balance']  // Risk of image spending
-      },
-      'Showing': {
-        // Over-giving: Depletes self for others, needs self-permission
-        boosts: ['Create Life Balance', 'Enjoy Life Now', 'Build Long-Term Wealth'],
-        penalties: ['Create Generational Wealth']  // May give it away before building
-      },
-      'Receiving': {
-        // Dependency: Needs to build independence and self-sufficiency
-        boosts: ['Build Long-Term Wealth', 'Feel Financially Secure', 'Reclaim Financial Control'],
-        penalties: []  // Main issue is dependency, not specific priority
-      },
-      'Control': {
-        // Over-control: Needs permission to enjoy, release grip
-        boosts: ['Create Life Balance', 'Enjoy Life Now', 'Feel Financially Secure'],
-        penalties: ['Create Generational Wealth', 'Build Long-Term Wealth']  // Too much pressure
-      },
-      'Fear': {
-        // Self-sabotage: Needs safe foundation, gentle approach
-        boosts: ['Feel Financially Secure', 'Stabilize to Survive', 'Create Life Balance'],
-        penalties: ['Create Generational Wealth', 'Build Long-Term Wealth', 'Build or Stabilize a Business']  // Will self-sabotage risk
-      }
-    };
+    const traumaPriorityMap = Tool4Constants.TRAUMA_PRIORITY_MAP;
 
     // Build modifiers object
     const modifiers = {};
@@ -6674,8 +6624,7 @@ buildUnifiedPage(clientId, toolStatus, preSurveyData, allocation) {
 
     // Helper function to format dollars
     const formatDollars = (pct) => {
-      const dollars = Math.round(monthlyIncome * pct / 100);
-      return pct + '% ($' + dollars.toLocaleString() + ')';
+      return pct + '% (' + FormatUtils.currency(Math.round(monthlyIncome * pct / 100)) + ')';
     };
 
     // Calculate emergency fund coverage

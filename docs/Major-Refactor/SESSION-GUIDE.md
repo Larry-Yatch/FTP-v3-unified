@@ -1,15 +1,15 @@
 # SESSION GUIDE - Start Here
 
-> Last updated: Feb 14, 2026
-> Status: **Tier 1 in progress — Phases 1-2 complete**
+> Last updated: Feb 15, 2026
+> Status: **Tier 1 COMPLETE — all 6 phases done**
 
 ## Current State
 
-Phase 2 (HTML Payload Reduction) complete. Added `includeHistoryManager` option to `FormUtils.buildStandardPage()`. Investigation revealed the original plan overestimated savings: report pages (tools 1-7) already did not include history-manager, and all other includes are needed for back button/refresh recovery. The option provides future-proofing for new views (e.g., Collective Results Dashboard).
+Tier 1 (Performance + Zero-Risk Extractions) is complete. All 6 phases delivered: data caching, payload reduction, logger cleanup, shared utilities, PDF wrapper consolidation, and constants extraction.
 
 ## What To Work On Next
 
-**Tier 1, Phase 3: Logger Cleanup** — Create `shared/LogUtils.js` utility with debug/info/error levels. Replace 265+ `Logger.log()` calls with `LogUtils.debug()` (suppressible in production). See `tier-1-plan.md` Phase 3.
+**Tier 2: Form Tool Consolidation** — Extract shared boilerplate from form-based tools (1, 2, 3, 5, 7) into a base class or shared module. Plan needs to be written before execution.
 
 ## Quick Reference
 
@@ -44,11 +44,40 @@ Phase 2 (HTML Payload Reduction) complete. Added `includeHistoryManager` option 
 - Finding: only Tool8Report.js included history-manager unnecessarily among reports; all tool pages need it
 - File modified: FormUtils.js
 
+### Phase 3: Logger Cleanup (Feb 14, 2026)
+- Created `shared/LogUtils.js` with PropertiesService-backed debug toggle
+- Admin debug toggle button in AdminDashboard
+- Phase 3a: Converted all Logger.log/console.log calls in 10 core files
+- Phase 3b: Converted all server-side calls in 20 tool files (~276 + 86 + 30 + 45 calls)
+- 83 client-side console calls in template strings left untouched (correct)
+- Bug fix: Added lazy-init in `debug()` so `google.script.run` calls see the flag
+
+### Phase 4: Shared Utility Extraction (Feb 15, 2026)
+- Created `shared/FormatUtils.js` with `currency()`, `percentage()`, `escapeHtml()`
+- Tool4 server-side `formatDollars` (line 6676, in `generateComparisonNarrative`) now uses `FormatUtils.currency()`
+- Audit finding: Tool4 line 2714 is client-side (kept), Tool6 formatCurrency/escapeHtml are client-side singletons (kept)
+- FormatUtils available for future server-side use across all tools and reports
+
+### Phase 5: PDF Wrapper Consolidation (Feb 15, 2026)
+- Created `_generatePDFForTool(clientId, toolId, generatorFn)` shared helper in Code.js
+- 9 PDF wrappers (Tools 1,2,3,4,5,7,8) consolidated from 150+ lines to 1-2 line delegations
+- Helper uses no-arg closures so any argument signature works (clientId-only, extra args, different generators)
+- Uses `LogUtils.error` (not `Logger.log`), adds try/catch to all wrappers
+- Admin wrappers unchanged (unique server-side data-fetching logic)
+
+### Phase 6: Constants Extraction (Feb 15, 2026)
+- Created `tools/tool2/Tool2Constants.js` — 5 config objects (domain questions, max scores, stress weights, archetypes, required insights)
+- Created `tools/tool4/Tool4Constants.js` — 4 config objects (allocation config, base weights, default weights, trauma priority map)
+- Tool2.js: 4 methods + 1 variable updated to reference Tool2Constants
+- Tool4.js: 2 methods updated to reference Tool4Constants
+- ~95 lines of inline config relocated to dedicated files
+
 ## Phase Tracking
 
 - [x] Tier 1, Phase 1: Data layer caching
 - [x] Tier 1, Phase 2: HTML payload reduction (history-manager conditional loading)
-- [ ] Tier 1, Phase 3: Logger cleanup (LogUtils utility)
-- [ ] Tier 1, Phase 4: Shared utility extraction (FormatUtils)
-- [ ] Tier 1, Phase 5: Code.js PDF wrapper consolidation
-- [ ] Tier 1, Phase 6: Constants extraction
+- [x] Tier 1, Phase 3: Logger cleanup (LogUtils utility)
+- [x] Tier 1, Phase 4: Shared utility extraction (FormatUtils)
+- [x] Tier 1, Phase 5: Code.js PDF wrapper consolidation
+- [x] Tier 1, Phase 6: Constants extraction
+- **Tier 1 COMPLETE**

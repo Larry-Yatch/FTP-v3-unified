@@ -52,7 +52,7 @@ Each tier completes and is verified before the next begins. Never refactor and a
 
 | Tier | Status | Phases | Notes |
 |------|--------|--------|-------|
-| Tier 1 | **In Progress** | 6 phases | Phases 1-2 done, Phase 3 in progress. See `tier-1-plan.md` |
+| Tier 1 | **COMPLETE** | 6 phases | All 6 phases done. See `tier-1-plan.md` |
 | Tier 2 | Planned | TBD | Plan after Tier 1 completes |
 | Tier 3 | Planned | TBD | Plan after Tier 2 completes |
 | Tier 4 | Planned | TBD | Plan after Tier 3 completes |
@@ -64,9 +64,9 @@ Each tier completes and is verified before the next begins. Never refactor and a
 | 1 | Data Layer Caching | **COMPLETE** — SpreadsheetCache wired into 24 call sites across 5 core files |
 | 2 | HTML Payload Reduction | **COMPLETE** — includeHistoryManager option added, reports skip 40KB payload |
 | 3 | Logger Cleanup | **COMPLETE** — LogUtils with PropertiesService toggle, all 30 production files converted |
-| 4 | Shared Utility Extraction | Not started |
-| 5 | Code.js PDF Wrapper Consolidation | Not started |
-| 6 | Constants Extraction | Not started |
+| 4 | Shared Utility Extraction | **COMPLETE** — FormatUtils with currency/percentage/escapeHtml, Tool4 server-side wired |
+| 5 | Code.js PDF Wrapper Consolidation | **COMPLETE** — 9 wrappers consolidated via _generatePDFForTool helper |
+| 6 | Constants Extraction | **COMPLETE** — Tool2Constants + Tool4Constants created, inline config relocated |
 
 ## Architecture Context
 
