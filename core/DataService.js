@@ -41,6 +41,7 @@ const DataService = {
         status,                    // Status
         'true'                     // Is_Latest
       ]);
+      SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.RESPONSES);
 
       // Log activity and update status based on save type
       if (status === 'COMPLETED') {
@@ -150,6 +151,7 @@ const DataService = {
         // Update existing DRAFT/EDIT_DRAFT row
         sheet.getRange(draftRowIndex + 1, dataCol + 1).setValue(JSON.stringify(dataToSave));
         sheet.getRange(draftRowIndex + 1, timestampCol + 1).setValue(new Date());
+        SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.RESPONSES);
         console.log(`DataService: Updated existing ${sheetData[draftRowIndex][statusCol]} for ${clientId} / ${toolId}`);
         return { success: true, message: 'Draft updated successfully', action: 'updated' };
       } else {
@@ -172,11 +174,8 @@ const DataService = {
    */
   getToolResponse(clientId, toolId) {
     try {
-      const sheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.RESPONSES);
-
-      if (!sheet) return null;
-
-      const data = sheet.getDataRange().getValues();
+      const data = SpreadsheetCache.getSheetData(CONFIG.SHEETS.RESPONSES);
+      if (!data || data.length < 2) return null;
 
       // Find most recent response for this client/tool
       for (let i = data.length - 1; i > 0; i--) {
@@ -246,6 +245,7 @@ const DataService = {
       sheet.getRange(rowIndex + 1, statusCol).setValue(status);
       sheet.getRange(rowIndex + 1, dateCol).setValue(new Date());
       sheet.getRange(rowIndex + 1, sheet.getLastColumn()).setValue(new Date());  // Last_Updated
+      SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.TOOL_STATUS);
 
       return { success: true };
 
@@ -263,11 +263,8 @@ const DataService = {
    */
   getToolStatus(clientId, toolId) {
     try {
-      const sheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.TOOL_STATUS);
-
-      if (!sheet) return null;
-
-      const data = sheet.getDataRange().getValues();
+      const data = SpreadsheetCache.getSheetData(CONFIG.SHEETS.TOOL_STATUS);
+      if (!data || data.length < 2) return null;
 
       // Find row for this client
       for (let i = 1; i < data.length; i++) {
@@ -308,19 +305,17 @@ const DataService = {
       console.log(`[UPDATE_TOOLS_COUNT] Updating count for ${clientId}`);
 
       // Count completed tools from RESPONSES sheet (source of truth)
-      const responsesSheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.RESPONSES);
       const completedTools = new Set();
+      const responsesData = SpreadsheetCache.getSheetData(CONFIG.SHEETS.RESPONSES);
 
-      if (responsesSheet) {
-        const data = responsesSheet.getDataRange().getValues();
-
+      if (responsesData && responsesData.length > 1) {
         // Find COMPLETED responses for this student
         // Columns: Timestamp, Client_ID, Tool_ID, Data, Version, Status, Is_Latest
-        for (let i = data.length - 1; i > 0; i--) {
-          const responseClientId = data[i][1];
-          const toolId = data[i][2];
-          const status = data[i][5];
-          const isLatest = data[i][6];
+        for (let i = responsesData.length - 1; i > 0; i--) {
+          const responseClientId = responsesData[i][1];
+          const toolId = responsesData[i][2];
+          const status = responsesData[i][5];
+          const isLatest = responsesData[i][6];
 
           if (responseClientId === clientId && status === 'COMPLETED' && (isLatest === 'true' || isLatest === true)) {
             completedTools.add(toolId);
