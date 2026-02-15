@@ -925,10 +925,7 @@ const CollectiveResults = {
 
       html += '</div>';
 
-      // Back button
-      html += '<div style="text-align: center; margin: 20px 0 40px;">' +
-        '<button class="back-btn" onclick="history.back()">Back to Student Detail</button>' +
-      '</div>';
+      // No back button needed — coach view renders in admin modal with its own close button
 
       html += '</div></body></html>';
       return html;
