@@ -83,11 +83,12 @@ Every page includes `shared/history-manager.html` (40,593 lines / ~40KB). Report
 
 ---
 
-## Phase 3: Logger Cleanup — IN PROGRESS
+## Phase 3: Logger Cleanup — COMPLETE
 
-> **Status:** Phase 3a complete (commit `0bacf68`). Core files converted. Tool files remaining.
+> **Status:** Done (commits `0bacf68` Phase 3a, `4b51fe7` Phase 3b)
 > Created `shared/LogUtils.js` with PropertiesService-backed toggle.
 > Admin debug toggle button deployed and tested in AdminDashboard.
+> All server-side Logger.log/console.log calls converted across 30 files.
 
 ### The Problem
 265+ `Logger.log()` calls across production code. Tool 6 alone has 145. Each has overhead in GAS.
@@ -112,12 +113,13 @@ Converted all Logger.log/console.log/console.error calls in 10 core files:
 - `core/ToolAccessControl.js`, `core/ToolRegistry.js`, `core/SpreadsheetCache.js`
 - `Code.js` (entry points + wrapper functions)
 
-### Phase 3b — REMAINING
-Still need to convert tool files:
-- `tools/tool6/Tool6.js` — 145 calls (highest priority)
-- `core/grounding/GroundingGPT.js` — 44 calls
-- `tools/tool6/Tool6GPTAnalysis.js` — 25 calls
-- `tools/tool4/Tool4.js`, `tools/tool2/Tool2.js`, etc.
+### Phase 3b — COMPLETE
+Converted all server-side calls in 20 tool files:
+- 8 main tool files (Tool1-8.js): ~276 server-side calls converted
+- 4 GPT analysis files (Tool2/4/6/8GPTAnalysis.js): ~86 calls
+- 6 report files (Tool1-8Report.js + GroundingReport): ~30 calls
+- 2 grounding files (GroundingGPT.js, GroundingFallbacks.js): ~45 calls
+- 83 client-side console calls in template strings left untouched (correct)
 
 ### Verification
 1. With toggle OFF: tools work normally, console output is minimal

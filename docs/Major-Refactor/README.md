@@ -63,7 +63,7 @@ Each tier completes and is verified before the next begins. Never refactor and a
 |-------|-------------|--------|
 | 1 | Data Layer Caching | **COMPLETE** — SpreadsheetCache wired into 24 call sites across 5 core files |
 | 2 | HTML Payload Reduction | **COMPLETE** — includeHistoryManager option added, reports skip 40KB payload |
-| 3 | Logger Cleanup | **IN PROGRESS** — LogUtils created, core files converted (3a), tool files remaining (3b) |
+| 3 | Logger Cleanup | **COMPLETE** — LogUtils with PropertiesService toggle, all 30 production files converted |
 | 4 | Shared Utility Extraction | Not started |
 | 5 | Code.js PDF Wrapper Consolidation | Not started |
 | 6 | Constants Extraction | Not started |
