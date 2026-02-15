@@ -5,7 +5,10 @@
 
 ---
 
-## Phase 1: Data Layer Caching (HIGHEST IMPACT)
+## Phase 1: Data Layer Caching (HIGHEST IMPACT) — COMPLETE
+
+> **Status:** Done (commits `68be458`, `0a1fe70`, `5b263bc`)
+> **Completed:** Phase 1a (ResponseManager), 1b (DataService), 1c (remaining core files)
 
 ### The Problem
 `ResponseManager.getLatestResponse()` at `core/ResponseManager.js:46` calls `sheet.getDataRange().getValues()` — loading the ENTIRE RESPONSES sheet every time. Tool 6 makes 10+ of these calls per render (lines 84-89, 8275-8276, 8610-8611, 8758).
@@ -50,7 +53,10 @@ Some methods in ResponseManager need the sheet object (not just data) because th
 
 ---
 
-## Phase 2: HTML Payload Reduction
+## Phase 2: HTML Payload Reduction — COMPLETE
+
+> **Status:** Done (commit `aca1e65`)
+> Added `includeHistoryManager` option to `buildStandardPage()` (default: true). Report pages pass false.
 
 ### The Problem
 Every page includes `shared/history-manager.html` (40,593 lines / ~40KB). Report pages and single-page tools never use history management.
@@ -77,48 +83,46 @@ Every page includes `shared/history-manager.html` (40,593 lines / ~40KB). Report
 
 ---
 
-## Phase 3: Logger Cleanup
+## Phase 3: Logger Cleanup — IN PROGRESS
+
+> **Status:** Phase 3a complete (commit `0bacf68`). Core files converted. Tool files remaining.
+> Created `shared/LogUtils.js` with PropertiesService-backed toggle.
+> Admin debug toggle button deployed and tested in AdminDashboard.
 
 ### The Problem
 265+ `Logger.log()` calls across production code. Tool 6 alone has 145. Each has overhead in GAS.
 
-### Files to Create
+### What Was Built
 
-**`shared/LogUtils.js`** (~20 lines)
-```javascript
-const LogUtils = {
-  DEBUG: false,  // Set true when debugging
+**`shared/LogUtils.js`** — Enhanced version with PropertiesService persistence:
+- `LogUtils.init()` — reads debug flag from ScriptProperties (called once per request in doGet/doPost)
+- `LogUtils.toggle()` — flips the flag (called from admin dashboard button)
+- `LogUtils.getStatus()` — returns current state
+- `LogUtils.debug(msg)` — only logs when enabled
+- `LogUtils.error(msg)` — always logs with [ERROR] prefix
+- `LogUtils.warn(msg)` — always logs with [WARN] prefix
+- `LogUtils.info(msg)` — always logs
 
-  debug(msg) {
-    if (this.DEBUG) Logger.log(msg);
-  },
+**Admin UI** — Debug toggle card in AdminDashboard.html (ON/OFF button, persists across sessions)
 
-  error(msg) {
-    Logger.log('[ERROR] ' + msg);
-  },
+### Phase 3a — COMPLETE
+Converted all Logger.log/console.log/console.error calls in 10 core files:
+- `core/ResponseManager.js`, `core/DataService.js`, `core/Authentication.js`
+- `core/FrameworkCore.js`, `core/InsightsPipeline.js`, `core/Router.js`
+- `core/ToolAccessControl.js`, `core/ToolRegistry.js`, `core/SpreadsheetCache.js`
+- `Code.js` (entry points + wrapper functions)
 
-  info(msg) {
-    Logger.log(msg);
-  }
-};
-```
-
-### Files to Modify
-
-Across all tool and core files:
-- Replace verbose debug logging (`Logger.log('Getting tool1Data...')`) with `LogUtils.debug()`
-- Keep error logging as `LogUtils.error()`
-- Keep important info logging as `LogUtils.info()`
-
-**Priority files (most logs):**
-- `tools/tool6/Tool6.js` — 145 calls
-- `core/ResponseManager.js` — 51 calls
+### Phase 3b — REMAINING
+Still need to convert tool files:
+- `tools/tool6/Tool6.js` — 145 calls (highest priority)
 - `core/grounding/GroundingGPT.js` — 44 calls
 - `tools/tool6/Tool6GPTAnalysis.js` — 25 calls
+- `tools/tool4/Tool4.js`, `tools/tool2/Tool2.js`, etc.
 
 ### Verification
-1. With DEBUG=false: tools work normally, console output is minimal
-2. With DEBUG=true: full logging appears (useful for troubleshooting)
+1. With toggle OFF: tools work normally, console output is minimal
+2. With toggle ON: full debug logging appears in GAS Execution log
+3. Admin dashboard toggle tested and working
 
 ---
 

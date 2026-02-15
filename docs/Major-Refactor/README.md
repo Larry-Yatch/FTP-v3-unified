@@ -52,10 +52,21 @@ Each tier completes and is verified before the next begins. Never refactor and a
 
 | Tier | Status | Phases | Notes |
 |------|--------|--------|-------|
-| Tier 1 | **Not Started** | 6 phases | See `tier-1-plan.md` |
+| Tier 1 | **In Progress** | 6 phases | Phases 1-2 done, Phase 3 in progress. See `tier-1-plan.md` |
 | Tier 2 | Planned | TBD | Plan after Tier 1 completes |
 | Tier 3 | Planned | TBD | Plan after Tier 2 completes |
 | Tier 4 | Planned | TBD | Plan after Tier 3 completes |
+
+### Tier 1 Phase Progress
+
+| Phase | Description | Status |
+|-------|-------------|--------|
+| 1 | Data Layer Caching | **COMPLETE** — SpreadsheetCache wired into 24 call sites across 5 core files |
+| 2 | HTML Payload Reduction | **COMPLETE** — includeHistoryManager option added, reports skip 40KB payload |
+| 3 | Logger Cleanup | **IN PROGRESS** — LogUtils created, core files converted (3a), tool files remaining (3b) |
+| 4 | Shared Utility Extraction | Not started |
+| 5 | Code.js PDF Wrapper Consolidation | Not started |
+| 6 | Constants Extraction | Not started |
 
 ## Architecture Context
 
