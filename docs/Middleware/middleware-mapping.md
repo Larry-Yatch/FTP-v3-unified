@@ -1,1420 +1,1370 @@
-# Tool Input/Output Mapping for Middleware Layer
+# Complete Tool Input/Output Mapping & Data Flow Reference
 
-**Document Purpose:** Foundation for middleware design to enable data flow between Tools 1, 2, and 3
+**Document Purpose:** Comprehensive mapping of every user input, system output, GPT insight, and cross-tool data flow across all 8 FTP tools. Foundation document for middleware design, cross-tool analytics, and future development.
 
 **Created:** 2025-11-28
-**Status:** Analysis Complete
+**Last Updated:** 2026-02-14
+**Version:** 2.0 (Complete 8-tool mapping with cross-pollination flows)
+**Status:** Production Reference
 
 ---
 
-## 🎯 Executive Summary
+## Table of Contents
 
-This document maps the **student inputs** (what users enter) and **system outputs** (insights/data generated) across Tools 1, 2, and 3. This mapping will enable the middleware layer to pass information between tools, pre-fill data, and create composite insights.
+1. [Executive Summary](#executive-summary)
+2. [Tool 1: Core Trauma Strategy Assessment](#tool-1)
+3. [Tool 2: Financial Clarity & Values Assessment](#tool-2)
+4. [Tool 3: Identity & Validation Grounding Tool](#tool-3)
+5. [Tool 4: Financial Allocation Calculator](#tool-4)
+6. [Tool 5: Love & Connection Grounding Tool](#tool-5)
+7. [Tool 6: Investment Vehicle Allocation Calculator](#tool-6)
+8. [Tool 7: Security & Control Grounding Tool](#tool-7)
+9. [Tool 8: Investment Planning Calculator](#tool-8)
+10. [Cross-Tool Data Flow & Pre-Population](#cross-tool-data-flow)
+11. [Data Collection Summary](#data-collection-summary)
 
 ---
 
-## 📊 Tool 1: Core Trauma Strategy Assessment
+## Executive Summary
+
+The FTP-v3 platform collects data through **8 sequential tools** totaling approximately **250+ user-facing questions** across psychological assessment, financial clarity, grounding exercises, allocation planning, and investment modeling.
+
+### Tool Dependency Chain
+```
+Tool 1 → Tool 2 → Tool 3 → Tool 4 → Tool 5 → Tool 6 → Tool 7 → Tool 8
+```
+
+### Tool Categories
+
+| Tool | Name | Category | Questions | Scale | Time |
+|------|------|----------|-----------|-------|------|
+| 1 | Core Trauma Strategy Assessment | Psychological | 26 | -5 to +5, 1-10 | 15-20 min |
+| 2 | Financial Clarity & Values Assessment | Financial | 56 | -5 to +5 | 20-30 min |
+| 3 | Identity & Validation Grounding | Grounding | 30 | -3 to +3 | 20-25 min |
+| 4 | Financial Allocation Calculator | Financial | 10-29* | 0-10, dollars | 15-20 min |
+| 5 | Love & Connection Grounding | Grounding | 30 | -3 to +3 | 20-25 min |
+| 6 | Investment Vehicle Allocation | Financial | 30-40* | Various | 20-30 min |
+| 7 | Security & Control Grounding | Grounding | 30 | -3 to +3 | 20-25 min |
+| 8 | Investment Planning Calculator | Financial | 5-12* | Various | 15-20 min |
+
+*Variable count due to conditional/backup questions
+
+### Data Storage
+- **Draft data:** PropertiesService (per-page saves during form completion)
+- **Completed responses:** RESPONSES sheet (JSON in Data column)
+- **Scenarios:** TOOL4_SCENARIOS, TOOL6_SCENARIOS, TOOL8_SCENARIOS sheets
+- **GPT fallback logs:** GPT_FALLBACK_LOG sheet
+
+---
+
+<a id="tool-1"></a>
+## Tool 1: Core Trauma Strategy Assessment
 
 **Purpose:** Top-level psychological assessment to identify core trauma strategies
 **Flow:** 5 pages, 26 questions
 **Time:** 15-20 minutes
+**Manifest:** `tools/tool1/tool.manifest.json`
+**Dependencies:** None
+**Unlocks:** Tool 2
 
-### Student Inputs
+### User-Facing Questions
 
-#### Page 1: Identity (2 questions)
-| Field | Type | Example | Notes |
-|-------|------|---------|-------|
-| `name` | Text | "John Smith" | Used to pre-fill Tool 2 |
-| `email` | Email | "john@example.com" | Used to pre-fill Tool 2 |
+#### Page 1: Personal Information (2 questions)
+| Field | Type | Question Text | Required |
+|-------|------|---------------|----------|
+| `name` | Text | "First and Last Name" | Yes |
+| `email` | Email | "Email Address" | Yes |
 
-#### Page 2: FSV & Control - Section 1 (6 questions)
-| Field | Type | Scale | Description |
-|-------|------|-------|-------------|
-| `q3` | Dropdown | -5 to +5 | "I am destined to fail because I am not good enough" |
-| `q4` | Dropdown | -5 to +5 | "I need to take on big things to prove that I am good enough" |
-| `q5` | Dropdown | -5 to +5 | "I often feel distant from others, which makes me question my worthiness" |
-| `q6` | Dropdown | -5 to +5 | "To feel safe, I must gain the approval of others" |
-| `q7` | Dropdown | -5 to +5 | "When someone does not recognize my value, I feel like I have to retreat" |
-| `q8` | Dropdown | -5 to +5 | "When I am not accepted by others I feel unsafe" |
+#### Page 2: FSV & External Validation (6 questions)
+**Scale:** -5 to +5 dropdown
+**Instructions:** "-5: I never think/feel/experience this" to "+5: I think/feel/experience this very regularly"
 
-#### Page 3: Showing & Receiving - Section 2 (6 questions)
-| Field | Type | Scale | Description |
-|-------|------|-------|-------------|
-| `q10` | Dropdown | -5 to +5 | "I will sacrifice my happiness to serve others" |
-| `q11` | Dropdown | -5 to +5 | "It is ok for me to do things for others, but I am uncomfortable receiving" |
-| `q12` | Dropdown | -5 to +5 | "I need to be valuable to others in order to be loved" |
-| `q13` | Dropdown | -5 to +5 | "I know that others will hurt me in some way, so I must keep my distance" |
-| `q14` | Dropdown | -5 to +5 | "Those around me are unable to express their love for me" |
-| `q15` | Dropdown | -5 to +5 | "The isolation I feel proves that I will never be loved" |
+| Field | Question Text | Category |
+|-------|---------------|----------|
+| `q3` | "I am destined to fail because I am not good enough." | FSV |
+| `q4` | "I need to take on big things to prove that I am good enough." | FSV |
+| `q5` | "I often feel distant from others, which makes me question my worthiness." | FSV |
+| `q6` | "To feel safe, I must gain the approval of others and be accepted by them." | ExVal |
+| `q7` | "When someone does not recognize my value, I feel like I have to retreat into myself to be safe." | ExVal |
+| `q8` | "When I am not accepted by others I feel unsafe and question if I will be loved." | ExVal |
 
-#### Page 4: Control & Fear - Section 3 (6 questions)
-| Field | Type | Scale | Description |
-|-------|------|-------|-------------|
-| `q17` | Dropdown | -5 to +5 | "If I do not control my world, I know I will suffer" |
-| `q18` | Dropdown | -5 to +5 | "To avoid emotions I do not like, I distract myself by staying busy" |
-| `q19` | Dropdown | -5 to +5 | "When I feel alone, I feel like I am out of control / not safe" |
-| `q20` | Dropdown | -5 to +5 | "I know that I will have experiences that will cause me pain" |
-| `q21` | Dropdown | -5 to +5 | "To be safe, I have to keep distance between myself and others" |
-| `q22` | Dropdown | -5 to +5 | "I live in constant fear of things going wrong for me" |
+#### Page 3: Showing & Receiving (6 questions)
+**Scale:** -5 to +5 dropdown
+
+| Field | Question Text | Category |
+|-------|---------------|----------|
+| `q10` | "I will sacrifice my happiness to serve others." | Showing |
+| `q11` | "It is ok for me to do things for others, but I am uncomfortable receiving from them." | Showing |
+| `q12` | "I need to be valuable to others in order to be loved." | Showing |
+| `q13` | "I know that others will hurt me in some way, so I must keep my distance." | Receiving |
+| `q14` | "Those around me are unable to express their love for me." | Receiving |
+| `q15` | "The isolation I feel proves that I will never be loved." | Receiving |
+
+#### Page 4: Control & Fear (6 questions)
+**Scale:** -5 to +5 dropdown
+
+| Field | Question Text | Category |
+|-------|---------------|----------|
+| `q17` | "If I do not control my world, I know I will suffer." | Control |
+| `q18` | "To avoid emotions I do not like, I distract myself by staying busy." | Control |
+| `q19` | "When I feel alone, I feel like I am out of control / not safe." | Control |
+| `q20` | "I know that I will have experiences that will cause me pain, so I must act to protect myself." | Fear |
+| `q21` | "To be safe, I have to keep distance between myself and others, yet feel alone." | Fear |
+| `q22` | "I live in constant fear of things going wrong for me." | Fear |
 
 #### Page 5: Rankings (12 questions)
-| Field | Type | Scale | Description |
-|-------|------|-------|-------------|
-| `thought_fsv` | Dropdown | 1-10 | "I have to do something / be someone better to be safe" |
-| `thought_exval` | Dropdown | 1-10 | "I need others to value me to be safe" |
-| `thought_showing` | Dropdown | 1-10 | "I need to suffer or sacrifice for others to be safe" |
-| `thought_receiving` | Dropdown | 1-10 | "I have to keep distance from others to be safe" |
-| `thought_control` | Dropdown | 1-10 | "I need to control my environment to be safe" |
-| `thought_fear` | Dropdown | 1-10 | "I need to protect myself to be safe" |
-| `feeling_fsv` | Dropdown | 1-10 | "I feel insufficient" |
-| `feeling_exval` | Dropdown | 1-10 | "I feel like I am not good enough for them" |
-| `feeling_showing` | Dropdown | 1-10 | "I feel the need to sacrifice for others" |
-| `feeling_receiving` | Dropdown | 1-10 | "I feel like nobody loves me" |
-| `feeling_control` | Dropdown | 1-10 | "I feel out of control of my world" |
-| `feeling_fear` | Dropdown | 1-10 | "I feel like I am in danger" |
+**Scale:** 1-10 dropdown (unique values required per group)
+**Validation:** No duplicates within thoughts or feelings groups
+
+**Thought Rankings:**
+| Field | Statement | Category |
+|-------|-----------|----------|
+| `thought_fsv` | "I have to do something / be someone better to be safe." | FSV |
+| `thought_exval` | "I need others to value me to be safe." | ExVal |
+| `thought_showing` | "I need to suffer or sacrifice for others to be safe." | Showing |
+| `thought_receiving` | "I have to keep distance from others to be safe." | Receiving |
+| `thought_control` | "I need to control my environment to be safe." | Control |
+| `thought_fear` | "I need to protect myself to be safe." | Fear |
+
+**Feeling Rankings:**
+| Field | Statement | Category |
+|-------|-----------|----------|
+| `feeling_fsv` | "I feel insufficient." | FSV |
+| `feeling_exval` | "I feel like I am not good enough for them." | ExVal |
+| `feeling_showing` | "I feel the need to sacrifice for others." | Showing |
+| `feeling_receiving` | "I feel like nobody loves me." | Receiving |
+| `feeling_control` | "I feel out of control of my world." | Control |
+| `feeling_fear` | "I feel like I am in danger." | Fear |
 
 ### System Outputs
 
-#### Calculated Scores (6 categories)
+#### Score Calculation Formula
+```
+Category_Score = Sum(3 Statements) + (2 x Normalized_Thought_Ranking)
+
+Normalization: rank 1-5 → (rank - 6), rank 6-10 → (rank - 5)
+  1→-5, 2→-4, 3→-3, 4→-2, 5→-1, 6→1, 7→2, 8→3, 9→4, 10→5
+
+Score Range: -25 to +25
+```
+
+**Category-to-Question Mapping:**
+| Category | Statement Fields | Thought Field |
+|----------|-----------------|---------------|
+| FSV | q3, q4, q5 | thought_fsv |
+| ExVal | q6, q7, q8 | thought_exval |
+| Showing | q10, q11, q12 | thought_showing |
+| Receiving | q13, q14, q15 | thought_receiving |
+| Control | q17, q18, q19 | thought_control |
+| Fear | q20, q21, q22 | thought_fear |
+
+#### Winner Determination
+1. Category with highest score wins
+2. Ties broken by feeling ranking (highest feeling rank value wins)
+
+#### Saved Data Structure
 ```javascript
 {
-  FSV: number,        // False Self-View score
-  ExVal: number,      // External Validation score
-  Showing: number,    // Showing/Giving score
-  Receiving: number,  // Receiving/Distance score
-  Control: number,    // Control score
-  Fear: number        // Fear/Protection score
+  formData: {
+    name, email,
+    q3-q8, q10-q15, q17-q22,
+    thought_fsv...thought_fear,
+    feeling_fsv...feeling_fear
+  },
+  scores: { FSV, ExVal, Showing, Receiving, Control, Fear },
+  winner: "FSV"|"ExVal"|"Showing"|"Receiving"|"Control"|"Fear"
 }
 ```
 
-**Formula:** `score = sum(3 statements) + (2 × normalized_thought_ranking)`
+### GPT/AI Insights
+**None.** Tool 1 uses static report templates per winner category (6 templates in Tool1Templates.js).
 
-#### Winner Category
-```javascript
-{
-  winner: string  // One of: "FSV", "ExVal", "Showing", "Receiving", "Control", "Fear"
-}
-```
-
-**Determination:** Highest score wins; ties broken by feeling ranking
-
-#### Data Package Saved
-```javascript
-{
-  formData: {...},  // All student inputs
-  scores: {...},    // Calculated category scores
-  winner: "..."     // Winning category
-}
-```
-
-### 🔍 Tool 1: Output Interpretation Guide
-
-#### Understanding Category Scores
-
-**Score Range:** -25 to +25 (theoretical range, practical range typically -20 to +23)
-
-**Score Interpretation:**
-- **Negative scores (-25 to -1):** Pattern is ABSENT or OPPOSITE behavior is present
-  - Example: FSV = -11 means student shows confidence, NOT false self-view
-- **Low positive (1-7):** Pattern is EMERGING or MILD
-  - Pattern exists but isn't dominant in student's life
-- **Medium positive (8-14):** Pattern is MODERATE and ACTIVE
-  - Pattern significantly influences behavior and decisions
-- **High positive (15+):** Pattern is DOMINANT and SEVERE
-  - Pattern is primary driver of trauma responses
-
-#### Category Meanings
-
-**FSV (False Self-View):**
-- **High (+):** "I'm not good enough" - feelings of inadequacy, proving oneself, striving for worthiness
-- **Low (-):** Strong self-acceptance, comfort with authentic self
-- **Financial Manifestation:** Hiding financial reality, minimizing successes, exaggerating struggles
-
-**ExVal (External Validation):**
-- **High (+):** "I need others to value me to be safe" - approval-seeking, fear of judgment
-- **Low (-):** Self-directed, internally validated
-- **Financial Manifestation:** Spending for status, seeking approval for financial decisions, financial secrecy
-
-**Showing:**
-- **High (+):** "I need to suffer/sacrifice for others to be safe" - over-giving, martyrdom
-- **Low (-):** Healthy boundaries with giving
-- **Financial Manifestation:** Over-giving money to others, guilt about self-care spending, financial enabling
-
-**Receiving:**
-- **High (+):** "I have to keep distance from others to be safe" - isolation, rejecting help
-- **Low (-):** Comfortable accepting help and support
-- **Financial Manifestation:** Refusing financial advice, not seeking help when struggling, isolated financial decisions
-
-**Control:**
-- **High (+):** "I need to control my environment to be safe" - hyper-vigilance, rigidity
-- **Low (-):** Comfortable with uncertainty, flexible
-- **Financial Manifestation:** Obsessive tracking OR complete avoidance (both ends of control spectrum)
-
-**Fear:**
-- **High (+):** "I need to protect myself to be safe" - anxiety, hypervigilance about threats
-- **Low (-):** Trust, optimism about future
-- **Financial Manifestation:** Hoarding, extreme emergency fund focus, or avoidance of financial planning
-
-#### Winner Interpretation
-
-**The "winner" is the PRIMARY trauma strategy** - the main way this person unconsciously tries to feel safe.
-
-**Why this matters for middleware:**
-- Winner predicts which Tool 2 financial behaviors will be most prominent
-- Winner suggests which interventions will be most effective
-- Winner indicates which Tool 3 domains will score highest
-
-**Tie-Breaking Logic:**
-When multiple categories have the same score, the feeling ranking (1-10) breaks the tie. Higher feeling ranking = stronger emotional attachment to that pattern.
-
-#### Score Combination Patterns
-
-**"Dual Dominance"** (2+ scores above 15):
-- More complex trauma presentation
-- Patterns reinforce each other
-- Example: High Showing + High ExVal = "I give to others to gain their approval"
-
-**"Inverse Patterns"** (high positive + high negative in related categories):
-- Internal conflict present
-- Example: High Showing (+18) + Low Receiving (-10) = "I give but can't receive"
-
-**"Flat Profile"** (all scores between -5 and +5):
-- Either very healthy OR disconnected from self-awareness
-- Requires Tool 2 context to interpret
+### Cross-Tool Data
+**Pulls from:** None (first tool in chain)
+**Provides to:** Tool 2 (name, email, winner, scores), Tool 4 (winner, scores), Tool 8 (winner, scores)
 
 ---
 
-## 💰 Tool 2: Financial Clarity & Values Assessment
+<a id="tool-2"></a>
+## Tool 2: Financial Clarity & Values Assessment
 
 **Purpose:** Comprehensive financial clarity assessment with psychological patterns
 **Flow:** 5 pages, 56 questions (13 + 11 + 10 + 13 + 9)
 **Time:** 20-30 minutes
+**Manifest:** `tools/tool2/tool.manifest.json`
+**Dependencies:** Tool 1
+**Unlocks:** Tool 3
 
-### Student Inputs
+### User-Facing Questions
 
 #### Page 1: Demographics & Mindset Foundation (13 questions)
 
-**Identity (Auto-filled from Tool 1)**
-| Field | Type | Source | Notes |
-|-------|------|--------|-------|
-| `name` | Text (readonly) | Tool 1 | Pre-filled, read-only |
-| `email` | Email (readonly) | Tool 1 | Pre-filled, read-only |
-| `studentId` | Text (readonly) | clientId | Auto-generated |
+**Identity (Pre-filled from Tool 1):**
+| Field | Type | Source |
+|-------|------|--------|
+| `name` | Text (readonly) | Tool 1 |
+| `email` | Email (readonly) | Tool 1 |
+| `studentId` | Text (readonly) | clientId (auto) |
 
-**Life Stage Context**
+**Life Stage Context:**
 | Field | Type | Options/Range |
 |-------|------|---------------|
 | `age` | Number | 18-100 |
 | `marital` | Dropdown | single, dating, married, divorced, widowed |
 | `dependents` | Number | 0-20 |
 | `living` | Dropdown | rent, own-mortgage, own-paid, family |
+| `incomeStreams` | Number | 0-10 |
+| `employment` | Dropdown | full-time, part-time, full-time-with-business, part-time-with-business, self-employed, business-owner, unemployed, retired, not-working |
+| `businessStage` | Dropdown (conditional) | idea, startup, early, growth, established (shown if employment includes business) |
 
-**Employment & Income Context**
-| Field | Type | Options/Range | Conditional |
-|-------|------|---------------|-------------|
-| `incomeStreams` | Number | 0-10 | Number of additional income sources |
-| `employment` | Dropdown | 9 options | See full list below |
-| `businessStage` | Dropdown | 5 stages | Only if employment includes business |
+**Mindset Baseline (scale -5 to +5):**
+| Field | Question Text |
+|-------|---------------|
+| `holisticScarcity` | Holistic scarcity vs abundance mindset |
+| `financialScarcity` | Financial scarcity vs abundance mindset |
+| `moneyRelationship` | Relationship with money (combat to great) |
 
-**Employment Options:**
-- full-time, part-time
-- full-time-with-business, part-time-with-business
-- self-employed, business-owner
-- unemployed, retired, not-working
+#### Page 2: Money Flow Domain (11 questions)
 
-**Business Stage Options (conditional):**
-- idea, startup, early, growth, established
+**Income Clarity (scale -5 to +5):**
+| Field | Question Text |
+|-------|---------------|
+| `incomeClarity` | What level of clarity do you hold on your income? |
+| `incomeSufficiency` | How sufficient is your current income? |
+| `incomeConsistency` | How consistent is your monthly income? |
+| `incomeStress` | What is your stress level around income? |
 
-**Mindset Baseline**
-| Field | Type | Scale | Description |
-|-------|------|-------|-------------|
-| `holisticScarcity` | Dropdown | -5 to +5 | Holistic scarcity vs abundance mindset |
-| `financialScarcity` | Dropdown | -5 to +5 | Financial scarcity vs abundance mindset |
-| `moneyRelationship` | Dropdown | -5 to +5 | Relationship with money (combat to great) |
+| Field | Type | Question Text |
+|-------|------|---------------|
+| `incomeSources` | Textarea | List your income sources |
 
-#### Page 2: Money Flow Domain - Income & Spending (11 questions)
+**Spending Clarity (scale -5 to +5):**
+| Field | Question Text |
+|-------|---------------|
+| `spendingClarity` | What level of clarity do you hold on your spending? |
+| `spendingConsistency` | How consistent is your monthly spending? |
+| `spendingReview` | How detailed is your spending review? |
+| `spendingStress` | What is your stress level around spending? |
 
-**Income Clarity**
-| Field | Type | Scale | Description |
-|-------|------|-------|-------------|
-| `incomeClarity` | Dropdown | -5 to +5 | Level of clarity on income |
-| `incomeSufficiency` | Dropdown | -5 to +5 | How sufficient is current income |
-| `incomeConsistency` | Dropdown | -5 to +5 | How consistent is monthly income |
-| `incomeStress` | Dropdown | -5 to +5 | Stress level around income |
-| `incomeSources` | Textarea | Free text | List of income sources (comma-separated) |
+| Field | Type | Question Text |
+|-------|------|---------------|
+| `majorExpenses` | Textarea | List your major expense categories |
+| `wastefulSpending` | Textarea | What spending do you consider wasteful or want to reduce? |
 
-**Spending Clarity**
-| Field | Type | Scale | Description |
-|-------|------|-------|-------------|
-| `spendingClarity` | Dropdown | -5 to +5 | Level of clarity on spending |
-| `spendingConsistency` | Dropdown | -5 to +5 | How consistent is monthly spending |
-| `spendingReview` | Dropdown | -5 to +5 | How detailed is spending review |
-| `spendingStress` | Dropdown | -5 to +5 | Stress level around spending |
-| `majorExpenses` | Textarea | Free text | Major expense categories |
-| `wastefulSpending` | Textarea | Free text | Wasteful spending to reduce |
+#### Page 3: Obligations Domain (10 questions)
 
-#### Page 3: Obligations Domain - Debt & Emergency Fund (10 questions)
+**Debt Position (scale -5 to +5):**
+| Field | Question Text |
+|-------|---------------|
+| `debtClarity` | What level of clarity do you hold on your debt? |
+| `debtTrending` | Is your total debt trending up or down? |
+| `debtReview` | How often do you review your debt position? |
+| `debtStress` | What is your stress level around debt? |
 
-**Debt Position**
-| Field | Type | Scale | Description |
-|-------|------|-------|-------------|
-| `debtClarity` | Dropdown | -5 to +5 | Level of clarity on debt |
-| `debtTrending` | Dropdown | -5 to +5 | Is debt trending up or down |
-| `debtReview` | Dropdown | -5 to +5 | How often review debt position |
-| `debtStress` | Dropdown | -5 to +5 | Stress level around debt |
-| `currentDebts` | Textarea | Free text | List of current debts with amounts |
+| Field | Type | Question Text |
+|-------|------|---------------|
+| `currentDebts` | Textarea | List your current debts |
 
-**Emergency Fund**
-| Field | Type | Scale | Description |
-|-------|------|-------|-------------|
-| `emergencyFundMaintenance` | Dropdown | -5 to +5 | Do you maintain separate emergency fund |
-| `emergencyFundMonths` | Dropdown | -5 to +5 | Months of expenses covered |
-| `emergencyFundFrequency` | Dropdown | -5 to +5 | How often tap into fund |
-| `emergencyFundReplenishment` | Dropdown | -5 to +5 | How quickly can replenish |
-| `emergencyFundStress` | Dropdown | -5 to +5 | Stress around emergency preparedness |
+**Emergency Fund (scale -5 to +5):**
+| Field | Question Text |
+|-------|---------------|
+| `emergencyFundMaintenance` | Do you maintain a separate emergency fund? |
+| `emergencyFundMonths` | How many months of expenses does your emergency fund cover? |
+| `emergencyFundFrequency` | How often do you tap into your emergency fund? |
+| `emergencyFundReplenishment` | How quickly can you replenish your emergency fund after use? |
+| `emergencyFundStress` | What is your stress level around emergency preparedness? |
 
-#### Page 4: Growth Domain - Savings, Investments, Retirement (13 questions)
+#### Page 4: Growth Domain (13 questions)
 
-**Savings**
-| Field | Type | Scale | Description |
-|-------|------|-------|-------------|
-| `savingsLevel` | Dropdown | -5 to +5 | Level of savings beyond emergency fund |
-| `savingsRegularity` | Dropdown | -5 to +5 | How regularly contribute to savings |
-| `savingsClarity` | Dropdown | -5 to +5 | Level of clarity on savings |
-| `savingsStress` | Dropdown | -5 to +5 | Stress level around savings |
+**Savings (scale -5 to +5):**
+| Field | Question Text |
+|-------|---------------|
+| `savingsLevel` | What level of savings do you maintain beyond your emergency fund? |
+| `savingsRegularity` | How regularly do you contribute to savings? |
+| `savingsClarity` | What level of clarity do you maintain on savings? |
+| `savingsStress` | What is your stress level around savings? |
 
-**Investments**
-| Field | Type | Scale | Description |
-|-------|------|-------|-------------|
-| `investmentActivity` | Dropdown | -5 to +5 | Do you invest outside your business |
-| `investmentClarity` | Dropdown | -5 to +5 | Level of clarity on investments |
-| `investmentConfidence` | Dropdown | -5 to +5 | Confidence in investment strategy |
-| `investmentStress` | Dropdown | -5 to +5 | Stress level around investments |
-| `investmentTypes` | Textarea | Free text | Main investment types with amounts |
+**Investments (scale -5 to +5):**
+| Field | Question Text |
+|-------|---------------|
+| `investmentActivity` | Do you invest outside your own business? |
+| `investmentClarity` | What level of clarity do you maintain on investments? |
+| `investmentConfidence` | How confident are you in your investment strategy? |
+| `investmentStress` | What is your stress level around investments? |
 
-**Retirement**
-| Field | Type | Scale | Description |
-|-------|------|-------|-------------|
-| `retirementAccounts` | Dropdown | -5 to +5 | What retirement accounts maintained |
-| `retirementFunding` | Dropdown | -5 to +5 | How well funded for retirement |
-| `retirementConfidence` | Dropdown | -5 to +5 | Confidence in retirement plan |
-| `retirementStress` | Dropdown | -5 to +5 | Stress around retirement preparedness |
+| Field | Type | Question Text |
+|-------|------|---------------|
+| `investmentTypes` | Textarea | List your main investment types |
 
-#### Page 5: Protection + Psychological (9 questions)
+**Retirement (scale -5 to +5):**
+| Field | Question Text |
+|-------|---------------|
+| `retirementAccounts` | What retirement accounts do you maintain? |
+| `retirementFunding` | How regularly and fully do you fund retirement accounts? |
+| `retirementConfidence` | How confident are you in your retirement strategy? |
+| `retirementStress` | What is your stress level around retirement preparedness? |
 
-**Insurance Protection (4 questions)**
-| Field | Type | Scale | Description |
-|-------|------|-------|-------------|
-| `insurancePolicies` | Dropdown | -5 to +5 | What insurance policies maintained |
-| `insuranceClarity` | Dropdown | -5 to +5 | Level of clarity on coverage |
-| `insuranceConfidence` | Dropdown | -5 to +5 | Confidence in insurance protection |
-| `insuranceStress` | Dropdown | -5 to +5 | Stress level around insurance/protection |
+#### Page 5: Protection + Psychological + Adaptive (9 questions)
 
-**Psychological Clarity (3 questions)**
-| Field | Type | Options/Range | Description |
-|-------|------|---------------|-------------|
-| `financialEmotions` | Textarea | Free text | Emotions when thinking about reviewing finances |
-| `primaryObstacle` | Dropdown | 11 options | PRIMARY obstacle to gaining financial clarity |
-| `goalConfidence` | Dropdown | -5 to +5 | Confidence in achieving financial goals |
+**Insurance Protection (scale -5 to +5):**
+| Field | Question Text |
+|-------|---------------|
+| `insurancePolicies` | What insurance policies do you maintain? |
+| `insuranceClarity` | What level of clarity do you have on your coverage? |
+| `insuranceConfidence` | How confident are you in your insurance protection? |
+| `insuranceStress` | What is your stress level around insurance and protection? |
 
-**Primary Obstacle Options:**
-- lack-of-time, overwhelming-complexity, emotional-avoidance
-- lack-of-knowledge, inconsistent-income, too-much-debt
-- past-trauma, dont-trust-myself, fear-of-discovery
-- partner-resistance, other
+**Psychological Clarity:**
+| Field | Type | Question Text |
+|-------|------|---------------|
+| `financialEmotions` | Textarea | What emotions arise when you think about reviewing your finances? |
+| `primaryObstacle` | Dropdown | What is your PRIMARY obstacle to gaining financial clarity? |
+| `goalConfidence` | Scale -5 to +5 | How confident are you in achieving your financial goals? |
 
-**Trauma-Adaptive Questions (2 questions)**
-*These questions link Tool 1 trauma winner to Tool 2 financial impact*
+**Primary Obstacle Options:** lack-of-time, overwhelming-complexity, emotional-avoidance, lack-of-knowledge, inconsistent-income, too-much-debt, past-trauma, dont-trust-myself, fear-of-discovery, partner-resistance, other
 
-| Field | Type | Scale | Description |
-|-------|------|-------|-------------|
-| `adaptiveScale` | Dropdown | -5 to +5 | How Tool 1 pattern shows up financially |
-| `adaptiveImpact` | Textarea | Free text | Specific impact of Tool 1 pattern on finances |
+**Trauma-Adaptive Questions (varies by Tool 1 winner):**
+| Field | Type | Description |
+|-------|------|-------------|
+| `adaptiveScale` | Scale -5 to +5 | Trauma-specific question (see variants below) |
+| `adaptiveImpact` | Textarea | Specific impact of Tool 1 pattern on finances |
 
-**Adaptive Scale Meaning:**
-- **-5 to -1:** Tool 1 trauma pattern HURTS financial life
-- **+1 to +5:** Tool 1 trauma pattern HELPS in some way (often Showing pattern)
+**Q55 Adaptive Variants (based on Tool 1 winner):**
+| Winner | Question Text |
+|--------|---------------|
+| FSV | "How much do you hide your true financial situation from others?" |
+| Control | "How much does lack of financial control create anxiety for you?" |
+| ExVal | "How much do others' opinions about your money affect your financial decisions?" |
+| Fear | "How much does financial fear paralyze your decision-making?" |
+| Receiving | "How comfortable are you receiving help or support around money?" |
+| Showing | "How much do you sacrifice your financial security to serve or help others?" |
 
 ### System Outputs
 
-#### Domain Scores (Calculated)
+#### Domain Score Calculation
+**Normalization:** Each -5 to +5 value converted to 0-10: `normalized = value + 5`
+
+| Domain | Fields | Max Points |
+|--------|--------|------------|
+| Money Flow | incomeClarity, incomeSufficiency, incomeConsistency, incomeStress, spendingClarity, spendingConsistency, spendingReview, spendingStress | 80 |
+| Obligations | debtClarity, debtTrending, debtReview, debtStress, emergencyFundMaintenance, emergencyFundMonths, emergencyFundFrequency, emergencyFundReplenishment, emergencyFundStress | 90 |
+| Liquidity | savingsLevel, savingsRegularity, savingsClarity, savingsStress | 40 |
+| Growth | investmentActivity, investmentClarity, investmentConfidence, investmentStress, retirementAccounts, retirementFunding, retirementConfidence, retirementStress | 80 |
+| Protection | insurancePolicies, insuranceClarity, insuranceConfidence, insuranceStress | 40 |
+
+#### Benchmark Levels
+- **High:** ≥60% of max
+- **Medium:** 20-59%
+- **Low:** <20%
+
+#### Stress-Weighted Scores
+| Domain | Weight |
+|--------|--------|
+| Money Flow | 5x |
+| Obligations | 4x |
+| Liquidity | 2x |
+| Growth | 1x |
+| Protection | 1x |
+
+**Priority List:** Domains sorted by weighted score ascending (lowest = highest priority)
+
+#### Growth Archetype
+Determined by top-priority domain (lowest weighted score):
+
+| Top Domain | Archetype |
+|-----------|-----------|
+| Money Flow | Money Flow Optimizer |
+| Obligations | Debt Freedom Builder |
+| Liquidity | Security Seeker |
+| Growth | Wealth Architect |
+| Protection | Protection Planner |
+| Default | Financial Clarity Seeker |
+
+### GPT/AI Insights
+
+**3-Tier Fallback System:**
+1. GPT-4o-mini call (7 individual response analyses)
+2. Retry after 2-second delay
+3. Hard-coded domain-specific fallbacks
+
+**7 Individual Analyses:**
+| Type | Source Field | Output |
+|------|-------------|--------|
+| income_sources | incomeSources | pattern, insight, action |
+| major_expenses | majorExpenses | pattern, insight, action |
+| wasteful_spending | wastefulSpending | pattern, insight, action |
+| debt_list | currentDebts | pattern, insight, action |
+| investments | investmentTypes | pattern, insight, action |
+| emotions | financialEmotions | pattern, insight, action |
+| adaptive_trauma | adaptiveScale + adaptiveImpact | pattern, insight, action |
+
+**Overall Synthesis (GPT-4o):**
 ```javascript
 {
-  domainScores: {
-    moneyFlow: number,      // Raw score (max 80)
-    obligations: number,    // Raw score (max 90)
-    liquidity: number,      // Raw score (max 40)
-    growth: number,         // Raw score (max 80)
-    protection: number      // Raw score (max 40)
-  },
-  benchmarks: {
-    moneyFlow: {
-      raw: number,
-      max: 80,
-      percentage: number,   // (raw/max) × 100
-      level: string         // "Low" | "Medium" | "High"
-    },
-    obligations: {
-      raw: number,
-      max: 90,
-      percentage: number,
-      level: string
-    },
-    liquidity: {
-      raw: number,
-      max: 40,
-      percentage: number,
-      level: string
-    },
-    growth: {
-      raw: number,
-      max: 80,
-      percentage: number,
-      level: string
-    },
-    protection: {
-      raw: number,
-      max: 40,
-      percentage: number,
-      level: string
-    }
-  },
-  weightedScores: {
-    moneyFlow: number,      // raw × 5
-    obligations: number,    // raw × 4
-    liquidity: number,      // raw × 2
-    growth: number,         // raw × 1
-    protection: number      // raw × 1
-  },
-  priorityList: [
-    {
-      domain: string,       // Domain name
-      weightedScore: number // Weighted score
-    }
-    // Sorted by weightedScore ASCENDING (lowest = highest priority)
-  ],
-  archetype: string,        // "Protection Planner" | "Security Seeker" | "Wealth Architect"
-  timestamp: string
+  overview: "2-3 paragraphs synthesizing all insights",
+  topPatterns: "3 key patterns",
+  priorityActions: "5 numbered priority actions",
+  source: "gpt"|"fallback",
+  timestamp: ISO
 }
 ```
 
-#### Domain Score Calculation Formulas
-
-**Money Flow (max 80 points):**
-```javascript
-moneyFlow =
-  incomeClarity + incomeSufficiency + incomeConsistency + incomeStress +
-  spendingClarity + spendingConsistency + spendingReview + spendingStress
-// 8 questions × 10 point range (-5 to +5) = 80 max
-```
-
-**Obligations (max 90 points):**
-```javascript
-obligations =
-  // Debt section (40 points)
-  debtClarity + debtTrending + debtReview + debtStress +
-  // Emergency Fund section (50 points)
-  emergencyFundMaintenance + emergencyFundMonths +
-  emergencyFundFrequency + emergencyFundReplenishment + emergencyFundStress
-// 9 questions × 10 point range = 90 max
-```
-
-**Liquidity (max 40 points):**
-```javascript
-liquidity =
-  emergencyFundMaintenance + emergencyFundMonths +
-  emergencyFundFrequency + emergencyFundReplenishment
-// 4 questions × 10 point range = 40 max
-```
-
-**Growth (max 80 points):**
-```javascript
-growth =
-  // Savings (40 points)
-  savingsLevel + savingsRegularity + savingsClarity + savingsStress +
-  // Investments (40 points)
-  investmentActivity + investmentClarity + investmentConfidence + investmentStress +
-  // Retirement (40 points - subset)
-  retirementAccounts + retirementFunding + retirementConfidence + retirementStress
-// Note: Only 8 unique questions counted (some overlap with savings/investments)
-```
-
-**Protection (max 40 points):**
-```javascript
-protection =
-  insurancePolicies + insuranceClarity + insuranceConfidence + insuranceStress
-// 4 questions × 10 point range = 40 max
-```
-
-#### Archetype Determination
-
-**Algorithm:**
-```javascript
-if (obligations > 60 && protection > 25) {
-  archetype = "Protection Planner"
-} else if (growth > 50 && moneyFlow > 45) {
-  archetype = "Wealth Architect"
-} else {
-  archetype = "Security Seeker"
-}
-```
-
-**Archetype Meanings:**
-- **Protection Planner:** Focuses on safety, security, risk mitigation
-- **Security Seeker:** Balances stability with growth opportunities
-- **Wealth Architect:** Growth-oriented, strategic, future-focused
-
-#### GPT Insights (Generated)
-
-```javascript
-{
-  gptInsights: {},  // Reserved for future GPT-based insights per domain
-  overallInsight: {
-    overview: string,          // How Tool 1 pattern shows up in financial life
-    topPatterns: string,       // 3 specific pattern manifestations
-    priorityActions: string,   // 5 concrete next steps
-    source: "gpt",
-    timestamp: string
-  }
-}
-```
-
-**GPT Insight Generation:**
-- Pulls Tool 1 winner category
-- Analyzes all Tool 2 responses
-- Identifies how trauma pattern manifests financially
-- Provides trauma-informed action recommendations
-- Links specific Tool 2 scores to Tool 1 pattern
-
-**Example GPT Insight Structure:**
-```javascript
-{
-  overview: "Your [Tool1 Winner] pattern shows up as [specific behaviors].
-             This impacts your [lowest domains] scores of [percentages]...",
-
-  topPatterns: "
-    - Pattern 1: [Specific manifestation from responses]
-    - Pattern 2: [Secondary manifestation]
-    - Pattern 3: [Strength to leverage]
-  ",
-
-  priorityActions: "
-    1. For [lowest domain], [specific gentle action]
-    2. To shift [pattern], [concrete step]
-    3. Leverage [strength] by [application]
-    4. Practice [mindset shift]
-    5. Long-term, [transformational goal]
-  "
-}
-```
-
-### 🔍 Tool 2: Output Interpretation Guide
-
-#### Understanding Domain Scores
-
-**Raw Score → Percentage Conversion:**
-- Each domain has a maximum possible raw score
-- Percentage = (raw score / max score) × 100
-- **Benchmark Levels:** Low (0-33%), Medium (34-66%), High (67-100%)
-
-**Domain Score Meanings:**
-
-**Money Flow (max: 80 points)**
-- **What it measures:** Clarity and stress around income AND spending
-- **High (67%+):** Strong awareness of cash flow, organized tracking, low stress
-- **Medium (34-66%):** Some awareness, moderate organization, variable stress
-- **Low (0-33%):** Avoidance, disorganization, high stress or complete disconnect
-- **Key insight:** This is about AWARENESS, not amount of money
-
-**Obligations (max: 90 points)**
-- **What it measures:** Debt management + Emergency fund preparedness
-- **High (67%+):** Debt declining or well-managed, solid emergency fund (3+ months)
-- **Medium (34-66%):** Debt stable or slowly improving, some emergency savings
-- **Low (0-33%):** Debt increasing, no emergency fund, crisis mode
-- **Key insight:** Combines both burden (debt) and safety net (emergency fund)
-
-**Liquidity (max: 40 points)**
-- **What it measures:** Emergency fund maintenance and accessibility
-- **High (67%+):** 6+ months expenses, separate account, rarely touched
-- **Medium (34-66%):** 2-5 months expenses, some separation, occasional use
-- **Low (0-33%):** 0-1 month expenses, no separation, frequent depletion
-- **Key insight:** This is about IMMEDIATE access to cash for crises
-
-**Growth (max: 80 points)**
-- **What it measures:** Savings, Investments, Retirement preparation
-- **High (67%+):** Regular saving, strategic investing, retirement on track
-- **Medium (34-66%):** Sporadic saving, some investments, retirement awareness
-- **Low (0-33%):** No saving, no investing, no retirement planning
-- **Key insight:** This is about FUTURE wealth building, not current wealth
-
-**Protection (max: 40 points)**
-- **What it measures:** Insurance coverage adequacy and clarity
-- **High (67%+):** Comprehensive insurance, understands coverage, confident
-- **Medium (34-66%):** Basic insurance, some understanding, moderate confidence
-- **Low (0-33%):** Minimal/no insurance, poor understanding, high vulnerability
-- **Key insight:** This is about risk management and safety nets
-
-#### Weighted Score & Priority List
-
-**Weighted Score Formula:**
-- Money Flow × 5
-- Obligations × 4
-- Liquidity × 2
-- Growth × 1
-- Protection × 1
-
-**Why weighted?**
-- Reflects importance hierarchy: cash flow > debt management > emergency funds > growth > protection
-- Helps middleware prioritize interventions
-
-**Priority List:**
-- Domains sorted by weighted score (LOWEST first)
-- **Lowest weighted score = highest intervention priority**
-- Example: If Liquidity is lowest, focus on building emergency fund FIRST
-
-#### Archetype Meanings
-
-**Protection Planner:**
-- Strong on obligations management
-- Focus on safety and security
-- May sacrifice growth for stability
-- **Common with:** Control, Fear, Showing trauma patterns
-
-**Security Seeker:**
-- Balance between stability and growth
-- Moderate risk tolerance
-- Seeks both safety and opportunity
-- **Common with:** ExVal, FSV trauma patterns
-
-**Wealth Architect:**
-- High growth orientation
-- Strategic long-term thinking
-- Comfortable with calculated risk
-- **Less common:** Usually indicates lower trauma scores overall
-
-#### Key Field Interpretations
-
-**adaptiveScale (-5 to +5):**
-- **Negative:** Tool 1 pattern HURTS financial life
-  - -5: "This pattern has devastated my finances"
-  - -1: "This pattern occasionally creates problems"
-- **Positive:** Tool 1 pattern HELPS in some way
-  - +1: "I see some benefits from this pattern"
-  - +5: "This pattern serves me well financially"
-- **Middleware use:** Negative scales = urgent intervention needed
-
-**adaptiveImpact (open text):**
-- **Rich qualitative data** - look for themes:
-  - Isolation words: "alone," "isolated," "no one to turn to"
-  - Shame words: "ashamed," "embarrassed," "hiding"
-  - Control words: "overwhelmed," "out of control," "managing everything"
-  - Avoidance words: "don't look," "avoid," "ignore"
-- **Middleware use:** NLP analysis can extract trauma markers
-
-**financialEmotions (open text):**
-- **Emotion clustering:**
-  - Fear cluster: anxiety, fear, panic, dread, terror
-  - Shame cluster: shame, guilt, embarrassment, humiliation
-  - Anger cluster: frustration, resentment, anger, rage
-  - Hope cluster: hope, optimism, excitement, possibility
-- **Middleware use:** Emotion detection can flag crisis states
-
-**primaryObstacle (categorical):**
-- Maps directly to intervention strategies:
-  - "lack-of-time" → time management tools, automation
-  - "overwhelming-complexity" → simplified tracking, education
-  - "emotional-avoidance" → trauma-informed interventions
-  - "past-trauma" → therapeutic support, gentle approaches
-  - "lack-of-knowledge" → educational resources
-  - "dont-trust-myself" → guided decision-making, accountability
-
-**wastefulSpending (open text):**
-- **Pattern detection opportunities:**
-  - "impulse" → Control or Fear patterns
-  - "others," "gifts," "helping" → Showing pattern
-  - "brands," "status," "appearance" → ExVal pattern
-  - "comfort," "escape," "cope" → Self-soothing behaviors
-- **Middleware use:** Categorize spending patterns for targeted interventions
-
-#### Cross-Domain Pattern Recognition
-
-**High Obligations + Low Liquidity:**
-- Debt burden preventing emergency fund building
-- **Intervention:** Debt snowball while building minimal emergency fund
-
-**High Money Flow + Low Growth:**
-- Good at managing day-to-day but not planning future
-- **Intervention:** Automate savings, retirement contributions
-
-**Low across all domains + High stress emotions:**
-- Crisis state or complete financial avoidance
-- **Intervention:** Urgent support, basic financial stabilization
-
-**High Protection + High Growth + Medium Money Flow:**
-- Strategic planner struggling with daily execution
-- **Intervention:** Cash flow automation, budgeting tools
+### Cross-Tool Data
+**Pulls from:** Tool 1 (name, email, winner/topTrauma, scores)
+**Provides to:** Tool 4 (age, dependents, employment, income data), Tool 6 (age, marital, employment), Tool 8 (age, investmentConfidence)
 
 ---
 
-## 🎭 Tool 3: Identity & Validation Grounding Tool
+<a id="tool-3"></a>
+## Tool 3: Identity & Validation Grounding Tool
 
 **Purpose:** Reveals patterns of disconnection from authentic self through false self-view and external validation
-**Flow:** 7 pages (1 intro + 6 subdomains), 30 questions
+**Flow:** 7 pages (1 intro + 6 subdomains), 30 questions (24 scale + 6 open)
 **Time:** 20-25 minutes
+**Manifest:** `tools/tool3/tool3.manifest.json`
+**Dependencies:** Tool 2
+**Unlocks:** Tool 4
 
-### Student Inputs
+### Grounding Tool Question Structure
 
-#### Page 1: Introduction
-- No data collection (orientation page)
+Tools 3, 5, and 7 share identical structure (via GroundingFormBuilder):
+- **2 domains**, each with **3 subdomains**
+- Each subdomain has **4 scale questions** (Belief, Behavior, Feeling, Consequence) + **1 open response**
+- **Scale:** -3 to +3 (no zero), with detailed descriptive labels per option
+- **Open responses:** Textarea, minimum 20 characters
 
-#### Pages 2-7: Six Subdomains (5 questions each)
+### Tool 3 Domains & Subdomains
 
-Each subdomain follows the same structure:
+**Domain 1: False Self-View (Disconnection from Self)**
 
-**Question Structure per Subdomain:**
-| Aspect | Type | Scale | Description |
-|--------|------|-------|-------------|
-| Belief | Dropdown | -3 to +3 | Core belief statement |
-| Behavior | Dropdown | -3 to +3 | Behavioral manifestation |
-| Feeling | Dropdown | -3 to +3 | Emotional experience |
-| Consequence | Dropdown | -3 to +3 | Impact/results of pattern |
-| Open Response | Textarea | Free text | Reflection question |
+| Page | Subdomain | Key | Theme |
+|------|-----------|-----|-------|
+| 2 | 1.1 | `subdomain_1_1` | "I am Not Worthy of Financial Freedom" |
+| 3 | 1.2 | `subdomain_1_2` | "I will Never Have Enough" |
+| 4 | 1.3 | `subdomain_1_3` | "I Cannot See My Financial Reality" |
 
-**Subdomain 1: "I'm Not Worthy of Financial Freedom" (Domain 1: False Self-View)**
-- Field prefix: `subdomain_1_1_`
-- Fields: `belief`, `behavior`, `feeling`, `consequence`, `open_response`
-- Open Q: "What specifically are you afraid you'd find or have to face if you looked at your finances clearly right now?"
+**Domain 2: External Validation (Disconnection from Self)**
 
-**Subdomain 2: "I'll Never Have Enough" (Domain 1: False Self-View)**
-- Field prefix: `subdomain_1_2_`
-- Fields: `belief`, `behavior`, `feeling`, `consequence`, `open_response`
-- Open Q: "Describe a specific time you made a financial decision in panic mode..."
+| Page | Subdomain | Key | Theme |
+|------|-----------|-----|-------|
+| 5 | 2.1 | `subdomain_2_1` | "Money Shows My Worth" |
+| 6 | 2.2 | `subdomain_2_2` | "What Will They Think?" |
+| 7 | 2.3 | `subdomain_2_3` | "I Need to Prove Myself" |
 
-**Subdomain 3: "I Can't See My Financial Reality" (Domain 1: False Self-View)**
-- Field prefix: `subdomain_1_3_`
-- Fields: `belief`, `behavior`, `feeling`, `consequence`, `open_response`
-- Open Q: "What financial information do you deliberately avoid looking at right now..."
+### Scale Question Details (All 24)
 
-**Subdomain 4: "Money Shows My Worth" (Domain 2: External Validation)**
-- Field prefix: `subdomain_2_1_`
-- Fields: `belief`, `behavior`, `feeling`, `consequence`, `open_response`
-- Open Q: "What image are you currently trying to project with money..."
+**Subdomain 1.1: "I am Not Worthy of Financial Freedom"**
+| Aspect | Field | Question Text |
+|--------|-------|---------------|
+| Belief | `subdomain_1_1_belief` | "I am not the kind of person who gets to have financial freedom" |
+| Behavior | `subdomain_1_1_behavior` | "I avoid looking at my financial accounts and/or have money scattered across multiple places where I cannot easily access it" |
+| Feeling | `subdomain_1_1_feeling` | "I feel deep shame and unworthiness about my financial situation" |
+| Consequence | `subdomain_1_1_consequence` | "Believing I am not the kind of person who gets financial freedom has caused me to miss opportunities or make poor financial decisions" |
 
-**Subdomain 5: "What Will They Think?" (Domain 2: External Validation)**
-- Field prefix: `subdomain_2_2_`
-- Fields: `belief`, `behavior`, `feeling`, `consequence`, `open_response`
-- Open Q: "Whose judgment about your finances do you fear most..."
+**Open Response:** `subdomain_1_1_open_response`
+"What specifically are you afraid you would find or have to face if you looked at your finances clearly right now?"
 
-**Subdomain 6: "I Need to Prove Myself" (Domain 2: External Validation)**
-- Field prefix: `subdomain_2_3_`
-- Fields: `belief`, `behavior`, `feeling`, `consequence`, `open_response`
-- Open Q: "What specifically are you trying to prove with money..."
+**Subdomain 1.2: "I will Never Have Enough"**
+| Aspect | Field | Question Text |
+|--------|-------|---------------|
+| Belief | `subdomain_1_2_belief` | "I will never have enough money, no matter how much I earn" |
+| Behavior | `subdomain_1_2_behavior` | "I ignore income and focus only on spending, or ignore spending and focus only on income - never paying attention to both at once" |
+| Feeling | `subdomain_1_2_feeling` | "I feel constant anxiety that there is never enough and/or confusion about whether I will have enough money" |
+| Consequence | `subdomain_1_2_consequence` | "I have made financial decisions in panic mode that made things worse, or missed opportunities because I did not realize I had the resources" |
+
+**Open Response:** `subdomain_1_2_open_response`
+"Describe a specific time you made a financial decision in panic mode because you felt there would never be enough..."
+
+**Subdomain 1.3: "I Cannot See My Financial Reality"**
+| Aspect | Field | Question Text |
+|--------|-------|---------------|
+| Belief | `subdomain_1_3_belief` | "Finances are too complex/overwhelming for me to understand" |
+| Behavior | `subdomain_1_3_behavior` | "I do not look at my full financial picture; I focus on one small piece at a time and ignore the rest" |
+| Feeling | `subdomain_1_3_feeling` | "I feel overwhelmed and helpless about understanding money" |
+| Consequence | `subdomain_1_3_consequence` | "I have been blindsided by financial crises that I should have seen coming if I had been paying attention" |
+
+**Open Response:** `subdomain_1_3_open_response`
+"What financial information do you deliberately avoid looking at right now, and what specifically do you fear you would discover if you looked?"
+
+**Subdomain 2.1: "Money Shows My Worth"**
+| Aspect | Field | Question Text |
+|--------|-------|---------------|
+| Belief | `subdomain_2_1_belief` | "How much money I have (or appear to have) determines my worth and value" |
+| Behavior | `subdomain_2_1_behavior` | "I spend money to look successful/worthy to others, even when it strains my actual finances" |
+| Feeling | `subdomain_2_1_feeling` | "I feel anxiety and shame when I think others might see my real financial situation" |
+| Consequence | `subdomain_2_1_consequence` | "I have gone into debt or damaged my finances to maintain an image or impress others" |
+
+**Open Response:** `subdomain_2_1_open_response`
+"What image are you currently trying to project with money, and what is a specific example of something expensive you have bought or done primarily to maintain that image?"
+
+**Subdomain 2.2: "What Will They Think?"**
+| Aspect | Field | Question Text |
+|--------|-------|---------------|
+| Belief | `subdomain_2_2_belief` | "Others' opinions about how I spend and what I share about money matter more than my own judgment" |
+| Behavior | `subdomain_2_2_behavior` | "I hide my financial choices from people in my life because I am afraid of their judgment" |
+| Feeling | `subdomain_2_2_feeling` | "I feel trapped between what I want to do and what others expect me to do financially" |
+| Consequence | `subdomain_2_2_consequence` | "I have made financial choices I regret because I was trying to please someone or avoid their disapproval" |
+
+**Open Response:** `subdomain_2_2_open_response`
+"Whose judgment about your finances do you fear most, and describe a specific financial choice you have made (or are making) primarily to please them or avoid their disapproval?"
+
+**Subdomain 2.3: "I Need to Prove Myself"**
+| Aspect | Field | Question Text |
+|--------|-------|---------------|
+| Belief | `subdomain_2_3_belief` | "I need to prove I am successful/worthy through money and possessions" |
+| Behavior | `subdomain_2_3_behavior` | "I buy status symbols and make financial moves to show others I have 'made it'" |
+| Feeling | `subdomain_2_3_feeling` | "I feel pressure to show I am doing well financially, and inadequate when I cannot" |
+| Consequence | `subdomain_2_3_consequence` | "I have damaged my finances by buying things or making choices to prove my success to others" |
+
+**Open Response:** `subdomain_2_3_open_response`
+"What specifically are you trying to prove with money, and who are you trying to prove it to?"
 
 ### System Outputs
 
-#### Subdomain Quotients (6 subdomains)
-```javascript
-{
-  subdomain_1_1: number,  // "I'm Not Worthy of Financial Freedom"
-  subdomain_1_2: number,  // "I'll Never Have Enough"
-  subdomain_1_3: number,  // "I Can't See My Financial Reality"
-  subdomain_2_1: number,  // "Money Shows My Worth"
-  subdomain_2_2: number,  // "What Will They Think?"
-  subdomain_2_3: number   // "I Need to Prove Myself"
-}
+#### Scoring Hierarchy (4 Levels)
+
+**Level 1 - Aspect Scores:** Raw -3 to +3 values (24 scores)
+
+**Level 2 - Subdomain Quotients (0-100):**
 ```
-
-**Formula:** Average of 4 aspect scores (-3 to +3 scale)
-
-#### Domain Quotients (2 domains)
-```javascript
-{
-  domain1: number,  // False Self-View (average of subdomains 1-3)
-  domain2: number   // External Validation (average of subdomains 4-6)
-}
+rawAvg = (belief + behavior + feeling + consequence) / 4
+quotient = ((3 - rawAvg) / 6) * 100
 ```
+Mapping: -3 → 100 (most problematic), +3 → 0 (healthiest)
 
-#### Overall Quotient
-```javascript
-{
-  overallQuotient: number  // "Disconnection from Self Quotient" (average of 2 domains)
-}
-```
+**Level 3 - Domain Quotients (0-100):**
+- Domain 1 = average of subdomain_1_1, subdomain_1_2, subdomain_1_3
+- Domain 2 = average of subdomain_2_1, subdomain_2_2, subdomain_2_3
 
-#### GPT Insights (6 subdomain insights)
-```javascript
-{
-  subdomains: {
-    subdomain_1_1: {
-      pattern: string,      // Pattern identified
-      rootCause: string,    // Why this shows up
-      impact: string,       // How it affects finances
-      actionSteps: string[] // 2-3 concrete actions
-    },
-    // ... repeated for all 6 subdomains
-  }
-}
-```
+**Level 4 - Overall Quotient (0-100):**
+- Overall = average of Domain 1 and Domain 2
 
-#### GPT Syntheses (3 synthesis levels)
-```javascript
-{
-  domain1: {
-    dominantPattern: string,
-    crossPatternAnalysis: string,
-    strategicFocus: string,
-    priorityActions: string[]
-  },
-  domain2: {
-    dominantPattern: string,
-    crossPatternAnalysis: string,
-    strategicFocus: string,
-    priorityActions: string[]
-  },
-  overall: {
-    coreDisconnection: string,
-    howDomainsInteract: string,
-    transformationPath: string,
-    nextSteps: string[]
-  }
-}
-```
+**Interpretation Scale:**
+| Range | Level | Label |
+|-------|-------|-------|
+| 0-19 | MINIMAL | Healthy Pattern |
+| 20-39 | LOW | Mild Pattern |
+| 40-59 | MODERATE | Moderate Pattern |
+| 60-79 | HIGH | Significant Pattern |
+| 80-100 | CRITICAL | Critical Pattern |
 
-### 🔍 Tool 3: Output Interpretation Guide
+#### Gap Analysis
+- **Domain Gap:** highestSubdomain - domainAverage → DIFFUSE (<5), FOCUSED (5-15), HIGHLY_FOCUSED (>15)
+- **Belief-Behavior:** |belief - behavior| → ALIGNED (<1), SLIGHT_MISALIGNMENT (1), BELIEF_DRIVES_DYSFUNCTION (≥2, belief<behavior), BEHAVIOR_EXCEEDS_BELIEF (≥2, behavior<belief)
 
-#### Understanding Subdomain Quotients
+### GPT/AI Insights
+- **6 subdomain insights** (GPT-4o-mini, non-blocking, after each page)
+- **2 domain syntheses** (GPT-4o, at final submission)
+- **1 overall synthesis** (GPT-4o, at final submission)
+- **3-tier fallback:** GPT → retry → GroundingFallbacks
 
-**Score Range:** -3 to +3 (average of 4 aspect scores)
-
-**Score Interpretation:**
-- **Strongly Negative (-3 to -2):** Pattern is OPPOSITE - healthy behavior in this area
-  - Example: "I'm Not Worthy of Financial Freedom" = -3 means strong sense of worthiness
-- **Mildly Negative (-1.99 to -0.5):** Pattern mostly absent, some healthy behaviors
-- **Neutral (-0.49 to +0.49):** Mixed or transitional state
-- **Mildly Positive (+0.5 to +1.99):** Pattern is EMERGING - awareness and some manifestation
-- **Strongly Positive (+2 to +3):** Pattern is DOMINANT - severe impact on financial life
-
-**Why different scale than Tool 1?**
-- Tool 3 uses -3 to +3 for more nuanced grounding work
-- Each question has more detailed answer options
-- Allows finer-grained detection of patterns
-
-#### Domain Quotient Interpretation
-
-**Domain 1: False Self-View (average of 3 subdomains)**
-- Measures: Confusion and lack of clarity about financial reality
-- **High (+2 to +3):** Severe disconnection from financial truth
-  - Can't see finances clearly
-  - Avoidance and willful ignorance dominant
-  - Scarcity mindset controls decisions
-- **Medium (+0.5 to +1.99):** Moderate confusion
-  - Some blind spots in financial reality
-  - Occasional avoidance
-  - Intermittent scarcity thinking
-- **Low/Negative (-3 to +0.49):** Clear self-perception
-  - Can see financial reality accurately
-  - Engages with full financial picture
-  - Sufficiency mindset
-
-**Domain 2: External Validation (average of 3 subdomains)**
-- Measures: Decisions driven by others' opinions vs. authentic needs
-- **High (+2 to +3):** Severe external focus
-  - Money = worth equation is strong
-  - Fear of judgment dominates choices
-  - Constant need to prove success
-- **Medium (+0.5 to +1.99):** Moderate approval-seeking
-  - Some status-driven spending
-  - Occasional fear of others' opinions
-  - Intermittent proving behaviors
-- **Low/Negative (-3 to +0.49):** Internal validation
-  - Self-worth separate from money
-  - Authentic financial choices
-  - Comfortable with transparency
-
-**Overall Quotient (average of 2 domains)**
-- **"Disconnection from Self Quotient"**
-- Measures: How separated from authentic financial self
-- **High (+2 to +3):** Severe disconnection - urgent intervention needed
-- **Medium (+0.5 to +1.99):** Moderate disconnection - active healing required
-- **Low/Negative:** Connected to authentic financial self
-
-#### Subdomain-Specific Meanings
-
-**Subdomain 1.1: "I'm Not Worthy of Financial Freedom"**
-- **Pattern:** Unworthiness → avoidance → scattered resources
-- **High score manifestations:**
-  - Won't look at financial accounts
-  - Money scattered across multiple inaccessible places
-  - Deep shame about finances
-  - Missed opportunities due to unworthiness belief
-- **Middleware opportunity:** Flag account consolidation need + shame-informed support
-
-**Subdomain 1.2: "I'll Never Have Enough"**
-- **Pattern:** Scarcity → selective blindness (income OR spending, not both)
-- **High score manifestations:**
-  - Focuses only on income OR only on spending
-  - Never sees full financial picture
-  - Constant anxiety about sufficiency
-  - Panic-mode financial decisions
-- **Middleware opportunity:** Build holistic view tools, anxiety management
-
-**Subdomain 1.3: "I Can't See My Financial Reality"**
-- **Pattern:** Overwhelm → fragmented view → willful ignorance
-- **High score manifestations:**
-  - Focuses on one small piece at a time
-  - Ignores rest of financial picture
-  - Feels helpless about understanding money
-  - Blindsided by predictable crises
-- **Middleware opportunity:** Create simplified financial dashboard, education
-
-**Subdomain 2.1: "Money Shows My Worth"**
-- **Pattern:** Worth = money → image spending → financial strain
-- **High score manifestations:**
-  - Spends to look successful regardless of strain
-  - Anxiety when others might see real finances
-  - Debt for image maintenance
-  - Status symbol purchasing
-- **Middleware opportunity:** Track image spending, self-worth interventions
-
-**Subdomain 2.2: "What Will They Think?"**
-- **Pattern:** Living for approval → financial hiding → fear of judgment
-- **High score manifestations:**
-  - Hides financial choices from loved ones
-  - Feels trapped between wants and others' expectations
-  - People-pleasing financial decisions
-  - Regret about approval-seeking choices
-- **Middleware opportunity:** Transparency tools, boundary-setting support
-
-**Subdomain 2.3: "I Need to Prove Myself"**
-- **Pattern:** Need for proof → status spending → financial damage
-- **High score manifestations:**
-  - Buys status symbols to show success
-  - Pressure to demonstrate doing well
-  - Inadequacy when can't show success
-  - Financial damage from proving behaviors
-- **Middleware opportunity:** Success redefinition tools, authentic spending tracking
-
-#### GPT Insight Interpretation
-
-**Subdomain Insights (6 total):**
-Each insight contains:
-- **pattern:** What specific behavior manifests (use for pattern library)
-- **rootCause:** Why this shows up (use for educational content)
-- **impact:** How it affects finances (use for consequence awareness)
-- **actionSteps:** 2-3 concrete actions (use for intervention recommendations)
-
-**Quality indicators for GPT insights:**
-- Specificity: Does it reference actual student responses?
-- Actionability: Are steps concrete and achievable?
-- Empathy: Is tone trauma-informed and non-judgmental?
-- Connection: Does it link belief → behavior → feeling → consequence?
-
-**Domain Syntheses (2 total):**
-Each synthesis contains:
-- **dominantPattern:** Which subdomain is strongest (use for prioritization)
-- **crossPatternAnalysis:** How 3 subdomains reinforce each other (use for complexity assessment)
-- **strategicFocus:** What to address first (use for intervention sequencing)
-- **priorityActions:** Next steps (use for action plan)
-
-**Overall Synthesis:**
-- **coreDisconnection:** Root of all patterns (use for therapeutic framing)
-- **howDomainsInteract:** How FSV and ExVal reinforce each other (use for system understanding)
-- **transformationPath:** Long-term healing journey (use for goal-setting)
-- **nextSteps:** Immediate actions (use for client engagement)
-
-#### Open Response Analysis
-
-**What to extract from open responses:**
-
-1. **Concrete examples:** Specific incidents student describes
-   - Use for: Case studies, pattern validation
-
-2. **Emotional intensity:** Language strength and frequency
-   - Use for: Crisis detection, urgency assessment
-
-3. **Awareness level:** Do they connect belief → behavior → consequence?
-   - Use for: Readiness for intervention assessment
-
-4. **Specificity:** Vague vs. detailed responses
-   - Use for: Engagement level, authenticity assessment
-
-5. **Themes across responses:**
-   - Isolation mentions → Receiving pattern confirmation
-   - Approval mentions → ExVal pattern confirmation
-   - Shame mentions → FSV pattern confirmation
-   - Control mentions → Control/Fear pattern confirmation
-
-#### Score Combination Patterns
-
-**Both Domains High (+2 to +3):**
-- Severe disconnection from authentic financial self
-- False reality + approval-seeking = double bind
-- **Intervention:** Intensive support, start with smallest subdomain
-
-**One Domain High, One Low:**
-- Imbalanced disconnection
-- Focus intervention on high domain
-- **Example:** High FSV + Low ExVal = can't see reality but makes own choices
-
-**Both Domains Low/Negative:**
-- Strong connection to authentic financial self
-- May still have Tool 1/Tool 2 challenges
-- **Intervention:** Focus on practical skills, not identity work
-
-**Subdomain Score Variance:**
-- If 3 subdomains vary widely (e.g., +2.5, +0.5, -1.5):
-  - Complex, nuanced presentation
-  - Target highest subdomain first
-  - Build on strengths in negative subdomains
+### Cross-Tool Data
+**Pulls from:** None
+**Provides to:** Tool 4 (subdomainQuotients for disconnection score), Tool 6 (subdomainQuotients), Tool 8 (subdomainQuotients for contextual warnings)
 
 ---
 
-## 🔄 Middleware Data Flow Opportunities
+<a id="tool-4"></a>
+## Tool 4: Financial Allocation Calculator
 
-### 1. **Tool 1 → Tool 2 Pre-filling**
+**Purpose:** Creates personalized M/E/F/J (Multiply/Essentials/Freedom/Enjoyment) allocations based on financial priorities, behavioral data, and trauma-informed insights
+**Flow:** Pre-survey (10-29 questions) → Priority selection → Interactive calculator → Report
+**Time:** 15-20 minutes
+**Manifest:** `tools/tool4/tool4.manifest.json`
+**Dependencies:** Tool 3
+**Unlocks:** Tool 5
 
-**Current Implementation:** ✅ Active
-```javascript
-// Tool 2 pulls from Tool 1
-const tool1Response = DataService.getLatestResponse(clientId, 'tool1');
-const name = data?.name || tool1Data?.name || '';
-const email = data?.email || tool1Data?.email || '';
-```
+### User-Facing Questions
 
-**Fields Auto-filled:**
-- `name` (readonly)
-- `email` (readonly)
-- `studentId` (auto-generated from clientId)
+#### Pre-Survey: Core Questions (10 questions, always shown)
 
-### 2. **Tool 1 → Tool 3 Psychological Context**
+| # | Field | Type | Range | Question Text |
+|---|-------|------|-------|---------------|
+| 1 | `monthlyIncome` | Currency | $0+ | "What is your average monthly take-home income?" |
+| 2 | `monthlyEssentials` | Currency | $0+ | "What is your monthly essentials spending?" |
+| 3 | `totalDebt` | Currency | $0+ | "What is your total debt (excluding mortgage)?" |
+| 4 | `emergencyFund` | Currency | $0+ | "How much money do you currently have in an emergency fund?" |
+| 5 | `satisfaction` | Slider | 0-10 | "How satisfied are you with your current financial situation?" |
+| 6 | `discipline` | Slider | 0-10 | "How would you rate your financial discipline?" |
+| 7 | `impulse` | Slider | 0-10 | "How strong is your impulse control with spending?" |
+| 8 | `longTerm` | Slider | 0-10 | "How focused are you on long-term financial goals?" |
+| 9 | `lifestyle` | Slider | 0-10 | "How do you prioritize enjoying life now versus saving for later?" |
+| 10 | `autonomy` | Slider | 0-10 | "Do you prefer following expert guidance or making your own financial choices?" |
 
-**Opportunity:** Use Tool 1 winner category to pre-contextualize Tool 3
-```javascript
-// Middleware enhancement
-if (tool1.winner === 'FSV') {
-  // User scored high on False Self-View in Tool 1
-  // Could emphasize Domain 1 questions in Tool 3
-}
-if (tool1.winner === 'ExVal') {
-  // User scored high on External Validation in Tool 1
-  // Could emphasize Domain 2 questions in Tool 3
-}
-```
+#### Backup Questions (Conditional: shown if Tools 1/2/3 incomplete)
 
-### 3. **Tool 2 → Tool 3 Financial Clarity Mapping**
+**Tool 1 Backup (3 questions, multi-choice with 6 options each):**
+| Field | Question Text |
+|-------|---------------|
+| `backupStressResponse` | "When money stress hits, what is your typical first response?" |
+| `backupCoreBelief` | "Which statement feels most true about money for you?" |
+| `backupConsequence` | "What financial pattern do you notice repeating in your life?" |
 
-**Opportunity:** Map financial clarity/stress to psychological patterns
+Options map to: FSV, ExVal, Showing, Receiving, Control, Fear
 
-```javascript
-// Example correlation
-{
-  spendingClarity: -5,        // Complete avoidance (Tool 2)
-  subdomain_1_1_behavior: -3  // "I avoid looking at accounts" (Tool 3)
-  // These should align - validation opportunity
-}
-```
+**Tool 3 Backup (6 sliders, 0-10):**
+| Field | Question Text |
+|-------|---------------|
+| `backupWorthiness` | "How worthy do you feel of financial abundance?" |
+| `backupScarcity` | "How often do you feel there is not enough?" |
+| `backupAvoidance` | "How much do you avoid looking at your finances?" |
+| `backupWorthMoney` | "How much does money define your worth as a person?" |
+| `backupOthersJudgment` | "How much do you worry about what others think of your finances?" |
+| `backupProving` | "How often do you feel you need to prove your worth through money?" |
 
-**Potential Middleware Functions:**
-- Pre-populate Tool 3 based on Tool 2 financial stress levels
-- Flag inconsistencies between financial behavior (T2) and psychological patterns (T3)
-- Generate cross-tool insights
+**Tool 2 Backup (5 questions):**
+| Field | Type | Question Text |
+|-------|------|---------------|
+| `backupGrowthOrientation` | Slider 0-10 | "How focused are you on growing your money for the future?" |
+| `backupStabilityOrientation` | Slider 0-10 | "How focused are you on protecting what you have?" |
+| `backupIncomeConsistency` | Radio | "How consistent is your monthly income?" (unstable/stable/very-stable) |
+| `backupDependents` | Radio | "Do you have dependents?" (yes/no) |
+| `backupLifeStage` | Radio | "What best describes your current stage of life?" (Early/Mid/Late Career, Pre-Retirement, Retirement) |
 
-### 4. **Cross-Tool Analytics**
+#### Priority Selection
+| Field | Type | Question Text |
+|-------|------|---------------|
+| `selectedPriority` | Radio | "Choose Your Financial Priority" (10 options, grouped: Recommended/Available/Challenging) |
+| `goalTimeline` | Dropdown | "When do you want to reach this goal?" (6mo, 6-12mo, 1-2yr, 2-5yr, 5+yr) |
 
-**Composite Scores to Generate:**
-```javascript
-{
-  // Psychological + Financial alignment
-  alignment: {
-    fsv_financial_clarity: number,     // Tool 1 FSV vs Tool 2 clarity scores
-    exval_spending_patterns: number,   // Tool 1 ExVal vs Tool 2 spending stress
-    control_emergency_fund: number     // Tool 1 Control vs Tool 2 emergency fund
-  },
+**10 Financial Priorities:** Build Long-Term Wealth, Get Out of Debt, Feel Financially Secure, Enjoy Life Now, Save for a Big Goal, Stabilize to Survive, Build or Stabilize a Business, Create Generational Wealth, Create Life Balance, Reclaim Financial Control
 
-  // Stress aggregation
-  overallStress: {
-    psychological: number,  // From Tool 1 scores
-    financial: number,      // From Tool 2 stress questions
-    identity: number,       // From Tool 3 quotients
-    combined: number        // Weighted average
-  },
+### System Outputs
 
-  // Patterns across tools
-  patterns: {
-    avoidance: boolean,     // Financial + psychological avoidance
-    approval_seeking: boolean,
-    control_issues: boolean,
-    scarcity_mindset: boolean
-  }
-}
-```
-
-### 5. **Data Validation & Consistency Checks**
-
-**Middleware can flag inconsistencies:**
-```javascript
-// Example: User says high financial clarity but shows avoidance behavior
-if (tool2.incomeClarity > 3 && tool3.subdomain_1_1_behavior < -2) {
-  flagInconsistency({
-    type: 'clarity_mismatch',
-    message: 'Reports high income clarity but shows avoidance patterns',
-    tools: ['tool2', 'tool3'],
-    severity: 'medium'
-  });
-}
-```
-
----
-
-## 📋 Data Storage Schema
-
-### Tool 1 Response Schema
+#### M/E/F/J Allocation
 ```javascript
 {
-  Client_ID: string,
-  Tool_Name: "tool1",
-  Timestamp: Date,
-  Status: "COMPLETED",
-  Data: {
-    formData: {
-      name: string,
-      email: string,
-      q3: number, q4: number, ... q22: number,
-      thought_fsv: number, ... thought_fear: number,
-      feeling_fsv: number, ... feeling_fear: number
-    },
-    scores: {
-      FSV: number,
-      ExVal: number,
-      Showing: number,
-      Receiving: number,
-      Control: number,
-      Fear: number
-    },
-    winner: string
-  },
-  Is_Latest: boolean
+  percentages: { Multiply: 0-100, Essentials: 0-100, Freedom: 0-100, Enjoyment: 0-100 },
+  lightNotes: { Multiply: "...", Essentials: "...", Freedom: "...", Enjoyment: "..." },
+  validationWarnings: [{ message, recommended, actual }]
 }
 ```
 
-### Tool 2 Response Schema
-```javascript
-{
-  Client_ID: string,
-  Tool_Name: "tool2",
-  Timestamp: Date,
-  Status: "COMPLETED",
-  Data: {
-    formData: {
-      // Page 1: Demographics (13 fields)
-      name: string,
-      email: string,
-      studentId: string,
-      age: number,
-      marital: string,
-      dependents: number,
-      living: string,
-      incomeStreams: number,
-      employment: string,
-      businessStage: string,
-      holisticScarcity: number,
-      financialScarcity: number,
-      moneyRelationship: number,
+**Base Allocation Map (before modifiers):**
+| Priority | Multiply | Essentials | Freedom | Enjoyment |
+|----------|----------|------------|---------|-----------|
+| Build Long-Term Wealth | 40% | 25% | 20% | 15% |
+| Get Out of Debt | 15% | 25% | 45% | 15% |
+| Feel Financially Secure | 25% | 35% | 30% | 10% |
+| Enjoy Life Now | 20% | 20% | 15% | 45% |
+| Save for a Big Goal | 15% | 25% | 45% | 15% |
+| Stabilize to Survive | 5% | 45% | 40% | 10% |
+| Build/Stabilize Business | 20% | 30% | 35% | 15% |
+| Create Generational Wealth | 45% | 25% | 20% | 10% |
+| Create Life Balance | 15% | 25% | 25% | 35% |
+| Reclaim Financial Control | 10% | 35% | 40% | 15% |
 
-      // Page 2: Money Flow (11 fields)
-      incomeClarity: number,
-      incomeSufficiency: number,
-      incomeConsistency: number,
-      incomeStress: number,
-      incomeSources: string,
-      spendingClarity: number,
-      spendingConsistency: number,
-      spendingReview: number,
-      spendingStress: number,
-      majorExpenses: string,
-      wastefulSpending: string,
+**3-Tier Modifier System:**
+1. **Financial:** Income range, debt load, emergency fund, income stability
+2. **Behavioral:** Discipline, impulse, longTerm scores with satisfaction amplification
+3. **Motivational:** Goal timeline, dependents, autonomy
 
-      // Page 3: Obligations (10 fields)
-      debtClarity: number,
-      debtTrending: number,
-      debtReview: number,
-      debtStress: number,
-      currentDebts: string,
-      emergencyFundMaintenance: number,
-      emergencyFundMonths: number,
-      emergencyFundFrequency: number,
-      emergencyFundReplenishment: number,
-      emergencyFundStress: number,
+**Satisfaction Amplification:** `satFactor = min(1 + max(0, 5 - satisfaction) * 0.1, 1.3)`
 
-      // Page 4: Growth (13 fields)
-      savingsLevel: number,
-      savingsRegularity: number,
-      savingsClarity: number,
-      savingsStress: number,
-      investmentActivity: number,
-      investmentClarity: number,
-      investmentConfidence: number,
-      investmentStress: number,
-      investmentTypes: string,
-      retirementAccounts: number,
-      retirementFunding: number,
-      retirementConfidence: number,
-      retirementStress: number,
+### GPT/AI Insights
+- **Main report:** GPT-4o, temp 0.3, 800 tokens (overview, strategic insights, recommendation)
+- **Comparison report:** GPT synthesis of 2 scenarios
+- **3-tier fallback:** GPT → retry → Tool4Fallbacks.js score-aware generation
 
-      // Page 5: Protection + Psychological (9 fields)
-      insurancePolicies: number,
-      insuranceClarity: number,
-      insuranceConfidence: number,
-      insuranceStress: number,
-      financialEmotions: string,
-      primaryObstacle: string,
-      goalConfidence: number,
-      adaptiveScale: number,
-      adaptiveImpact: string
-    },
-    results: {
-      domainScores: {
-        moneyFlow: number,
-        obligations: number,
-        liquidity: number,
-        growth: number,
-        protection: number
-      },
-      benchmarks: {...},
-      weightedScores: {...},
-      priorityList: [...],
-      archetype: string,
-      timestamp: string
-    },
-    gptInsights: {},
-    overallInsight: {
-      overview: string,
-      topPatterns: string,
-      priorityActions: string,
-      source: string,
-      timestamp: string
-    }
-  },
-  Is_Latest: boolean
-}
+### Key Data Note
+**CRITICAL:** Field name is `multiply` NOT `multiplyAmount` (Tool4.js:376)
+
+### Cross-Tool Data
+**Pulls from:** Tool 1 (winner, scores), Tool 2 (age, dependents, employment, income data, debt data), Tool 3 (subdomainQuotients for disconnection score)
+**Provides to:** Tool 6 (monthlyIncome, multiply percentage, investmentScore, goalTimeline), Tool 8 (monthlyIncome, multiply, investmentScore)
+
+---
+
+<a id="tool-5"></a>
+## Tool 5: Love & Connection Grounding Tool
+
+**Purpose:** Reveals patterns of disconnection from others through showing love and receiving love
+**Flow:** 7 pages (1 intro + 6 subdomains), 30 questions (24 scale + 6 open)
+**Time:** 20-25 minutes
+**Manifest:** `tools/tool5/tool5.manifest.json`
+**Dependencies:** Tool 4
+**Unlocks:** Tool 6
+
+### Tool 5 Domains & Subdomains
+
+**Domain 1: Showing Love (Disconnection from Others - Active)**
+
+| Page | Subdomain | Key | Theme |
+|------|-----------|-----|-------|
+| 2 | 1.1 | `subdomain_1_1` | "I Must Give to Be Loved" |
+| 3 | 1.2 | `subdomain_1_2` | "Their Needs > My Needs" |
+| 4 | 1.3 | `subdomain_1_3` | "I Cannot Accept Help" |
+
+**Domain 2: Receiving Love (Disconnection from Others - Passive)**
+
+| Page | Subdomain | Key | Theme |
+|------|-----------|-----|-------|
+| 5 | 2.1 | `subdomain_2_1` | "I Cannot Survive Alone" |
+| 6 | 2.2 | `subdomain_2_2` | "I Owe Them Everything" |
+| 7 | 2.3 | `subdomain_2_3` | "I Stay in Debt" |
+
+### Scale Questions (24 total)
+
+Each subdomain follows the same Belief/Behavior/Feeling/Consequence pattern as Tool 3.
+
+**Field naming:** `subdomain_X_Y_{aspect}` where aspect = belief, behavior, feeling, consequence
+**Open responses:** `subdomain_X_Y_open_response`
+
+**Subdomain 1.1 Questions:**
+| Aspect | Field | Question Text |
+|--------|-------|---------------|
+| Belief | `subdomain_1_1_belief` | "I need to give financially to others or I will lose their love and connection" |
+| Behavior | `subdomain_1_1_behavior` | "I give money, pay for things, or financially support others even when I cannot afford to" |
+| Feeling | `subdomain_1_1_feeling` | "I feel guilty or anxious when I spend money on myself instead of others" |
+| Consequence | `subdomain_1_1_consequence` | "My giving has damaged my own financial stability, savings, or ability to meet my own needs" |
+| Open | `subdomain_1_1_open_response` | "Who in your life do you feel you must give money to..." |
+
+**Subdomain 1.2 Questions:**
+| Aspect | Field | Question Text |
+|--------|-------|---------------|
+| Belief | `subdomain_1_2_belief` | "Other people's financial needs are more important and more urgent than mine" |
+| Behavior | `subdomain_1_2_behavior` | "I postpone my own financial goals (saving, investing, debt payoff) to help others with theirs" |
+| Feeling | `subdomain_1_2_feeling` | "I feel selfish or uncomfortable when I prioritize my financial needs over someone else's" |
+| Consequence | `subdomain_1_2_consequence` | "I have fallen behind on my own financial goals because I keep redirecting resources to others" |
+| Open | `subdomain_1_2_open_response` | "Think of a time you prioritized someone else's financial needs over your own..." |
+
+**Subdomain 1.3 Questions:**
+| Aspect | Field | Question Text |
+|--------|-------|---------------|
+| Belief | `subdomain_1_3_belief` | "Accepting financial help means I am weak, incapable, or will owe something I cannot repay" |
+| Behavior | `subdomain_1_3_behavior` | "I refuse financial help, turn down offers, or insist on handling everything myself even when struggling" |
+| Feeling | `subdomain_1_3_feeling` | "I feel shame, vulnerability, or loss of control when someone helps me financially" |
+| Consequence | `subdomain_1_3_consequence` | "My refusal to accept help has kept me stuck or made financial problems worse" |
+| Open | `subdomain_1_3_open_response` | "Describe a time you refused financial help you actually needed..." |
+
+**Subdomain 2.1 Questions:**
+| Aspect | Field | Question Text |
+|--------|-------|---------------|
+| Belief | `subdomain_2_1_belief` | "I cannot financially survive or thrive without support" |
+| Behavior | `subdomain_2_1_behavior` | "I rely on others to cover my expenses or make financial decisions for me" |
+| Feeling | `subdomain_2_1_feeling` | "I feel helpless and incapable of managing money on my own" |
+| Consequence | `subdomain_2_1_consequence` | "I have stayed in unhealthy relationships because of financial dependence" |
+| Open | `subdomain_2_1_open_response` | "Who do you currently depend on financially..." |
+
+**Subdomain 2.2 Questions:**
+| Aspect | Field | Question Text |
+|--------|-------|---------------|
+| Belief | `subdomain_2_2_belief` | "I believe that when someone helps me financially, I owe them and can never fully repay them" |
+| Behavior | `subdomain_2_2_behavior` | "I let others control my financial decisions because they have helped me, even when I disagree" |
+| Feeling | `subdomain_2_2_feeling` | "I feel trapped and obligated by others' financial help; the weight of owing them is heavy" |
+| Consequence | `subdomain_2_2_consequence` | "I have let people control me or made choices I regret because I felt I 'owed' them for their help" |
+| Open | `subdomain_2_2_open_response` | "Who do you feel most indebted to..." |
+
+**Subdomain 2.3 Questions:**
+| Aspect | Field | Question Text |
+|--------|-------|---------------|
+| Belief | `subdomain_2_3_belief` | "I will always be in debt; no matter what I do, I cannot get ahead financially" |
+| Behavior | `subdomain_2_3_behavior` | "I accumulate debt — credit cards, loans, personal borrowing — or spend money before I have it" |
+| Feeling | `subdomain_2_3_feeling` | "I feel shame, stress, and anxiety about my debt — trapped in a cycle I cannot escape" |
+| Consequence | `subdomain_2_3_consequence` | "My debt has kept me financially unstable — unable to build savings, create independence, or feel secure" |
+| Open | `subdomain_2_3_open_response` | "What is your biggest source of debt right now, and what keeps you from getting out from under it?" |
+
+### System Outputs
+Identical scoring hierarchy to Tool 3: Aspect Scores → Subdomain Quotients (0-100) → Domain Quotients → Overall Quotient
+
+### GPT/AI Insights
+Same architecture as Tool 3: 6 subdomain + 2 domain + 1 overall synthesis, 3-tier fallback
+
+### Cross-Tool Data
+**Pulls from:** None
+**Provides to:** Tool 6 (subdomainQuotients), Tool 8 (subdomainQuotients for contextual warnings)
+
+---
+
+<a id="tool-6"></a>
+## Tool 6: Investment Vehicle Allocation Calculator
+
+**Purpose:** Profile-based investment vehicle allocation using 9 investor profiles, IRS limits, and ambition quotient scoring
+**Flow:** 3 phases (Classification → Allocation inputs → Ambition Quotient) → Calculator → Report
+**Time:** 20-30 minutes
+**Manifest:** `tools/tool6/tool6.manifest.json`
+**Dependencies:** Tool 5
+**Unlocks:** Tool 7
+
+### User-Facing Questions
+
+#### Phase A: Classification Questions (2-7 questions)
+
+| Field | Type | Question Text | Options |
+|-------|------|---------------|---------|
+| `c1_robsStatus` | Radio | ROBS plan status | "not-using", "interested", "using" |
+| `c2_robsQualifier1` | Radio (conditional) | ROBS qualifier 1 | Yes/No |
+| `c3_robsQualifier2` | Radio (conditional) | ROBS qualifier 2 | Yes/No |
+| `c4_robsQualifier3` | Radio (conditional) | ROBS qualifier 3 | Yes/No |
+| `c5_workSituation` | Radio | Work situation | "W-2", "Self-employed", "BizWithEmployees", "Both" |
+| `c6_hasTradIRA` | Radio (conditional) | Has Traditional IRA? | Yes/No |
+| `c7_taxFocus` | Radio (conditional) | Tax focus preference | "Now", "Later", "Both" |
+
+**9 Investor Profiles:**
+1. ROBS-In-Use
+2. ROBS-Curious
+3. Business Owner w/ Employees
+4. Solo 401(k) Optimizer
+5. Bracket Strategist
+6. Catch-Up Contributor (age ≥50, low retirement confidence)
+7. Foundation Builder (default W-2)
+8. Roth Maximizer
+9. Late-Stage Growth (age ≥55 or ≤5 years to retirement)
+
+#### Phase B: Allocation Input Questions (16+ conditional)
+
+**Income & Timeline (always asked):**
+| Field | Type | Range |
+|-------|------|-------|
+| `a1_grossIncome` | Currency | $0+ |
+| `a2_yearsToRetirement` | Number | 1-50 |
+| `a2b_taxPreference` | Select | Now (Roth) / Later (Traditional) / Both |
+
+**Employer Plans (W-2 only, skipped for Profiles 1-4):**
+| Field | Type | Conditional |
+|-------|------|-------------|
+| `a3_has401k` | Yes/No | Always (W-2) |
+| `a4_hasMatch` | Yes/No | If has 401(k) |
+| `a5_matchFormula` | Select | If has match (8 options) |
+| `a6_hasRoth401k` | Yes/No | If has 401(k) |
+
+**HSA & Education:**
+| Field | Type | Conditional |
+|-------|------|-------------|
+| `a7_hsaEligible` | Yes/No | Always |
+| `a8_hasChildren` | Yes/No | Always |
+| `a9_numChildren` | Number 1-10 | If has children |
+| `a10_yearsToEducation` | Number 0-25 | If has children |
+| `a11_educationVehicle` | Select | If has children (529/Coverdell/Both) |
+
+**Current Balances:**
+| Field | Type | Conditional |
+|-------|------|-------------|
+| `a12_current401kBalance` | Currency | If has 401(k) |
+| `a13_currentIRABalance` | Currency | Always |
+| `a13b_tradIRABalance` | Select | Backdoor Roth pro-rata (none/under10k/over10k/unsure) |
+| `a13c_401kAcceptsRollovers` | Select | If has 401(k) + Trad IRA |
+| `a13d_selfEmploymentIncome` | Currency | Self-employed only |
+| `a14_currentHSABalance` | Currency | If HSA eligible |
+| `a15_currentEducationBalance` | Currency | If has children |
+
+**Monthly Contributions:**
+| Field | Type | Conditional |
+|-------|------|-------------|
+| `a16_monthly401kContribution` | Currency | If has 401(k) |
+| `a17_monthlyIRAContribution` | Currency | Always |
+| `a18_monthlyHSAContribution` | Currency | If HSA eligible |
+| `a19_monthlyEducationContribution` | Currency | If has children |
+
+#### Phase C: Ambition Quotient Questions (7-10 questions)
+
+**Retirement Domain (always asked, scale 1-7):**
+| Field | Question Text |
+|-------|---------------|
+| `aq_retirement_importance` | "How important is saving for retirement at this point in your life?" |
+| `aq_retirement_anxiety` | "How much anxiety do you currently feel about your retirement outlook?" |
+| `aq_retirement_motivation` | "How motivated are you to take action toward your retirement goals?" |
+
+**Education Domain (if hasChildren, scale 1-7):**
+| Field | Question Text |
+|-------|---------------|
+| `aq_education_importance` | "How important is saving for education at this point in your life?" |
+| `aq_education_anxiety` | "How much anxiety do you feel about funding education expenses?" |
+| `aq_education_motivation` | "How motivated are you to take action toward education savings?" |
+
+**Health Domain (if HSA eligible, scale 1-7):**
+| Field | Question Text |
+|-------|---------------|
+| `aq_health_importance` | "How important is saving for future healthcare costs?" |
+| `aq_health_anxiety` | "How much anxiety do you feel about affording healthcare expenses?" |
+| `aq_health_motivation` | "How motivated are you to set aside money for health-related expenses?" |
+
+**Tie-Breaker (if all 3 domains active):**
+| Field | Type | Options |
+|-------|------|---------|
+| `aq_tiebreaker` | Select | "Retirement security" / "Education savings" / "Health/medical expenses" |
+
+### System Outputs
+
+**Domain Weights (Ambition Quotient):**
+```
+importance = (score - 1) / 6
+urgency = 1 / (1 + 0.005)^(years * 12)
+raw_weight = (importance + urgency_normalized) / 2
+final_weight = raw_weight / sum(all_raw_weights)
 ```
 
-### Tool 3 Response Schema
+**Vehicle Allocation Waterfall:** Budget cascades through eligible vehicles by domain priority, respecting IRS limits
+
+**Investment Score → Return Rate:**
+```
+annualReturn = 0.08 + ((score - 1) / 6) * 0.12
+Score 1 → 8%, Score 4 → 14%, Score 7 → 20%
+```
+
+**Future Value Projections:** Monthly compounding with inflation adjustment
+
+### GPT/AI Insights
+- Single report: GPT-4o (overview, key observations, implementation steps)
+- Comparison report: GPT-4o (synthesis, decision guidance, tradeoffs)
+- 3-tier fallback with profile-aware narratives
+
+### Cross-Tool Data
+**Pulls from:** Tool 1 (traumaPattern, scores), Tool 2 (age, income, employment, marital), Tool 3 (subdomainQuotients), Tool 4 (monthlyIncome, multiply, investmentScore, goalTimeline), Tool 5 (subdomainQuotients)
+**Provides to:** Tool 8 (investmentScore, yearsToRetirement, monthlyBudget, pre-survey balances a12-a15)
+
+### Key Data Notes
+- Tool 4 data is FLAT: `tool4Data.data.multiply` (not double-nested)
+- Tool 2 data is at `tool2Data.data.data.age`
+- Pre-survey retirement balances (a12-a15) stored in TOOL6_SCENARIOS sheet
+- `a13_currentIRABalance` is COMBINED Traditional + Roth total
+
+---
+
+<a id="tool-7"></a>
+## Tool 7: Security & Control Grounding Tool
+
+**Purpose:** Reveals patterns of disconnection from greater purpose through control and fear leading to isolation
+**Flow:** 7 pages (1 intro + 6 subdomains), 30 questions (24 scale + 6 open)
+**Time:** 20-25 minutes
+**Manifest:** `tools/tool7/tool7.manifest.json`
+**Dependencies:** Tool 6
+**Unlocks:** Tool 8
+
+### Tool 7 Domains & Subdomains
+
+**Domain 1: Control Leading to Isolation (Disconnection from Greater Purpose - Active)**
+
+| Page | Subdomain | Key | Theme |
+|------|-----------|-----|-------|
+| 2 | 1.1 | `subdomain_1_1` | "I Undercharge and Give Away" |
+| 3 | 1.2 | `subdomain_1_2` | "I Have Money But Will Not Use It" |
+| 4 | 1.3 | `subdomain_1_3` | "Only I Can Do It Right" |
+
+**Domain 2: Fear Leading to Isolation (Disconnection from Greater Purpose - Passive)**
+
+| Page | Subdomain | Key | Theme |
+|------|-----------|-----|-------|
+| 5 | 2.1 | `subdomain_2_1` | "I Do Not Protect Myself" |
+| 6 | 2.2 | `subdomain_2_2` | "I Sabotage Success" |
+| 7 | 2.3 | `subdomain_2_3` | "I Trust the Wrong People" |
+
+### Scale Questions (24 total)
+
+**Subdomain 1.1: "I Undercharge and Give Away"**
+| Aspect | Field | Question Text |
+|--------|-------|---------------|
+| Belief | `subdomain_1_1_belief` | "I do not deserve to be paid what I am worth, or asking for more would make me greedy or selfish" |
+| Behavior | `subdomain_1_1_behavior` | "I undercharge for my work, give away my skills for free, or let people take advantage of me financially" |
+| Feeling | `subdomain_1_1_feeling` | "I feel guilty, uncomfortable, or afraid when I consider charging what I am actually worth" |
+| Consequence | `subdomain_1_1_consequence` | "I have earned significantly less than I could have because I consistently undervalue my work" |
+| Open | `subdomain_1_1_open_response` | "What do you give away for free or undercharge for..." |
+
+**Subdomain 1.2: "I Have Money But Will Not Use It"**
+| Aspect | Field | Question Text |
+|--------|-------|---------------|
+| Belief | `subdomain_1_2_belief` | "Spending money on myself or deploying savings is dangerous, even when I have the resources" |
+| Behavior | `subdomain_1_2_behavior` | "I hoard money, resist spending even when I can afford to, or keep resources frozen that could be working for me" |
+| Feeling | `subdomain_1_2_feeling` | "I feel intense anxiety about spending or deploying money, even when it is clearly the right move" |
+| Consequence | `subdomain_1_2_consequence` | "My refusal to use money has cost me opportunities, growth, or quality of life" |
+| Open | `subdomain_1_2_open_response` | "What money are you sitting on that you know you should deploy..." |
+
+**Subdomain 1.3: "Only I Can Do It Right"**
+| Aspect | Field | Question Text |
+|--------|-------|---------------|
+| Belief | `subdomain_1_3_belief` | "If I do not personally control every financial detail, things will go wrong" |
+| Behavior | `subdomain_1_3_behavior` | "I refuse to delegate financial tasks, micromanage every detail, or redo others' financial work" |
+| Feeling | `subdomain_1_3_feeling` | "I feel anxious and unable to let go when someone else handles financial matters" |
+| Consequence | `subdomain_1_3_consequence` | "My need to control every detail has kept me stuck, burned out, or created more chaos than it prevented" |
+| Open | `subdomain_1_3_open_response` | "What financial tasks or responsibilities do you refuse to delegate..." |
+
+**Subdomain 2.1: "I Do Not Protect Myself"**
+| Aspect | Field | Question Text |
+|--------|-------|---------------|
+| Belief | `subdomain_2_1_belief` | "I would not know what protection to ask for or whether I was doing it correctly, so I avoid it" |
+| Behavior | `subdomain_2_1_behavior` | "I enter financial agreements without contracts, do not claim benefits I qualify for, or skip basic protective measures" |
+| Feeling | `subdomain_2_1_feeling` | "I feel overwhelmed or paralyzed when I think about protecting myself, so I avoid it" |
+| Consequence | `subdomain_2_1_consequence` | "I have lost money or opportunities because I did not have contracts, did not protect myself, or did not claim what I was entitled to" |
+| Open | `subdomain_2_1_open_response` | "Describe a financial situation where you knew you should have gotten something in writing..." |
+
+**Subdomain 2.2: "I Sabotage Success"**
+| Aspect | Field | Question Text |
+|--------|-------|---------------|
+| Belief | `subdomain_2_2_belief` | "When things start going well financially, I feel like something bad is about to happen or I do not deserve it" |
+| Behavior | `subdomain_2_2_behavior` | "I create problems when things are going well, quit projects before they succeed, or turn down opportunities that could help me" |
+| Feeling | `subdomain_2_2_feeling` | "I feel anxious, unworthy, or filled with dread when I am on the verge of financial success" |
+| Consequence | `subdomain_2_2_consequence` | "I have a pattern of almost succeeding financially but sabotaging it, quitting too soon, or refusing chances that could have changed things" |
+| Open | `subdomain_2_2_open_response` | "Describe a time you were close to a financial breakthrough or success but something went wrong..." |
+
+**Subdomain 2.3: "I Trust the Wrong People"**
+| Aspect | Field | Question Text |
+|--------|-------|---------------|
+| Belief | `subdomain_2_3_belief` | "I am destined to be betrayed financially; I always end up trusting people who hurt me" |
+| Behavior | `subdomain_2_3_behavior` | "I ignore red flags and trust people with money even when I have a bad feeling about them" |
+| Feeling | `subdomain_2_3_feeling` | "I feel resigned to being betrayed — it always happens, so why try to prevent it" |
+| Consequence | `subdomain_2_3_consequence` | "I have been financially burned multiple times by people I knew had red flags but trusted anyway" |
+| Open | `subdomain_2_3_open_response` | "Describe a specific time you trusted someone with money despite warning signs you noticed..." |
+
+### System Outputs
+Identical scoring hierarchy to Tools 3 and 5
+
+### GPT/AI Insights
+Same architecture as Tools 3 and 5
+
+### Cross-Tool Data
+**Pulls from:** None (despite manifest requiring Tool 6, no actual data pulls)
+**Provides to:** Tool 8 (subdomainQuotients for contextual warnings)
+
+---
+
+<a id="tool-8"></a>
+## Tool 8: Investment Planning Calculator
+
+**Purpose:** Retirement investment planning with 3 calculation modes, trauma-informed warnings, and scenario comparison
+**Flow:** Data review → Calculator (3 modes) → Scenario save → PDF report
+**Time:** 15-20 minutes
+**Manifest:** `tools/tool8/tool8.manifest.json`
+**Dependencies:** Tool 7
+**Unlocks:** None (final tool)
+
+### User-Facing Inputs
+
+#### Primary Calculator Inputs (5 inputs, pre-populated from upstream tools)
+
+| Field (HTML ID) | Type | Range | Default Source | Question/Label |
+|-----------------|------|-------|----------------|----------------|
+| `income` / `incomeN` | Slider + Number | $0-50,000/mo | Tool 6 or Tool 4 | "Retirement Income Goal (today's dollars)" |
+| `years` / `yearsN` | Slider + Number | 1-50 years | Tool 6 or (65 - Tool 2 age) | "Years Until Retirement" |
+| `risk` / `riskN` | Slider + Number | 0-10 | Tool 6 investmentScore or Tool 4 | "Risk Tolerance" (maps to return via sigmoid) |
+| `capN` | Number | $0-50,000/mo | Tool 6 monthlyBudget or Tool 4 | "Monthly Savings Capacity" |
+| `a0N` | Number | $0+ | Sum of Tool 6 a12-a15 | "Current Investment Balance" |
+
+#### Advanced Settings (4 inputs, collapsible)
+| Field | Type | Range | Default | Label |
+|-------|------|-------|---------|-------|
+| `inflAdv` / `inflAdvN` | Range + Number | 0-10% | 2.5% | Inflation Rate |
+| `drawAdv` / `drawAdvN` | Range + Number | 10-50 years | 30 | Retirement Duration |
+| `rRetAdv` / `rRetAdvN` | Range + Number | 0-20% | 10% | Maintenance Return |
+| `dragAdv` / `dragAdvN` | Range + Number | 0-50% | 20% | Deployment Drag |
+
+#### Return Override (conditional)
+| Field | Type | Condition |
+|-------|------|-----------|
+| `overrideToggle` | Checkbox | Manual return override |
+| `rAccOverride` / `rAccOverrideN` | Range + Number | Active when toggle checked (0.01-30%) |
+
+#### Backup Questions (if Tool 1 data missing, 3 questions)
+
+Same 3 backup questions as Tool 4:
+| Field | Question Text |
+|-------|---------------|
+| `backupStressResponse` | "When money stress hits, what is your typical first response?" |
+| `backupCoreBelief` | "Which statement feels most true about money for you?" |
+| `backupConsequence` | "What financial pattern do you notice repeating in your life?" |
+
+Pattern determined by majority vote across 3 answers.
+
+### 3 Calculation Modes
+
+**Mode 1: Contribution (default)**
+"How much do I need to save monthly?"
+- Solves for: Required monthly contribution (`Creq`)
+
+**Mode 2: Return**
+"What return do I need?"
+- Solves for: Required annual return (`rSolved`) using bisection
+
+**Mode 3: Time**
+"How long will it take?"
+- Solves for: Required years (`tSolved`) using bisection
+
+### System Outputs
+
+#### Core Formulas
+```
+Risk-to-Return (Sigmoid): r = rMin + (rMax - rMin) * sigmoid(k * (R - m))
+  rMin=0.045, rMax=0.25, k=0.6, m=5.0
+
+Effective Return: rAccEff = rAcc * (1 - drag) + cashOnDrag * drag
+  drag=0.20, cashOnDrag=0.05
+
+Required Nest Egg (Growing Annuity):
+  M0 = M_real * (1 + infl)^T
+  Areq = 12 * M0 * (1 - ((1+g)/(1+j))^(12*D)) / (rRet - infl)
+
+Future Value: FV = A0*(1+rEff)^T + C*((1+i)^(12T) - 1)/i
+
+Required Contribution: Creq = (Areq - FV_A0) / FV_factor
+```
+
+#### Risk Bands
+| Risk Range | Band Name | Explain |
+|-----------|-----------|---------|
+| 0.0 - 2.0 | Very Low Risk/Low Returns | Cash/T-bills/IG credit; low vol; high liquidity |
+| 2.0 - 4.0 | Steady Returns | Fixed Funds |
+| 4.0 - 6.0 | Growth Backed by Hard Assets | Multi-Family Real Estate |
+| 6.0 - 8.0 | High Growth | Hedge Fund |
+| 8.0 - 10.1 | High Risk/High Reward | Private Equity |
+
+### Trauma Integration (4-Layer System)
+
+**Layer 1: Primary Pattern Detection** (from Tool 1 winner)
+6 trauma-specific investment manifestation insights (FSV, ExVal, Showing, Receiving, Control, Fear)
+
+**Layer 2: Contextual Warnings** (from Tools 3/5/7 subdomain scores)
+18 warning definitions triggered when subdomain quotient > 50 and specific calculator behaviors detected (e.g., zero contribution, max risk, override all prepopulated values)
+
+**Layer 3: Backup Questions** (if Tool 1 missing)
+3 multi-choice questions with majority voting
+
+**Layer 4: Action Barriers** (PDF only)
+8 barriers tied to subdomains scoring > 60, with specific messages, first steps, and healing connections
+
+### Scenario Management
+- Save up to 10 scenarios per client (FIFO)
+- Compare 2 scenarios side-by-side
+- PDF generation for single and comparison reports
+
+### GPT/AI Insights
+- Single report: GPT-4o (overview, key insights, next steps)
+- Comparison report: GPT-4o (synthesis, decision guidance, tradeoffs)
+- 3-tier fallback with mode/feasibility-aware templates
+
+### Saved Data Structure (TOOL8_SCENARIOS, 22 columns)
+```
+Timestamp, Client_ID, Scenario_Name,
+M_real, T, Risk_Dial, rAccTarget, rAccEff,
+C_cap, A0, Inflation, Draw_Years, rRet,
+M0, Areq, Creq, rSolved, tSolved,
+Mode, Is_Latest, First_Name, Last_Name
+```
+
+### Cross-Tool Data
+**Pulls from:** Tool 1 (winner, scores), Tool 2 (age → years calc), Tool 3 (subdomainQuotients), Tool 4 (monthlyIncome, multiply, investmentScore), Tool 5 (subdomainQuotients), Tool 6 (investmentScore, yearsToRetirement, monthlyBudget, pre-survey balances a12-a15, vehicleAllocations), Tool 7 (subdomainQuotients)
+**Provides to:** None (final tool)
+
+---
+
+<a id="cross-tool-data-flow"></a>
+## Cross-Tool Data Flow & Pre-Population
+
+### Complete Data Flow Map
+
+```
+Tool 1 ──────────────────────────────────────────────────────────────────┐
+│ name, email → Tool 2 (pre-fill)                                       │
+│ winner, scores → Tool 2 (adaptive Q55/Q56)                            │
+│ winner, scores → Tool 4 (trauma-aware priority modifiers)             │
+│ winner, scores → Tool 6 (GPT context)                                 │
+│ winner, scores → Tool 8 (Layer 1 trauma insights, backup questions)   │
+└───────────────────────────────────────────────────────────────────────┘
+
+Tool 2 ──────────────────────────────────────────────────────────────────┐
+│ age → Tool 6 (catch-up eligibility, profile classification)           │
+│ age → Tool 8 (years to retirement fallback: 65 - age)                 │
+│ marital → Tool 6 (filing status inference)                            │
+│ employment → Tool 6 (profile classification)                          │
+│ dependents → Tool 4 (modifier)                                        │
+│ investmentConfidence → Tool 8 (risk dial fallback)                    │
+│ incomeConsistency → Tool 4 (income stability derivation)              │
+└───────────────────────────────────────────────────────────────────────┘
+
+Tool 3 ──────────────────────────────────────────────────────────────────┐
+│ subdomainQuotients → Tool 4 (disconnection score for priority mods)   │
+│ subdomainQuotients → Tool 6 (GPT context)                             │
+│ subdomainQuotients → Tool 8 (Layer 2 contextual warnings, barriers)   │
+└───────────────────────────────────────────────────────────────────────┘
+
+Tool 4 ──────────────────────────────────────────────────────────────────┐
+│ monthlyIncome → Tool 6 (backup gross income)                          │
+│ multiply (%) → Tool 6 (monthly budget = income * multiply / 100)      │
+│ multiply (%) → Tool 8 (savings capacity fallback)                     │
+│ investmentScore → Tool 6 (return rate, projections)                   │
+│ investmentScore → Tool 8 (risk dial fallback: (score-1)/6 * 10)      │
+│ goalTimeline → Tool 6 (years to retirement backup)                    │
+└───────────────────────────────────────────────────────────────────────┘
+
+Tool 5 ──────────────────────────────────────────────────────────────────┐
+│ subdomainQuotients → Tool 6 (GPT context)                             │
+│ subdomainQuotients → Tool 8 (Layer 2 contextual warnings, barriers)   │
+└───────────────────────────────────────────────────────────────────────┘
+
+Tool 6 ──────────────────────────────────────────────────────────────────┐
+│ investmentScore → Tool 8 (primary risk dial)                          │
+│ yearsToRetirement → Tool 8 (primary years value)                      │
+│ monthlyBudget → Tool 8 (primary savings capacity)                     │
+│ Pre-survey a12-a15 → Tool 8 (current balance: sum of 401k+IRA+HSA+ed)│
+│ vehicleAllocations → Tool 8 (display context)                         │
+│ scenarioTimestamp → Tool 8 (attribution)                               │
+└───────────────────────────────────────────────────────────────────────┘
+
+Tool 7 ──────────────────────────────────────────────────────────────────┐
+│ subdomainQuotients → Tool 8 (Layer 2 contextual warnings, barriers)   │
+└───────────────────────────────────────────────────────────────────────┘
+
+Tool 8 ── Final tool, provides to: None
+```
+
+### Pre-Survey / Draft Data Sources
+
+| Tool | Draft Storage Key | Pre-Survey Fields | Source |
+|------|-------------------|-------------------|--------|
+| Tool 1 | `tool1_draft_{clientId}` | None (first tool) | N/A |
+| Tool 2 | `tool2_draft_{clientId}` | name, email | Tool 1 |
+| Tool 3 | `tool3_draft_{clientId}` | None | N/A |
+| Tool 4 | `tool4_presurvey_{clientId}` | All 10 core + backup questions | User entry |
+| Tool 5 | `tool5_draft_{clientId}` | None | N/A |
+| Tool 6 | `tool6_presurvey_{clientId}` | Classification + allocation + AQ answers, a12-a15 balances | User + upstream |
+| Tool 7 | `tool7_draft_{clientId}` | None | N/A |
+| Tool 8 | N/A (no pre-survey) | Pre-populated from Tools 2,4,6 | Upstream tools |
+
+### Tool 8 Pre-Population Priority Chain
+
+Tool 8 resolves each input field from multiple upstream sources with a priority chain:
+
+| Calculator Field | Priority 1 (Primary) | Priority 2 (Fallback) | Priority 3 |
+|-----------------|---------------------|----------------------|------------|
+| Monthly Savings | Tool 6 scenario `monthlyBudget` | Tool 4: `monthlyIncome * multiply / 100` | Manual entry |
+| Current Balance | Tool 6 pre-survey: sum(a12+a13+a14+a15) | None | Manual entry |
+| Years to Retire | Tool 6 scenario `yearsToRetirement` | Tool 2: `65 - age` | Manual entry |
+| Risk Tolerance | Tool 6 `investmentScore` (0-10) | Tool 4: `(investmentScore-1)/6 * 10` | Tool 2 `investmentConfidence` |
+
+### Backup Question System (Tools 4 & 8)
+
+When upstream tools are incomplete, Tools 4 and 8 ask backup questions:
+
+| Missing Tool | Backup Questions | Purpose |
+|-------------|-----------------|---------|
+| Tool 1 | 3 stress/belief/pattern questions (6 options each) | Derive trauma pattern via majority vote |
+| Tool 2 | 5 questions (growth, stability, income consistency, dependents, life stage) | Derive financial context |
+| Tool 3 | 6 sliders (worthiness, scarcity, avoidance, worth-money, judgment, proving) | Derive disconnection score via `10 - score` inversion |
+
+### Cross-Tool Data Access Patterns
+
+**Direct field access:**
 ```javascript
-{
-  Client_ID: string,
-  Tool_Name: "tool3",
-  Timestamp: Date,
-  Status: "COMPLETED",
-  Data: {
-    responses: {
-      // 24 scale questions (6 subdomains × 4 aspects)
-      subdomain_1_1_belief: number,
-      subdomain_1_1_behavior: number,
-      subdomain_1_1_feeling: number,
-      subdomain_1_1_consequence: number,
-      subdomain_1_1_open_response: string,
-      // ... repeated for all 6 subdomains
-    },
-    scoring: {
-      subdomainQuotients: {...},
-      domainQuotients: {...},
-      overallQuotient: number
-    },
-    gpt_insights: {
-      subdomains: {...}
-    },
-    syntheses: {
-      domain1: {...},
-      domain2: {...},
-      overall: {...}
-    },
-    timestamp: string,
-    tool_version: string
-  },
-  Is_Latest: boolean
-}
+// Tool 1 → others
+tool1Data = DataService.getLatestResponse(clientId, 'tool1')
+winner = tool1Data.data.winner
+scores = tool1Data.data.scores
+
+// Tool 2 → others
+tool2Data = DataService.getLatestResponse(clientId, 'tool2')
+age = tool2Data.data.data.age  // Note: double .data
+marital = tool2Data.data.data.marital
+
+// Tool 3/5/7 → others
+toolXData = DataService.getLatestResponse(clientId, 'toolX')
+quotients = toolXData.data.scoring.subdomainQuotients
+
+// Tool 4 → others
+tool4Data = DataService.getLatestResponse(clientId, 'tool4')
+multiply = tool4Data.data.multiply  // FLAT, not double-nested
+monthlyIncome = tool4Data.data.monthlyIncome
+
+// Tool 6 pre-survey → Tool 8
+draftData = DraftService.getDraft('tool6', clientId)
+a12 = draftData.a12_current401kBalance
 ```
 
 ---
 
-## 🔑 Key Middleware Functions Needed
+<a id="data-collection-summary"></a>
+## Data Collection Summary
 
-### 1. **Data Retrieval**
-```javascript
-// Get latest response from any tool
-getLatestToolResponse(clientId, toolId)
+### Total Questions by Tool
 
-// Get all responses for cross-tool analysis
-getAllClientResponses(clientId)
+| Tool | Scale Questions | Text/Select Questions | Open Response | Conditional | Total |
+|------|----------------|----------------------|---------------|-------------|-------|
+| 1 | 18 (q3-q22) | 2 (name, email) | 0 | 0 | 26* |
+| 2 | 37 | 12 (demographics + obstacle) | 7 (free text) | 1 (businessStage) | 56 |
+| 3 | 24 | 0 | 6 | 0 | 30 |
+| 4 | 6 (sliders) | 4 (currency) | 0 | 0-19 (backup) | 10-29 |
+| 5 | 24 | 0 | 6 | 0 | 30 |
+| 6 | 9 (AQ) | 20+ (classification, allocation) | 0 | Many (profile-based) | ~35 |
+| 7 | 24 | 0 | 6 | 0 | 30 |
+| 8 | 0 | 5 (calculator) + 4 (advanced) | 0 | 3 (backup) | 5-12 |
 
-// Get specific fields across tools
-getFieldsAcrosTools(clientId, fieldMap)
+*Tool 1 includes 12 ranking questions (1-10 scale)
+
+### All Field Names by Tool
+
+**Tool 1 (32 fields):**
+```
+name, email, q3-q8, q10-q15, q17-q22,
+thought_fsv, thought_exval, thought_showing, thought_receiving, thought_control, thought_fear,
+feeling_fsv, feeling_exval, feeling_showing, feeling_receiving, feeling_control, feeling_fear
 ```
 
-### 2. **Pre-filling**
-```javascript
-// Pre-fill Tool 2 from Tool 1
-prefillTool2FromTool1(clientId)
-
-// Smart pre-fill based on patterns
-suggestResponsesFromHistory(clientId, toolId, page)
+**Tool 2 (56 fields):**
+```
+name, email, studentId, age, marital, dependents, living, incomeStreams, employment, businessStage,
+holisticScarcity, financialScarcity, moneyRelationship,
+incomeClarity, incomeSufficiency, incomeConsistency, incomeStress, incomeSources,
+spendingClarity, spendingConsistency, spendingReview, spendingStress, majorExpenses, wastefulSpending,
+debtClarity, debtTrending, debtReview, debtStress, currentDebts,
+emergencyFundMaintenance, emergencyFundMonths, emergencyFundFrequency, emergencyFundReplenishment, emergencyFundStress,
+savingsLevel, savingsRegularity, savingsClarity, savingsStress,
+investmentActivity, investmentClarity, investmentConfidence, investmentStress, investmentTypes,
+retirementAccounts, retirementFunding, retirementConfidence, retirementStress,
+insurancePolicies, insuranceClarity, insuranceConfidence, insuranceStress,
+financialEmotions, primaryObstacle, goalConfidence, adaptiveScale, adaptiveImpact
 ```
 
-### 3. **Validation**
-```javascript
-// Check consistency across tools
-validateCrossToolConsistency(clientId)
-
-// Flag anomalies
-detectAnomalies(responses)
+**Tools 3, 5, 7 (30 fields each, same pattern):**
+```
+subdomain_1_1_belief, subdomain_1_1_behavior, subdomain_1_1_feeling, subdomain_1_1_consequence, subdomain_1_1_open_response,
+subdomain_1_2_belief, subdomain_1_2_behavior, subdomain_1_2_feeling, subdomain_1_2_consequence, subdomain_1_2_open_response,
+subdomain_1_3_belief, subdomain_1_3_behavior, subdomain_1_3_feeling, subdomain_1_3_consequence, subdomain_1_3_open_response,
+subdomain_2_1_belief, subdomain_2_1_behavior, subdomain_2_1_feeling, subdomain_2_1_consequence, subdomain_2_1_open_response,
+subdomain_2_2_belief, subdomain_2_2_behavior, subdomain_2_2_feeling, subdomain_2_2_consequence, subdomain_2_2_open_response,
+subdomain_2_3_belief, subdomain_2_3_behavior, subdomain_2_3_feeling, subdomain_2_3_consequence, subdomain_2_3_open_response
 ```
 
-### 4. **Analytics**
-```javascript
-// Calculate composite scores
-calculateCompositeScores(clientId)
-
-// Generate cross-tool insights
-generateCrossToolInsights(clientId)
-
-// Pattern detection
-detectPatterns(allResponses)
+**Tool 4 (10 core + 19 backup fields):**
+```
+Core: monthlyIncome, monthlyEssentials, totalDebt, emergencyFund, satisfaction, discipline, impulse, longTerm, lifestyle, autonomy
+Priority: selectedPriority, goalTimeline
+Output: multiply, essentials, freedom, enjoyment
+Backup T1: backupStressResponse, backupCoreBelief, backupConsequence
+Backup T3: backupWorthiness, backupScarcity, backupAvoidance, backupWorthMoney, backupOthersJudgment, backupProving
+Backup T2: backupGrowthOrientation, backupStabilityOrientation, backupIncomeConsistency, backupDependents, backupLifeStage
 ```
 
-### 5. **Reporting**
-```javascript
-// Generate unified report
-generateUnifiedReport(clientId)
-
-// Export data for analysis
-exportClientData(clientId, format)
+**Tool 6 (40+ fields):**
+```
+Classification: c1_robsStatus, c2-c4_robsQualifier, c5_workSituation, c6_hasTradIRA, c7_taxFocus
+Allocation: a1_grossIncome, a2_yearsToRetirement, a2b_taxPreference, a3_has401k, a4_hasMatch, a5_matchFormula, a6_hasRoth401k
+HSA/Education: a7_hsaEligible, a8_hasChildren, a9_numChildren, a10_yearsToEducation, a11_educationVehicle
+Balances: a12_current401kBalance, a13_currentIRABalance, a13b_tradIRABalance, a13c_401kAcceptsRollovers, a13d_selfEmploymentIncome, a14_currentHSABalance, a15_currentEducationBalance
+Contributions: a16_monthly401kContribution, a17_monthlyIRAContribution, a18_monthlyHSAContribution, a19_monthlyEducationContribution
+AQ: aq_retirement_importance/anxiety/motivation, aq_education_importance/anxiety/motivation, aq_health_importance/anxiety/motivation, aq_tiebreaker
 ```
 
----
+**Tool 8 (9+ fields):**
+```
+Calculator: income, years, risk, capN, a0N
+Advanced: inflAdv, drawAdv, rRetAdv, dragAdv
+Override: rAccOverride, overrideToggle
+Scenario: scnName
+Backup: backupStressResponse, backupCoreBelief, backupConsequence
+```
 
-## 📈 Next Steps for Middleware Development
+### System-Generated Outputs by Tool
 
-1. **Phase 1: Data Access Layer**
-   - Standardize data retrieval across tools
-   - Create unified response accessor functions
-   - Build field mapping dictionary
-
-2. **Phase 2: Pre-filling Enhancement**
-   - Extend Tool 1 → Tool 2 model to other tools
-   - Implement smart suggestions based on patterns
-   - Add validation for pre-filled data
-
-3. **Phase 3: Cross-Tool Analytics**
-   - Build composite scoring engine
-   - Implement pattern detection algorithms
-   - Create consistency validators
-
-4. **Phase 4: Unified Reporting**
-   - Design cross-tool report templates
-   - Build insight synthesis engine
-   - Create export functionality
-
----
-
-## 📝 Notes
-
-- All scale questions use -5 to +5 (Tool 1, Tool 2) or -3 to +3 (Tool 3)
-- Tool 3 uses GPT for qualitative insights; Tools 1 & 2 use formula-based scoring
-- Draft data stored in PropertiesService; completed data in RESPONSES sheet
-- `Is_Latest` flag ensures only current responses are used
-- Tool 2 includes critical trauma-adaptive questions (adaptiveScale, adaptiveImpact) that bridge Tool 1 patterns to Tool 2 financial behaviors
-
----
-
-## 📊 Real Student Data Examples
-
-Based on actual RESPONSES sheet data (as of Nov 2025):
-
-### Example Student: Evelia Salazar (0391ES)
-
-**Tool 1 Output:**
-- Winner: **Receiving** (score: 2)
-- Scores: FSV=1, ExVal=-12, Showing=-7, Receiving=2, Control=0, Fear=-3
-- Pattern: Struggles with accepting help from others
-
-**Tool 2 Output:**
-- Archetype: **Protection Planner**
-- Domain Scores: Money Flow=42 (53%), Obligations=38 (42%), Liquidity=19 (48%), Growth=24 (30%), Protection=13 (33%)
-- Financial Emotions: "avoidance, guilt, shame, overwhelm, fear of responsibility, hopeful of future, excitement of possibilities"
-- Primary Obstacle: emotional-avoidance
-- Adaptive Impact: "I loss money due to avoidance, not asking questions, I am ashamed to admit where I am financially, so I don't ask for help, I stay isolated or feel I am not enough to take someone time and ask questions, I do struggle alone, become isolated, fear speaking up because I will be judged"
-
-**Cross-Tool Insight:**
-- Tool 1 "Receiving" pattern (difficulty accepting help) **directly correlates** with Tool 2 "adaptiveImpact" field showing isolation and reluctance to ask for help
-- Low Protection and Growth scores in Tool 2 align with Receiving pattern
-- Middleware could flag this alignment for therapist review
-
-### Example Student: Greg Schulte (2382GS)
-
-**Tool 1 Output:**
-- Winner: **Showing** (score: 19)
-- Scores: FSV=-8, ExVal=8, Showing=19, Receiving=-5, Control=14, Fear=-10
-- Pattern: Over-giving to others
-
-**Tool 2 Output:**
-- Archetype: **Protection Planner**
-- Domain Scores: Money Flow=34 (43%), Obligations=43 (48%), Liquidity=17 (43%), Growth=45 (56%), Protection=25 (63%)
-- Financial Emotions: "Anger, Frustration, Dread, Some Hope, Running out of time to save, Fatigue about working hard and not having proper savings, High Stress meetings with spouse"
-- Primary Obstacle: past-trauma
-- Adaptive Impact: "Resentment, Lack of abundance, inability to meet my personal goals, Retirement is ALWAYS 10 years away, Exhaustion, Anger"
-- Adaptive Scale: +4 (positive - showing helps others)
-
-**Cross-Tool Insight:**
-- Tool 1 "Showing" pattern **confirmed** by Tool 2 GPT insight: "prioritizing the financial needs of your family and friends, sometimes at the expense of your own financial stability"
-- High Obligations score (48%) aligns with over-giving pattern
-- Middleware opportunity: Calculate "self-sacrifice index" from Tool 1 Showing + Tool 2 Obligations + wastefulSpending patterns
-
-### Example Student: Adrian Marrero (2798AM)
-
-**Tool 1 Output:**
-- Winner: **ExVal** (score: 18)
-- Scores: FSV=15, ExVal=18, Showing=10, Receiving=-10, Control=0, Fear=-6
-- Pattern: Seeks external validation
-
-**Tool 2 Output:**
-- Archetype: **Security Seeker**
-- Domain Scores: Money Flow=52 (65%), Obligations=28 (31%), Liquidity=11 (28%), Growth=53 (66%), Protection=29 (73%)
-- Financial Emotions: "Anxiety, guilt and embarrassment"
-- Primary Obstacle: inconsistent-income
-- Adaptive Impact: "makes me overspend"
-
-**Cross-Tool Insight:**
-- Tool 1 "ExVal" pattern **validated** by Tool 2 GPT insight: "feeling hesitant to make financial decisions without consulting friends or family"
-- Tool 2 insight: "You mentioned feeling the need to buy certain brands to fit in with your social circle" - direct ExVal manifestation
-- Middleware opportunity: Track "approval-seeking behaviors" across spending patterns and decision-making
-
----
-
-## 🔍 Observed Cross-Tool Patterns
-
-### Pattern 1: Trauma Winner → Financial Behavior
-| Tool 1 Winner | Common Tool 2 Manifestations |
-|--------------|------------------------------|
-| **Showing** | High Obligations, Low Liquidity, wastefulSpending on others, guilt about self-care |
-| **Receiving** | Low Protection, low emergencyFundMaintenance, reluctance to seek advice, isolation themes in adaptiveImpact |
-| **ExVal** | Spending for status, hiding financial reality, primaryObstacle = "fear-of-discovery", brand-conscious spending |
-| **FSV** | Avoidance behaviors, low clarity scores across domains, shame/guilt in financialEmotions |
-| **Fear** | High stress across all domains, emergency fund obsession or complete avoidance |
-| **Control** | High or very low clarity scores (hyper-controlling or completely avoidant), micromanaging or chaos |
-
-### Pattern 2: Tool 2 Archetypes vs Tool 1 Winners
-- **Protection Planner** archetype often correlates with Fear, Control, or Showing winners
-- **Security Seeker** archetype often correlates with ExVal or FSV winners
-- **Wealth Architect** archetype (when present) may correlate with lower trauma scores overall
-
-### Pattern 3: Adaptive Scale Correlations
-- **Positive adaptive scales** (+3 to +5): Often Showing winners who find purpose in helping others
-- **Negative adaptive scales** (-3 to -5): Often FSV or Fear winners with avoidance patterns
-- **Mid-range** (-2 to +2): Mixed patterns or early awareness of patterns
+| Tool | Scores | GPT Insights | Syntheses | Other |
+|------|--------|-------------|-----------|-------|
+| 1 | 6 category scores + winner | None | None | Report template selection |
+| 2 | 5 domain scores + benchmarks + weighted + archetype | 7 individual + 1 overall | 1 overall | Priority list |
+| 3 | 6 subdomain + 2 domain + 1 overall quotients | 6 subdomain | 2 domain + 1 overall | Gap + belief-behavior analysis |
+| 4 | M/E/F/J percentages + dollars | 1 main report | 1 comparison | Priority recommendations, validation warnings |
+| 5 | 6 subdomain + 2 domain + 1 overall quotients | 6 subdomain | 2 domain + 1 overall | Gap + belief-behavior analysis |
+| 6 | Domain weights + vehicle allocations + projections | 1 single + 1 comparison | None | Profile classification, IRS limit validation |
+| 7 | 6 subdomain + 2 domain + 1 overall quotients | 6 subdomain | 2 domain + 1 overall | Gap + belief-behavior analysis |
+| 8 | Areq + Creq/rSolved/tSolved + feasibility | 1 single + 1 comparison | None | Risk bands, milestone tables, action barriers |
 
 ---
 
 **Document maintained by:** Claude Code
-**Last updated:** 2025-11-28
-**Version:** 1.1 (Enhanced with real student data examples)
+**Last updated:** 2026-02-14
+**Version:** 2.0 (Complete 8-tool mapping)

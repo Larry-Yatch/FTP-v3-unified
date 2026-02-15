@@ -31,4 +31,7 @@ Future features:
 
 - integratae spousal account dynamically
 
+- DO we need to change tool to or maybe we do an onboarding one where we get actual financial situations. That way we can leverage that with our cross-tool analysis?
 
+Tool5
+- Leslie 7567LS her tool 5 data does not seem to be loading correctly.
