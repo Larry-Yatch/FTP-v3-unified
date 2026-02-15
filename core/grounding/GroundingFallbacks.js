@@ -29,7 +29,7 @@ const GroundingFallbacks = {
     const fallback = this.subdomainFallbacks[fallbackKey];
 
     if (!fallback) {
-      Logger.log(`⚠️ No fallback found for ${fallbackKey}, using generic`);
+      LogUtils.warn(`No fallback found for ${fallbackKey}, using generic`);
       return this.getGenericSubdomainFallback(aspectScores);
     }
 

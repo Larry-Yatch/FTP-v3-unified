@@ -35,7 +35,7 @@ const Tool8 = {
         .setTitle('Investment Planning Tool')
         .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
     } catch (error) {
-      console.error('Tool8.render error:', error);
+      LogUtils.error('Tool8.render error: ' + error);
       return HtmlService.createHtmlOutput(this.renderError(error.toString()))
         .setTitle('Tool 8 - Error')
         .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
@@ -2034,7 +2034,7 @@ const Tool8 = {
    */
   saveScenario(clientId, scenario) {
     try {
-      Logger.log('[Tool8.saveScenario] Called for client ' + clientId);
+      LogUtils.debug('[Tool8.saveScenario] Called for client ' + clientId);
 
       if (!scenario || typeof scenario !== 'object') {
         return { success: false, error: 'Invalid scenario data' };
@@ -2047,7 +2047,7 @@ const Tool8 = {
       var scenariosSheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.TOOL8_SCENARIOS);
 
       if (!scenariosSheet) {
-        Logger.log('[Tool8.saveScenario] Creating TOOL8_SCENARIOS sheet');
+        LogUtils.debug('[Tool8.saveScenario] Creating TOOL8_SCENARIOS sheet');
         var ss = SpreadsheetCache.getSpreadsheet();
         scenariosSheet = ss.insertSheet(CONFIG.SHEETS.TOOL8_SCENARIOS);
         scenariosSheet.appendRow(this.SCENARIO_HEADERS);
@@ -2111,7 +2111,7 @@ const Tool8 = {
       if (clientRows.length > MAX_SCENARIOS) {
         clientRows.sort(function(a, b) { return new Date(a.timestamp) - new Date(b.timestamp); });
         var oldest = clientRows[0];
-        Logger.log('[Tool8.saveScenario] Deleting oldest scenario "' + oldest.name + '" to enforce limit');
+        LogUtils.debug('[Tool8.saveScenario] Deleting oldest scenario "' + oldest.name + '" to enforce limit');
         scenariosSheet.deleteRow(oldest.rowIndex);
         SpreadsheetApp.flush();
         deletedScenario = oldest.name;
@@ -2129,13 +2129,13 @@ const Tool8 = {
             T: scenario.T,
             risk: scenario.risk
           }, 'COMPLETED');
-          Logger.log('[Tool8.saveScenario] Tool 8 marked as completed for client ' + clientId);
+          LogUtils.debug('[Tool8.saveScenario] Tool 8 marked as completed for client ' + clientId);
         } catch (responseError) {
-          Logger.log('[Tool8.saveScenario] Warning: Could not update Responses tab: ' + responseError);
+          LogUtils.error('[Tool8.saveScenario] Warning: Could not update Responses tab: ' + responseError);
         }
       }
 
-      Logger.log('[Tool8.saveScenario] Saved "' + (scenario.name || 'Unnamed') + '" for client ' + clientId + ' (' + clientRows.length + ' total)');
+      LogUtils.debug('[Tool8.saveScenario] Saved "' + (scenario.name || 'Unnamed') + '" for client ' + clientId + ' (' + clientRows.length + ' total)');
 
       return {
         success: true,
@@ -2146,8 +2146,8 @@ const Tool8 = {
       };
 
     } catch (error) {
-      Logger.log('[Tool8.saveScenario] Error: ' + error);
-      Logger.log('[Tool8.saveScenario] Stack: ' + error.stack);
+      LogUtils.error('[Tool8.saveScenario] Error: ' + error);
+      LogUtils.error('[Tool8.saveScenario] Stack: ' + error.stack);
       return { success: false, error: error.message };
     }
   },
@@ -2221,11 +2221,11 @@ const Tool8 = {
       // Sort newest first
       scenarios.sort(function(a, b) { return new Date(b.timestamp) - new Date(a.timestamp); });
 
-      Logger.log('[Tool8.getUserScenarios] Found ' + scenarios.length + ' scenarios for client ' + clientId);
+      LogUtils.debug('[Tool8.getUserScenarios] Found ' + scenarios.length + ' scenarios for client ' + clientId);
       return scenarios;
 
     } catch (error) {
-      Logger.log('[Tool8.getUserScenarios] Error: ' + error);
+      LogUtils.error('[Tool8.getUserScenarios] Error: ' + error);
       return [];
     }
   },
@@ -2242,7 +2242,7 @@ const Tool8 = {
    */
   resolveClientData(clientId) {
     try {
-      Logger.log('[Tool8.resolveClientData] Resolving for client ' + clientId);
+      LogUtils.debug('[Tool8.resolveClientData] Resolving for client ' + clientId);
 
       // Get all upstream tool data
       var tool1Data = DataService.getLatestResponse(clientId, 'tool1');
@@ -2388,15 +2388,15 @@ const Tool8 = {
         hasFinancialData: !!(t6Scenario || tool4Data || tool6PreSurvey)
       };
 
-      Logger.log('[Tool8.resolveClientData] Resolved: savings=' + savingsCapacity +
+      LogUtils.debug('[Tool8.resolveClientData] Resolved: savings=' + savingsCapacity +
         ' (source: ' + savingsSource + '), assets=' + currentAssets +
         ', years=' + yearsToRetirement + ', risk=' + riskTolerance +
         ', hasTool6Scenario=' + !!t6Scenario);
 
       return result;
     } catch (error) {
-      Logger.log('[Tool8.resolveClientData] Error: ' + error);
-      Logger.log('[Tool8.resolveClientData] Stack: ' + (error.stack || ''));
+      LogUtils.error('[Tool8.resolveClientData] Error: ' + error);
+      LogUtils.error('[Tool8.resolveClientData] Stack: ' + (error.stack || ''));
       return { hasFinancialData: false };
     }
   },
@@ -2460,7 +2460,7 @@ const Tool8 = {
           allocations = allocStr;
         }
       } catch (e) {
-        Logger.log('[Tool8.getLatestTool6Scenario] Allocations parse error: ' + e);
+        LogUtils.error('[Tool8.getLatestTool6Scenario] Allocations parse error: ' + e);
       }
 
       var ts = latest[COL.TIMESTAMP];
@@ -2478,12 +2478,12 @@ const Tool8 = {
         grossIncome: parseFloat(latest[COL.GROSS_INCOME]) || null
       };
 
-      Logger.log('[Tool8.getLatestTool6Scenario] Found scenario "' + scenario.name +
+      LogUtils.debug('[Tool8.getLatestTool6Scenario] Found scenario "' + scenario.name +
         '" with budget=' + scenario.monthlyBudget + ', score=' + scenario.investmentScore);
 
       return scenario;
     } catch (error) {
-      Logger.log('[Tool8.getLatestTool6Scenario] Error: ' + error);
+      LogUtils.error('[Tool8.getLatestTool6Scenario] Error: ' + error);
       return null;
     }
   },
@@ -2499,7 +2499,7 @@ const Tool8 = {
       var data = PropertiesService.getUserProperties().getProperty(key);
       return data ? JSON.parse(data) : null;
     } catch (e) {
-      Logger.log('[Tool8.getTool6PreSurvey] Error: ' + e);
+      LogUtils.error('[Tool8.getTool6PreSurvey] Error: ' + e);
       return null;
     }
   },
@@ -2544,7 +2544,7 @@ const Tool8 = {
       var tool2Data = DataService.getLatestResponse(clientId, 'tool2');
       if (tool2Data && tool2Data.data && tool2Data.data.name) return tool2Data.data.name;
     } catch (e) {
-      Logger.log('[Tool8.getStudentName] Error: ' + e);
+      LogUtils.error('[Tool8.getStudentName] Error: ' + e);
     }
     return 'Student';
   },

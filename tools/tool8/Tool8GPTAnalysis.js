@@ -29,7 +29,7 @@ var Tool8GPTAnalysis = {
 
     // TIER 1: Try GPT
     try {
-      Logger.log('[Tool8GPT] Tier 1: Attempting GPT for single report');
+      LogUtils.debug('[Tool8GPT] Tier 1: Attempting GPT for single report');
       var systemPrompt = this.buildSingleSystemPrompt(scenario, resolvedData);
       var userPrompt = this.buildSingleUserPrompt(scenario);
 
@@ -44,17 +44,17 @@ var Tool8GPTAnalysis = {
       var parsed = this.parseSingleResponse(raw);
       if (this.isValidSingleInsight(parsed)) {
         parsed.source = 'gpt';
-        Logger.log('[Tool8GPT] Tier 1 success');
+        LogUtils.debug('[Tool8GPT] Tier 1 success');
         return parsed;
       }
-      Logger.log('[Tool8GPT] Tier 1 parsed but invalid, trying Tier 2');
+      LogUtils.debug('[Tool8GPT] Tier 1 parsed but invalid, trying Tier 2');
     } catch (e) {
-      Logger.log('[Tool8GPT] Tier 1 error: ' + e);
+      LogUtils.debug('[Tool8GPT] Tier 1 error: ' + e);
     }
 
     // TIER 2: Retry after delay
     try {
-      Logger.log('[Tool8GPT] Tier 2: Retrying GPT');
+      LogUtils.debug('[Tool8GPT] Tier 2: Retrying GPT');
       Utilities.sleep(2000);
       var systemPrompt2 = this.buildSingleSystemPrompt(scenario, resolvedData);
       var userPrompt2 = this.buildSingleUserPrompt(scenario);
@@ -70,16 +70,16 @@ var Tool8GPTAnalysis = {
       var parsed2 = this.parseSingleResponse(raw2);
       if (this.isValidSingleInsight(parsed2)) {
         parsed2.source = 'gpt_retry';
-        Logger.log('[Tool8GPT] Tier 2 success');
+        LogUtils.debug('[Tool8GPT] Tier 2 success');
         return parsed2;
       }
-      Logger.log('[Tool8GPT] Tier 2 parsed but invalid, falling back');
+      LogUtils.debug('[Tool8GPT] Tier 2 parsed but invalid, falling back');
     } catch (e2) {
-      Logger.log('[Tool8GPT] Tier 2 error: ' + e2);
+      LogUtils.debug('[Tool8GPT] Tier 2 error: ' + e2);
     }
 
     // TIER 3: Fallback
-    Logger.log('[Tool8GPT] Tier 3: Using fallback');
+    LogUtils.debug('[Tool8GPT] Tier 3: Using fallback');
     this.logFallbackUsage(scenario.clientId || '', 'single_report', 'GPT unavailable');
     return Tool8Fallbacks.getSingleReportFallback(scenario);
   },
@@ -105,7 +105,7 @@ var Tool8GPTAnalysis = {
 
     // TIER 1: Try GPT
     try {
-      Logger.log('[Tool8GPT] Tier 1: Attempting GPT for comparison');
+      LogUtils.debug('[Tool8GPT] Tier 1: Attempting GPT for comparison');
       var systemPrompt = this.buildComparisonSystemPrompt(s1, s2, resolvedData);
       var userPrompt = this.buildComparisonUserPrompt(s1, s2);
 
@@ -120,17 +120,17 @@ var Tool8GPTAnalysis = {
       var parsed = this.parseComparisonResponse(raw);
       if (this.isValidComparisonInsight(parsed)) {
         parsed.source = 'gpt';
-        Logger.log('[Tool8GPT] Comparison Tier 1 success');
+        LogUtils.debug('[Tool8GPT] Comparison Tier 1 success');
         return parsed;
       }
-      Logger.log('[Tool8GPT] Comparison Tier 1 invalid, trying Tier 2');
+      LogUtils.debug('[Tool8GPT] Comparison Tier 1 invalid, trying Tier 2');
     } catch (e) {
-      Logger.log('[Tool8GPT] Comparison Tier 1 error: ' + e);
+      LogUtils.debug('[Tool8GPT] Comparison Tier 1 error: ' + e);
     }
 
     // TIER 2: Retry after delay
     try {
-      Logger.log('[Tool8GPT] Tier 2: Retrying GPT for comparison');
+      LogUtils.debug('[Tool8GPT] Tier 2: Retrying GPT for comparison');
       Utilities.sleep(2000);
       var systemPrompt2 = this.buildComparisonSystemPrompt(s1, s2, resolvedData);
       var userPrompt2 = this.buildComparisonUserPrompt(s1, s2);
@@ -146,16 +146,16 @@ var Tool8GPTAnalysis = {
       var parsed2 = this.parseComparisonResponse(raw2);
       if (this.isValidComparisonInsight(parsed2)) {
         parsed2.source = 'gpt_retry';
-        Logger.log('[Tool8GPT] Comparison Tier 2 success');
+        LogUtils.debug('[Tool8GPT] Comparison Tier 2 success');
         return parsed2;
       }
-      Logger.log('[Tool8GPT] Comparison Tier 2 invalid, falling back');
+      LogUtils.debug('[Tool8GPT] Comparison Tier 2 invalid, falling back');
     } catch (e2) {
-      Logger.log('[Tool8GPT] Comparison Tier 2 error: ' + e2);
+      LogUtils.debug('[Tool8GPT] Comparison Tier 2 error: ' + e2);
     }
 
     // TIER 3: Fallback
-    Logger.log('[Tool8GPT] Comparison Tier 3: Using fallback');
+    LogUtils.debug('[Tool8GPT] Comparison Tier 3: Using fallback');
     this.logFallbackUsage('', 'comparison_report', 'GPT unavailable');
     return Tool8Fallbacks.getComparisonFallback(s1, s2, resolvedData);
   },
@@ -561,7 +561,7 @@ var Tool8GPTAnalysis = {
         errorMessage
       ]);
     } catch (logErr) {
-      Logger.log('[Tool8GPT] Failed to log fallback: ' + logErr);
+      LogUtils.error('[Tool8GPT] Failed to log fallback: ' + logErr);
     }
   }
 };

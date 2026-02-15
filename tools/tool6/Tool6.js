@@ -28,13 +28,13 @@ const Tool6 = {
    */
   render(params) {
     const clientId = params.clientId;
-    console.log('=== Tool6.render START for client: ' + clientId + ' ===');
+    LogUtils.debug('=== Tool6.render START for client: ' + clientId + ' ===');
 
     try {
       // SINGLE SOURCE OF TRUTH: Resolve all client data from all sources
-      console.log('Calling resolveClientData...');
+      LogUtils.debug('Calling resolveClientData...');
       const resolvedData = this.resolveClientData(clientId);
-      console.log('resolveClientData returned. hasCriticalData: ' + resolvedData.hasCriticalData);
+      LogUtils.debug('resolveClientData returned. hasCriticalData: ' + resolvedData.hasCriticalData);
 
       // Extract raw data for backward compatibility with classifyProfile/calculateAllocation
       const preSurveyData = resolvedData._preSurveyData;
@@ -52,8 +52,8 @@ const Tool6 = {
           // Calculate vehicle allocation
           allocation = this.calculateAllocation(clientId, preSurveyData, profile, toolStatus);
         } catch (calcError) {
-          Logger.log(`Error calculating allocation: ${calcError}`);
-          Logger.log(`Stack: ${calcError.stack}`);
+          LogUtils.error(`Error calculating allocation: ${calcError}`);
+          LogUtils.error(`Stack: ${calcError.stack}`);
           // Continue without allocation - will show questionnaire
         }
       }
@@ -66,8 +66,8 @@ const Tool6 = {
         .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 
     } catch (error) {
-      Logger.log(`Error rendering Tool 6: ${error}`);
-      Logger.log(`Error stack: ${error.stack}`);
+      LogUtils.error(`Error rendering Tool 6: ${error}`);
+      LogUtils.error(`Error stack: ${error.stack}`);
       return this.renderError(error);
     }
   },
@@ -78,11 +78,11 @@ const Tool6 = {
    * Maps fields per spec Data Sources table (Tool6-Consolidated-Specification.md)
    */
   checkToolCompletion(clientId) {
-    console.log('=== checkToolCompletion START ===');
+    LogUtils.debug('=== checkToolCompletion START ===');
     try {
-      console.log('Getting tool1Data...');
+      LogUtils.debug('Getting tool1Data...');
       const tool1Data = DataService.getLatestResponse(clientId, 'tool1');
-      console.log('tool1Data: ' + (tool1Data ? 'found' : 'null'));
+      LogUtils.debug('tool1Data: ' + (tool1Data ? 'found' : 'null'));
       const tool2Data = DataService.getLatestResponse(clientId, 'tool2');
       const tool3Data = DataService.getLatestResponse(clientId, 'tool3');
       const tool4Data = DataService.getLatestResponse(clientId, 'tool4');
@@ -114,7 +114,7 @@ const Tool6 = {
         hasCriticalData: !!tool4Data && (tool4Data.data?.multiply > 0 || tool4Data.data?.multiplyAmount > 0)
       };
     } catch (error) {
-      Logger.log(`Error checking tool completion: ${error}`);
+      LogUtils.error(`Error checking tool completion: ${error}`);
       return {
         hasTool1: false,
         hasTool2: false,
@@ -233,7 +233,7 @@ const Tool6 = {
       return null;
     }
 
-    Logger.log('Derived Tool 4 from backup: budget=' + monthlyBudget + ', years=' + yearsToRetirement + ', score=' + investmentScore);
+    LogUtils.debug('Derived Tool 4 from backup: budget=' + monthlyBudget + ', years=' + yearsToRetirement + ', score=' + investmentScore);
 
     return {
       monthlyTakeHome: monthlyIncome,
@@ -268,7 +268,7 @@ const Tool6 = {
     // Infer business owner from employment type
     const businessOwner = employmentType === 'Business Owner';
 
-    Logger.log('Derived Tool 2 from backup: age=' + age + ', income=' + grossIncome + ', filing=' + filingStatus);
+    LogUtils.debug('Derived Tool 2 from backup: age=' + age + ', income=' + grossIncome + ', filing=' + filingStatus);
 
     return {
       age: age,
@@ -322,7 +322,7 @@ const Tool6 = {
       }
     }
 
-    Logger.log('Derived trauma pattern from backup: ' + winner + ' (votes: ' + JSON.stringify(votes) + ')');
+    LogUtils.debug('Derived trauma pattern from backup: ' + winner + ' (votes: ' + JSON.stringify(votes) + ')');
     return winner;
   },
 
@@ -350,7 +350,7 @@ const Tool6 = {
         merged.multiplyPercent = derived4.multiplyPercent || merged.multiplyPercent;
         merged.hasCriticalData = derived4.monthlyBudget > 0;
         merged.hasBackupTool4 = true;
-        Logger.log('Merged backup Tool 4 data into toolStatus');
+        LogUtils.debug('Merged backup Tool 4 data into toolStatus');
       }
     }
 
@@ -365,7 +365,7 @@ const Tool6 = {
         merged.hsaCoverageType = derived2.hsaCoverageType || merged.hsaCoverageType;
         merged.businessOwner = derived2.businessOwner || merged.businessOwner;
         merged.hasBackupTool2 = true;
-        Logger.log('Merged backup Tool 2 data into toolStatus');
+        LogUtils.debug('Merged backup Tool 2 data into toolStatus');
       }
     }
 
@@ -375,7 +375,7 @@ const Tool6 = {
       if (derivedPattern) {
         merged.traumaPattern = derivedPattern;
         merged.hasBackupTool1 = true;
-        Logger.log('Merged backup trauma pattern into toolStatus: ' + derivedPattern);
+        LogUtils.debug('Merged backup trauma pattern into toolStatus: ' + derivedPattern);
       }
     }
 
@@ -538,11 +538,11 @@ const Tool6 = {
       _mergedToolStatus: mergedToolStatus
     };
 
-    Logger.log(`[resolveClientData] Resolved for ${clientId}:`);
-    Logger.log(`  age=${age}, yearsToRetirement=${yearsToRetirement}, grossIncome=${grossIncome}, monthlyBudget=${monthlyBudget}`);
-    Logger.log(`  filingStatus=${filingStatus} (from: a6=${preSurveyData.a6_filingStatus}, plain=${preSurveyData.filingStatus}, backup=${preSurveyData.backup_filingStatus}, toolStatus=${mergedToolStatus.filingStatus})`);
+    LogUtils.debug(`[resolveClientData] Resolved for ${clientId}:`);
+    LogUtils.debug(`  age=${age}, yearsToRetirement=${yearsToRetirement}, grossIncome=${grossIncome}, monthlyBudget=${monthlyBudget}`);
+    LogUtils.debug(`  filingStatus=${filingStatus} (from: a6=${preSurveyData.a6_filingStatus}, plain=${preSurveyData.filingStatus}, backup=${preSurveyData.backup_filingStatus}, toolStatus=${mergedToolStatus.filingStatus})`);
     if (missingFields.length > 0) {
-      Logger.log(`  Missing: ${missingFields.join(', ')}`);
+      LogUtils.debug(`  Missing: ${missingFields.join(', ')}`);
     }
 
     return resolved;
@@ -648,10 +648,10 @@ const Tool6 = {
       const preSurveyKey = `tool6_presurvey_${clientId}`;
       const preSurveyData = PropertiesService.getUserProperties().getProperty(preSurveyKey);
       const parsed = preSurveyData ? JSON.parse(preSurveyData) : null;
-      Logger.log(`Retrieved pre-survey for ${clientId}: ${JSON.stringify(parsed)}`);
+      LogUtils.debug(`Retrieved pre-survey for ${clientId}: ${JSON.stringify(parsed)}`);
       return parsed;
     } catch (error) {
-      Logger.log(`Error getting pre-survey: ${error}`);
+      LogUtils.error(`Error getting pre-survey: ${error}`);
       return null;
     }
   },
@@ -664,20 +664,20 @@ const Tool6 = {
       const preSurveyKey = `tool6_presurvey_${clientId}`;
 
       // DEBUG: Log specific fields being received
-      Logger.log(`[savePreSurvey] RECEIVED - backup_monthlyBudget: ${preSurveyData.backup_monthlyBudget}, backup_investmentScore: ${preSurveyData.backup_investmentScore}, a2_yearsToRetirement: ${preSurveyData.a2_yearsToRetirement}`);
-      Logger.log(`[savePreSurvey] RECEIVED - filingStatus: ${preSurveyData.filingStatus}, a6_filingStatus: ${preSurveyData.a6_filingStatus}`);
-      Logger.log(`Saving pre-survey data: ${JSON.stringify(preSurveyData)}`);
+      LogUtils.debug(`[savePreSurvey] RECEIVED - backup_monthlyBudget: ${preSurveyData.backup_monthlyBudget}, backup_investmentScore: ${preSurveyData.backup_investmentScore}, a2_yearsToRetirement: ${preSurveyData.a2_yearsToRetirement}`);
+      LogUtils.debug(`[savePreSurvey] RECEIVED - filingStatus: ${preSurveyData.filingStatus}, a6_filingStatus: ${preSurveyData.a6_filingStatus}`);
+      LogUtils.debug(`Saving pre-survey data: ${JSON.stringify(preSurveyData)}`);
 
       PropertiesService.getUserProperties().setProperty(preSurveyKey, JSON.stringify(preSurveyData));
-      Logger.log(`Pre-survey saved for client: ${clientId}`);
+      LogUtils.debug(`Pre-survey saved for client: ${clientId}`);
 
       // SINGLE SOURCE OF TRUTH: Resolve all client data after saving
       const resolvedData = this.resolveClientData(clientId);
       const savedPreSurvey = resolvedData._preSurveyData;
 
       // DEBUG: Log what was read back
-      Logger.log(`[savePreSurvey] READ BACK - savedPreSurvey.backup_monthlyBudget: ${savedPreSurvey?.backup_monthlyBudget}, savedPreSurvey.backup_investmentScore: ${savedPreSurvey?.backup_investmentScore}, savedPreSurvey.a2_yearsToRetirement: ${savedPreSurvey?.a2_yearsToRetirement}`);
-      Logger.log(`[savePreSurvey] RESOLVED - monthlyBudget: ${resolvedData.monthlyBudget}, investmentScore: ${resolvedData.investmentScore}, yearsToRetirement: ${resolvedData.yearsToRetirement}`);
+      LogUtils.debug(`[savePreSurvey] READ BACK - savedPreSurvey.backup_monthlyBudget: ${savedPreSurvey?.backup_monthlyBudget}, savedPreSurvey.backup_investmentScore: ${savedPreSurvey?.backup_investmentScore}, savedPreSurvey.a2_yearsToRetirement: ${savedPreSurvey?.a2_yearsToRetirement}`);
+      LogUtils.debug(`[savePreSurvey] RESOLVED - monthlyBudget: ${resolvedData.monthlyBudget}, investmentScore: ${resolvedData.investmentScore}, yearsToRetirement: ${resolvedData.yearsToRetirement}`);
       const toolStatus = resolvedData._mergedToolStatus;
 
       let allocation = null;
@@ -688,14 +688,14 @@ const Tool6 = {
           profile = this.classifyProfile(clientId, savedPreSurvey, toolStatus);
           allocation = this.calculateAllocation(clientId, savedPreSurvey, profile, toolStatus);
         } catch (calcError) {
-          Logger.log(`Error calculating allocation: ${calcError}`);
+          LogUtils.error(`Error calculating allocation: ${calcError}`);
         }
       }
 
       const htmlContent = this.buildUnifiedPage(clientId, resolvedData, savedPreSurvey, profile, allocation);
       return { success: true, nextPageHtml: htmlContent };
     } catch (error) {
-      Logger.log(`Error saving pre-survey: ${error}`);
+      LogUtils.error(`Error saving pre-survey: ${error}`);
       return { success: false, error: error.message };
     }
   },
@@ -762,7 +762,7 @@ const Tool6 = {
     const useDirectly = preSurveyData.useProfileIdDirectly === true;
 
     if (savedProfileId && savedProfileId >= 1 && savedProfileId <= 9 && useDirectly) {
-      Logger.log(`[classifyProfile] Using saved profileId directly: ${savedProfileId}`);
+      LogUtils.debug(`[classifyProfile] Using saved profileId directly: ${savedProfileId}`);
       return {
         ...profiles[savedProfileId],
         matchReason: 'Profile restored from saved scenario'
@@ -782,7 +782,7 @@ const Tool6 = {
       preSurveyData.q3_workSituation;     // Legacy: work situation
 
     if (!hasClassificationAnswers) {
-      Logger.log('[classifyProfile] No classification questions answered yet - returning null');
+      LogUtils.debug('[classifyProfile] No classification questions answered yet - returning null');
       return null;
     }
 
@@ -7875,8 +7875,8 @@ const Tool6 = {
    */
   saveScenario(clientId, scenario) {
     try {
-      Logger.log(`Tool6.saveScenario called for client ${clientId}`);
-      Logger.log(`Scenario data: ${JSON.stringify(scenario)}`);
+      LogUtils.debug(`Tool6.saveScenario called for client ${clientId}`);
+      LogUtils.debug(`Scenario data: ${JSON.stringify(scenario)}`);
 
       // Validate scenario data
       if (!scenario || !scenario.name) {
@@ -7890,7 +7890,7 @@ const Tool6 = {
       let scenariosSheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.TOOL6_SCENARIOS);
 
       if (!scenariosSheet) {
-        Logger.log('TOOL6_SCENARIOS sheet does not exist, creating...');
+        LogUtils.debug('TOOL6_SCENARIOS sheet does not exist, creating...');
         const ss = SpreadsheetCache.getSpreadsheet();
         scenariosSheet = ss.insertSheet(CONFIG.SHEETS.TOOL6_SCENARIOS);
 
@@ -7920,7 +7920,7 @@ const Tool6 = {
         scenariosSheet.appendRow(headers);
         scenariosSheet.getRange(1, 1, 1, headers.length).setFontWeight('bold');
         SpreadsheetApp.flush();
-        Logger.log('TOOL6_SCENARIOS sheet created with 20-column header');
+        LogUtils.debug('TOOL6_SCENARIOS sheet created with 20-column header');
       }
 
       // Mark all previous scenarios for this client as not latest
@@ -7992,31 +7992,31 @@ const Tool6 = {
       ];
 
       // Detailed logging like Tool 4
-      Logger.log(`Row data to append (${row.length} columns):`);
-      Logger.log(`  [0] Timestamp: ${row[0]}`);
-      Logger.log(`  [1] Client_ID: ${row[1]}`);
-      Logger.log(`  [2] Scenario_Name: ${row[2]}`);
-      Logger.log(`  [3] Profile_ID: ${row[3]}`);
-      Logger.log(`  [4] Monthly_Budget: ${row[4]}`);
-      Logger.log(`  [7] Investment_Score: ${row[7]}`);
-      Logger.log(`  [8] Tax_Strategy: ${row[8]}`);
-      Logger.log(`  [9] Projected_Balance: ${row[9]}`);
+      LogUtils.debug(`Row data to append (${row.length} columns):`);
+      LogUtils.debug(`  [0] Timestamp: ${row[0]}`);
+      LogUtils.debug(`  [1] Client_ID: ${row[1]}`);
+      LogUtils.debug(`  [2] Scenario_Name: ${row[2]}`);
+      LogUtils.debug(`  [3] Profile_ID: ${row[3]}`);
+      LogUtils.debug(`  [4] Monthly_Budget: ${row[4]}`);
+      LogUtils.debug(`  [7] Investment_Score: ${row[7]}`);
+      LogUtils.debug(`  [8] Tax_Strategy: ${row[8]}`);
+      LogUtils.debug(`  [9] Projected_Balance: ${row[9]}`);
 
       // Verify sheet before append
-      Logger.log(`Sheet name: ${scenariosSheet.getName()}, Sheet ID: ${scenariosSheet.getSheetId()}`);
-      Logger.log(`Current row count before append: ${scenariosSheet.getLastRow()}`);
+      LogUtils.debug(`Sheet name: ${scenariosSheet.getName()}, Sheet ID: ${scenariosSheet.getSheetId()}`);
+      LogUtils.debug(`Current row count before append: ${scenariosSheet.getLastRow()}`);
 
       scenariosSheet.appendRow(row);
       SpreadsheetApp.flush();
 
       // Verify the append worked
       const newRowCount = scenariosSheet.getLastRow();
-      Logger.log(`Row count after append: ${newRowCount}`);
+      LogUtils.debug(`Row count after append: ${newRowCount}`);
 
       // Read back the last row to verify (like Tool 4)
       if (newRowCount > 1) {
         const lastRow = scenariosSheet.getRange(newRowCount, 1, 1, 5).getValues()[0];
-        Logger.log(`Verification - Last row data: ${JSON.stringify(lastRow)}`);
+        LogUtils.debug(`Verification - Last row data: ${JSON.stringify(lastRow)}`);
       }
 
       // Count scenarios for this client and enforce limit (10 max like Tool 4)
@@ -8034,14 +8034,14 @@ const Tool6 = {
         }
       }
 
-      Logger.log(`Client ${clientId} now has ${clientScenarioRows.length} scenario(s)`);
+      LogUtils.debug(`Client ${clientId} now has ${clientScenarioRows.length} scenario(s)`);
 
       // If over limit, delete oldest (FIFO)
       let deletedScenario = null;
       if (clientScenarioRows.length > MAX_SCENARIOS_PER_CLIENT) {
         clientScenarioRows.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
         const oldest = clientScenarioRows[0];
-        Logger.log(`Deleting oldest scenario "${oldest.name}" to enforce ${MAX_SCENARIOS_PER_CLIENT} limit`);
+        LogUtils.debug(`Deleting oldest scenario "${oldest.name}" to enforce ${MAX_SCENARIOS_PER_CLIENT} limit`);
         scenariosSheet.deleteRow(oldest.rowIndex);
         SpreadsheetApp.flush();
         deletedScenario = oldest.name;
@@ -8062,13 +8062,13 @@ const Tool6 = {
             taxStrategy: scenario.taxStrategy
           };
           DataService.saveToolResponse(clientId, 'tool6', dataPackage, 'COMPLETED');
-          Logger.log(`Tool6 marked as completed for client ${clientId}`);
+          LogUtils.debug(`Tool6 marked as completed for client ${clientId}`);
         } catch (responseError) {
-          Logger.log(`Warning: Could not update Responses tab: ${responseError}`);
+          LogUtils.error(`Warning: Could not update Responses tab: ${responseError}`);
         }
       }
 
-      Logger.log(`Scenario saved successfully: ${scenario.name}`);
+      LogUtils.debug(`Scenario saved successfully: ${scenario.name}`);
       return {
         success: true,
         message: 'Scenario saved successfully',
@@ -8078,8 +8078,8 @@ const Tool6 = {
       };
 
     } catch (error) {
-      Logger.log(`Error saving Tool 6 scenario: ${error}`);
-      Logger.log(`Stack: ${error.stack}`);
+      LogUtils.error(`Error saving Tool 6 scenario: ${error}`);
+      LogUtils.error(`Stack: ${error.stack}`);
       return { success: false, error: error.message };
     }
   },
@@ -8090,11 +8090,11 @@ const Tool6 = {
    */
   getScenarios(clientId) {
     try {
-      Logger.log(`Tool6.getScenarios called for client ${clientId}`);
+      LogUtils.debug(`Tool6.getScenarios called for client ${clientId}`);
 
       const scenariosSheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.TOOL6_SCENARIOS);
       if (!scenariosSheet) {
-        Logger.log('TOOL6_SCENARIOS sheet does not exist');
+        LogUtils.debug('TOOL6_SCENARIOS sheet does not exist');
         return [];
       }
 
@@ -8175,12 +8175,12 @@ const Tool6 = {
       // Sort by timestamp descending (newest first)
       scenarios.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
-      Logger.log(`Found ${scenarios.length} scenarios for client ${clientId}`);
+      LogUtils.debug(`Found ${scenarios.length} scenarios for client ${clientId}`);
       return scenarios;
 
     } catch (error) {
-      Logger.log(`Error getting Tool 6 scenarios: ${error}`);
-      Logger.log(`Stack: ${error.stack}`);
+      LogUtils.error(`Error getting Tool 6 scenarios: ${error}`);
+      LogUtils.error(`Stack: ${error.stack}`);
       return [];
     }
   },
@@ -8216,7 +8216,7 @@ const Tool6 = {
    */
   deleteScenario(clientId, scenarioName) {
     try {
-      Logger.log(`Tool6.deleteScenario called for client ${clientId}, scenario "${scenarioName}"`);
+      LogUtils.debug(`Tool6.deleteScenario called for client ${clientId}, scenario "${scenarioName}"`);
 
       const scenariosSheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.TOOL6_SCENARIOS);
       if (!scenariosSheet) {
@@ -8246,11 +8246,11 @@ const Tool6 = {
       scenariosSheet.deleteRow(rowToDelete);
       SpreadsheetApp.flush();
 
-      Logger.log(`Deleted scenario "${scenarioName}" at row ${rowToDelete}`);
+      LogUtils.debug(`Deleted scenario "${scenarioName}" at row ${rowToDelete}`);
       return { success: true, message: 'Scenario deleted' };
 
     } catch (error) {
-      Logger.log(`Error deleting Tool 6 scenario: ${error}`);
+      LogUtils.error(`Error deleting Tool 6 scenario: ${error}`);
       return { success: false, error: error.message };
     }
   },
@@ -8266,7 +8266,7 @@ const Tool6 = {
    */
   generateReportHTML(clientId, scenarioData) {
     try {
-      Logger.log(`[Tool6.generateReportHTML] Generating HTML for client ${clientId}`);
+      LogUtils.debug(`[Tool6.generateReportHTML] Generating HTML for client ${clientId}`);
 
       // Get client name
       const clientName = this.getClientName(clientId);
@@ -8285,9 +8285,9 @@ const Tool6 = {
       // ========================================================================
       const resolvedData = this.resolveClientData(clientId);
 
-      Logger.log(`[Tool6.generateReportHTML] Data sources:`);
-      Logger.log(`  ScenarioData - age: ${scenarioData.age}, yearsToRetirement: ${scenarioData.yearsToRetirement}, grossIncome: ${scenarioData.grossIncome}, monthlyBudget: ${scenarioData.monthlyBudget}`);
-      Logger.log(`  ResolvedData - age: ${resolvedData.age}, yearsToRetirement: ${resolvedData.yearsToRetirement}, grossIncome: ${resolvedData.grossIncome}, monthlyBudget: ${resolvedData.monthlyBudget}`);
+      LogUtils.debug(`[Tool6.generateReportHTML] Data sources:`);
+      LogUtils.debug(`  ScenarioData - age: ${scenarioData.age}, yearsToRetirement: ${scenarioData.yearsToRetirement}, grossIncome: ${scenarioData.grossIncome}, monthlyBudget: ${scenarioData.monthlyBudget}`);
+      LogUtils.debug(`  ResolvedData - age: ${resolvedData.age}, yearsToRetirement: ${resolvedData.yearsToRetirement}, grossIncome: ${resolvedData.grossIncome}, monthlyBudget: ${resolvedData.monthlyBudget}`);
 
       // ========================================================================
       // PRIORITY: scenarioData (saved with scenario) → resolvedData (current state)
@@ -8309,7 +8309,7 @@ const Tool6 = {
       // If critical data is missing, return error - do NOT use defaults
       if (missingFields.length > 0) {
         const errorMsg = `Missing required data: ${missingFields.join('; ')}. Please complete the questionnaire or re-save your scenario.`;
-        Logger.log(`[Tool6.generateReportHTML] ERROR: Missing critical data - ${missingFields.join(', ')}`);
+        LogUtils.error(`[Tool6.generateReportHTML] ERROR: Missing critical data - ${missingFields.join(', ')}`);
         return {
           success: false,
           error: errorMsg,
@@ -8317,7 +8317,7 @@ const Tool6 = {
         };
       }
 
-      Logger.log(`[Tool6.generateReportHTML] Validated inputs - age: ${age}, yearsToRetirement: ${yearsToRetirement}, grossIncome: ${grossIncome}, monthlyBudget: ${monthlyBudget}`);
+      LogUtils.debug(`[Tool6.generateReportHTML] Validated inputs - age: ${age}, yearsToRetirement: ${yearsToRetirement}, grossIncome: ${grossIncome}, monthlyBudget: ${monthlyBudget}`);
 
       // Build inputs object - all critical fields are now validated
       // Use scenario-specific values with fallback to resolved data
@@ -8372,7 +8372,7 @@ const Tool6 = {
 
       const savedBalance = scenarioData.projectedBalance || 0;
       if (savedBalance !== projectedBalance) {
-        Logger.log(`[Tool6.generateReportHTML] Recalculated projectedBalance: saved=$${savedBalance.toLocaleString()}, calculated=$${projectedBalance.toLocaleString()}`);
+        LogUtils.debug(`[Tool6.generateReportHTML] Recalculated projectedBalance: saved=$${savedBalance.toLocaleString()}, calculated=$${projectedBalance.toLocaleString()}`);
       }
 
       // Sprint 13 Fix: ALWAYS recalculate derived values for consistency
@@ -8393,7 +8393,7 @@ const Tool6 = {
         (taxPercentSum === 0 || taxPercentSum < 95 || taxPercentSum > 105);
 
       if (needsTaxRecalc) {
-        Logger.log(`[Tool6.generateReportHTML] Tax percentages invalid (sum=${taxPercentSum}%), recalculating from allocations...`);
+        LogUtils.debug(`[Tool6.generateReportHTML] Tax percentages invalid (sum=${taxPercentSum}%), recalculating from allocations...`);
         let taxFree = 0, traditional = 0, taxable = 0, total = 0;
 
         for (const [vehicle, amount] of Object.entries(allocations)) {
@@ -8424,7 +8424,7 @@ const Tool6 = {
           taxFreePercent = Math.round((taxFree / total) * 100);
           traditionalPercent = Math.round((traditional / total) * 100);
           taxablePercent = Math.round((taxable / total) * 100);
-          Logger.log(`[Tool6.generateReportHTML] Tax breakdown: Free=${taxFreePercent}%, Deferred=${traditionalPercent}%, Taxable=${taxablePercent}%`);
+          LogUtils.debug(`[Tool6.generateReportHTML] Tax breakdown: Free=${taxFreePercent}%, Deferred=${traditionalPercent}%, Taxable=${taxablePercent}%`);
         }
       }
 
@@ -8444,12 +8444,12 @@ const Tool6 = {
       const allocationData = scenarioData.allocations || {};
       const allocationCount = Object.keys(allocationData).length;
       if (allocationCount === 0) {
-        Logger.log('[Tool6.generateReportHTML] WARNING: No allocations found in scenario data');
+        LogUtils.debug('[Tool6.generateReportHTML] WARNING: No allocations found in scenario data');
       } else {
-        Logger.log(`[Tool6.generateReportHTML] Processing ${allocationCount} vehicle allocations`);
+        LogUtils.debug(`[Tool6.generateReportHTML] Processing ${allocationCount} vehicle allocations`);
       }
 
-      Logger.log('[Tool6.generateReportHTML] Generating GPT insights...');
+      LogUtils.debug('[Tool6.generateReportHTML] Generating GPT insights...');
       const gptInsights = Tool6GPTAnalysis.generateSingleReportInsights({
         clientId,
         profile,
@@ -8460,10 +8460,10 @@ const Tool6 = {
         tool3Data
       });
 
-      Logger.log(`[Tool6.generateReportHTML] GPT source: ${gptInsights.source}`);
+      LogUtils.debug(`[Tool6.generateReportHTML] GPT source: ${gptInsights.source}`);
 
       // Sprint 13: Get enhanced implementation blueprint insights
-      Logger.log('[Tool6.generateReportHTML] Generating enhanced report insights...');
+      LogUtils.debug('[Tool6.generateReportHTML] Generating enhanced report insights...');
       const savingsRate = grossIncome > 0 ? Math.round((inputs.monthlyBudget * 12 / grossIncome) * 100) : 0;
       const enhancedInsights = Tool6GPTAnalysis.generateEnhancedReportInsights({
         clientId,
@@ -8483,7 +8483,7 @@ const Tool6 = {
         tool3Data
       });
 
-      Logger.log(`[Tool6.generateReportHTML] Enhanced insights source: ${enhancedInsights.source}`);
+      LogUtils.debug(`[Tool6.generateReportHTML] Enhanced insights source: ${enhancedInsights.source}`);
 
       // Generate HTML report
       const htmlContent = Tool6Report.generateSingleReportHTML({
@@ -8499,8 +8499,8 @@ const Tool6 = {
       return { success: true, html: htmlContent, clientName: clientName };
 
     } catch (error) {
-      Logger.log(`[Tool6.generateReportHTML] Error: ${error.message}`);
-      Logger.log(`[Tool6.generateReportHTML] Stack: ${error.stack}`);
+      LogUtils.error(`[Tool6.generateReportHTML] Error: ${error.message}`);
+      LogUtils.error(`[Tool6.generateReportHTML] Stack: ${error.stack}`);
       return {
         success: false,
         error: error.message
@@ -8529,7 +8529,7 @@ const Tool6 = {
       return { success: false, error: pdfResult.error || 'PDF generation failed' };
     }
 
-    Logger.log(`[Tool6.generatePDF] PDF generated successfully: ${fileName}`);
+    LogUtils.debug(`[Tool6.generatePDF] PDF generated successfully: ${fileName}`);
 
     return {
       success: true,
@@ -8597,7 +8597,7 @@ const Tool6 = {
    */
   generateComparisonPDF(clientId, scenario1, scenario2) {
     try {
-      Logger.log(`[Tool6.generateComparisonPDF] Generating comparison PDF for client ${clientId}`);
+      LogUtils.debug(`[Tool6.generateComparisonPDF] Generating comparison PDF for client ${clientId}`);
 
       // Ensure both scenarios have complete projection data
       scenario1 = this.ensureScenarioProjections(scenario1);
@@ -8655,7 +8655,7 @@ const Tool6 = {
       };
 
       // Get GPT comparison insights (3-tier fallback)
-      Logger.log('[Tool6.generateComparisonPDF] Generating GPT comparison insights...');
+      LogUtils.debug('[Tool6.generateComparisonPDF] Generating GPT comparison insights...');
       const gptInsights = Tool6GPTAnalysis.generateComparisonInsights({
         clientId,
         scenario1: {
@@ -8683,7 +8683,7 @@ const Tool6 = {
         tool3Data
       });
 
-      Logger.log(`[Tool6.generateComparisonPDF] GPT source: ${gptInsights.source}`);
+      LogUtils.debug(`[Tool6.generateComparisonPDF] GPT source: ${gptInsights.source}`);
 
       // Generate HTML comparison report with complete data
       const htmlContent = Tool6Report.generateComparisonReportHTML({
@@ -8731,7 +8731,7 @@ const Tool6 = {
         throw new Error(pdfResult.error || 'PDF generation failed');
       }
 
-      Logger.log(`[Tool6.generateComparisonPDF] PDF generated successfully: ${fileName}`);
+      LogUtils.debug(`[Tool6.generateComparisonPDF] PDF generated successfully: ${fileName}`);
 
       return {
         success: true,
@@ -8741,8 +8741,8 @@ const Tool6 = {
       };
 
     } catch (error) {
-      Logger.log(`[Tool6.generateComparisonPDF] Error: ${error.message}`);
-      Logger.log(`[Tool6.generateComparisonPDF] Stack: ${error.stack}`);
+      LogUtils.error(`[Tool6.generateComparisonPDF] Error: ${error.message}`);
+      LogUtils.error(`[Tool6.generateComparisonPDF] Stack: ${error.stack}`);
       return {
         success: false,
         error: error.message
@@ -8762,11 +8762,11 @@ const Tool6 = {
         return name;
       }
       // Fallback: use "Client" with last 6 chars of clientId for uniqueness
-      Logger.log(`[Tool6.getClientName] WARNING: No name found in Tool 2 data for client ${clientId}`);
+      LogUtils.debug(`[Tool6.getClientName] WARNING: No name found in Tool 2 data for client ${clientId}`);
       const shortId = clientId ? clientId.slice(-6) : 'Unknown';
       return `Client_${shortId}`;
     } catch (e) {
-      Logger.log(`[Tool6.getClientName] Error getting client name: ${e.message}`);
+      LogUtils.error(`[Tool6.getClientName] Error getting client name: ${e.message}`);
       const shortId = clientId ? clientId.slice(-6) : 'Unknown';
       return `Client_${shortId}`;
     }
@@ -8799,7 +8799,7 @@ function getTool6Page(clientId) {
       html: result.getContent()
     };
   } catch (error) {
-    Logger.log('Error getting Tool6 page: ' + error);
+    LogUtils.error('Error getting Tool6 page: ' + error);
     return {
       success: false,
       error: error.toString()
@@ -9075,12 +9075,12 @@ function testTool6Classification() {
       passed: passed,
       reason: profile.matchReason
     });
-    Logger.log((passed ? '✓' : '✗') + ' ' + tc.name + ': Expected ' + tc.expected + ', Got ' + profile.id);
+    LogUtils.debug((passed ? '✓' : '✗') + ' ' + tc.name + ': Expected ' + tc.expected + ', Got ' + profile.id);
   });
 
   const passCount = results.filter(r => r.passed).length;
-  Logger.log('---');
-  Logger.log('Results: ' + passCount + '/' + results.length + ' passed');
+  LogUtils.debug('---');
+  LogUtils.debug('Results: ' + passCount + '/' + results.length + ' passed');
 
   return results;
 }

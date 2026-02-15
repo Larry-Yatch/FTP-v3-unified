@@ -41,8 +41,8 @@ const Tool4 = {
           const v1Input = this.buildV1Input(clientId, preSurveyData);
           allocation = this.calculateAllocationV1(v1Input);
         } catch (allocError) {
-          Logger.log(`Error calculating allocation: ${allocError}`);
-          Logger.log(`Pre-survey data: ${JSON.stringify(preSurveyData)}`);
+          LogUtils.error(`Error calculating allocation: ${allocError}`);
+          LogUtils.debug(`Pre-survey data: ${JSON.stringify(preSurveyData)}`);
           // Continue without allocation - will show empty calculator
         }
       }
@@ -55,8 +55,8 @@ const Tool4 = {
         .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 
     } catch (error) {
-      Logger.log(`Error rendering Tool 4: ${error}`);
-      Logger.log(`Error stack: ${error.stack}`);
+      LogUtils.error(`Error rendering Tool 4: ${error}`);
+      LogUtils.error(`Error stack: ${error.stack}`);
       return this.renderError(error);
     }
   },
@@ -80,7 +80,7 @@ const Tool4 = {
         missingCount: [tool1Data, tool2Data, tool3Data].filter(d => !d).length
       };
     } catch (error) {
-      Logger.log(`Error checking tool completion: ${error}`);
+      LogUtils.error(`Error checking tool completion: ${error}`);
       return {
         hasTool1: false,
         hasTool2: false,
@@ -115,7 +115,7 @@ const Tool4 = {
     try {
       const preSurveyKey = `tool4_presurvey_${clientId}`;
       PropertiesService.getUserProperties().setProperty(preSurveyKey, JSON.stringify(preSurveyData));
-      Logger.log(`Pre-survey saved for client: ${clientId}`);
+      LogUtils.debug(`Pre-survey saved for client: ${clientId}`);
 
       // Return updated HTML - calculate allocation ONLY if priority already selected
       const toolStatus = this.checkToolCompletion(clientId);
@@ -128,16 +128,16 @@ const Tool4 = {
         try {
           const v1Input = this.buildV1Input(clientId, savedPreSurvey);
           allocation = this.calculateAllocationV1(v1Input);
-          Logger.log(`Recalculated allocation for priority: ${savedPreSurvey.selectedPriority}`);
+          LogUtils.debug(`Recalculated allocation for priority: ${savedPreSurvey.selectedPriority}`);
         } catch (allocError) {
-          Logger.log(`Error calculating allocation: ${allocError}`);
+          LogUtils.error(`Error calculating allocation: ${allocError}`);
         }
       }
 
       const htmlContent = this.buildUnifiedPage(clientId, toolStatus, savedPreSurvey, allocation);
       return { success: true, nextPageHtml: htmlContent };
     } catch (error) {
-      Logger.log(`Error saving pre-survey: ${error}`);
+      LogUtils.error(`Error saving pre-survey: ${error}`);
       return { success: false, error: error.message };
     }
   },
@@ -151,7 +151,7 @@ const Tool4 = {
       const preSurveyData = PropertiesService.getUserProperties().getProperty(preSurveyKey);
       return preSurveyData ? JSON.parse(preSurveyData) : null;
     } catch (error) {
-      Logger.log(`Error getting pre-survey: ${error}`);
+      LogUtils.error(`Error getting pre-survey: ${error}`);
       return null;
     }
   },
@@ -174,7 +174,7 @@ const Tool4 = {
       // Save updated pre-survey
       const preSurveyKey = `tool4_presurvey_${clientId}`;
       PropertiesService.getUserProperties().setProperty(preSurveyKey, JSON.stringify(savedPreSurvey));
-      Logger.log(`Priority selection saved for client: ${clientId} - Priority: ${selectedPriority}, Timeline: ${goalTimeline}`);
+      LogUtils.debug(`Priority selection saved for client: ${clientId} - Priority: ${selectedPriority}, Timeline: ${goalTimeline}`);
 
       // Calculate V1 allocation with the selected priority
       const toolStatus = this.checkToolCompletion(clientId);
@@ -184,14 +184,14 @@ const Tool4 = {
         const v1Input = this.buildV1Input(clientId, savedPreSurvey);
         allocation = this.calculateAllocationV1(v1Input);
       } catch (allocError) {
-        Logger.log(`Error calculating allocation: ${allocError}`);
+        LogUtils.error(`Error calculating allocation: ${allocError}`);
       }
 
       // Return updated page HTML with priority picker collapsed and calculator showing allocation
       const htmlContent = this.buildUnifiedPage(clientId, toolStatus, savedPreSurvey, allocation);
       return { success: true, nextPageHtml: htmlContent };
     } catch (error) {
-      Logger.log(`Error saving priority selection: ${error}`);
+      LogUtils.error(`Error saving priority selection: ${error}`);
       return { success: false, error: error.message };
     }
   },
@@ -202,8 +202,8 @@ const Tool4 = {
    */
   saveScenario(clientId, scenario) {
     try {
-      Logger.log(`saveScenario called for client ${clientId}`);
-      Logger.log(`Scenario data: ${JSON.stringify(scenario)}`);
+      LogUtils.debug(`saveScenario called for client ${clientId}`);
+      LogUtils.debug(`Scenario data: ${JSON.stringify(scenario)}`);
 
       // Validate scenario data
       if (!scenario || !scenario.name || !scenario.allocations) {
@@ -226,7 +226,7 @@ const Tool4 = {
 
       const total = scenario.allocations.Multiply + scenario.allocations.Essentials +
                     scenario.allocations.Freedom + scenario.allocations.Enjoyment;
-      Logger.log(`Allocations total: ${total}%`);
+      LogUtils.debug(`Allocations total: ${total}%`);
       if (Math.abs(total - 100) > 1) {
         throw new Error(`Allocations must sum to 100% (currently ${total}%)`);
       }
@@ -236,7 +236,7 @@ const Tool4 = {
 
       // Create sheet if it doesn't exist
       if (!scenariosSheet) {
-        Logger.log('TOOL4_SCENARIOS sheet does not exist, creating...');
+        LogUtils.debug('TOOL4_SCENARIOS sheet does not exist, creating...');
         const ss = SpreadsheetCache.getSpreadsheet();
         scenariosSheet = ss.insertSheet(CONFIG.SHEETS.TOOL4_SCENARIOS);
 
@@ -253,7 +253,7 @@ const Tool4 = {
 
         // Flush to ensure headers are written
         SpreadsheetApp.flush();
-        Logger.log('TOOL4_SCENARIOS sheet created with headers');
+        LogUtils.debug('TOOL4_SCENARIOS sheet created with headers');
       }
 
       // Calculate dollar amounts
@@ -296,35 +296,35 @@ const Tool4 = {
         '', '', '', ''                                  // Tool1/2/3_Source, Backup_Data
       ];
 
-      Logger.log(`Row data to append (${row.length} columns):`);
-      Logger.log(`  [0] Timestamp: ${row[0]}`);
-      Logger.log(`  [1] Client_ID: ${row[1]}`);
-      Logger.log(`  [2] Scenario_Name: ${row[2]}`);
-      Logger.log(`  [3] Priority: ${row[3]}`);
-      Logger.log(`  [4] Monthly_Income: ${row[4]}`);
-      Logger.log(`  [18-21] Rec M/E/F/J: ${row[18]}, ${row[19]}, ${row[20]}, ${row[21]}`);
-      Logger.log(`  [26-29] Custom M/E/F/J: ${row[26]}, ${row[27]}, ${row[28]}, ${row[29]}`);
-      Logger.log(`  [30] Is_Custom: ${row[30]}`);
+      LogUtils.debug(`Row data to append (${row.length} columns):`);
+      LogUtils.debug(`  [0] Timestamp: ${row[0]}`);
+      LogUtils.debug(`  [1] Client_ID: ${row[1]}`);
+      LogUtils.debug(`  [2] Scenario_Name: ${row[2]}`);
+      LogUtils.debug(`  [3] Priority: ${row[3]}`);
+      LogUtils.debug(`  [4] Monthly_Income: ${row[4]}`);
+      LogUtils.debug(`  [18-21] Rec M/E/F/J: ${row[18]}, ${row[19]}, ${row[20]}, ${row[21]}`);
+      LogUtils.debug(`  [26-29] Custom M/E/F/J: ${row[26]}, ${row[27]}, ${row[28]}, ${row[29]}`);
+      LogUtils.debug(`  [30] Is_Custom: ${row[30]}`);
 
       // Verify sheet before append
-      Logger.log(`Sheet name: ${scenariosSheet.getName()}, Sheet ID: ${scenariosSheet.getSheetId()}`);
-      Logger.log(`Current row count before append: ${scenariosSheet.getLastRow()}`);
+      LogUtils.debug(`Sheet name: ${scenariosSheet.getName()}, Sheet ID: ${scenariosSheet.getSheetId()}`);
+      LogUtils.debug(`Current row count before append: ${scenariosSheet.getLastRow()}`);
 
       // Append the row
       scenariosSheet.appendRow(row);
 
       // Flush to ensure data is written immediately
       SpreadsheetApp.flush();
-      Logger.log(`Scenario row appended and flushed for client ${clientId}`);
+      LogUtils.debug(`Scenario row appended and flushed for client ${clientId}`);
 
       // Verify the append worked
       const newRowCount = scenariosSheet.getLastRow();
-      Logger.log(`Row count after append: ${newRowCount}`);
+      LogUtils.debug(`Row count after append: ${newRowCount}`);
 
       // Read back the last row to verify
       if (newRowCount > 1) {
         const lastRow = scenariosSheet.getRange(newRowCount, 1, 1, 5).getValues()[0];
-        Logger.log(`Verification - Last row data: ${JSON.stringify(lastRow)}`);
+        LogUtils.debug(`Verification - Last row data: ${JSON.stringify(lastRow)}`);
       }
 
       // Count scenarios for this client and enforce limit
@@ -347,7 +347,7 @@ const Tool4 = {
         }
       }
 
-      Logger.log(`Client ${clientId} now has ${clientScenarioRows.length} scenario(s)`);
+      LogUtils.debug(`Client ${clientId} now has ${clientScenarioRows.length} scenario(s)`);
 
       // If over limit, delete the oldest scenario (FIFO)
       let deletedScenario = null;
@@ -356,13 +356,13 @@ const Tool4 = {
         clientScenarioRows.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
         const oldestScenario = clientScenarioRows[0];
 
-        Logger.log(`Deleting oldest scenario "${oldestScenario.name}" at row ${oldestScenario.rowIndex} to enforce ${MAX_SCENARIOS_PER_CLIENT} limit`);
+        LogUtils.debug(`Deleting oldest scenario "${oldestScenario.name}" at row ${oldestScenario.rowIndex} to enforce ${MAX_SCENARIOS_PER_CLIENT} limit`);
 
         scenariosSheet.deleteRow(oldestScenario.rowIndex);
         SpreadsheetApp.flush();
         deletedScenario = oldestScenario.name;
 
-        Logger.log(`Oldest scenario deleted. Client now has ${clientScenarioRows.length - 1} scenarios`);
+        LogUtils.debug(`Oldest scenario deleted. Client now has ${clientScenarioRows.length - 1} scenarios`);
       }
 
       const isFirstScenario = clientScenarioRows.length === 1;
@@ -381,14 +381,14 @@ const Tool4 = {
           };
 
           DataService.saveToolResponse(clientId, 'tool4', dataPackage, 'COMPLETED');
-          Logger.log(`Tool4 marked as completed for client ${clientId}`);
+          LogUtils.debug(`Tool4 marked as completed for client ${clientId}`);
         } catch (responseError) {
-          Logger.log(`Warning: Could not update Responses tab: ${responseError}`);
+          LogUtils.error(`Warning: Could not update Responses tab: ${responseError}`);
           // Don't fail the save if Responses update fails
         }
       }
 
-      Logger.log(`Scenario saved for client ${clientId}: ${scenario.name}`);
+      LogUtils.debug(`Scenario saved for client ${clientId}: ${scenario.name}`);
       return {
         success: true,
         message: 'Scenario saved successfully',
@@ -397,7 +397,7 @@ const Tool4 = {
         deletedScenario: deletedScenario
       };
     } catch (error) {
-      Logger.log(`Error saving scenario: ${error}`);
+      LogUtils.error(`Error saving scenario: ${error}`);
       return { success: false, error: error.message };
     }
   },
@@ -411,7 +411,7 @@ const Tool4 = {
       const scenariosStr = PropertiesService.getUserProperties().getProperty(scenariosKey);
       return scenariosStr ? JSON.parse(scenariosStr) : [];
     } catch (error) {
-      Logger.log(`Error getting scenarios: ${error}`);
+      LogUtils.error(`Error getting scenarios: ${error}`);
       return [];
     }
   },
@@ -506,12 +506,12 @@ buildUnifiedPage(clientId, toolStatus, preSurveyData, allocation) {
       const tool1Data = hasTool1 ? toolStatus.tool1Data : null;
       const tool2Data = hasTool2 ? toolStatus.tool2Data : null;
       const tool3Data = hasTool3 ? toolStatus.tool3Data : null;
-      Logger.log(`Calculating priorities for client ${clientId}`);
+      LogUtils.debug(`Calculating priorities for client ${clientId}`);
       priorityRecommendations = this.calculatePriorityRecommendations(preSurveyData, tool1Data, tool2Data, tool3Data);
-      Logger.log(`Calculated ${priorityRecommendations.length} priority recommendations`);
+      LogUtils.debug(`Calculated ${priorityRecommendations.length} priority recommendations`);
     } catch (error) {
-      Logger.log(`Error calculating priority recommendations: ${error.message}`);
-      Logger.log(`Stack: ${error.stack}`);
+      LogUtils.error(`Error calculating priority recommendations: ${error.message}`);
+      LogUtils.error(`Stack: ${error.stack}`);
       // Continue with empty array - will just not show picker
       priorityRecommendations = [];
     }
@@ -4638,11 +4638,11 @@ buildUnifiedPage(clientId, toolStatus, preSurveyData, allocation) {
       // Append to sheet
       sheet.appendRow(rowData);
 
-      Logger.log('Scenario saved successfully for client: ' + scenarioData.clientId);
+      LogUtils.debug('Scenario saved successfully for client: ' + scenarioData.clientId);
       return { success: true, message: 'Scenario saved successfully' };
 
     } catch (error) {
-      Logger.log('Error saving scenario: ' + error);
+      LogUtils.error('Error saving scenario: ' + error);
       throw new Error('Failed to save scenario: ' + error.message);
     }
   },
@@ -4879,7 +4879,7 @@ buildUnifiedPage(clientId, toolStatus, preSurveyData, allocation) {
         actual: actualEssentialsPct,
         message: 'Your recommended Essentials (' + Math.round(percentages.Essentials) + '%) is lower than your current spending (' + actualEssentialsPct + '%). You may need to reduce expenses or adjust your allocation.'
       });
-      Logger.log('VALIDATION WARNING: Recommended Essentials (' + percentages.Essentials.toFixed(1) + '%) < Actual (' + actualEssentialsPct + '%)');
+      LogUtils.debug('VALIDATION WARNING: Recommended Essentials (' + percentages.Essentials.toFixed(1) + '%) < Actual (' + actualEssentialsPct + '%)');
     }
 
     // Round final percentages
@@ -4890,7 +4890,7 @@ buildUnifiedPage(clientId, toolStatus, preSurveyData, allocation) {
     // Ensure no negative percentages (can happen with extreme modifiers)
     Object.keys(percentages).forEach(function(k) {
       if (percentages[k] < 0) {
-        Logger.log('WARNING: Negative percentage detected for ' + k + ': ' + percentages[k] + '%. Setting to 0.');
+        LogUtils.debug('WARNING: Negative percentage detected for ' + k + ': ' + percentages[k] + '%. Setting to 0.');
         percentages[k] = 0;
       }
     });
@@ -4904,7 +4904,7 @@ buildUnifiedPage(clientId, toolStatus, preSurveyData, allocation) {
         return percentages[a] > percentages[b] ? a : b;
       });
       percentages[largest] += diff;
-      Logger.log('Adjusted ' + largest + ' by ' + diff + '% to make sum = 100%');
+      LogUtils.debug('Adjusted ' + largest + ' by ' + diff + '% to make sum = 100%');
     }
 
     // Build light notes
@@ -5007,7 +5007,7 @@ buildUnifiedPage(clientId, toolStatus, preSurveyData, allocation) {
         dependents: tool2Backup?.dependents || ((tool2Form.dependents && tool2Form.dependents > 0) ? 'Yes' : 'No')
       };
     } catch (error) {
-      Logger.log('Error in buildV1Input: ' + error);
+      LogUtils.error('Error in buildV1Input: ' + error);
       // Return safe defaults on error
       return {
         incomeRange: 'C',
@@ -5952,7 +5952,7 @@ buildUnifiedPage(clientId, toolStatus, preSurveyData, allocation) {
       }
     }
 
-    Logger.log(`Derived trauma pattern from backup: ${winner} (votes: ${JSON.stringify(votes)})`);
+    LogUtils.debug(`Derived trauma pattern from backup: ${winner} (votes: ${JSON.stringify(votes)})`);
     return winner;
   },
 
@@ -6021,7 +6021,7 @@ buildUnifiedPage(clientId, toolStatus, preSurveyData, allocation) {
     const avg = scores.reduce((sum, s) => sum + s, 0) / scores.length;
     const overallQuotient = Math.round(avg * 10); // Scale 0-10 to 0-100
 
-    Logger.log(`Derived disconnection from backup: ${overallQuotient} (from ${scores.length} answers: ${scores.join(', ')})`);
+    LogUtils.debug(`Derived disconnection from backup: ${overallQuotient} (from ${scores.length} answers: ${scores.join(', ')})`);
     return overallQuotient;
   },
 
@@ -6085,7 +6085,7 @@ buildUnifiedPage(clientId, toolStatus, preSurveyData, allocation) {
       result.stageOfLife = backupLifeStage;
     }
 
-    Logger.log(`Derived Tool 2 data from backup: ${JSON.stringify(result)}`);
+    LogUtils.debug(`Derived Tool 2 data from backup: ${JSON.stringify(result)}`);
     return result;
   },
 
@@ -6245,7 +6245,7 @@ buildUnifiedPage(clientId, toolStatus, preSurveyData, allocation) {
     // Extract trauma pattern from Tool 1 and disconnection score from Tool 3
     // Falls back to backup questions in preSurveyData if Tool 1/3 data is missing
     const traumaModifiers = this.getTraumaPriorityModifiers(tool1Data, tool3Data, preSurveyData);
-    Logger.log(`Trauma modifiers: pattern=${traumaModifiers.pattern}, intensity=${traumaModifiers.intensity}, source=${tool1Data ? 'Tool1' : 'backup'}`);
+    LogUtils.debug(`Trauma modifiers: pattern=${traumaModifiers.pattern}, intensity=${traumaModifiers.intensity}, source=${tool1Data ? 'Tool1' : 'backup'}`);
 
     // Bundle all data for personalized reason generation
     const allData = {
@@ -7028,13 +7028,13 @@ buildUnifiedPage(clientId, toolStatus, preSurveyData, allocation) {
         if (rowClientId === clientId && rowScenarioName === scenarioName) {
           scenariosSheet.deleteRow(i + 1);
           SpreadsheetApp.flush();
-          Logger.log('Deleted scenario "' + scenarioName + '" for client ' + clientId);
+          LogUtils.debug('Deleted scenario "' + scenarioName + '" for client ' + clientId);
           return { success: true };
         }
       }
       return { success: false, error: 'Scenario not found' };
     } catch (error) {
-      Logger.log('Error deleting scenario: ' + error);
+      LogUtils.error('Error deleting scenario: ' + error);
       return { success: false, error: error.toString() };
     }
   },
@@ -7044,17 +7044,17 @@ buildUnifiedPage(clientId, toolStatus, preSurveyData, allocation) {
    */
   getScenariosFromSheet(clientId) {
     try {
-      Logger.log('getScenariosFromSheet called with clientId: ' + clientId);
+      LogUtils.debug('getScenariosFromSheet called with clientId: ' + clientId);
 
       const scenariosSheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.TOOL4_SCENARIOS);
       if (!scenariosSheet) {
-        Logger.log('TOOL4_SCENARIOS sheet not found');
+        LogUtils.debug('TOOL4_SCENARIOS sheet not found');
         return [];
       }
 
       const data = scenariosSheet.getDataRange().getValues();
       const headers = data[0];
-      Logger.log('Found ' + (data.length - 1) + ' rows in TOOL4_SCENARIOS');
+      LogUtils.debug('Found ' + (data.length - 1) + ' rows in TOOL4_SCENARIOS');
       const scenarios = [];
 
       const clientIdCol = headers.indexOf('Client_ID');
@@ -7125,10 +7125,10 @@ buildUnifiedPage(clientId, toolStatus, preSurveyData, allocation) {
       }
 
       scenarios.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-      Logger.log('Found ' + scenarios.length + ' scenarios for clientId: ' + clientId);
+      LogUtils.debug('Found ' + scenarios.length + ' scenarios for clientId: ' + clientId);
       return scenarios;
     } catch (error) {
-      Logger.log('Error getting scenarios from sheet: ' + error);
+      LogUtils.error('Error getting scenarios from sheet: ' + error);
       return [];
     }
   },

@@ -50,9 +50,9 @@ const Tool3Report = {
       }
 
       // Reconstruct GPT insights
-      Logger.log(`[Tool3Report] Reconstructing gptInsights for ${clientId}`);
-      Logger.log(`[Tool3Report] assessmentData.gpt_insights exists: ${!!assessmentData.gpt_insights}`);
-      Logger.log(`[Tool3Report] assessmentData.syntheses exists: ${!!assessmentData.syntheses}`);
+      LogUtils.debug(`[Tool3Report] Reconstructing gptInsights for ${clientId}`);
+      LogUtils.debug(`[Tool3Report] assessmentData.gpt_insights exists: ${!!assessmentData.gpt_insights}`);
+      LogUtils.debug(`[Tool3Report] assessmentData.syntheses exists: ${!!assessmentData.syntheses}`);
 
       const gptInsights = {
         subdomains: assessmentData.gpt_insights?.subdomains || {},
@@ -61,11 +61,11 @@ const Tool3Report = {
         overall: assessmentData.syntheses?.overall
       };
 
-      Logger.log(`[Tool3Report] gptInsights.domain1 exists: ${!!gptInsights.domain1}`);
-      Logger.log(`[Tool3Report] gptInsights.domain1.summary exists: ${!!gptInsights.domain1?.summary}`);
-      Logger.log(`[Tool3Report] gptInsights.domain1.summary length: ${gptInsights.domain1?.summary?.length || 0}`);
-      Logger.log(`[Tool3Report] gptInsights.domain2 exists: ${!!gptInsights.domain2}`);
-      Logger.log(`[Tool3Report] gptInsights.domain2.summary exists: ${!!gptInsights.domain2?.summary}`);
+      LogUtils.debug(`[Tool3Report] gptInsights.domain1 exists: ${!!gptInsights.domain1}`);
+      LogUtils.debug(`[Tool3Report] gptInsights.domain1.summary exists: ${!!gptInsights.domain1?.summary}`);
+      LogUtils.debug(`[Tool3Report] gptInsights.domain1.summary length: ${gptInsights.domain1?.summary?.length || 0}`);
+      LogUtils.debug(`[Tool3Report] gptInsights.domain2 exists: ${!!gptInsights.domain2}`);
+      LogUtils.debug(`[Tool3Report] gptInsights.domain2.summary exists: ${!!gptInsights.domain2?.summary}`);
 
       // Generate report HTML
       const reportHtml = GroundingReport.generateReport({
@@ -81,7 +81,7 @@ const Tool3Report = {
       return HtmlService.createHtmlOutput(reportHtml);
 
     } catch (error) {
-      Logger.log(`[Tool3Report] Error rendering: ${error.message}`);
+      LogUtils.error(`[Tool3Report] Error rendering: ${error.message}`);
       return HtmlService.createHtmlOutput(`
         <!DOCTYPE html>
         <html>
@@ -136,7 +136,7 @@ const Tool3Report = {
         formData: assessmentData.responses || {}
       };
     } catch (error) {
-      Logger.log(`[Tool3Report] Error getting results: ${error.message}`);
+      LogUtils.error(`[Tool3Report] Error getting results: ${error.message}`);
       return null;
     }
   },
@@ -182,7 +182,7 @@ const Tool3Report = {
       return this.generate(clientId, savedData.scoring, gptInsights);
 
     } catch (error) {
-      Logger.log(`Error regenerating Tool 3 report: ${error.message}`);
+      LogUtils.error(`Error regenerating Tool 3 report: ${error.message}`);
       throw error;
     }
   }

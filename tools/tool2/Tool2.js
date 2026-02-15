@@ -31,13 +31,13 @@ const Tool2 = {
     // This happens AFTER navigation so we preserve user gesture (no iframe errors)
 
     if (editMode && page === 1) {
-      Logger.log(`Edit mode detected for ${clientId} - creating EDIT_DRAFT`);
+      LogUtils.debug(`Edit mode detected for ${clientId} - creating EDIT_DRAFT`);
       DataService.loadResponseForEditing(clientId, 'tool2');
     }
 
     if (clearDraft && page === 1) {
       // Clear all drafts for fresh start
-      Logger.log(`Clear draft triggered for ${clientId}`);
+      LogUtils.debug(`Clear draft triggered for ${clientId}`);
       DataService.startFreshAttempt(clientId, 'tool2');
     }
 
@@ -122,7 +122,7 @@ const Tool2 = {
         tool1Data = tool1Response.data.formData || tool1Response.data;
       }
     } catch (e) {
-      Logger.log('Could not load Tool 1 data for pre-fill: ' + e);
+      LogUtils.error('Could not load Tool 1 data for pre-fill: ' + e);
     }
 
     // Pre-fill values from draft or Tool 1
@@ -1126,11 +1126,11 @@ const Tool2 = {
       const isLatestCol = headers.indexOf('Is_Latest');
       const responseCol = headers.indexOf('Data');  // Column is named 'Data', not 'Response_Data'
 
-      Logger.log(`Searching for Tool1 data for client: ${clientId}`);
+      LogUtils.debug(`Searching for Tool1 data for client: ${clientId}`);
       
       for (let i = data.length - 1; i >= 1; i--) {
         if (data[i][clientCol] === clientId) {
-          Logger.log(`Row ${i+1}: Tool_ID=${data[i][toolIdCol]}, Is_Latest=${data[i][isLatestCol]}`);
+          LogUtils.debug(`Row ${i+1}: Tool_ID=${data[i][toolIdCol]}, Is_Latest=${data[i][isLatestCol]}`);
         }
         
         if (data[i][toolIdCol] === 'tool1' &&
@@ -1139,15 +1139,15 @@ const Tool2 = {
 
           // Check if response data exists
           const rawResponseData = data[i][responseCol];
-          Logger.log(`Tool1 row found. Response_Data type: ${typeof rawResponseData}, length: ${rawResponseData ? String(rawResponseData).length : 0}`);
+          LogUtils.debug(`Tool1 row found. Response_Data type: ${typeof rawResponseData}, length: ${rawResponseData ? String(rawResponseData).length : 0}`);
           
           if (!rawResponseData || rawResponseData === 'undefined' || rawResponseData === '' || rawResponseData === null) {
-            Logger.log(`Tool1 row found but Response_Data is empty/null/undefined for ${clientId}`);
+            LogUtils.debug(`Tool1 row found but Response_Data is empty/null/undefined for ${clientId}`);
             continue;
           }
           
           // Log first part of data for debugging
-          Logger.log(`Response_Data preview: ${String(rawResponseData).substring(0, 200)}`);
+          LogUtils.debug(`Response_Data preview: ${String(rawResponseData).substring(0, 200)}`);
           
           const responseData = JSON.parse(rawResponseData);
 
@@ -1156,20 +1156,20 @@ const Tool2 = {
           const traumaScores = responseData.scores || {};
           const topTrauma = responseData.winner || 'FSV';
           
-          Logger.log(`Tool1 data found for ${clientId} - Winner: ${topTrauma}, Scores: ${JSON.stringify(traumaScores)}`);
+          LogUtils.debug(`Tool1 data found for ${clientId} - Winner: ${topTrauma}, Scores: ${JSON.stringify(traumaScores)}`);
 
           return { topTrauma, traumaScores };
         }
       }
       
-      Logger.log(`No Tool1 data found for ${clientId} after checking ${data.length - 1} rows`);
+      LogUtils.debug(`No Tool1 data found for ${clientId} after checking ${data.length - 1} rows`);
       
     } catch (e) {
-      Logger.log('Error getting Tool 1 trauma data: ' + e.message);
+      LogUtils.error('Error getting Tool 1 trauma data: ' + e.message);
     }
 
     // Default if no Tool 1 data found
-    Logger.log(`Returning default trauma data for ${clientId}: FSV`);
+    LogUtils.debug(`Returning default trauma data for ${clientId}: FSV`);
     return { topTrauma: 'FSV', traumaScores: {} };
   },
 
@@ -1366,7 +1366,7 @@ const Tool2 = {
       // CRITICAL: Check if we already have this insight (avoid duplicates on back/forward navigation)
       const existingInsights = this.getExistingInsights(clientId);
       if (existingInsights[responseType] && !existingInsights[`${responseType}_error`]) {
-        Logger.log(`✓ Insight already exists for ${responseType}, skipping GPT call`);
+        LogUtils.debug(`Insight already exists for ${responseType}, skipping GPT call`);
         return;
       }
 
@@ -1395,10 +1395,10 @@ const Tool2 = {
         JSON.stringify(existingInsights)
       );
 
-      Logger.log(`✅ Background GPT complete: ${clientId} - ${responseType}`);
+      LogUtils.debug(`Background GPT complete: ${clientId} - ${responseType}`);
 
     } catch (error) {
-      Logger.log(`⚠️ Background GPT failed: ${clientId} - ${responseType}: ${error.message}`);
+      LogUtils.error(`Background GPT failed: ${clientId} - ${responseType}: ${error.message}`);
 
       // Store error for retry at submission
       const insightKey = `tool2_gpt_${clientId}`;
@@ -1503,7 +1503,7 @@ const Tool2 = {
       } else {
         // EDIT MODE: Also update EDIT_DRAFT row to keep RESPONSES sheet in sync
         // This ensures data isn't lost if PropertiesService gets cleared mid-session
-        Logger.log(`[Tool2] Updating EDIT_DRAFT with current data`);
+        LogUtils.debug(`[Tool2] Updating EDIT_DRAFT with current data`);
         DataService.updateDraft(clientId, 'tool2', draftData);
       }
 
@@ -1514,7 +1514,7 @@ const Tool2 = {
 
       return result;
     } catch (error) {
-      Logger.log(`Error saving page data: ${error}`);
+      LogUtils.error(`Error saving page data: ${error}`);
       throw error;
     }
   },
@@ -1531,7 +1531,7 @@ const Tool2 = {
         const activeDraft = DataService.getActiveDraft(clientId, 'tool2');
         if (activeDraft && activeDraft.status === 'EDIT_DRAFT') {
           editDraft = activeDraft;
-          Logger.log(`Found EDIT_DRAFT for ${clientId}`);
+          LogUtils.debug(`Found EDIT_DRAFT for ${clientId}`);
         }
       }
 
@@ -1542,18 +1542,18 @@ const Tool2 = {
       if (editDraft) {
         if (propertiesData) {
           // Merge: EDIT_DRAFT has all original data, PropertiesService has page updates
-          Logger.log(`Merging EDIT_DRAFT with PropertiesService updates`);
+          LogUtils.debug(`Merging EDIT_DRAFT with PropertiesService updates`);
           return { ...editDraft.data, ...propertiesData };
         } else {
           // No PropertiesService yet, use EDIT_DRAFT
-          Logger.log(`Using EDIT_DRAFT data (no PropertiesService yet)`);
+          LogUtils.debug(`Using EDIT_DRAFT data (no PropertiesService yet)`);
           return editDraft.data;
         }
       }
 
       // NEW DRAFT MODE: PropertiesService is source of truth
       if (propertiesData) {
-        Logger.log(`Found PropertiesService draft for ${clientId}`);
+        LogUtils.debug(`Found PropertiesService draft for ${clientId}`);
         return propertiesData;
       }
 
@@ -1561,7 +1561,7 @@ const Tool2 = {
       if (typeof DataService !== 'undefined') {
         const activeDraft = DataService.getActiveDraft(clientId, 'tool2');
         if (activeDraft && activeDraft.status === 'DRAFT') {
-          Logger.log(`Found DRAFT for ${clientId}`);
+          LogUtils.debug(`Found DRAFT for ${clientId}`);
           return activeDraft.data;
         }
       }
@@ -1569,7 +1569,7 @@ const Tool2 = {
       return null;
 
     } catch (error) {
-      Logger.log(`Error getting existing data: ${error}`);
+      LogUtils.error(`Error getting existing data: ${error}`);
       return null;
     }
   },
@@ -1590,7 +1590,7 @@ const Tool2 = {
       // Check if this is an edit or new submission
       const isEditMode = allData._editMode === true;
 
-      Logger.log(`Processing ${isEditMode ? 'edited' : 'new'} submission for ${clientId}`);
+      LogUtils.debug(`Processing ${isEditMode ? 'edited' : 'new'} submission for ${clientId}`);
 
       // Process data (calculate scores, analyze, etc.)
       const results = this.processResults(allData);
@@ -1622,7 +1622,7 @@ const Tool2 = {
 
       // Step 4: Run missing analyses synchronously (only if needed)
       if (missingInsights.length > 0) {
-        Logger.log(`⚠️ Missing ${missingInsights.length} insights, running now...`);
+        LogUtils.debug(`Missing ${missingInsights.length} insights, running now...`);
 
         missingInsights.forEach(key => {
           const responseText = this.getResponseTextForKey(key, allData);
@@ -1686,7 +1686,7 @@ const Tool2 = {
       };
 
     } catch (error) {
-      Logger.log(`Error processing final submission: ${error}`);
+      LogUtils.error(`Error processing final submission: ${error}`);
       throw error;
     }
   },

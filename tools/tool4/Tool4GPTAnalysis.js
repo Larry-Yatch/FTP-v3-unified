@@ -35,7 +35,7 @@ const Tool4GPTAnalysis = {
 
     // Validate required params
     if (!preSurveyData || !allocation || !allocation.percentages) {
-      Logger.log('[Tool4GPT] Missing required data for main report');
+      LogUtils.debug('[Tool4GPT] Missing required data for main report');
       return Tool4Fallbacks.getMainReportFallback(preSurveyData, allocation);
     }
 
@@ -43,7 +43,7 @@ const Tool4GPTAnalysis = {
     // TIER 1: Try GPT Analysis
     // ============================================================
     try {
-      Logger.log(`[TIER 1] Tool4 GPT: Main report for ${clientId}`);
+      LogUtils.debug(`[TIER 1] Tool4 GPT: Main report for ${clientId}`);
 
       const systemPrompt = this.buildMainReportSystemPrompt(preSurveyData, allocation, tool1Data, tool2Data, tool3Data);
       const userPrompt = this.buildMainReportUserPrompt(preSurveyData, allocation, validationResults, helperInsights);
@@ -59,7 +59,7 @@ const Tool4GPTAnalysis = {
       const parsed = this.parseMainReportResponse(result);
 
       if (this.isValidMainInsight(parsed)) {
-        Logger.log('[TIER 1] Tool4 GPT success: Main report');
+        LogUtils.debug('[TIER 1] Tool4 GPT success: Main report');
         return {
           ...parsed,
           source: 'gpt',
@@ -70,14 +70,14 @@ const Tool4GPTAnalysis = {
       }
 
     } catch (error) {
-      Logger.log(`[TIER 1] Tool4 GPT failed: ${error.message}`);
+      LogUtils.debug(`[TIER 1] Tool4 GPT failed: ${error.message}`);
 
       // ============================================================
       // TIER 2: Retry GPT Analysis
       // ============================================================
       try {
         Utilities.sleep(2000);
-        Logger.log(`[TIER 2] Tool4 GPT retry: Main report for ${clientId}`);
+        LogUtils.debug(`[TIER 2] Tool4 GPT retry: Main report for ${clientId}`);
 
         const systemPrompt = this.buildMainReportSystemPrompt(preSurveyData, allocation, tool1Data, tool2Data, tool3Data);
         const userPrompt = this.buildMainReportUserPrompt(preSurveyData, allocation, validationResults, helperInsights);
@@ -93,7 +93,7 @@ const Tool4GPTAnalysis = {
         const parsed = this.parseMainReportResponse(result);
 
         if (this.isValidMainInsight(parsed)) {
-          Logger.log('[TIER 2] Tool4 GPT retry success: Main report');
+          LogUtils.debug('[TIER 2] Tool4 GPT retry success: Main report');
           return {
             ...parsed,
             source: 'gpt_retry',
@@ -104,12 +104,12 @@ const Tool4GPTAnalysis = {
         }
 
       } catch (retryError) {
-        Logger.log(`[TIER 2] Tool4 GPT retry failed: ${retryError.message}`);
+        LogUtils.debug(`[TIER 2] Tool4 GPT retry failed: ${retryError.message}`);
 
         // ============================================================
         // TIER 3: Use Score-aware Fallback
         // ============================================================
-        Logger.log('[TIER 3] Using fallback: Main report');
+        LogUtils.debug('[TIER 3] Using fallback: Main report');
         this.logFallbackUsage(clientId, 'main_report', retryError.message);
 
         return {
@@ -145,7 +145,7 @@ const Tool4GPTAnalysis = {
 
     // Validate required params
     if (!scenario1 || !scenario2) {
-      Logger.log('[Tool4GPT] Missing scenarios for comparison');
+      LogUtils.debug('[Tool4GPT] Missing scenarios for comparison');
       return Tool4Fallbacks.getComparisonFallback(scenario1, scenario2, preSurveyData);
     }
 
@@ -153,7 +153,7 @@ const Tool4GPTAnalysis = {
     // TIER 1: Try GPT Analysis
     // ============================================================
     try {
-      Logger.log(`[TIER 1] Tool4 GPT: Comparison report for ${clientId}`);
+      LogUtils.debug(`[TIER 1] Tool4 GPT: Comparison report for ${clientId}`);
 
       const systemPrompt = this.buildComparisonSystemPrompt(preSurveyData, scenario1, scenario2, tool1Data, tool3Data);
       const userPrompt = this.buildComparisonUserPrompt(scenario1, scenario2, preSurveyData, comparisonData);
@@ -169,7 +169,7 @@ const Tool4GPTAnalysis = {
       const parsed = this.parseComparisonResponse(result);
 
       if (this.isValidComparisonInsight(parsed)) {
-        Logger.log('[TIER 1] Tool4 GPT success: Comparison report');
+        LogUtils.debug('[TIER 1] Tool4 GPT success: Comparison report');
         return {
           ...parsed,
           source: 'gpt',
@@ -180,14 +180,14 @@ const Tool4GPTAnalysis = {
       }
 
     } catch (error) {
-      Logger.log(`[TIER 1] Tool4 GPT failed: ${error.message}`);
+      LogUtils.debug(`[TIER 1] Tool4 GPT failed: ${error.message}`);
 
       // ============================================================
       // TIER 2: Retry GPT Analysis
       // ============================================================
       try {
         Utilities.sleep(2000);
-        Logger.log(`[TIER 2] Tool4 GPT retry: Comparison report for ${clientId}`);
+        LogUtils.debug(`[TIER 2] Tool4 GPT retry: Comparison report for ${clientId}`);
 
         const systemPrompt = this.buildComparisonSystemPrompt(preSurveyData, scenario1, scenario2, tool1Data, tool3Data);
         const userPrompt = this.buildComparisonUserPrompt(scenario1, scenario2, preSurveyData, comparisonData);
@@ -203,7 +203,7 @@ const Tool4GPTAnalysis = {
         const parsed = this.parseComparisonResponse(result);
 
         if (this.isValidComparisonInsight(parsed)) {
-          Logger.log('[TIER 2] Tool4 GPT retry success: Comparison report');
+          LogUtils.debug('[TIER 2] Tool4 GPT retry success: Comparison report');
           return {
             ...parsed,
             source: 'gpt_retry',
@@ -214,12 +214,12 @@ const Tool4GPTAnalysis = {
         }
 
       } catch (retryError) {
-        Logger.log(`[TIER 2] Tool4 GPT retry failed: ${retryError.message}`);
+        LogUtils.debug(`[TIER 2] Tool4 GPT retry failed: ${retryError.message}`);
 
         // ============================================================
         // TIER 3: Use Score-aware Fallback
         // ============================================================
-        Logger.log('[TIER 3] Using fallback: Comparison report');
+        LogUtils.debug('[TIER 3] Using fallback: Comparison report');
         this.logFallbackUsage(clientId, 'comparison_report', retryError.message);
 
         return {
@@ -820,7 +820,7 @@ Decision Guidance:
         errorMessage
       ]);
     } catch (e) {
-      Logger.log(`[Tool4GPT] Could not log fallback: ${e.message}`);
+      LogUtils.error(`[Tool4GPT] Could not log fallback: ${e.message}`);
     }
   }
 };

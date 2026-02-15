@@ -463,12 +463,12 @@ const Tool3 = {
 
     // Execute actions on page load (after navigation completes with user gesture)
     if (editMode && page === 1) {
-      Logger.log(`[Tool3] Edit mode detected for ${clientId} - creating EDIT_DRAFT`);
+      LogUtils.debug(`[Tool3] Edit mode detected for ${clientId} - creating EDIT_DRAFT`);
       DataService.loadResponseForEditing(clientId, 'tool3');
     }
 
     if (clearDraft && page === 1) {
-      Logger.log(`[Tool3] Clear draft triggered for ${clientId}`);
+      LogUtils.debug(`[Tool3] Clear draft triggered for ${clientId}`);
       DataService.startFreshAttempt(clientId, 'tool3');
     }
 
@@ -517,7 +517,7 @@ const Tool3 = {
         .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 
     } catch (error) {
-      Logger.log(`[Tool3] Error rendering page ${page}: ${error.message}`);
+      LogUtils.error(`[Tool3] Error rendering page ${page}: ${error.message}`);
       throw error;
     }
   },
@@ -593,7 +593,7 @@ const Tool3 = {
     } else {
       // EDIT MODE: Also update EDIT_DRAFT row to keep RESPONSES sheet in sync
       // This ensures data isn't lost if PropertiesService gets cleared mid-session
-      Logger.log(`[Tool3] Updating EDIT_DRAFT with current data`);
+      LogUtils.debug(`[Tool3] Updating EDIT_DRAFT with current data`);
       DataService.updateDraft(clientId, 'tool3', draftData);
     }
 
@@ -612,7 +612,7 @@ const Tool3 = {
 
         // Check if we have enough data for GPT analysis
         if (openResponse && openResponse.trim().length >= 10) {
-          Logger.log(`[Tool3] Triggering GPT analysis for ${subdomain.key}`);
+          LogUtils.debug(`[Tool3] Triggering GPT analysis for ${subdomain.key}`);
 
           // Extract aspect scores for GPT context
           const aspects = ['belief', 'behavior', 'feeling', 'consequence'];
@@ -632,7 +632,7 @@ const Tool3 = {
           const existingInsight = GroundingGPT.getCachedInsight(this.config.id, clientId, subdomain.key);
 
           if (existingInsight) {
-            Logger.log(`[Tool3] GPT insight already cached for ${subdomain.key} - skipping`);
+            LogUtils.debug(`[Tool3] GPT insight already cached for ${subdomain.key} - skipping`);
           } else {
             // Trigger GPT analysis (non-blocking - uses try-catch internally)
             GroundingGPT.analyzeSubdomain({
@@ -645,15 +645,15 @@ const Tool3 = {
               previousInsights: {} // No cross-subdomain context for now
             });
 
-            Logger.log(`[Tool3] GPT analysis completed for ${subdomain.key}`);
+            LogUtils.debug(`[Tool3] GPT analysis completed for ${subdomain.key}`);
           }
         } else {
-          Logger.log(`[Tool3] Skipping GPT - insufficient open response for ${subdomain.key} (length: ${openResponse ? openResponse.length : 0})`);
+          LogUtils.debug(`[Tool3] Skipping GPT - insufficient open response for ${subdomain.key} (length: ${openResponse ? openResponse.length : 0})`);
         }
       } catch (error) {
         // Don't let GPT failures block navigation
-        Logger.log(`[Tool3] GPT trigger failed (non-blocking): ${error.message}`);
-        Logger.log(error.stack);
+        LogUtils.error(`[Tool3] GPT trigger failed (non-blocking): ${error.message}`);
+        LogUtils.error(error.stack);
       }
     }
 
@@ -673,7 +673,7 @@ const Tool3 = {
         const activeDraft = DataService.getActiveDraft(clientId, 'tool3');
 
         if (activeDraft && (activeDraft.status === 'EDIT_DRAFT' || activeDraft.status === 'DRAFT')) {
-          Logger.log(`[Tool3] Found active draft with status: ${activeDraft.status}`);
+          LogUtils.debug(`[Tool3] Found active draft with status: ${activeDraft.status}`);
           data = activeDraft.data;
         }
       }
@@ -693,7 +693,7 @@ const Tool3 = {
       return data || null;
 
     } catch (error) {
-      Logger.log(`[Tool3] Error getting existing data: ${error}`);
+      LogUtils.error(`[Tool3] Error getting existing data: ${error}`);
       return null;
     }
   },
@@ -705,7 +705,7 @@ const Tool3 = {
    */
   processFinalSubmission(clientId) {
     try {
-      Logger.log(`[Tool3] Processing final submission for ${clientId}`);
+      LogUtils.debug(`[Tool3] Processing final submission for ${clientId}`);
 
       // Get all data from draft storage (like Tool 1/2)
       const allData = this.getExistingData(clientId);
@@ -723,7 +723,7 @@ const Tool3 = {
         this.config.subdomains
       );
 
-      Logger.log(`[Tool3] Scoring complete: Overall=${scoringResult.overallQuotient}`);
+      LogUtils.debug(`[Tool3] Scoring complete: Overall=${scoringResult.overallQuotient}`);
 
       // Collect all GPT insights (from cache)
       const gptInsights = this.collectGPTInsights(clientId);
@@ -731,7 +731,7 @@ const Tool3 = {
       // Run final 3 synthesis calls
       const syntheses = this.runFinalSyntheses(clientId, scoringResult, gptInsights);
 
-      Logger.log(`[Tool3] GPT syntheses complete`);
+      LogUtils.debug(`[Tool3] GPT syntheses complete`);
 
       // Save complete assessment data
       this.saveAssessmentData(clientId, {
@@ -741,13 +741,13 @@ const Tool3 = {
         syntheses
       });
 
-      Logger.log(`[Tool3] Assessment data saved`);
+      LogUtils.debug(`[Tool3] Assessment data saved`);
 
       // Return success (Code.js will handle report generation)
       return { success: true };
 
     } catch (error) {
-      Logger.log(`[Tool3] Error processing submission: ${error.message}`);
+      LogUtils.error(`[Tool3] Error processing submission: ${error.message}`);
       throw error;
     }
   },
@@ -790,7 +790,7 @@ const Tool3 = {
       if (cached) {
         insights.subdomains[subdomain.key] = cached;
       } else {
-        Logger.log(`⚠️ No cached insight for ${subdomain.key}, will use fallback`);
+        LogUtils.debug(`No cached insight for ${subdomain.key}, will use fallback`);
       }
     });
 

@@ -23,7 +23,7 @@ const Tool2GPTAnalysis = {
     // TIER 1: Try GPT Analysis
     // ============================================================
     try {
-      Logger.log(`[TIER 1] Attempting GPT: ${clientId} - ${responseType}`);
+      LogUtils.debug(`[TIER 1] Attempting GPT: ${clientId} - ${responseType}`);
 
       const systemPrompt = this.getPromptForType(responseType, previousInsights, traumaData);
       const userPrompt = this.buildUserPrompt(responseText, previousInsights, traumaData);
@@ -39,7 +39,7 @@ const Tool2GPTAnalysis = {
       const parsed = this.parseResponse(result);
 
       if (this.isValidInsight(parsed)) {
-        Logger.log(`✅ [TIER 1] GPT success: ${responseType}`);
+        LogUtils.debug(`✅ [TIER 1] GPT success: ${responseType}`);
         return {
           ...parsed,
           source: 'gpt',
@@ -50,14 +50,14 @@ const Tool2GPTAnalysis = {
       }
 
     } catch (error) {
-      Logger.log(`⚠️ [TIER 1] GPT failed: ${responseType} - ${error.message}`);
+      LogUtils.debug(`⚠️ [TIER 1] GPT failed: ${responseType} - ${error.message}`);
 
       // ============================================================
       // TIER 2: Retry GPT Analysis
       // ============================================================
       try {
         Utilities.sleep(2000);  // Wait 2 seconds before retry
-        Logger.log(`[TIER 2] Retrying GPT: ${clientId} - ${responseType}`);
+        LogUtils.debug(`[TIER 2] Retrying GPT: ${clientId} - ${responseType}`);
 
         const systemPrompt = this.getPromptForType(responseType, previousInsights);
         const userPrompt = this.buildUserPrompt(responseText, previousInsights);
@@ -73,7 +73,7 @@ const Tool2GPTAnalysis = {
         const parsed = this.parseResponse(result);
 
         if (this.isValidInsight(parsed)) {
-          Logger.log(`✅ [TIER 2] GPT retry success: ${responseType}`);
+          LogUtils.debug(`✅ [TIER 2] GPT retry success: ${responseType}`);
           return {
             ...parsed,
             source: 'gpt_retry',
@@ -84,12 +84,12 @@ const Tool2GPTAnalysis = {
         }
 
       } catch (retryError) {
-        Logger.log(`❌ [TIER 2] GPT retry failed: ${responseType} - ${retryError.message}`);
+        LogUtils.debug(`❌ [TIER 2] GPT retry failed: ${responseType} - ${retryError.message}`);
 
         // ============================================================
         // TIER 3: Use Hard-coded Fallback
         // ============================================================
-        Logger.log(`[TIER 3] Using fallback: ${responseType}`);
+        LogUtils.debug(`[TIER 3] Using fallback: ${responseType}`);
 
         const fallback = Tool2Fallbacks.getFallbackInsight(
           responseType,
@@ -143,24 +143,24 @@ const Tool2GPTAnalysis = {
 
     // Check for HTTP errors
     if (responseCode !== 200) {
-      Logger.log(`❌ OpenAI API HTTP ${responseCode}: ${JSON.stringify(json)}`);
+      LogUtils.debug(`❌ OpenAI API HTTP ${responseCode}: ${JSON.stringify(json)}`);
       throw new Error(`OpenAI API HTTP ${responseCode}: ${json.error?.message || 'Unknown error'}`);
     }
 
     if (json.error) {
-      Logger.log(`❌ OpenAI API Error: ${JSON.stringify(json.error)}`);
+      LogUtils.debug(`❌ OpenAI API Error: ${JSON.stringify(json.error)}`);
       throw new Error(`OpenAI API Error: ${json.error.message}`);
     }
 
     if (!json.choices || !json.choices[0] || !json.choices[0].message) {
-      Logger.log(`❌ OpenAI API returned invalid response structure: ${JSON.stringify(json)}`);
+      LogUtils.debug(`❌ OpenAI API returned invalid response structure: ${JSON.stringify(json)}`);
       throw new Error('Invalid OpenAI API response structure');
     }
 
     const content = json.choices[0].message.content;
 
     if (!content || content.trim().length === 0) {
-      Logger.log(`❌ OpenAI API returned empty content`);
+      LogUtils.debug(`❌ OpenAI API returned empty content`);
       throw new Error('OpenAI API returned empty content');
     }
 
@@ -653,7 +653,7 @@ STOP after Priority Actions. Do not add conclusions or additional text.
     const userPrompt = 'Synthesize the above insights into a cohesive report.';
 
     try {
-      Logger.log(`[SYNTHESIS] Running overall synthesis for ${clientId}`);
+      LogUtils.debug(`[SYNTHESIS] Running overall synthesis for ${clientId}`);
 
       const result = this.callGPT({
         systemPrompt,
@@ -669,14 +669,14 @@ STOP after Priority Actions. Do not add conclusions or additional text.
       if (!parsed.overview || parsed.overview.length < 50 ||
           !parsed.topPatterns || parsed.topPatterns.length < 20 ||
           !parsed.priorityActions || parsed.priorityActions.length < 50) {
-        Logger.log(`⚠️ [SYNTHESIS] GPT returned incomplete response, using fallback`);
-        Logger.log(`Overview length: ${parsed.overview?.length || 0}`);
-        Logger.log(`Top Patterns length: ${parsed.topPatterns?.length || 0}`);
-        Logger.log(`Priority Actions length: ${parsed.priorityActions?.length || 0}`);
+        LogUtils.debug(`⚠️ [SYNTHESIS] GPT returned incomplete response, using fallback`);
+        LogUtils.debug(`Overview length: ${parsed.overview?.length || 0}`);
+        LogUtils.debug(`Top Patterns length: ${parsed.topPatterns?.length || 0}`);
+        LogUtils.debug(`Priority Actions length: ${parsed.priorityActions?.length || 0}`);
         throw new Error('Incomplete GPT synthesis response');
       }
 
-      Logger.log(`✅ [SYNTHESIS] Synthesis success for ${clientId}`);
+      LogUtils.debug(`✅ [SYNTHESIS] Synthesis success for ${clientId}`);
 
       return {
         ...parsed,
@@ -685,7 +685,7 @@ STOP after Priority Actions. Do not add conclusions or additional text.
       };
 
     } catch (error) {
-      Logger.log(`❌ [SYNTHESIS] Failed: ${error.message}, using fallback`);
+      LogUtils.debug(`❌ [SYNTHESIS] Failed: ${error.message}, using fallback`);
       const fallback = this.getGenericSynthesis(domainScores, traumaData);
       fallback.source = 'fallback';
       fallback.timestamp = new Date().toISOString();
@@ -799,7 +799,7 @@ STOP after Priority Actions. Do not add conclusions or additional text.
       ]);
 
     } catch (logError) {
-      Logger.log(`Failed to log fallback usage: ${logError.message}`);
+      LogUtils.error(`Failed to log fallback usage: ${logError.message}`);
     }
   }
 };

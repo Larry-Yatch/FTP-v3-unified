@@ -25,13 +25,13 @@ const Tool1 = {
     // This happens AFTER navigation so we preserve user gesture (no iframe errors)
 
     if (editMode && page === 1) {
-      Logger.log(`Edit mode detected for ${clientId} - creating EDIT_DRAFT`);
+      LogUtils.debug(`Edit mode detected for ${clientId} - creating EDIT_DRAFT`);
       DataService.loadResponseForEditing(clientId, 'tool1');
     }
 
     if (clearDraft && page === 1) {
       // Clear all drafts for fresh start
-      Logger.log(`Clear draft triggered for ${clientId}`);
+      LogUtils.debug(`Clear draft triggered for ${clientId}`);
       DataService.startFreshAttempt(clientId, 'tool1');
     }
 
@@ -270,23 +270,23 @@ const Tool1 = {
    */
   renderPage5Content(data, clientId) {
     // DIAGNOSTIC: Log data structure (for debugging page 5 dropdown issue)
-    Logger.log(`=== Page 5 Data Structure ===`);
-    Logger.log(`Data keys: ${JSON.stringify(Object.keys(data || {}))}`);
-    Logger.log(`Has formData? ${!!data?.formData}`);
-    Logger.log(`Has scores? ${!!data?.scores}`);
-    Logger.log(`Has winner? ${!!data?.winner}`);
-    Logger.log(`thought_fsv (direct): ${data?.thought_fsv}`);
-    Logger.log(`thought_fsv (nested): ${data?.formData?.thought_fsv}`);
-    Logger.log(`feeling_fsv (direct): ${data?.feeling_fsv}`);
-    Logger.log(`feeling_fsv (nested): ${data?.formData?.feeling_fsv}`);
+    LogUtils.debug(`=== Page 5 Data Structure ===`);
+    LogUtils.debug(`Data keys: ${JSON.stringify(Object.keys(data || {}))}`);
+    LogUtils.debug(`Has formData? ${!!data?.formData}`);
+    LogUtils.debug(`Has scores? ${!!data?.scores}`);
+    LogUtils.debug(`Has winner? ${!!data?.winner}`);
+    LogUtils.debug(`thought_fsv (direct): ${data?.thought_fsv}`);
+    LogUtils.debug(`thought_fsv (nested): ${data?.formData?.thought_fsv}`);
+    LogUtils.debug(`feeling_fsv (direct): ${data?.feeling_fsv}`);
+    LogUtils.debug(`feeling_fsv (nested): ${data?.formData?.feeling_fsv}`);
 
     // DEFENSIVE: Extract formData if nested (EDIT_DRAFT compatibility)
     // ResponseManager wraps data as {formData, scores, winner}
     // We need just the form fields for rendering
     const formData = data?.formData || data || {};
 
-    Logger.log(`Using formData - thought_fsv: ${formData.thought_fsv}`);
-    Logger.log(`Using formData - feeling_fsv: ${formData.feeling_fsv}`);
+    LogUtils.debug(`Using formData - thought_fsv: ${formData.thought_fsv}`);
+    LogUtils.debug(`Using formData - feeling_fsv: ${formData.feeling_fsv}`);
 
     const thoughts = [
       {name: 'thought_fsv', text: 'I have to do something / be someone better to be safe.'},
@@ -321,7 +321,7 @@ const Tool1 = {
       let selected = '';
       if (formData && formData[t.name]) {
         selected = String(formData[t.name]);
-        Logger.log(`Setting ${t.name} selected = ${selected}`);
+        LogUtils.debug(`Setting ${t.name} selected = ${selected}`);
       }
       html += `
         <div class="form-group">
@@ -345,7 +345,7 @@ const Tool1 = {
       let selected = '';
       if (formData && formData[f.name]) {
         selected = String(formData[f.name]);
-        Logger.log(`Setting ${f.name} selected = ${selected}`);
+        LogUtils.debug(`Setting ${f.name} selected = ${selected}`);
       }
       html += `
         <div class="form-group">
@@ -463,7 +463,7 @@ const Tool1 = {
     } else {
       // EDIT MODE: Also update EDIT_DRAFT row to keep RESPONSES sheet in sync
       // This ensures data isn't lost if PropertiesService gets cleared mid-session
-      Logger.log(`[Tool1] Updating EDIT_DRAFT with current data`);
+      LogUtils.debug(`[Tool1] Updating EDIT_DRAFT with current data`);
       DataService.updateDraft(clientId, 'tool1', draftData);
     }
 
@@ -483,7 +483,7 @@ const Tool1 = {
         const activeDraft = DataService.getActiveDraft(clientId, 'tool1');
 
         if (activeDraft && (activeDraft.status === 'EDIT_DRAFT' || activeDraft.status === 'DRAFT')) {
-          Logger.log(`Found active draft with status: ${activeDraft.status}`);
+          LogUtils.debug(`Found active draft with status: ${activeDraft.status}`);
           data = activeDraft.data;
         }
       }
@@ -495,7 +495,7 @@ const Tool1 = {
       if (propData) {
         if (data) {
           // Merge: PropertiesService data takes precedence (has latest page 5 data)
-          Logger.log(`Merging PropertiesService data with EDIT_DRAFT`);
+          LogUtils.debug(`Merging PropertiesService data with EDIT_DRAFT`);
           data = { ...data, ...propData };
         } else {
           // No EDIT_DRAFT, use PropertiesService data
@@ -505,7 +505,7 @@ const Tool1 = {
 
       return data;
     } catch (error) {
-      Logger.log(`Error getting existing data: ${error}`);
+      LogUtils.error(`Error getting existing data: ${error}`);
     }
     return null;
   },
@@ -527,20 +527,20 @@ const Tool1 = {
       // Check if this is an edit or new submission
       const isEditMode = allData._editMode === true;
 
-      Logger.log(`Processing ${isEditMode ? 'edited' : 'new'} submission for ${clientId}`);
+      LogUtils.debug(`Processing ${isEditMode ? 'edited' : 'new'} submission for ${clientId}`);
 
       // DIAGNOSTIC: Log allData structure
-      Logger.log(`allData keys: ${JSON.stringify(Object.keys(allData || {}))}`);
-      Logger.log(`allData has thought_fsv? ${!!allData.thought_fsv}`);
-      Logger.log(`allData has feeling_fsv? ${!!allData.feeling_fsv}`);
+      LogUtils.debug(`allData keys: ${JSON.stringify(Object.keys(allData || {}))}`);
+      LogUtils.debug(`allData has thought_fsv? ${!!allData.thought_fsv}`);
+      LogUtils.debug(`allData has feeling_fsv? ${!!allData.feeling_fsv}`);
 
       // Calculate scores
       const scores = this.calculateScores(allData);
-      Logger.log(`Calculated scores: ${JSON.stringify(scores)}`);
+      LogUtils.debug(`Calculated scores: ${JSON.stringify(scores)}`);
 
       // Determine winner
       const winner = this.determineWinner(scores, allData);
-      Logger.log(`Determined winner: ${winner}`);
+      LogUtils.debug(`Determined winner: ${winner}`);
 
       // Prepare data package
       const dataPackage = {
@@ -549,7 +549,7 @@ const Tool1 = {
         winner: winner
       };
 
-      Logger.log(`dataPackage has winner? ${!!dataPackage.winner}, value: ${dataPackage.winner}`);
+      LogUtils.debug(`dataPackage has winner? ${!!dataPackage.winner}, value: ${dataPackage.winner}`);
 
       // Save based on mode
       if (isEditMode && typeof DataService !== 'undefined') {
@@ -560,7 +560,7 @@ const Tool1 = {
           throw new Error(result.error || 'Failed to save edited response');
         }
 
-        Logger.log('Edited response submitted successfully');
+        LogUtils.debug('Edited response submitted successfully');
       } else {
         // Save new response to RESPONSES sheet using DataService
         // DataService handles Is_Latest flag and marks old responses as not latest
@@ -570,7 +570,7 @@ const Tool1 = {
           throw new Error(saveResult.error || 'Failed to save response');
         }
 
-        Logger.log('New response submitted successfully');
+        LogUtils.debug('New response submitted successfully');
       }
 
       // Clean up PropertiesService (prevent memory leak)
@@ -589,7 +589,7 @@ const Tool1 = {
       };
 
     } catch (error) {
-      Logger.log(`Error processing final submission: ${error}`);
+      LogUtils.error(`Error processing final submission: ${error}`);
       throw error; // Let completeToolSubmission handler deal with errors
     }
   },

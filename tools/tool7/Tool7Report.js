@@ -71,7 +71,7 @@ const Tool7Report = {
       return HtmlService.createHtmlOutput(reportHtml);
 
     } catch (error) {
-      Logger.log(`[Tool7Report] Error rendering: ${error.message}`);
+      LogUtils.error(`[Tool7Report] Error rendering: ${error.message}`);
       return HtmlService.createHtmlOutput(`
         <!DOCTYPE html>
         <html>
@@ -126,7 +126,7 @@ const Tool7Report = {
         formData: assessmentData.responses || {}
       };
     } catch (error) {
-      Logger.log(`[Tool7Report] Error getting results: ${error.message}`);
+      LogUtils.error(`[Tool7Report] Error getting results: ${error.message}`);
       return null;
     }
   },
@@ -172,7 +172,7 @@ const Tool7Report = {
       return this.generate(clientId, savedData.scoring, gptInsights);
 
     } catch (error) {
-      Logger.log(`Error regenerating Tool 7 report: ${error.message}`);
+      LogUtils.error(`Error regenerating Tool 7 report: ${error.message}`);
       throw error;
     }
   }

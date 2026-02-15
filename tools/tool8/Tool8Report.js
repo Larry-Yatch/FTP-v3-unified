@@ -130,7 +130,7 @@ const Tool8Report = {
    */
   generateReportHTML(clientId, scenario) {
     try {
-      Logger.log('[Tool8Report.generateReportHTML] Called for client ' + clientId);
+      LogUtils.debug('[Tool8Report.generateReportHTML] Called for client ' + clientId);
 
       if (!scenario) {
         return { success: false, error: 'No scenario data provided' };
@@ -225,7 +225,7 @@ const Tool8Report = {
       try {
         resolvedData = Tool8.resolveClientData(clientId);
       } catch (resolveErr) {
-        Logger.log('[Tool8Report.generateReportHTML] resolveClientData error (non-fatal): ' + resolveErr);
+        LogUtils.debug('[Tool8Report.generateReportHTML] resolveClientData error (non-fatal): ' + resolveErr);
       }
 
       // Phase 8: GPT-enhanced personalized analysis
@@ -236,7 +236,7 @@ const Tool8Report = {
           resolvedData: resolvedData
         });
       } catch (gptErr) {
-        Logger.log('[Tool8Report.generateReportHTML] GPT analysis error (non-fatal): ' + gptErr);
+        LogUtils.debug('[Tool8Report.generateReportHTML] GPT analysis error (non-fatal): ' + gptErr);
       }
 
       var gptSection = this.buildGPTSection(gptInsights);
@@ -273,8 +273,8 @@ const Tool8Report = {
       return { success: true, html: htmlContent, studentName: studentName };
 
     } catch (error) {
-      Logger.log('[Tool8Report.generateReportHTML] Error: ' + error);
-      Logger.log('[Tool8Report.generateReportHTML] Stack: ' + error.stack);
+      LogUtils.error('[Tool8Report.generateReportHTML] Error: ' + error);
+      LogUtils.error('[Tool8Report.generateReportHTML] Stack: ' + error.stack);
       return { success: false, error: error.toString() };
     }
   },
@@ -308,7 +308,7 @@ const Tool8Report = {
    */
   generateComparisonPDF(clientId, s1, s2) {
     try {
-      Logger.log('[Tool8Report.generateComparisonPDF] Called for client ' + clientId);
+      LogUtils.debug('[Tool8Report.generateComparisonPDF] Called for client ' + clientId);
 
       if (!s1 || !s2) {
         return { success: false, error: 'Two scenarios are required for comparison' };
@@ -402,7 +402,7 @@ const Tool8Report = {
       try {
         compResolvedData = Tool8.resolveClientData(clientId);
       } catch (resolveErr) {
-        Logger.log('[Tool8Report.generateComparisonPDF] resolveClientData error (non-fatal): ' + resolveErr);
+        LogUtils.debug('[Tool8Report.generateComparisonPDF] resolveClientData error (non-fatal): ' + resolveErr);
       }
 
       var compGptInsights = null;
@@ -413,7 +413,7 @@ const Tool8Report = {
           resolvedData: compResolvedData
         });
       } catch (gptErr) {
-        Logger.log('[Tool8Report.generateComparisonPDF] GPT analysis error (non-fatal): ' + gptErr);
+        LogUtils.debug('[Tool8Report.generateComparisonPDF] GPT analysis error (non-fatal): ' + gptErr);
       }
 
       var compGptSection = this.buildComparisonGPTSection(compGptInsights);
@@ -452,8 +452,8 @@ const Tool8Report = {
       return PDFGenerator.htmlToPDF(htmlContent, fileName);
 
     } catch (error) {
-      Logger.log('[Tool8Report.generateComparisonPDF] Error: ' + error);
-      Logger.log('[Tool8Report.generateComparisonPDF] Stack: ' + error.stack);
+      LogUtils.error('[Tool8Report.generateComparisonPDF] Error: ' + error);
+      LogUtils.error('[Tool8Report.generateComparisonPDF] Stack: ' + error.stack);
       return { success: false, error: error.toString() };
     }
   },
@@ -1148,7 +1148,7 @@ const Tool8Report = {
         .setTitle('Investment Planning Report')
         .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
     } catch (error) {
-      Logger.log('[Tool8Report.render] Error: ' + error);
+      LogUtils.error('[Tool8Report.render] Error: ' + error);
       return HtmlService.createHtmlOutput('<h1>Error generating report</h1><p>' + error.toString() + '</p>');
     }
   }

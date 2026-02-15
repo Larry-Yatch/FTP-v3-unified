@@ -41,7 +41,7 @@ const Tool1Report = {
         .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 
     } catch (error) {
-      Logger.log(`Error rendering report: ${error}`);
+      LogUtils.error(`Error rendering report: ${error}`);
       return HtmlService.createHtmlOutput(`
         <h1>Error</h1>
         <p>${error.toString()}</p>

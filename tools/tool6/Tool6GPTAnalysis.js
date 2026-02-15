@@ -34,7 +34,7 @@ const Tool6GPTAnalysis = {
 
     // Validate required params
     if (!profile || !allocation) {
-      Logger.log('[Tool6GPT] Missing required data for single report');
+      LogUtils.debug('[Tool6GPT] Missing required data for single report');
       return Tool6Fallbacks.getSingleReportFallback(profile, allocation, projections, inputs);
     }
 
@@ -42,7 +42,7 @@ const Tool6GPTAnalysis = {
     // TIER 1: Try GPT Analysis
     // ============================================================
     try {
-      Logger.log(`[TIER 1] Tool6 GPT: Single report for ${clientId}`);
+      LogUtils.debug(`[TIER 1] Tool6 GPT: Single report for ${clientId}`);
 
       const systemPrompt = this.buildSingleReportSystemPrompt(profile, allocation, projections, inputs, tool1Data, tool3Data);
       const userPrompt = this.buildSingleReportUserPrompt(profile, allocation, projections, inputs);
@@ -58,7 +58,7 @@ const Tool6GPTAnalysis = {
       const parsed = this.parseSingleReportResponse(result);
 
       if (this.isValidSingleInsight(parsed)) {
-        Logger.log('[TIER 1] Tool6 GPT success: Single report');
+        LogUtils.debug('[TIER 1] Tool6 GPT success: Single report');
         return {
           ...parsed,
           source: 'gpt',
@@ -69,14 +69,14 @@ const Tool6GPTAnalysis = {
       }
 
     } catch (error) {
-      Logger.log(`[TIER 1] Tool6 GPT failed: ${error.message}`);
+      LogUtils.debug(`[TIER 1] Tool6 GPT failed: ${error.message}`);
 
       // ============================================================
       // TIER 2: Retry GPT Analysis
       // ============================================================
       try {
         Utilities.sleep(2000);
-        Logger.log(`[TIER 2] Tool6 GPT retry: Single report for ${clientId}`);
+        LogUtils.debug(`[TIER 2] Tool6 GPT retry: Single report for ${clientId}`);
 
         const systemPrompt = this.buildSingleReportSystemPrompt(profile, allocation, projections, inputs, tool1Data, tool3Data);
         const userPrompt = this.buildSingleReportUserPrompt(profile, allocation, projections, inputs);
@@ -92,7 +92,7 @@ const Tool6GPTAnalysis = {
         const parsed = this.parseSingleReportResponse(result);
 
         if (this.isValidSingleInsight(parsed)) {
-          Logger.log('[TIER 2] Tool6 GPT retry success: Single report');
+          LogUtils.debug('[TIER 2] Tool6 GPT retry success: Single report');
           return {
             ...parsed,
             source: 'gpt_retry',
@@ -103,12 +103,12 @@ const Tool6GPTAnalysis = {
         }
 
       } catch (retryError) {
-        Logger.log(`[TIER 2] Tool6 GPT retry failed: ${retryError.message}`);
+        LogUtils.debug(`[TIER 2] Tool6 GPT retry failed: ${retryError.message}`);
 
         // ============================================================
         // TIER 3: Use Profile-aware Fallback
         // ============================================================
-        Logger.log('[TIER 3] Using fallback: Single report');
+        LogUtils.debug('[TIER 3] Using fallback: Single report');
         this.logFallbackUsage(clientId, 'single_report', retryError.message);
 
         return {
@@ -143,7 +143,7 @@ const Tool6GPTAnalysis = {
 
     // Validate required params
     if (!scenario1 || !scenario2) {
-      Logger.log('[Tool6GPT] Missing scenarios for comparison');
+      LogUtils.debug('[Tool6GPT] Missing scenarios for comparison');
       return Tool6Fallbacks.getComparisonFallback(scenario1, scenario2, inputs);
     }
 
@@ -151,7 +151,7 @@ const Tool6GPTAnalysis = {
     // TIER 1: Try GPT Analysis
     // ============================================================
     try {
-      Logger.log(`[TIER 1] Tool6 GPT: Comparison report for ${clientId}`);
+      LogUtils.debug(`[TIER 1] Tool6 GPT: Comparison report for ${clientId}`);
 
       const systemPrompt = this.buildComparisonSystemPrompt(scenario1, scenario2, inputs, tool1Data, tool3Data);
       const userPrompt = this.buildComparisonUserPrompt(scenario1, scenario2);
@@ -167,7 +167,7 @@ const Tool6GPTAnalysis = {
       const parsed = this.parseComparisonResponse(result);
 
       if (this.isValidComparisonInsight(parsed)) {
-        Logger.log('[TIER 1] Tool6 GPT success: Comparison report');
+        LogUtils.debug('[TIER 1] Tool6 GPT success: Comparison report');
         return {
           ...parsed,
           source: 'gpt',
@@ -178,14 +178,14 @@ const Tool6GPTAnalysis = {
       }
 
     } catch (error) {
-      Logger.log(`[TIER 1] Tool6 GPT failed: ${error.message}`);
+      LogUtils.debug(`[TIER 1] Tool6 GPT failed: ${error.message}`);
 
       // ============================================================
       // TIER 2: Retry GPT Analysis
       // ============================================================
       try {
         Utilities.sleep(2000);
-        Logger.log(`[TIER 2] Tool6 GPT retry: Comparison report for ${clientId}`);
+        LogUtils.debug(`[TIER 2] Tool6 GPT retry: Comparison report for ${clientId}`);
 
         const systemPrompt = this.buildComparisonSystemPrompt(scenario1, scenario2, inputs, tool1Data, tool3Data);
         const userPrompt = this.buildComparisonUserPrompt(scenario1, scenario2);
@@ -201,7 +201,7 @@ const Tool6GPTAnalysis = {
         const parsed = this.parseComparisonResponse(result);
 
         if (this.isValidComparisonInsight(parsed)) {
-          Logger.log('[TIER 2] Tool6 GPT retry success: Comparison report');
+          LogUtils.debug('[TIER 2] Tool6 GPT retry success: Comparison report');
           return {
             ...parsed,
             source: 'gpt_retry',
@@ -212,12 +212,12 @@ const Tool6GPTAnalysis = {
         }
 
       } catch (retryError) {
-        Logger.log(`[TIER 2] Tool6 GPT retry failed: ${retryError.message}`);
+        LogUtils.debug(`[TIER 2] Tool6 GPT retry failed: ${retryError.message}`);
 
         // ============================================================
         // TIER 3: Use Profile-aware Fallback
         // ============================================================
-        Logger.log('[TIER 3] Using fallback: Comparison report');
+        LogUtils.debug('[TIER 3] Using fallback: Comparison report');
         this.logFallbackUsage(clientId, 'comparison_report', retryError.message);
 
         return {
@@ -826,7 +826,7 @@ Key Trade-offs:
 
     // Validate required params
     if (!profile || !allocations || Object.keys(allocations).length === 0) {
-      Logger.log('[Tool6GPT] Missing required data for enhanced report');
+      LogUtils.debug('[Tool6GPT] Missing required data for enhanced report');
       return Tool6Fallbacks.getEnhancedReportFallback(profile, allocations, userInputs, projections);
     }
 
@@ -834,7 +834,7 @@ Key Trade-offs:
     // TIER 1: Try GPT Analysis
     // ============================================================
     try {
-      Logger.log(`[TIER 1] Tool6 GPT: Enhanced report for ${clientId}`);
+      LogUtils.debug(`[TIER 1] Tool6 GPT: Enhanced report for ${clientId}`);
 
       const systemPrompt = this.buildEnhancedReportSystemPrompt(profile, allocations, userInputs, projections, tool1Data, tool3Data);
       const userPrompt = this.buildEnhancedReportUserPrompt(profile, allocations, userInputs, projections);
@@ -850,7 +850,7 @@ Key Trade-offs:
       const parsed = this.parseEnhancedReportResponse(result);
 
       if (this.isValidEnhancedInsight(parsed)) {
-        Logger.log('[TIER 1] Tool6 GPT success: Enhanced report');
+        LogUtils.debug('[TIER 1] Tool6 GPT success: Enhanced report');
         return {
           ...parsed,
           source: 'gpt',
@@ -861,14 +861,14 @@ Key Trade-offs:
       }
 
     } catch (error) {
-      Logger.log(`[TIER 1] Tool6 GPT failed: ${error.message}`);
+      LogUtils.debug(`[TIER 1] Tool6 GPT failed: ${error.message}`);
 
       // ============================================================
       // TIER 2: Retry GPT Analysis
       // ============================================================
       try {
         Utilities.sleep(2000);
-        Logger.log(`[TIER 2] Tool6 GPT retry: Enhanced report for ${clientId}`);
+        LogUtils.debug(`[TIER 2] Tool6 GPT retry: Enhanced report for ${clientId}`);
 
         const systemPrompt = this.buildEnhancedReportSystemPrompt(profile, allocations, userInputs, projections, tool1Data, tool3Data);
         const userPrompt = this.buildEnhancedReportUserPrompt(profile, allocations, userInputs, projections);
@@ -884,7 +884,7 @@ Key Trade-offs:
         const parsed = this.parseEnhancedReportResponse(result);
 
         if (this.isValidEnhancedInsight(parsed)) {
-          Logger.log('[TIER 2] Tool6 GPT retry success: Enhanced report');
+          LogUtils.debug('[TIER 2] Tool6 GPT retry success: Enhanced report');
           return {
             ...parsed,
             source: 'gpt_retry',
@@ -895,12 +895,12 @@ Key Trade-offs:
         }
 
       } catch (retryError) {
-        Logger.log(`[TIER 2] Tool6 GPT retry failed: ${retryError.message}`);
+        LogUtils.debug(`[TIER 2] Tool6 GPT retry failed: ${retryError.message}`);
 
         // ============================================================
         // TIER 3: Use Profile-aware Fallback
         // ============================================================
-        Logger.log('[TIER 3] Using fallback: Enhanced report');
+        LogUtils.debug('[TIER 3] Using fallback: Enhanced report');
         this.logFallbackUsage(clientId, 'enhanced_report', retryError.message);
 
         return {
@@ -1129,7 +1129,7 @@ Gap Analysis:
         errorMessage
       ]);
     } catch (e) {
-      Logger.log(`[Tool6GPT] Could not log fallback: ${e.message}`);
+      LogUtils.error(`[Tool6GPT] Could not log fallback: ${e.message}`);
     }
   }
 };

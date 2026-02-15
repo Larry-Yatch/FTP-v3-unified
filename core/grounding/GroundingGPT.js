@@ -44,7 +44,7 @@ const GroundingGPT = {
     // TIER 1: Try GPT Analysis
     // ============================================================
     try {
-      Logger.log(`[TIER 1] Attempting GPT: ${clientId} - ${subdomainKey}`);
+      LogUtils.debug(`[TIER 1] Attempting GPT: ${clientId} - ${subdomainKey}`);
 
       const systemPrompt = this.buildSubdomainSystemPrompt(subdomainConfig, aspectScores);
       const userPrompt = this.buildSubdomainUserPrompt(responses, aspectScores, previousInsights);
@@ -60,7 +60,7 @@ const GroundingGPT = {
       const parsed = this.parseSubdomainResponse(result);
 
       if (this.isValidSubdomainInsight(parsed)) {
-        Logger.log(`✅ [TIER 1] GPT success: ${subdomainKey}`);
+        LogUtils.debug(`✅ [TIER 1] GPT success: ${subdomainKey}`);
 
         // Store in properties service (temporary cache)
         this.cacheInsight(toolId, clientId, subdomainKey, {
@@ -79,14 +79,14 @@ const GroundingGPT = {
       }
 
     } catch (error) {
-      Logger.log(`⚠️ [TIER 1] GPT failed: ${subdomainKey} - ${error.message}`);
+      LogUtils.debug(`⚠️ [TIER 1] GPT failed: ${subdomainKey} - ${error.message}`);
 
       // ============================================================
       // TIER 2: Retry GPT Analysis
       // ============================================================
       try {
         Utilities.sleep(2000);
-        Logger.log(`[TIER 2] Retrying GPT: ${clientId} - ${subdomainKey}`);
+        LogUtils.debug(`[TIER 2] Retrying GPT: ${clientId} - ${subdomainKey}`);
 
         const systemPrompt = this.buildSubdomainSystemPrompt(subdomainConfig, aspectScores);
         const userPrompt = this.buildSubdomainUserPrompt(responses, aspectScores, previousInsights);
@@ -102,7 +102,7 @@ const GroundingGPT = {
         const parsed = this.parseSubdomainResponse(result);
 
         if (this.isValidSubdomainInsight(parsed)) {
-          Logger.log(`✅ [TIER 2] GPT retry success: ${subdomainKey}`);
+          LogUtils.debug(`✅ [TIER 2] GPT retry success: ${subdomainKey}`);
 
           this.cacheInsight(toolId, clientId, subdomainKey, {
             ...parsed,
@@ -120,12 +120,12 @@ const GroundingGPT = {
         }
 
       } catch (retryError) {
-        Logger.log(`❌ [TIER 2] GPT retry failed: ${subdomainKey} - ${retryError.message}`);
+        LogUtils.debug(`❌ [TIER 2] GPT retry failed: ${subdomainKey} - ${retryError.message}`);
 
         // ============================================================
         // TIER 3: Use Subdomain-Specific Fallback
         // ============================================================
-        Logger.log(`[TIER 3] Using fallback: ${subdomainKey}`);
+        LogUtils.debug(`[TIER 3] Using fallback: ${subdomainKey}`);
 
         const fallback = GroundingFallbacks.getSubdomainFallback(
           toolId,
@@ -171,7 +171,7 @@ const GroundingGPT = {
     } = params;
 
     try {
-      Logger.log(`[SYNTHESIS] Domain: ${clientId} - ${domainConfig.name}`);
+      LogUtils.debug(`[SYNTHESIS] Domain: ${clientId} - ${domainConfig.name}`);
 
       const systemPrompt = this.buildDomainSynthesisPrompt(
         domainConfig,
@@ -182,7 +182,7 @@ const GroundingGPT = {
 
       const userPrompt = this.buildDomainUserPrompt(subdomainInsights, subdomainConfigs);
 
-      Logger.log(`[SYNTHESIS] Calling GPT for domain synthesis...`);
+      LogUtils.debug(`[SYNTHESIS] Calling GPT for domain synthesis...`);
       const result = this.callGPT({
         systemPrompt,
         userPrompt,
@@ -191,26 +191,26 @@ const GroundingGPT = {
         maxTokens: 500
       });
 
-      Logger.log(`[SYNTHESIS] Raw GPT response length: ${result ? result.length : 0} characters`);
-      Logger.log(`[SYNTHESIS] Raw GPT response preview: ${result ? result.substring(0, 200) : 'NULL'}...`);
+      LogUtils.debug(`[SYNTHESIS] Raw GPT response length: ${result ? result.length : 0} characters`);
+      LogUtils.debug(`[SYNTHESIS] Raw GPT response preview: ${result ? result.substring(0, 200) : 'NULL'}...`);
 
       const parsed = this.parseDomainSynthesis(result);
 
-      Logger.log(`[SYNTHESIS] Parsed result:`);
-      Logger.log(`  - summary length: ${parsed.summary ? parsed.summary.length : 0}`);
-      Logger.log(`  - keyThemes count: ${parsed.keyThemes ? parsed.keyThemes.length : 0}`);
-      Logger.log(`  - priorityFocus length: ${parsed.priorityFocus ? parsed.priorityFocus.length : 0}`);
+      LogUtils.debug(`[SYNTHESIS] Parsed result:`);
+      LogUtils.debug(`  - summary length: ${parsed.summary ? parsed.summary.length : 0}`);
+      LogUtils.debug(`  - keyThemes count: ${parsed.keyThemes ? parsed.keyThemes.length : 0}`);
+      LogUtils.debug(`  - priorityFocus length: ${parsed.priorityFocus ? parsed.priorityFocus.length : 0}`);
 
       // Validate content is not empty
       if (!this.isValidDomainSynthesis(parsed)) {
-        Logger.log(`❌ [SYNTHESIS] Validation failed - parsed content is empty or incomplete`);
-        Logger.log(`   Summary: "${parsed.summary}"`);
-        Logger.log(`   KeyThemes: ${JSON.stringify(parsed.keyThemes)}`);
-        Logger.log(`   PriorityFocus: "${parsed.priorityFocus}"`);
+        LogUtils.debug(`❌ [SYNTHESIS] Validation failed - parsed content is empty or incomplete`);
+        LogUtils.debug(`   Summary: "${parsed.summary}"`);
+        LogUtils.debug(`   KeyThemes: ${JSON.stringify(parsed.keyThemes)}`);
+        LogUtils.debug(`   PriorityFocus: "${parsed.priorityFocus}"`);
         throw new Error('Empty synthesis content - GPT returned malformed response');
       }
 
-      Logger.log(`✅ [SYNTHESIS] Domain success: ${domainConfig.name}`);
+      LogUtils.debug(`✅ [SYNTHESIS] Domain success: ${domainConfig.name}`);
 
       return {
         ...parsed,
@@ -219,8 +219,8 @@ const GroundingGPT = {
       };
 
     } catch (error) {
-      Logger.log(`❌ [SYNTHESIS] Domain failed: ${domainConfig.name} - ${error.message}`);
-      Logger.log(`   Error stack: ${error.stack}`);
+      LogUtils.debug(`❌ [SYNTHESIS] Domain failed: ${domainConfig.name} - ${error.message}`);
+      LogUtils.debug(`   Error stack: ${error.stack}`);
 
       return GroundingFallbacks.getDomainFallback(
         toolId,
@@ -248,7 +248,7 @@ const GroundingGPT = {
     } = params;
 
     try {
-      Logger.log(`[SYNTHESIS] Overall: ${clientId} - ${toolId}`);
+      LogUtils.debug(`[SYNTHESIS] Overall: ${clientId} - ${toolId}`);
 
       const systemPrompt = this.buildOverallSynthesisPrompt(
         toolConfig,
@@ -257,7 +257,7 @@ const GroundingGPT = {
 
       const userPrompt = this.buildOverallUserPrompt(domainSyntheses, allScores, toolConfig, subdomainInsights);
 
-      Logger.log(`[SYNTHESIS] Calling GPT for overall synthesis...`);
+      LogUtils.debug(`[SYNTHESIS] Calling GPT for overall synthesis...`);
       const result = this.callGPT({
         systemPrompt,
         userPrompt,
@@ -266,28 +266,28 @@ const GroundingGPT = {
         maxTokens: 700
       });
 
-      Logger.log(`[SYNTHESIS] Raw GPT response length: ${result ? result.length : 0} characters`);
-      Logger.log(`[SYNTHESIS] Raw GPT response preview: ${result ? result.substring(0, 200) : 'NULL'}...`);
+      LogUtils.debug(`[SYNTHESIS] Raw GPT response length: ${result ? result.length : 0} characters`);
+      LogUtils.debug(`[SYNTHESIS] Raw GPT response preview: ${result ? result.substring(0, 200) : 'NULL'}...`);
 
       const parsed = this.parseOverallSynthesis(result);
 
-      Logger.log(`[SYNTHESIS] Parsed result:`);
-      Logger.log(`  - overview length: ${parsed.overview ? parsed.overview.length : 0}`);
-      Logger.log(`  - integration length: ${parsed.integration ? parsed.integration.length : 0}`);
-      Logger.log(`  - coreWork length: ${parsed.coreWork ? parsed.coreWork.length : 0}`);
-      Logger.log(`  - nextSteps count: ${parsed.nextSteps ? parsed.nextSteps.length : 0}`);
+      LogUtils.debug(`[SYNTHESIS] Parsed result:`);
+      LogUtils.debug(`  - overview length: ${parsed.overview ? parsed.overview.length : 0}`);
+      LogUtils.debug(`  - integration length: ${parsed.integration ? parsed.integration.length : 0}`);
+      LogUtils.debug(`  - coreWork length: ${parsed.coreWork ? parsed.coreWork.length : 0}`);
+      LogUtils.debug(`  - nextSteps count: ${parsed.nextSteps ? parsed.nextSteps.length : 0}`);
 
       // Validate content is not empty
       if (!this.isValidOverallSynthesis(parsed)) {
-        Logger.log(`❌ [SYNTHESIS] Validation failed - parsed content is empty or incomplete`);
-        Logger.log(`   Overview: "${parsed.overview}"`);
-        Logger.log(`   Integration: "${parsed.integration}"`);
-        Logger.log(`   CoreWork: "${parsed.coreWork}"`);
-        Logger.log(`   NextSteps: ${JSON.stringify(parsed.nextSteps)}`);
+        LogUtils.debug(`❌ [SYNTHESIS] Validation failed - parsed content is empty or incomplete`);
+        LogUtils.debug(`   Overview: "${parsed.overview}"`);
+        LogUtils.debug(`   Integration: "${parsed.integration}"`);
+        LogUtils.debug(`   CoreWork: "${parsed.coreWork}"`);
+        LogUtils.debug(`   NextSteps: ${JSON.stringify(parsed.nextSteps)}`);
         throw new Error('Empty synthesis content - GPT returned malformed response');
       }
 
-      Logger.log(`✅ [SYNTHESIS] Overall success: ${toolId}`);
+      LogUtils.debug(`✅ [SYNTHESIS] Overall success: ${toolId}`);
 
       return {
         ...parsed,
@@ -296,7 +296,7 @@ const GroundingGPT = {
       };
 
     } catch (error) {
-      Logger.log(`❌ [SYNTHESIS] Overall failed: ${toolId} - ${error.message}`);
+      LogUtils.debug(`❌ [SYNTHESIS] Overall failed: ${toolId} - ${error.message}`);
 
       return GroundingFallbacks.getOverallFallback(
         toolId,
@@ -855,9 +855,9 @@ Priority Focus: ${synthesis.priorityFocus}
         cacheKey,
         JSON.stringify(insight)
       );
-      Logger.log(`[CACHE] Stored insight: ${cacheKey}`);
+      LogUtils.debug(`[CACHE] Stored insight: ${cacheKey}`);
     } catch (error) {
-      Logger.log(`[CACHE] Failed to store insight: ${error.message}`);
+      LogUtils.error(`[CACHE] Failed to store insight: ${error.message}`);
     }
   },
 
@@ -870,7 +870,7 @@ Priority Focus: ${synthesis.priorityFocus}
       const cached = PropertiesService.getUserProperties().getProperty(cacheKey);
       return cached ? JSON.parse(cached) : null;
     } catch (error) {
-      Logger.log(`[CACHE] Failed to retrieve insight: ${error.message}`);
+      LogUtils.error(`[CACHE] Failed to retrieve insight: ${error.message}`);
       return null;
     }
   },
@@ -893,9 +893,9 @@ Priority Focus: ${synthesis.priorityFocus}
         props.deleteProperty(`${prefix}${key}_insight`);
       });
 
-      Logger.log(`[CACHE] Cleared cache for ${toolId} - ${clientId}`);
+      LogUtils.debug(`[CACHE] Cleared cache for ${toolId} - ${clientId}`);
     } catch (error) {
-      Logger.log(`[CACHE] Failed to clear cache: ${error.message}`);
+      LogUtils.error(`[CACHE] Failed to clear cache: ${error.message}`);
     }
   },
 
@@ -922,7 +922,7 @@ Priority Focus: ${synthesis.priorityFocus}
       ]);
 
     } catch (logError) {
-      Logger.log(`Failed to log fallback usage: ${logError.message}`);
+      LogUtils.error(`Failed to log fallback usage: ${logError.message}`);
     }
   }
 };
