@@ -366,31 +366,155 @@ const CollectiveResults = {
   },
 
   // ============================================================
-  // SECTION 3: INTEGRATION (PLACEHOLDER)
+  // SECTION 3: THE INTEGRATION
   // ============================================================
 
   _renderSection3(summary) {
-    if (summary.completedCount < 2) return '';
+    // Run all detection engines once — results reused by Phases 4, 5, and 9
+    var engines = {
+      profile: this._detectProfile(summary),
+      warnings: this._generateWarnings(summary)
+      // Phase 5 will add:
+      // awarenessGap: this._calculateAwarenessGap(summary),
+      // locks: this._detectBeliefLocks(summary),
+      // bbGaps: this._detectBeliefBehaviorGaps(summary)
+    };
 
-    return `
-      <div class="card cr-section-card">
-        <h2 class="cr-section-title">The Integration</h2>
-        <p class="muted">Where your psychological patterns meet your financial world</p>
-        <div class="hr" style="margin: 15px 0;"></div>
+    var hasProfile = engines.profile !== null;
+    var hasWarnings = engines.warnings && engines.warnings.length > 0;
 
-        <div class="cr-integration-placeholder">
-          <div class="cr-integration-icon">🔬</div>
-          <p style="margin: 10px 0 5px; font-size: 1.05rem; color: var(--text);">
-            Integration insights coming soon
-          </p>
-          <p class="muted" style="font-size: 0.9rem; max-width: 500px; margin: 0 auto;">
-            We are analyzing patterns across psychological and financial data
-            to identify evidence-based connections between your trauma strategies
-            and financial behaviors.
-          </p>
-        </div>
-      </div>
-    `;
+    // Gate: if no engines produced content, show placeholder or nothing
+    if (!hasProfile && !hasWarnings) {
+      if (summary.completedCount >= 1) {
+        return '<div class="card cr-section-card">' +
+          '<h2 class="cr-section-title">The Integration</h2>' +
+          '<p class="muted">Where your psychological patterns meet your financial world</p>' +
+          '<div class="hr" style="margin: 15px 0;"></div>' +
+          '<div class="cr-integration-placeholder">' +
+            '<div class="cr-integration-icon">🔬</div>' +
+            '<p style="margin: 10px 0 5px; font-size: 1.05rem; color: var(--text);">' +
+              'Almost there' +
+            '</p>' +
+            '<p class="muted" style="font-size: 0.9rem; max-width: 500px; margin: 0 auto;">' +
+              'Complete Tool 1 (Core Trauma Assessment) and at least one grounding tool ' +
+              '(Identity, Love and Connection, or Financial Security) to unlock your integration insights.' +
+            '</p>' +
+          '</div>' +
+        '</div>';
+      }
+      return '';
+    }
+
+    // Build Section 3 with real engine output
+    var html = '<div class="card cr-section-card">' +
+      '<h2 class="cr-section-title">The Integration</h2>' +
+      '<p class="muted">Where your psychological patterns meet your financial world</p>' +
+      '<div class="hr" style="margin: 15px 0;"></div>';
+
+    // 3A: Profile Card
+    html += this._renderProfileCard(engines.profile);
+
+    // 3B: Warning Cards
+    if (hasWarnings) {
+      html += this._renderWarningCards(engines.warnings);
+    }
+
+    // Phase 5: Awareness Gap, Belief Locks, BB Gaps will be added here
+    // Phase 9: Download button will be added here
+
+    html += '</div>';
+    return html;
+  },
+
+  /**
+   * Phase 4: Render the student's integration profile as a styled card.
+   * @param {Object|null} profile - from _detectProfile()
+   * @returns {string} HTML string
+   */
+  _renderProfileCard(profile) {
+    if (!profile) return '';
+
+    var confidenceNote = '';
+    if (profile.confidence === 'partial') {
+      confidenceNote = '<p class="muted" style="font-size: 0.8rem; margin-top: 10px;">' +
+        'Note: Complete more grounding tools for a more precise profile.' +
+      '</p>';
+    }
+
+    var sourcesHtml = '';
+    if (profile.sources && profile.sources.length > 0) {
+      sourcesHtml = '<div class="cr-profile-sources">';
+      for (var i = 0; i < profile.sources.length; i++) {
+        sourcesHtml += '<span class="cr-profile-source">' + profile.sources[i] + '</span>';
+      }
+      sourcesHtml += '</div>';
+    }
+
+    return '<div class="cr-profile-card">' +
+      '<div class="cr-profile-icon">' + profile.icon + '</div>' +
+      '<div class="cr-profile-name">' + profile.name + '</div>' +
+      '<p class="cr-profile-description">' + profile.description + '</p>' +
+      '<p class="cr-profile-financial muted" style="font-size: 0.85rem; margin-top: 8px;">' +
+        profile.financialSignature +
+      '</p>' +
+      sourcesHtml +
+      confidenceNote +
+    '</div>';
+  },
+
+  /**
+   * Phase 4: Render prioritized warning cards with color-coded borders.
+   * Student view limited to 4 warnings max.
+   * @param {Array} warnings - from _generateWarnings()
+   * @returns {string} HTML string
+   */
+  _renderWarningCards(warnings) {
+    var maxWarnings = Math.min(warnings.length, 4);
+    if (maxWarnings === 0) return '';
+
+    var html = '<div class="cr-warnings-section" style="margin-top: 20px;">' +
+      '<h3 style="color: var(--text); font-size: 1rem; margin-bottom: 12px;">Active Patterns Affecting Your Finances</h3>';
+
+    for (var i = 0; i < maxWarnings; i++) {
+      var w = warnings[i];
+
+      var priorityClass = 'cr-warning-medium';
+      var priorityLabel = 'Pattern';
+      var priorityIcon = '📋';
+
+      if (w.priority === 'CRITICAL') {
+        priorityClass = 'cr-warning-critical';
+        priorityLabel = 'Critical Pattern';
+        priorityIcon = '🚨';
+      } else if (w.priority === 'HIGH') {
+        priorityClass = 'cr-warning-high';
+        priorityLabel = 'Active Warning';
+        priorityIcon = '⚠️';
+      }
+
+      var sourcesText = w.sources ? w.sources.join(' + ') : '';
+
+      html += '<div class="cr-warning-card ' + priorityClass + '">' +
+        '<div class="cr-warning-header">' +
+          '<span class="cr-warning-icon">' + priorityIcon + '</span>' +
+          '<span class="cr-warning-label">' + priorityLabel + '</span>' +
+        '</div>' +
+        '<div class="cr-warning-message">' + w.message + '</div>' +
+        '<div class="cr-warning-source muted" style="font-size: 0.8rem; margin-top: 8px;">' +
+          'Based on: ' + sourcesText +
+        '</div>' +
+      '</div>';
+    }
+
+    if (warnings.length > 4) {
+      html += '<p class="muted" style="font-size: 0.85rem; text-align: center; margin-top: 8px;">' +
+        (warnings.length - 4) + ' additional pattern' + (warnings.length - 4 > 1 ? 's' : '') +
+        ' detected. Speak with your coach for the complete analysis.' +
+      '</p>';
+    }
+
+    html += '</div>';
+    return html;
   },
 
   // ============================================================
@@ -1921,6 +2045,100 @@ const CollectiveResults = {
         }
         .cr-integration-icon {
           font-size: 2rem;
+        }
+
+        /* ============================================= */
+        /* Section 3: Integration — Profile & Warnings   */
+        /* ============================================= */
+
+        /* Profile Card */
+        .cr-profile-card {
+          background: linear-gradient(135deg, rgba(173, 145, 104, 0.1), rgba(75, 65, 102, 0.1));
+          border: 2px solid #ad9168;
+          border-radius: 15px;
+          padding: 25px;
+          text-align: center;
+          margin-top: 15px;
+        }
+        .cr-profile-icon {
+          font-size: 2.5rem;
+          margin-bottom: 8px;
+        }
+        .cr-profile-name {
+          font-size: 1.5rem;
+          font-weight: 700;
+          color: #ad9168;
+          margin-bottom: 10px;
+        }
+        .cr-profile-description {
+          color: var(--text);
+          font-size: 0.95rem;
+          line-height: 1.5;
+          max-width: 600px;
+          margin: 0 auto;
+        }
+        .cr-profile-financial {
+          font-style: italic;
+        }
+        .cr-profile-sources {
+          display: flex;
+          flex-wrap: wrap;
+          justify-content: center;
+          gap: 8px;
+          margin-top: 12px;
+        }
+        .cr-profile-source {
+          background: rgba(173, 145, 104, 0.15);
+          border: 1px solid rgba(173, 145, 104, 0.25);
+          border-radius: 12px;
+          padding: 3px 10px;
+          font-size: 0.75rem;
+          color: var(--muted);
+        }
+
+        /* Warning Cards */
+        .cr-warnings-section {
+          margin-top: 20px;
+        }
+        .cr-warning-card {
+          padding: 15px;
+          border-radius: 8px;
+          margin: 10px 0;
+          font-size: 14px;
+        }
+        .cr-warning-critical {
+          background: rgba(239, 68, 68, 0.1);
+          border-left: 4px solid #ef4444;
+        }
+        .cr-warning-high {
+          background: rgba(245, 158, 11, 0.1);
+          border-left: 4px solid #f59e0b;
+        }
+        .cr-warning-medium {
+          background: rgba(245, 158, 11, 0.05);
+          border-left: 4px solid rgba(245, 158, 11, 0.5);
+        }
+        .cr-warning-header {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 8px;
+        }
+        .cr-warning-icon {
+          font-size: 1.1rem;
+        }
+        .cr-warning-label {
+          font-weight: 600;
+          font-size: 0.85rem;
+          color: var(--text);
+        }
+        .cr-warning-message {
+          color: var(--text);
+          line-height: 1.5;
+          font-size: 0.9rem;
+        }
+        .cr-warning-source {
+          font-size: 0.8rem;
         }
       </style>
     `;
