@@ -19,7 +19,7 @@ const DataService = {
    */
   saveToolResponse(clientId, toolId, data, status = 'COMPLETED') {
     try {
-      console.log(`DataService: Saving response for ${clientId} / ${toolId} with status ${status}`);
+      LogUtils.debug(`DataService: Saving response for ${clientId} / ${toolId} with status ${status}`);
 
       const sheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.RESPONSES);
 
@@ -75,7 +75,7 @@ const DataService = {
       };
 
     } catch (error) {
-      console.error('Error saving tool response:', error);
+      LogUtils.error('Error saving tool response:', error);
       return {
         success: false,
         error: error.toString()
@@ -142,9 +142,9 @@ const DataService = {
               ? JSON.parse(sheetData[draftRowIndex][dataCol])
               : sheetData[draftRowIndex][dataCol];
             dataToSave = { ...existingData, ...data };
-            console.log(`DataService: Merged new data into existing EDIT_DRAFT for ${clientId} / ${toolId}`);
+            LogUtils.debug(`DataService: Merged new data into existing EDIT_DRAFT for ${clientId} / ${toolId}`);
           } catch (e) {
-            console.warn(`DataService: Could not parse existing EDIT_DRAFT data, replacing: ${e}`);
+            LogUtils.warn(`DataService: Could not parse existing EDIT_DRAFT data, replacing: ${e}`);
           }
         }
 
@@ -152,16 +152,16 @@ const DataService = {
         sheet.getRange(draftRowIndex + 1, dataCol + 1).setValue(JSON.stringify(dataToSave));
         sheet.getRange(draftRowIndex + 1, timestampCol + 1).setValue(new Date());
         SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.RESPONSES);
-        console.log(`DataService: Updated existing ${sheetData[draftRowIndex][statusCol]} for ${clientId} / ${toolId}`);
+        LogUtils.debug(`DataService: Updated existing ${sheetData[draftRowIndex][statusCol]} for ${clientId} / ${toolId}`);
         return { success: true, message: 'Draft updated successfully', action: 'updated' };
       } else {
         // No existing DRAFT/EDIT_DRAFT found, create new one
-        console.log(`DataService: No existing draft found, creating new one for ${clientId} / ${toolId}`);
+        LogUtils.debug(`DataService: No existing draft found, creating new one for ${clientId} / ${toolId}`);
         return this.saveDraft(clientId, toolId, data);
       }
 
     } catch (error) {
-      console.error('Error updating draft:', error);
+      LogUtils.error('Error updating draft:', error);
       return { success: false, error: error.toString() };
     }
   },
@@ -194,7 +194,7 @@ const DataService = {
       return null;
 
     } catch (error) {
-      console.error('Error getting tool response:', error);
+      LogUtils.error('Error getting tool response:', error);
       return null;
     }
   },
@@ -250,7 +250,7 @@ const DataService = {
       return { success: true };
 
     } catch (error) {
-      console.error('Error updating tool status:', error);
+      LogUtils.error('Error updating tool status:', error);
       return { success: false, error: error.toString() };
     }
   },
@@ -278,7 +278,7 @@ const DataService = {
       return null;
 
     } catch (error) {
-      console.error('Error getting tool status:', error);
+      LogUtils.error('Error getting tool status:', error);
       return null;
     }
   },
@@ -302,7 +302,7 @@ const DataService = {
    */
   updateStudentToolsCompletedCount(clientId) {
     try {
-      console.log(`[UPDATE_TOOLS_COUNT] Updating count for ${clientId}`);
+      LogUtils.debug(`[UPDATE_TOOLS_COUNT] Updating count for ${clientId}`);
 
       // Count completed tools from RESPONSES sheet (source of truth)
       const completedTools = new Set();
@@ -324,13 +324,13 @@ const DataService = {
       }
 
       const completedCount = completedTools.size;
-      console.log(`[UPDATE_TOOLS_COUNT] Found ${completedCount} completed tools for ${clientId}:`, Array.from(completedTools));
+      LogUtils.debug(`[UPDATE_TOOLS_COUNT] Found ${completedCount} completed tools for ${clientId}: ${Array.from(completedTools)}`);
 
       // Update STUDENTS sheet
       const studentsSheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.STUDENTS);
 
       if (!studentsSheet) {
-        console.error('[UPDATE_TOOLS_COUNT] STUDENTS sheet not found');
+        LogUtils.error('[UPDATE_TOOLS_COUNT] STUDENTS sheet not found');
         return { success: false, error: 'STUDENTS sheet not found' };
       }
 
@@ -347,7 +347,7 @@ const DataService = {
 
           SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.STUDENTS);
 
-          console.log(`[UPDATE_TOOLS_COUNT] Updated ${clientId} to ${completedCount} completed tools`);
+          LogUtils.debug(`[UPDATE_TOOLS_COUNT] Updated ${clientId} to ${completedCount} completed tools`);
 
           return {
             success: true,
@@ -356,11 +356,11 @@ const DataService = {
         }
       }
 
-      console.error(`[UPDATE_TOOLS_COUNT] Student ${clientId} not found in STUDENTS sheet`);
+      LogUtils.error(`[UPDATE_TOOLS_COUNT] Student ${clientId} not found in STUDENTS sheet`);
       return { success: false, error: 'Student not found' };
 
     } catch (error) {
-      console.error('[UPDATE_TOOLS_COUNT] Error:', error);
+      LogUtils.error('[UPDATE_TOOLS_COUNT] Error:', error);
       return { success: false, error: error.toString() };
     }
   },
@@ -395,7 +395,7 @@ const DataService = {
       return { success: true, sessionId: sessionId };
 
     } catch (error) {
-      console.error('Error saving session:', error);
+      LogUtils.error('Error saving session:', error);
       return { success: false, error: error.toString() };
     }
   },
@@ -439,7 +439,7 @@ const DataService = {
       return { valid: false, reason: 'Session not found' };
 
     } catch (error) {
-      console.error('Error validating session:', error);
+      LogUtils.error('Error validating session:', error);
       return { valid: false, reason: error.toString() };
     }
   },
@@ -468,7 +468,7 @@ const DataService = {
       ]);
 
     } catch (error) {
-      console.error('Error logging activity:', error);
+      LogUtils.error('Error logging activity:', error);
     }
   },
 

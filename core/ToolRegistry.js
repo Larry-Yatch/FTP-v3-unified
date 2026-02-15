@@ -22,7 +22,7 @@ const ToolRegistry = {
       const validation = ToolInterface.validate(toolModule);
 
       if (!validation.valid) {
-        console.error(`Tool registration failed for ${toolId}:`, validation.errors);
+        LogUtils.error(`Tool registration failed for ${toolId}: ${validation.errors}`);
         return {
           success: false,
           errors: validation.errors
@@ -32,7 +32,7 @@ const ToolRegistry = {
       // Validate manifest
       const manifestValidation = this._validateManifest(manifest);
       if (!manifestValidation.valid) {
-        console.error(`Manifest validation failed for ${toolId}:`, manifestValidation.errors);
+        LogUtils.error(`Manifest validation failed for ${toolId}: ${manifestValidation.errors}`);
         return {
           success: false,
           errors: manifestValidation.errors
@@ -48,7 +48,7 @@ const ToolRegistry = {
         optionalMethods: validation.optionalMethods
       };
 
-      console.log(`✅ Tool registered: ${toolId} (${manifest.name})`);
+      LogUtils.debug(`Tool registered: ${toolId} (${manifest.name})`);
 
       return {
         success: true,
@@ -57,7 +57,7 @@ const ToolRegistry = {
       };
 
     } catch (error) {
-      console.error(`Error registering tool ${toolId}:`, error);
+      LogUtils.error(`Error registering tool ${toolId}: ${error}`);
       return {
         success: false,
         error: error.toString()
@@ -150,7 +150,7 @@ const ToolRegistry = {
   unregister(toolId) {
     if (toolId in this._tools) {
       delete this._tools[toolId];
-      console.log(`Tool unregistered: ${toolId}`);
+      LogUtils.debug(`Tool unregistered: ${toolId}`);
       return true;
     }
     return false;
@@ -161,7 +161,7 @@ const ToolRegistry = {
    */
   clearAll() {
     this._tools = {};
-    console.log('All tool registrations cleared');
+    LogUtils.debug('All tool registrations cleared');
   },
 
   /**
@@ -224,17 +224,17 @@ const ToolRegistry = {
    * Debug: Print registry contents
    */
   debug() {
-    console.log('=== Tool Registry Debug ===');
-    console.log(`Total tools: ${this.count()}`);
+    LogUtils.debug('=== Tool Registry Debug ===');
+    LogUtils.debug(`Total tools: ${this.count()}`);
 
     Object.values(this._tools).forEach(tool => {
-      console.log(`\n📦 ${tool.id}`);
-      console.log(`   Name: ${tool.manifest.name}`);
-      console.log(`   Pattern: ${tool.manifest.pattern}`);
-      console.log(`   Routes: ${(tool.manifest.routes || []).join(', ')}`);
-      console.log(`   Optional methods: ${tool.optionalMethods.join(', ')}`);
+      LogUtils.debug(`\n${tool.id}`);
+      LogUtils.debug(`   Name: ${tool.manifest.name}`);
+      LogUtils.debug(`   Pattern: ${tool.manifest.pattern}`);
+      LogUtils.debug(`   Routes: ${(tool.manifest.routes || []).join(', ')}`);
+      LogUtils.debug(`   Optional methods: ${tool.optionalMethods.join(', ')}`);
     });
 
-    console.log('\n=========================');
+    LogUtils.debug('\n=========================');
   }
 };

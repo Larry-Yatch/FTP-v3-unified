@@ -259,8 +259,11 @@ function registerTools() {
  */
 function doGet(e) {
   try {
+    // Load debug logging preference from PropertiesService (once per request)
+    LogUtils.init();
+
     // Log incoming params for debugging refresh/history navigation
-    console.log('doGet params:', JSON.stringify(e.parameter || {}));
+    LogUtils.debug('doGet params: ' + JSON.stringify(e.parameter || {}));
 
     // Validate configuration
     const configValidation = validateConfig();
@@ -298,6 +301,8 @@ function doGet(e) {
  */
 function doPost(e) {
   try {
+    LogUtils.init();
+
     // Validate configuration
     const configValidation = validateConfig();
     if (!configValidation.valid) {
@@ -1520,6 +1525,20 @@ function updateStudentStatus(clientId, newStatus) {
  */
 function adminLogout() {
   return clearAdminSession();
+}
+
+/**
+ * Toggle debug logging on/off (persisted in PropertiesService)
+ */
+function toggleDebugLogging() {
+  return LogUtils.toggle();
+}
+
+/**
+ * Get current debug logging status
+ */
+function getDebugLoggingStatus() {
+  return LogUtils.getStatus();
 }
 
 /**

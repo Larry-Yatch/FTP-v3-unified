@@ -16,7 +16,7 @@ const FrameworkCore = {
    */
   initializeTool(toolId, clientId) {
     try {
-      console.log(`FrameworkCore: Initializing ${toolId} for ${clientId}`);
+      LogUtils.debug(`FrameworkCore: Initializing ${toolId} for ${clientId}`);
 
       // Get tool from registry
       const toolReg = ToolRegistry.get(toolId);
@@ -76,7 +76,7 @@ const FrameworkCore = {
       };
 
     } catch (error) {
-      console.error(`Error initializing tool ${toolId}:`, error);
+      LogUtils.error(`Error initializing tool ${toolId}: ${error}`);
       return {
         success: false,
         error: error.toString()
@@ -93,7 +93,7 @@ const FrameworkCore = {
    */
   processToolSubmission(toolId, clientId, data) {
     try {
-      console.log(`FrameworkCore: Processing submission for ${toolId} / ${clientId}`);
+      LogUtils.debug(`FrameworkCore: Processing submission for ${toolId} / ${clientId}`);
 
       // Get tool from registry
       const toolReg = ToolRegistry.get(toolId);
@@ -163,7 +163,7 @@ const FrameworkCore = {
       };
 
     } catch (error) {
-      console.error(`Error processing submission for ${toolId}:`, error);
+      LogUtils.error(`Error processing submission for ${toolId}: ${error}`);
       return {
         success: false,
         error: error.toString()
@@ -194,7 +194,7 @@ const FrameworkCore = {
       return null;
 
     } catch (error) {
-      console.error('Error getting next tool:', error);
+      LogUtils.error('Error getting next tool: ' + error);
       return null;
     }
   },
@@ -232,7 +232,7 @@ const FrameworkCore = {
       };
 
     } catch (error) {
-      console.error('Error getting tool progress:', error);
+      LogUtils.error('Error getting tool progress: ' + error);
       return { percent: 0, section: 'error' };
     }
   }

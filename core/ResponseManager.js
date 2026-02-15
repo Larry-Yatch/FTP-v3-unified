@@ -85,7 +85,7 @@ const ResponseManager = {
       return null;
 
     } catch (error) {
-      Logger.log(`Error getting latest response: ${error}`);
+      LogUtils.error(`Error getting latest response: ${error}`);
       return null;
     }
   },
@@ -136,7 +136,7 @@ const ResponseManager = {
       return null;
 
     } catch (error) {
-      Logger.log(`Error getting previous response: ${error}`);
+      LogUtils.error(`Error getting previous response: ${error}`);
       return null;
     }
   },
@@ -176,7 +176,7 @@ const ResponseManager = {
       return responses;
 
     } catch (error) {
-      Logger.log(`Error getting all responses: ${error}`);
+      LogUtils.error(`Error getting all responses: ${error}`);
       return [];
     }
   },
@@ -206,7 +206,7 @@ const ResponseManager = {
    */
   loadResponseForEditing(clientId, toolId) {
     try {
-      Logger.log(`Loading response for editing: ${clientId} / ${toolId}`);
+      LogUtils.debug(`Loading response for editing: ${clientId} / ${toolId}`);
 
       // Get the latest COMPLETED response
       const latest = this.getLatestResponse(clientId, toolId);
@@ -238,16 +238,16 @@ const ResponseManager = {
       }
 
       // DIAGNOSTIC: Log original response structure
-      Logger.log(`=== ResponseManager.loadResponseForEditing DIAGNOSTIC ===`);
-      Logger.log(`Original responseData keys: ${JSON.stringify(Object.keys(responseData || {}))}`);
-      Logger.log(`Has formData? ${!!responseData.formData}`);
-      Logger.log(`Has scores? ${!!responseData.scores}`);
-      Logger.log(`Has winner? ${!!responseData.winner}`);
+      LogUtils.debug(`=== ResponseManager.loadResponseForEditing DIAGNOSTIC ===`);
+      LogUtils.debug(`Original responseData keys: ${JSON.stringify(Object.keys(responseData || {}))}`);
+      LogUtils.debug(`Has formData? ${!!responseData.formData}`);
+      LogUtils.debug(`Has scores? ${!!responseData.scores}`);
+      LogUtils.debug(`Has winner? ${!!responseData.winner}`);
 
       if (responseData.formData) {
-        Logger.log(`formData keys: ${JSON.stringify(Object.keys(responseData.formData || {}))}`);
-        Logger.log(`formData.thought_fsv: ${responseData.formData.thought_fsv}`);
-        Logger.log(`formData.feeling_fsv: ${responseData.formData.feeling_fsv}`);
+        LogUtils.debug(`formData keys: ${JSON.stringify(Object.keys(responseData.formData || {}))}`);
+        LogUtils.debug(`formData.thought_fsv: ${responseData.formData.thought_fsv}`);
+        LogUtils.debug(`formData.feeling_fsv: ${responseData.formData.feeling_fsv}`);
       }
 
       // Extract form data if it's nested (Tool1 structure: {formData, scores, winner})
@@ -256,24 +256,24 @@ const ResponseManager = {
       if (responseData.formData) {
         // Tool1 pattern: data is nested under formData
         formFields = responseData.formData;
-        Logger.log(`Using nested formData extraction`);
+        LogUtils.debug(`Using nested formData extraction`);
       } else if (responseData.responses) {
         // Tool 3/5 pattern: data is nested under responses
         formFields = responseData.responses;
-        Logger.log(`Using nested responses extraction`);
+        LogUtils.debug(`Using nested responses extraction`);
       } else if (responseData.data) {
         // Alternative pattern: data nested under data
         formFields = responseData.data;
-        Logger.log(`Using nested data extraction`);
+        LogUtils.debug(`Using nested data extraction`);
       } else {
         // Flat structure: use as-is
         formFields = responseData;
-        Logger.log(`Using flat structure`);
+        LogUtils.debug(`Using flat structure`);
       }
 
-      Logger.log(`formFields keys after extraction: ${JSON.stringify(Object.keys(formFields || {}))}`);
-      Logger.log(`formFields.thought_fsv: ${formFields.thought_fsv}`);
-      Logger.log(`formFields.feeling_fsv: ${formFields.feeling_fsv}`);
+      LogUtils.debug(`formFields keys after extraction: ${JSON.stringify(Object.keys(formFields || {}))}`);
+      LogUtils.debug(`formFields.thought_fsv: ${formFields.thought_fsv}`);
+      LogUtils.debug(`formFields.feeling_fsv: ${formFields.feeling_fsv}`);
 
       // Create edit draft with metadata
       const editDraftData = {
@@ -284,9 +284,9 @@ const ResponseManager = {
         _editStarted: new Date().toISOString()
       };
 
-      Logger.log(`editDraftData keys after spread: ${JSON.stringify(Object.keys(editDraftData || {}))}`);
-      Logger.log(`editDraftData.thought_fsv: ${editDraftData.thought_fsv}`);
-      Logger.log(`editDraftData.feeling_fsv: ${editDraftData.feeling_fsv}`);
+      LogUtils.debug(`editDraftData keys after spread: ${JSON.stringify(Object.keys(editDraftData || {}))}`);
+      LogUtils.debug(`editDraftData.thought_fsv: ${editDraftData.thought_fsv}`);
+      LogUtils.debug(`editDraftData.feeling_fsv: ${editDraftData.feeling_fsv}`);
 
       // Save as EDIT_DRAFT in RESPONSES sheet
       const sheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.RESPONSES);
@@ -309,7 +309,7 @@ const ResponseManager = {
       SpreadsheetApp.flush();
       SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.RESPONSES);
 
-      Logger.log(`Edit draft created successfully for ${clientId}`);
+      LogUtils.debug(`Edit draft created successfully for ${clientId}`);
 
       return {
         success: true,
@@ -318,7 +318,7 @@ const ResponseManager = {
       };
 
     } catch (error) {
-      Logger.log(`Error loading response for editing: ${error}`);
+      LogUtils.error(`Error loading response for editing: ${error}`);
       return {
         success: false,
         error: error.toString()
@@ -335,14 +335,14 @@ const ResponseManager = {
    */
   submitEditedResponse(clientId, toolId, data) {
     try {
-      Logger.log(`Submitting edited response: ${clientId} / ${toolId}`);
+      LogUtils.debug(`Submitting edited response: ${clientId} / ${toolId}`);
 
       // DIAGNOSTIC: Log what we're receiving
-      Logger.log(`Data structure keys: ${JSON.stringify(Object.keys(data || {}))}`);
-      Logger.log(`Has formData? ${!!data.formData}`);
-      Logger.log(`Has scores? ${!!data.scores}`);
-      Logger.log(`Has winner? ${!!data.winner}`);
-      Logger.log(`Winner value: ${data.winner}`);
+      LogUtils.debug(`Data structure keys: ${JSON.stringify(Object.keys(data || {}))}`);
+      LogUtils.debug(`Has formData? ${!!data.formData}`);
+      LogUtils.debug(`Has scores? ${!!data.scores}`);
+      LogUtils.debug(`Has winner? ${!!data.winner}`);
+      LogUtils.debug(`Winner value: ${data.winner}`);
 
       // Remove edit mode metadata from formData (not top level!)
       const cleanData = { ...data };
@@ -354,8 +354,8 @@ const ResponseManager = {
         delete cleanData.formData._editStarted;
       }
 
-      Logger.log(`After cleanup - winner: ${cleanData.winner}`);
-      Logger.log(`After cleanup - data: ${JSON.stringify(cleanData).substring(0, 200)}`);
+      LogUtils.debug(`After cleanup - winner: ${cleanData.winner}`);
+      LogUtils.debug(`After cleanup - data: ${JSON.stringify(cleanData).substring(0, 200)}`);
 
       const sheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.RESPONSES);
 
@@ -372,7 +372,7 @@ const ResponseManager = {
         if (sheetData[i][clientIdCol] === clientId &&
             sheetData[i][toolIdCol] === toolId &&
             sheetData[i][statusCol] === 'EDIT_DRAFT') {
-          Logger.log(`Deleting EDIT_DRAFT row at index ${i}`);
+          LogUtils.debug(`Deleting EDIT_DRAFT row at index ${i}`);
           sheet.deleteRow(i + 1);
           break; // Only delete the first EDIT_DRAFT found
         }
@@ -402,10 +402,10 @@ const ResponseManager = {
       // Clear PropertiesService draft data (prevents orphaned data)
       if (typeof DraftService !== 'undefined') {
         DraftService.clearDraft(toolId, clientId);
-        Logger.log(`Cleared PropertiesService draft for ${clientId} / ${toolId}`);
+        LogUtils.debug(`Cleared PropertiesService draft for ${clientId} / ${toolId}`);
       }
 
-      Logger.log(`Edited response submitted successfully for ${clientId}`);
+      LogUtils.debug(`Edited response submitted successfully for ${clientId}`);
 
       return {
         success: true,
@@ -413,7 +413,7 @@ const ResponseManager = {
       };
 
     } catch (error) {
-      Logger.log(`Error submitting edited response: ${error}`);
+      LogUtils.error(`Error submitting edited response: ${error}`);
       return {
         success: false,
         error: error.toString()
@@ -429,7 +429,7 @@ const ResponseManager = {
    */
   cancelEditDraft(clientId, toolId) {
     try {
-      Logger.log(`Canceling draft: ${clientId} / ${toolId}`);
+      LogUtils.debug(`Canceling draft: ${clientId} / ${toolId}`);
 
       const sheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.RESPONSES);
 
@@ -465,10 +465,10 @@ const ResponseManager = {
       // ALSO clear PropertiesService draft data
       if (typeof DraftService !== 'undefined') {
         DraftService.clearDraft(toolId, clientId);
-        Logger.log(`Cleared PropertiesService draft for ${clientId} / ${toolId}`);
+        LogUtils.debug(`Cleared PropertiesService draft for ${clientId} / ${toolId}`);
       }
 
-      Logger.log(`Draft canceled for ${clientId} (deleted ${deletedCount} row(s))`);
+      LogUtils.debug(`Draft canceled for ${clientId} (deleted ${deletedCount} row(s))`);
 
       return {
         success: true,
@@ -476,7 +476,7 @@ const ResponseManager = {
       };
 
     } catch (error) {
-      Logger.log(`Error canceling draft: ${error}`);
+      LogUtils.error(`Error canceling draft: ${error}`);
       return {
         success: false,
         error: error.toString()
@@ -492,7 +492,7 @@ const ResponseManager = {
    */
   startFreshAttempt(clientId, toolId) {
     try {
-      Logger.log(`Starting fresh attempt: ${clientId} / ${toolId}`);
+      LogUtils.debug(`Starting fresh attempt: ${clientId} / ${toolId}`);
 
       const sheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.RESPONSES);
 
@@ -517,16 +517,16 @@ const ResponseManager = {
         const userProperties = PropertiesService.getUserProperties();
         const draftKey = `${toolId}_draft_${clientId}`;
         userProperties.deleteProperty(draftKey);
-        Logger.log(`Cleared PropertiesService draft: ${draftKey}`);
+        LogUtils.debug(`Cleared PropertiesService draft: ${draftKey}`);
       } catch (propError) {
-        Logger.log(`Warning: Could not clear PropertiesService draft: ${propError}`);
+        LogUtils.warn(`Could not clear PropertiesService draft: ${propError}`);
         // Non-critical - continue anyway
       }
 
       SpreadsheetApp.flush();
       SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.RESPONSES);
 
-      Logger.log(`Fresh attempt ready for ${clientId} - all drafts cleared`);
+      LogUtils.debug(`Fresh attempt ready for ${clientId} - all drafts cleared`);
 
       return {
         success: true,
@@ -534,7 +534,7 @@ const ResponseManager = {
       };
 
     } catch (error) {
-      Logger.log(`Error starting fresh attempt: ${error}`);
+      LogUtils.error(`Error starting fresh attempt: ${error}`);
       return {
         success: false,
         error: error.toString()
@@ -593,7 +593,7 @@ const ResponseManager = {
       const isLatestCol = headers.indexOf('Is_Latest');
 
       if (isLatestCol === -1) {
-        Logger.log('Warning: Is_Latest column not found');
+        LogUtils.warn('Is_Latest column not found');
         return;
       }
 
@@ -608,7 +608,7 @@ const ResponseManager = {
       SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.RESPONSES);
 
     } catch (error) {
-      Logger.log(`Error marking as not latest: ${error}`);
+      LogUtils.error(`Error marking as not latest: ${error}`);
     }
   },
 
@@ -623,7 +623,7 @@ const ResponseManager = {
       const headers = data[0];
       this._restoreLatestCompletedFromData(sheet, data, headers, clientId, toolId);
     } catch (error) {
-      Logger.log(`Error restoring latest completed: ${error}`);
+      LogUtils.error(`Error restoring latest completed: ${error}`);
     }
   },
 
@@ -663,7 +663,7 @@ const ResponseManager = {
       }
 
     } catch (error) {
-      Logger.log(`Error restoring latest completed from data: ${error}`);
+      LogUtils.error(`Error restoring latest completed from data: ${error}`);
     }
   },
 
@@ -708,12 +708,12 @@ const ResponseManager = {
       });
 
       if (rowsToDelete.length > 0) {
-        Logger.log(`Cleaned up ${rowsToDelete.length} old versions for ${clientId}/${toolId}`);
+        LogUtils.debug(`Cleaned up ${rowsToDelete.length} old versions for ${clientId}/${toolId}`);
         SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.RESPONSES);
       }
 
     } catch (error) {
-      Logger.log(`Error cleaning up old versions: ${error}`);
+      LogUtils.error(`Error cleaning up old versions: ${error}`);
     }
   }
 };

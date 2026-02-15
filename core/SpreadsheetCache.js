@@ -31,19 +31,19 @@ const SpreadsheetCache = {
     // Check if we have a cached instance
     if (this._cache) {
       this._cacheHits++;
-      console.log(`SpreadsheetCache HIT (${this._cacheHits} hits, ${this._cacheMisses} misses)`);
+      LogUtils.debug(`SpreadsheetCache HIT (${this._cacheHits} hits, ${this._cacheMisses} misses)`);
       return this._cache;
     }
 
     // Cache miss - open spreadsheet and store it
     this._cacheMisses++;
-    console.log(`SpreadsheetCache MISS - Opening spreadsheet (${this._cacheHits} hits, ${this._cacheMisses} misses)`);
+    LogUtils.debug(`SpreadsheetCache MISS - Opening spreadsheet (${this._cacheHits} hits, ${this._cacheMisses} misses)`);
 
     try {
       this._cache = SpreadsheetApp.openById(CONFIG.MASTER_SHEET_ID);
       return this._cache;
     } catch (error) {
-      console.error('SpreadsheetCache: Error opening spreadsheet:', error);
+      LogUtils.error('SpreadsheetCache: Error opening spreadsheet: ' + error);
       throw error;
     }
   },
@@ -66,11 +66,11 @@ const SpreadsheetCache = {
   getSheetData(sheetName) {
     // Check if we have cached data for this sheet
     if (this._dataCache[sheetName]) {
-      console.log(`SpreadsheetCache: Data cache HIT for ${sheetName}`);
+      LogUtils.debug(`SpreadsheetCache: Data cache HIT for ${sheetName}`);
       return this._dataCache[sheetName];
     }
 
-    console.log(`SpreadsheetCache: Data cache MISS for ${sheetName}`);
+    LogUtils.debug(`SpreadsheetCache: Data cache MISS for ${sheetName}`);
     const sheet = this.getSheet(sheetName);
     if (!sheet) {
       return null;
@@ -87,7 +87,7 @@ const SpreadsheetCache = {
    * @param {string} sheetName - Name of the sheet
    */
   invalidateSheetData(sheetName) {
-    console.log(`SpreadsheetCache: Invalidating data cache for ${sheetName}`);
+    LogUtils.debug(`SpreadsheetCache: Invalidating data cache for ${sheetName}`);
     delete this._dataCache[sheetName];
   },
 
@@ -95,7 +95,7 @@ const SpreadsheetCache = {
    * Clear cache (called automatically at end of request, or manually for testing)
    */
   clearCache() {
-    console.log(`SpreadsheetCache: Clearing cache (${this._cacheHits} hits, ${this._cacheMisses} misses)`);
+    LogUtils.debug(`SpreadsheetCache: Clearing cache (${this._cacheHits} hits, ${this._cacheMisses} misses)`);
     this._cache = null;
     this._dataCache = {};
     this._cacheHits = 0;

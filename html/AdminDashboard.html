@@ -743,6 +743,18 @@
           </div>
         </div>
 
+        <div class="card" style="margin-bottom: 20px;">
+          <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <div class="card-title">Debug Logging</div>
+            <button id="debugToggleBtn" onclick="toggleDebug()" style="padding: 6px 16px; border: none; border-radius: 6px; font-size: 13px; cursor: pointer; font-weight: 600; transition: all 0.2s;">
+              Loading...
+            </button>
+          </div>
+          <p style="padding: 0 20px 16px; font-size: 13px; color: #666;">
+            When enabled, detailed trace logs appear in the GAS Execution log for troubleshooting.
+          </p>
+        </div>
+
         <div class="card">
           <div class="card-header">
             <div class="card-title">Recent Activity</div>
@@ -1152,7 +1164,50 @@
     // Initialize dashboard
     window.addEventListener('load', () => {
       checkAuth();
+      loadDebugStatus();
     });
+
+    // Debug logging toggle
+    function loadDebugStatus() {
+      google.script.run
+        .withSuccessHandler(function(result) {
+          updateDebugButton(result.enabled);
+        })
+        .getDebugLoggingStatus();
+    }
+
+    function toggleDebug() {
+      const btn = document.getElementById('debugToggleBtn');
+      btn.textContent = 'Updating...';
+      btn.disabled = true;
+      google.script.run
+        .withSuccessHandler(function(result) {
+          btn.disabled = false;
+          if (result.success) {
+            updateDebugButton(result.enabled);
+          } else {
+            btn.textContent = 'Error';
+          }
+        })
+        .withFailureHandler(function() {
+          btn.disabled = false;
+          btn.textContent = 'Error';
+        })
+        .toggleDebugLogging();
+    }
+
+    function updateDebugButton(enabled) {
+      const btn = document.getElementById('debugToggleBtn');
+      if (enabled) {
+        btn.textContent = 'ON - Click to Disable';
+        btn.style.background = '#e8f5e9';
+        btn.style.color = '#2e7d32';
+      } else {
+        btn.textContent = 'OFF - Click to Enable';
+        btn.style.background = '#f5f5f5';
+        btn.style.color = '#666';
+      }
+    }
 
     function switchPage(pageName) {
       // Update nav

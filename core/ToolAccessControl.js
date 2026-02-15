@@ -58,7 +58,7 @@ const ToolAccessControl = {
       };
 
     } catch (error) {
-      console.error('Error checking tool access:', error);
+      LogUtils.error('Error checking tool access: ' + error);
       return {
         allowed: false,
         reason: 'Error checking access'
@@ -118,7 +118,7 @@ const ToolAccessControl = {
       };
 
     } catch (error) {
-      console.error('Error unlocking tool:', error);
+      LogUtils.error('Error unlocking tool: ' + error);
       return { success: false, error: error.toString() };
     }
   },
@@ -174,7 +174,7 @@ const ToolAccessControl = {
       };
 
     } catch (error) {
-      console.error('Error locking tool:', error);
+      LogUtils.error('Error locking tool: ' + error);
       return { success: false, error: error.toString() };
     }
   },
@@ -186,15 +186,15 @@ const ToolAccessControl = {
    */
   initializeStudent(clientId) {
     try {
-      console.log(`[INIT_STUDENT] Starting initialization for ${clientId}`);
+      LogUtils.debug(`[INIT_STUDENT] Starting initialization for ${clientId}`);
       const sheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.TOOL_ACCESS);
 
       if (!sheet) {
-        console.error('[INIT_STUDENT] TOOL_ACCESS sheet not found!');
+        LogUtils.error('[INIT_STUDENT] TOOL_ACCESS sheet not found!');
         return { success: false, error: 'TOOL_ACCESS sheet not found' };
       }
 
-      console.log('[INIT_STUDENT] TOOL_ACCESS sheet found, creating 8 tool records');
+      LogUtils.debug('[INIT_STUDENT] TOOL_ACCESS sheet found, creating 8 tool records');
 
       // Initialize all 8 tools (tool1 through tool8)
       // Tool 1 is unlocked, rest are locked initially
@@ -211,20 +211,20 @@ const ToolAccessControl = {
           i === 1 ? 'system' : '',  // Locked_By (system for tool1, empty for rest)
           i === 1 ? 'Initial unlock' : 'Locked until prerequisites met'  // Lock_Reason
         ]);
-        console.log(`[INIT_STUDENT] Added ${toolId} with status: ${status}`);
+        LogUtils.debug(`[INIT_STUDENT] Added ${toolId} with status: ${status}`);
       }
 
       // Invalidate cache after initialization
       SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.TOOL_ACCESS);
 
-      console.log(`[INIT_STUDENT] Successfully initialized 8 tools for ${clientId}`);
+      LogUtils.debug(`[INIT_STUDENT] Successfully initialized 8 tools for ${clientId}`);
       return {
         success: true,
         message: `Initialized 8 tools for ${clientId}`
       };
 
     } catch (error) {
-      console.error('[INIT_STUDENT] Error initializing student:', error);
+      LogUtils.error('[INIT_STUDENT] Error initializing student: ' + error);
       return { success: false, error: error.toString() };
     }
   },
@@ -252,7 +252,7 @@ const ToolAccessControl = {
         }));
 
     } catch (error) {
-      console.error('Error getting student access:', error);
+      LogUtils.error('Error getting student access: ' + error);
       return [];
     }
   },
@@ -307,7 +307,7 @@ const ToolAccessControl = {
       });
 
     } catch (error) {
-      console.error('Error auto-unlocking tool:', error);
+      LogUtils.error('Error auto-unlocking tool: ' + error);
     }
   },
 
@@ -338,7 +338,7 @@ const ToolAccessControl = {
       return null;
 
     } catch (error) {
-      console.error('Error getting access record:', error);
+      LogUtils.error('Error getting access record: ' + error);
       return null;
     }
   }

@@ -17,7 +17,7 @@ const Router = {
       const route = e.parameter.route || 'login';
       const params = e.parameter || {};
 
-      console.log(`Router: Handling route '${route}'`);
+      LogUtils.debug(`Router: Handling route '${route}'`);
 
       // System routes (non-tool routes)
       if (this._isSystemRoute(route)) {
@@ -35,7 +35,7 @@ const Router = {
       return this._handle404(route);
 
     } catch (error) {
-      console.error('Router error:', error);
+      LogUtils.error('Router error: ' + error);
       return this._handleError(error);
     }
   },
@@ -178,7 +178,7 @@ const Router = {
       return tool.module.render(renderParams);
 
     } catch (error) {
-      console.error('Error loading tool:', error);
+      LogUtils.error('Error loading tool: ' + error);
       return this._handleError(error);
     }
   },
@@ -1954,7 +1954,7 @@ const Router = {
    * @private
    */
   _handleError(error) {
-    console.error('Route handler error:', error);
+    LogUtils.error('Route handler error: ' + error);
     return HtmlService.createHtmlOutput(`
       <h1>Error</h1>
       <p>${error.toString()}</p>

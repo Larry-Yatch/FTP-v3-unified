@@ -20,14 +20,14 @@ const InsightsPipeline = {
    */
   processToolCompletion(toolId, clientId, responseData) {
     try {
-      console.log(`InsightsPipeline: Processing ${toolId} completion for ${clientId}`);
+      LogUtils.debug(`InsightsPipeline: Processing ${toolId} completion for ${clientId}`);
 
       // 1. Archive old insights from this tool (new submission = fresh insights)
       this.archiveOldInsights(clientId, toolId);
 
       // 2. Get insight mappings for this tool from configuration
       const mappings = this.getInsightMappings(toolId);
-      console.log(`Found ${mappings.length} insight mappings for ${toolId}`);
+      LogUtils.debug(`Found ${mappings.length} insight mappings for ${toolId}`);
 
       // 3. Evaluate each mapping condition against response data
       const triggeredInsights = [];
@@ -38,7 +38,7 @@ const InsightsPipeline = {
         }
       });
 
-      console.log(`Generated ${triggeredInsights.length} insights`);
+      LogUtils.debug(`Generated ${triggeredInsights.length} insights`);
 
       // 4. Save triggered insights to CrossToolInsights sheet
       if (triggeredInsights.length > 0) {
@@ -52,7 +52,7 @@ const InsightsPipeline = {
       };
 
     } catch (error) {
-      console.error('Error processing tool completion:', error);
+      LogUtils.error('Error processing tool completion: ' + error);
       return {
         success: false,
         error: error.toString(),
@@ -69,12 +69,12 @@ const InsightsPipeline = {
    */
   prepareToolLaunch(toolId, clientId) {
     try {
-      console.log(`InsightsPipeline: Preparing ${toolId} for ${clientId}`);
+      LogUtils.debug(`InsightsPipeline: Preparing ${toolId} for ${clientId}`);
 
       // Get all insights relevant to this tool
       const insights = this.getRelevantInsights(clientId, toolId);
 
-      console.log(`Found ${insights.length} relevant insights for ${toolId}`);
+      LogUtils.debug(`Found ${insights.length} relevant insights for ${toolId}`);
 
       return {
         success: true,
@@ -83,7 +83,7 @@ const InsightsPipeline = {
       };
 
     } catch (error) {
-      console.error('Error preparing tool launch:', error);
+      LogUtils.error('Error preparing tool launch: ' + error);
       return {
         success: false,
         error: error.toString(),
@@ -121,14 +121,14 @@ const InsightsPipeline = {
               Adaptation_Details: JSON.parse(row[8] || '{}')
             };
           } catch (parseError) {
-            console.error(`Error parsing mapping row for ${toolId}:`, parseError);
+            LogUtils.error(`Error parsing mapping row for ${toolId}: ${parseError}`);
             return null;
           }
         })
         .filter(mapping => mapping !== null);
 
     } catch (error) {
-      console.error('Error getting insight mappings:', error);
+      LogUtils.error('Error getting insight mappings: ' + error);
       return [];
     }
   },
@@ -174,11 +174,11 @@ const InsightsPipeline = {
         case 'endsWith':
           return actualValue && String(actualValue).endsWith(value);
         default:
-          console.warn(`Unknown operator: ${operator}`);
+          LogUtils.warn(`Unknown operator: ${operator}`);
           return false;
       }
     } catch (error) {
-      console.error('Error evaluating condition:', error);
+      LogUtils.error('Error evaluating condition: ' + error);
       return false;
     }
   },
@@ -230,7 +230,7 @@ const InsightsPipeline = {
       const sheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.CROSS_TOOL_INSIGHTS);
 
       if (!sheet) {
-        console.error('CrossToolInsights sheet not found');
+        LogUtils.error('CrossToolInsights sheet not found');
         return;
       }
 
@@ -249,10 +249,10 @@ const InsightsPipeline = {
       });
 
       SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.CROSS_TOOL_INSIGHTS);
-      console.log(`Saved ${insights.length} insights to CrossToolInsights`);
+      LogUtils.debug(`Saved ${insights.length} insights to CrossToolInsights`);
 
     } catch (error) {
-      console.error('Error saving insights:', error);
+      LogUtils.error('Error saving insights: ' + error);
     }
   },
 
@@ -298,7 +298,7 @@ const InsightsPipeline = {
       return insights;
 
     } catch (error) {
-      console.error('Error getting relevant insights:', error);
+      LogUtils.error('Error getting relevant insights: ' + error);
       return [];
     }
   },
@@ -324,10 +324,10 @@ const InsightsPipeline = {
       }
 
       SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.CROSS_TOOL_INSIGHTS);
-      console.log(`Archived old insights for ${clientId} / ${toolId}`);
+      LogUtils.debug(`Archived old insights for ${clientId} / ${toolId}`);
 
     } catch (error) {
-      console.error('Error archiving insights:', error);
+      LogUtils.error('Error archiving insights: ' + error);
     }
   },
 

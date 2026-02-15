@@ -84,7 +84,7 @@ function lookupClientById(clientId) {
     };
 
   } catch (error) {
-    console.error('lookupClientById error:', error);
+    LogUtils.error('lookupClientById error: ' + error);
     return {
       success: false,
       error: 'System error during lookup. Please try again.'
@@ -234,7 +234,7 @@ function lookupClientByDetails(params) {
     };
 
   } catch (error) {
-    console.error('lookupClientByDetails error:', error);
+    LogUtils.error('lookupClientByDetails error: ' + error);
     return {
       success: false,
       error: 'System error during lookup. Please try again.'
