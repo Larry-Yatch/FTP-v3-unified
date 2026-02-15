@@ -1521,22 +1521,20 @@ const CollectiveResults = {
         var behaviorScore = null;
 
         // Method 1: Direct aspectScores object
+        // GroundingScoring stores nested: aspectScores[sdKey] = { belief, behavior, feeling, consequence }
         var aspectScores = tool.data.scoring && tool.data.scoring.aspectScores;
-        if (aspectScores) {
-          var bKey = sdKey + '_belief';
-          var behKey = sdKey + '_behavior';
-          var feelKey = sdKey + '_feeling';
-          var consKey = sdKey + '_consequence';
+        if (aspectScores && aspectScores[sdKey]) {
+          var sdAspects = aspectScores[sdKey];
 
-          if (aspectScores[bKey] !== undefined && aspectScores[bKey] !== null) {
-            beliefScore = aspectScores[bKey];
+          if (sdAspects.belief !== undefined && sdAspects.belief !== null) {
+            beliefScore = sdAspects.belief;
           }
 
           // Average the action aspects (behavior, feeling, consequence)
           var actionScores = [];
-          if (aspectScores[behKey] !== undefined && aspectScores[behKey] !== null) actionScores.push(aspectScores[behKey]);
-          if (aspectScores[feelKey] !== undefined && aspectScores[feelKey] !== null) actionScores.push(aspectScores[feelKey]);
-          if (aspectScores[consKey] !== undefined && aspectScores[consKey] !== null) actionScores.push(aspectScores[consKey]);
+          if (sdAspects.behavior !== undefined && sdAspects.behavior !== null) actionScores.push(sdAspects.behavior);
+          if (sdAspects.feeling !== undefined && sdAspects.feeling !== null) actionScores.push(sdAspects.feeling);
+          if (sdAspects.consequence !== undefined && sdAspects.consequence !== null) actionScores.push(sdAspects.consequence);
 
           if (actionScores.length > 0) {
             var actionTotal = 0;
