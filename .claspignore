@@ -1,4 +1,6 @@
 # Exclude these
+.claude/**
+Pics/**
 node_modules/**
 tests/grounding-utilities-validation.js
 tests/tool3-e2e-tests.js
