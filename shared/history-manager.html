@@ -63,6 +63,57 @@
   }
 
   /**
+   * Remove the early recovery overlay (injected before body renders).
+   * Called when we determine recovery is not needed, or when initHistoryManager takes over.
+   */
+  function removeEarlyOverlay() {
+    var el = document.getElementById('_hmEarlyOverlay');
+    if (el) el.remove();
+    var st = document.getElementById('_hmEarlyRecoveryStyle');
+    if (st) st.remove();
+  }
+
+  /**
+   * Early recovery detection: runs in <head> before body renders.
+   * If sessionStorage has a valid stored location, show a loading overlay
+   * immediately to prevent the login page flash during refresh recovery.
+   */
+  (function earlyRecoveryCheck() {
+    try {
+      var stored = sessionStorage.getItem(LOCATION_KEY);
+      if (!stored) return;
+
+      var loc = JSON.parse(stored);
+      if (!loc || !loc.clientId || loc.view === 'login') return;
+      if (Date.now() - loc.timestamp > LOCATION_MAX_AGE_MS) return;
+
+      // Valid stored location found. Inject CSS-only overlay immediately
+      // (before body renders) to prevent the login page flash on refresh.
+      var style = document.createElement('style');
+      style.id = '_hmEarlyRecoveryStyle';
+      style.textContent =
+        '@keyframes _hm_espin{to{transform:rotate(360deg)}}' +
+        '#_hmEarlyOverlay{position:fixed;top:0;left:0;width:100%;height:100%;' +
+        'background:linear-gradient(135deg,#4b4166,#1e192b);z-index:99999;' +
+        'display:flex;align-items:center;justify-content:center;flex-direction:column;}' +
+        '#_hmEarlyOverlay .sp{width:40px;height:40px;border:4px solid rgba(255,255,255,0.3);' +
+        'border-top-color:#fff;border-radius:50%;animation:_hm_espin 0.8s linear infinite;}' +
+        '#_hmEarlyOverlay p{color:#fff;font-family:sans-serif;margin-top:16px;font-size:16px;}';
+      document.head.appendChild(style);
+
+      // Attach overlay to <html> (body does not exist yet in <head>)
+      var overlay = document.createElement('div');
+      overlay.id = '_hmEarlyOverlay';
+      overlay.innerHTML = '<div class="sp"></div><p>Restoring your session...</p>';
+      document.documentElement.appendChild(overlay);
+
+      console.log('[HistoryManager] Early recovery overlay injected');
+    } catch (e) {
+      // Ignore errors - best effort
+    }
+  })();
+
+  /**
    * Save the current location to sessionStorage for refresh recovery
    * @param {string} view - 'dashboard', 'tool', or 'report'
    * @param {Object} options - { toolId, page } depending on view
@@ -165,6 +216,9 @@
       console.log('[HistoryManager] Already initialized');
       return;
     }
+
+    // Remove early recovery overlay (we are on a real page, not login)
+    removeEarlyOverlay();
 
     _clientId = clientId;
 
@@ -384,18 +438,42 @@
     _fallbackClicked = false; // Reset for this navigation attempt
     var clientId = state.clientId || _clientId;
 
-    // Show loading IMMEDIATELY for instant feedback
-    if (typeof showLoading === 'function') {
-      showLoading('Navigating...');
-    }
-
     // Save the DESTINATION location now so that if the fallback button triggers
     // a full page reload, auto-recovery will navigate to the correct destination
     saveLocation(state.view, { toolId: state.toolId, page: state.page });
 
-    // Navigation helper - called after save completes (or immediately if no form)
-    // Uses short timeout because after document.write(), the google.script.run
-    // callback channel is typically broken (postMessage bridge is stale)
+    // Try direct URL navigation IMMEDIATELY while user activation from
+    // back/forward press is still valid. The GAS sandbox requires
+    // 'allow-top-navigation-by-user-activation', so this must happen
+    // synchronously — any async delay loses the activation.
+    var route, urlParams = {};
+    if (state.view === 'dashboard') {
+      route = 'dashboard';
+    } else if (state.view === 'tool' && state.toolId) {
+      route = state.toolId;
+      if (state.page) urlParams.page = state.page;
+    } else if (state.view === 'report' && state.toolId) {
+      route = state.toolId + '_report';
+    }
+
+    if (route) {
+      var directUrl = buildFallbackUrl(route, clientId, urlParams);
+      if (directUrl) {
+        try {
+          console.log('[HistoryManager] Direct navigation (user-activated):', directUrl);
+          window.top.location.href = directUrl;
+          return; // Navigation started, exit handler
+        } catch (navError) {
+          console.log('[HistoryManager] Direct navigation blocked, falling back to google.script.run');
+        }
+      }
+    }
+
+    // Fallback: use google.script.run (works when callback bridge is intact)
+    if (typeof showLoading === 'function') {
+      showLoading('Navigating...');
+    }
+
     function navigateToState() {
       switch(state.view) {
         case 'dashboard':
@@ -424,8 +502,6 @@
     }
 
     // Save form data FIRST, then navigate after save completes
-    // This prevents concurrent google.script.run calls which cause GAS to
-    // reload the iframe when document.write() destroys the pending callback
     saveCurrentFormDataAsync(navigateToState);
   }
 
@@ -762,6 +838,18 @@
       return;
     }
 
+    // Try auto-navigating the top frame (works if sandbox allows it).
+    // This avoids requiring a manual click on the fallback button.
+    try {
+      _fallbackClicked = true;
+      console.log('[HistoryManager] Auto-navigating to:', url);
+      window.top.location.href = url;
+      return; // Navigation started, exit
+    } catch (e) {
+      _fallbackClicked = false;
+      console.log('[HistoryManager] Auto-navigation blocked, showing manual fallback');
+    }
+
     console.log('[HistoryManager] Showing fallback button for:', url);
 
     // Remove any existing loading overlay and previous fallback
@@ -964,11 +1052,11 @@
    */
   function attemptAutoRecovery() {
     // Only run if we have not been initialized (login page does not call initHistoryManager)
-    if (_initialized) return;
+    if (_initialized) { removeEarlyOverlay(); return; }
 
     // Check if we are on the login page
     var loginForm = document.querySelector('#loginForm, #loginPage');
-    if (!loginForm) return;
+    if (!loginForm) { removeEarlyOverlay(); return; }
 
     console.log('[HistoryManager] Auto-recovery check on login page');
 
@@ -976,12 +1064,14 @@
     var storedLocation = getStoredLocation();
     if (!storedLocation || !storedLocation.clientId) {
       console.log('[HistoryManager] No stored location or clientId for recovery');
+      removeEarlyOverlay();
       return;
     }
 
     // Only recover if stored view was tool, report, or dashboard (not login)
     if (storedLocation.view === 'login') {
       console.log('[HistoryManager] Stored view is not recoverable:', storedLocation.view);
+      removeEarlyOverlay();
       return;
     }
 
