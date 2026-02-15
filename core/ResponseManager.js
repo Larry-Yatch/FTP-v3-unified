@@ -37,13 +37,11 @@ const ResponseManager = {
    */
   getLatestResponse(clientId, toolId) {
     try {
-      const sheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.RESPONSES);
-
-      if (!sheet || sheet.getLastRow() < 2) {
+      const data = SpreadsheetCache.getSheetData(CONFIG.SHEETS.RESPONSES);
+      if (!data || data.length < 2) {
         return null;
       }
 
-      const data = sheet.getDataRange().getValues();
       const headers = data[0];
 
       const clientIdCol = headers.indexOf('Client_ID');
@@ -101,13 +99,11 @@ const ResponseManager = {
    */
   getPreviousResponse(clientId, toolId) {
     try {
-      const sheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.RESPONSES);
-
-      if (!sheet || sheet.getLastRow() < 2) {
+      const data = SpreadsheetCache.getSheetData(CONFIG.SHEETS.RESPONSES);
+      if (!data || data.length < 2) {
         return null;
       }
 
-      const data = sheet.getDataRange().getValues();
       const headers = data[0];
 
       const clientIdCol = headers.indexOf('Client_ID');
@@ -154,13 +150,11 @@ const ResponseManager = {
    */
   getAllResponses(clientId, toolId, limit = 10) {
     try {
-      const sheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.RESPONSES);
-
-      if (!sheet || sheet.getLastRow() < 2) {
+      const data = SpreadsheetCache.getSheetData(CONFIG.SHEETS.RESPONSES);
+      if (!data || data.length < 2) {
         return [];
       }
 
-      const data = sheet.getDataRange().getValues();
       const headers = data[0];
 
       const clientIdCol = headers.indexOf('Client_ID');
@@ -313,6 +307,7 @@ const ResponseManager = {
       // Append new edit draft
       sheet.appendRow(row);
       SpreadsheetApp.flush();
+      SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.RESPONSES);
 
       Logger.log(`Edit draft created successfully for ${clientId}`);
 
@@ -399,6 +394,7 @@ const ResponseManager = {
 
       sheet.appendRow(row);
       SpreadsheetApp.flush();
+      SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.RESPONSES);
 
       // Clean up old versions (keep last 2)
       this._cleanupOldVersions(clientId, toolId, 2);
@@ -528,6 +524,7 @@ const ResponseManager = {
       }
 
       SpreadsheetApp.flush();
+      SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.RESPONSES);
 
       Logger.log(`Fresh attempt ready for ${clientId} - all drafts cleared`);
 
@@ -607,6 +604,8 @@ const ResponseManager = {
           sheet.getRange(i + 1, isLatestCol + 1).setValue('false');
         }
       }
+
+      SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.RESPONSES);
 
     } catch (error) {
       Logger.log(`Error marking as not latest: ${error}`);
@@ -710,6 +709,7 @@ const ResponseManager = {
 
       if (rowsToDelete.length > 0) {
         Logger.log(`Cleaned up ${rowsToDelete.length} old versions for ${clientId}/${toolId}`);
+        SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.RESPONSES);
       }
 
     } catch (error) {
