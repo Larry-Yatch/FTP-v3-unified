@@ -48,9 +48,14 @@ _renderSection3(summary) {
     // whether we show the "Almost there" placeholder vs returning empty string.
     // The PRIMARY content gate is above: the engines object. If engines produce
     // nothing (no profile AND no warnings), we never show Section 3 content
-    // regardless of how many tools are completed. This is intentional — a student
-    // with 3 financial tools (T2+T4+T6) but no Tool 1 will land here because
-    // the engines need Tool 1 data to produce a profile.
+    // regardless of how many tools are completed. This is intentional:
+    //
+    // - _detectProfile() requires Tool 1 to produce a profile
+    // - _generateWarnings() requires Tool 1 (returns [] without it)
+    //
+    // So a student with 3 financial tools (T2+T4+T6) but no Tool 1 will land
+    // here because BOTH engines need Tool 1 data. This ensures Section 3
+    // never shows warnings without a profile card for context.
     if (summary.completedCount >= 1) {
       return '<div class="card cr-section-card">' +
         '<h2 class="cr-section-title">The Integration</h2>' +

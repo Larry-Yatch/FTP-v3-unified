@@ -25,7 +25,7 @@ Two views of the same detection engines:
 | 4 | `04-PHASE-Render-Profile-and-Warnings.md` | Replace Section 3 placeholder with profile card + warning cards. Creates `engines` object pattern (run engines once, pass results) | ~200 lines of code + CSS |
 | 5 | `05-PHASE-Render-Locks-and-Gaps.md` | Add belief lock chains + awareness gap bars + gap table. Uncomments remaining engines in `engines` object | ~200 lines of code + CSS |
 | 6 | `06-PHASE-Coach-View.md` | Add coach integration analysis page to admin section (separate page, runs engines independently) | ~250 lines across multiple files |
-| 7 | `07-PHASE-Polish-and-Edge-Cases.md` | Responsive layout, animations, edge cases, final testing | Modifications only |
+| 7 | `07-PHASE-Polish-and-Edge-Cases.md` | "Continue Your Journey" incomplete tool navigation + responsive layout, animations, edge cases, final testing | ~100 lines new code + modifications |
 | 8 | `08-PHASE-Integration-Report-GPT-Engine.md` | GPT narrative engine with 3-tier fallback. Handles sparse data (sections may be empty) | ~250 lines (new file) |
 | 9 | `09-PHASE-Report-Rendering-PDF-Button.md` | Report HTML + PDF + download button + `_checkReportReadiness()` + incomplete data handling | ~280 lines across 3 files |
 

@@ -104,8 +104,13 @@ _generateWarnings(summary) {
   var tool1 = summary.tools.tool1;
   var tool2 = summary.tools.tool2;
 
-  // Need at least Tool 1 or a grounding tool + Tool 2 for meaningful warnings
+  // Tool 1 is REQUIRED for any warnings to fire. Without it, we have no
+  // psychological anchor for the warnings — they would appear without context.
+  // Single-trigger warnings (grounding tool only) are technically possible
+  // without Tool 1, but showing warnings with no profile card is confusing UX.
   var hasT1 = tool1 && tool1.status === 'completed' && tool1.data;
+  if (!hasT1) return [];
+
   var hasT2 = tool2 && tool2.status === 'completed' && tool2.data;
 
   // ---- CRITICAL: Awareness Gap ----
@@ -327,7 +332,8 @@ function testPhase2_WarningEngine() {
 - [ ] Warnings are sorted by priority (CRITICAL first)
 - [ ] Each warning has type, priority, message, and sources
 - [ ] Test with student who has many tools completed (expect multiple warnings)
-- [ ] Test with student who has only Tool 1 (expect no warnings or minimal)
+- [ ] Test with student who has only Tool 1 (expect no warnings or minimal — single triggers need grounding tools)
+- [ ] Test with student who has only grounding tools but NO Tool 1 (expect zero warnings — Tool 1 is required)
 - [ ] No UI changes visible — Section 3 still shows placeholder
 - [ ] No escaped apostrophes in any string
 - [ ] All messages use "do not", "cannot", "you are" (no contractions)

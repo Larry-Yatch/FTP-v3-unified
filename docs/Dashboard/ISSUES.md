@@ -18,14 +18,11 @@ Found during pre-implementation review. Reference this document during each phas
 - **Fix:** Verify how existing scripts in `_getScripts()` access `clientId` and follow the same pattern.
 - **Resolution:** Added `var clientId` injection line to Phase 9 Section 4 (`_getScripts()`) with comment explaining the pattern. The variable is declared before the `downloadIntegrationReport` function so it is in scope when the function calls `.generateIntegrationPDF(clientId)`.
 
-### Issue 3: Warnings Can Fire Without Tool 1 ⚠️ DESIGN DECISION NEEDED
+### Issue 3: Warnings Can Fire Without Tool 1 ✅ FIXED
 - **Phases:** 2, 4
 - **Problem:** Phase 2 single-trigger warnings fire on grounding tool subdomain scores alone — no Tool 1 required. A student with only Tool 7 (subdomain scores > 60) gets HIGH warnings but no profile. Phase 4 gating (`!hasProfile && !hasWarnings`) lets these warnings through, showing a partial Section 3 with warnings but no profile card.
-- **Decision needed:** Is this intended? Options:
-  1. **Require Tool 1:** Add `if (!hasT1) return [];` at the top of `_generateWarnings`. Warnings only show alongside a profile. Cleaner UX but delays feedback.
-  2. **Allow warnings alone:** Keep current behavior. Students with only grounding tools see warnings without a profile card. Faster feedback but potentially confusing.
-  3. **Show warnings with note:** Allow warnings without Tool 1, but add a note above them: "Complete Tool 1 to see your full integration profile and how these patterns connect." Compromise approach.
-- **Status:** Not yet resolved. Must decide before Phase 2 implementation.
+- **Decision:** Require Tool 1. Warnings only fire alongside a profile — cleaner UX.
+- **Resolution:** Added `if (!hasT1) return [];` guard at the top of `_generateWarnings()` in Phase 2 doc, with comment explaining rationale. Updated Phase 4 gating comment to note that both engines now require Tool 1. Added verification checklist item to Phase 2 for testing grounding-only students (expect zero warnings).
 
 ### Issue 4: Pipeline Comment Contradicts Code ✅ FIXED
 - **Phase:** 6
@@ -100,3 +97,39 @@ Found during pre-implementation review. Reference this document during each phas
 - **Problem:** The grep pattern for contractions (`don't`, `it's`, etc.) will match code comments and variable names, not just user-facing strings.
 - **Action:** Review grep output manually during Phase 7. Only fix matches inside string literals and user-facing messages.
 - **Status:** Awareness note for the Phase 7 implementer. No code change needed.
+
+---
+
+## ROUND 2 REVIEW (Found 2026-02-15 after doc fixes)
+
+### Issue 15: "Continue Your Journey" Navigates to Report Page Instead of Tool Page ✅ FIXED
+- **Phase:** 7
+- **Problem:** The "Start/Continue" buttons call `viewToolReport(toolKey)`. But `viewToolReport()` in `_getScripts()` splits behavior: for REPORT_TOOLS (tool1, tool2, tool3, tool5, tool7, tool8) it calls `getReportPage(clientId, toolId)` which loads the tool's **report page**. For a student who has not completed the tool, there is no report — they should be navigated to the tool's **survey page** (page 1) instead. Only CALCULATOR_TOOLS (tool4, tool6) correctly navigate to `getToolPageHtml(toolId, clientId, 1)`.
+- **Impact:** Clicking "Start Tool 1" would load an empty or error report page instead of starting the Tool 1 assessment. Same for tool2, tool3, tool5, tool7, tool8.
+- **Resolution:** Replaced `viewToolReport` with a new `navigateToTool(toolId)` function in Phase 7 doc. The new function always calls `getToolPageHtml(toolId, clientId, 1)` regardless of tool type. Updated the onclick handler, key implementation details, and verification checklist. The function definition is provided inline for addition to `_getScripts()`.
+
+### Issue 16: Phase 6 Stale Checklist Item ✅ FIXED
+- **Phase:** 6
+- **Problem:** The Phase 6 verification checklist still says `"[ ] getIntegrationAnalysisPage() wrapper in Code.js also checks auth"` but Section 4 of the Phase 6 doc was explicitly marked "NOT NEEDED" and the wrapper was removed.
+- **Resolution:** Removed the stale checklist item from Phase 6 doc.
+
+### Issue 17: Phase 7 References Non-Existent `renderCollectiveResults()` Method ✅ FIXED
+- **Phase:** 7
+- **Problem:** Phase 7 doc says to call `_renderIncompleteToolCards(summary)` inside `renderCollectiveResults()`. But the actual main render method is `render(clientId)` and the page assembly happens in `_buildPageHTML(clientId, summary)` (line ~171 in CollectiveResults.js). There is no method called `renderCollectiveResults()`. The code snippet also shows `this._renderSection2(summary)` but the actual call is `this._renderSection2(summary, clientId)`.
+- **Resolution:** Updated Phase 7 to reference `_buildPageHTML()` with correct method signatures: `this._renderSection2(summary, clientId)` and `this._renderSection3(summary)`.
+
+### Issue 18: Phase 9 `showLoading` Called with 2 Arguments — GOOD TO KNOW
+- **Phase:** 9
+- **Problem:** The download button handler calls `showLoading('Generating Report...', 'Creating your personalized integration PDF')` but the existing `showLoading()` function in `shared/loading-animation.html` only accepts 1 argument. The second argument (subtitle) is silently ignored.
+- **Impact:** Not a bug — the loading overlay still shows. The subtitle text just will not appear.
+- **Fix:** Either update `showLoading` to accept a subtitle parameter, or remove the second argument from Phase 9.
+
+### Issue 19: Phase 9 Duplicate "Section 6" Comments — GOOD TO KNOW
+- **Phase:** 9
+- **Problem:** In `buildIntegrationReportBody()`, both "Overall Synthesis" and "Action Items" are labeled `// --- Section 6: ...` in code comments. Should be Section 6 and Section 7, or grouped as 6a/6b.
+- **Fix:** Relabel the Action Items comment as `// --- Section 7: Action Items ---`.
+
+### Issue 20: Phase 8 Uses `const` While Codebase Uses `var` — GOOD TO KNOW
+- **Phase:** 8
+- **Problem:** Phase 8 declares `const IntegrationGPT = {` but every other module in the codebase uses `var` (`var CollectiveResults = {`, `var PDFGenerator = {`). Both work in GAS V8 runtime, but mixing declaration styles is inconsistent.
+- **Fix:** Change to `var IntegrationGPT = {` for consistency with existing codebase conventions.

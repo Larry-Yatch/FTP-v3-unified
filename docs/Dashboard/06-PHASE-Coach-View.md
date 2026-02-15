@@ -424,7 +424,6 @@ function viewIntegrationAnalysis(clientId) {
 ## Verification Checklist
 
 - [ ] `handleGetIntegrationAnalysisRequest()` checks `isAdminAuthenticated()` before proceeding
-- [ ] `getIntegrationAnalysisPage()` wrapper in Code.js also checks auth
 - [ ] Coach page renders all warnings (no max 4 cap)
 - [ ] Coach page shows pipeline analysis
 - [ ] Coach page shows full lock map with strength scores
