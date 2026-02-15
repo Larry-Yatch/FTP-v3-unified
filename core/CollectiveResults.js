@@ -486,6 +486,279 @@ const CollectiveResults = {
     };
   },
 
+  // --- Phase 2 Helper Functions ---
+
+  /**
+   * Calculate average stress score across all Tool 2 financial domains.
+   * @param {Object|null} tool2Data - the tool2.data object from summary
+   * @returns {number|null} - average stress value, or null if no data
+   */
+  _calculateAverageStress(tool2Data) {
+    if (!tool2Data || !tool2Data.results || !tool2Data.results.benchmarks) return null;
+
+    var benchmarks = tool2Data.results.benchmarks;
+    var domains = ['moneyFlow', 'obligations', 'liquidity', 'growth', 'protection'];
+    var total = 0;
+    var count = 0;
+
+    for (var i = 0; i < domains.length; i++) {
+      var domain = benchmarks[domains[i]];
+      if (domain && domain.stress !== undefined && domain.stress !== null) {
+        total += domain.stress;
+        count++;
+      }
+    }
+
+    return count > 0 ? total / count : null;
+  },
+
+  /**
+   * Safely retrieve a subdomain quotient score from the summary.
+   * @param {Object} summary - from getStudentSummary()
+   * @param {string} toolKey - 'tool3', 'tool5', or 'tool7'
+   * @param {string} subdomainKey - e.g., 'subdomain_1_3'
+   * @returns {number|null} - quotient score (0-100), or null if unavailable
+   */
+  _getSubdomainScore(summary, toolKey, subdomainKey) {
+    var tool = summary.tools[toolKey];
+    if (!tool || tool.status !== 'completed' || !tool.data) return null;
+    var scoring = tool.data.scoring;
+    if (!scoring || !scoring.subdomainQuotients) return null;
+    var score = scoring.subdomainQuotients[subdomainKey];
+    return (score !== undefined && score !== null) ? score : null;
+  },
+
+  /**
+   * Safely retrieve overall grounding quotient for a tool.
+   * @param {Object} summary - from getStudentSummary()
+   * @param {string} toolKey - 'tool3', 'tool5', or 'tool7'
+   * @returns {number|null} - overall quotient (0-100), or null if unavailable
+   */
+  _getOverallQuotient(summary, toolKey) {
+    var tool = summary.tools[toolKey];
+    if (!tool || tool.status !== 'completed' || !tool.data) return null;
+    var scoring = tool.data.scoring;
+    if (!scoring || scoring.overallQuotient === undefined) return null;
+    return scoring.overallQuotient;
+  },
+
+  /**
+   * Phase 2: Generate prioritized warnings based on cross-tool patterns.
+   * Analyzes psychological-financial connections and returns sorted warning array.
+   *
+   * @param {Object} summary - from getStudentSummary()
+   * @returns {Array} - warning objects sorted by priority (CRITICAL first)
+   */
+  _generateWarnings(summary) {
+    var warnings = [];
+
+    // --- CRITICAL: Awareness Gap ---
+    // High psych scores + low financial stress = denial
+    var groundingTools = ['tool3', 'tool5', 'tool7'];
+    var highestGrounding = 0;
+    for (var g = 0; g < groundingTools.length; g++) {
+      var oq = this._getOverallQuotient(summary, groundingTools[g]);
+      if (oq !== null && oq > highestGrounding) highestGrounding = oq;
+    }
+
+    var tool2Data = (summary.tools.tool2 && summary.tools.tool2.status === 'completed') ? summary.tools.tool2.data : null;
+    var avgStress = this._calculateAverageStress(tool2Data);
+
+    if (highestGrounding >= 50 && avgStress !== null && avgStress < 0) {
+      warnings.push({
+        type: 'AWARENESS_GAP',
+        priority: 'CRITICAL',
+        priorityOrder: 0,
+        message: 'Your psychological scores are elevated but you report low financial stress. This gap usually means you are not seeing the financial risks that are building. The patterns that feel normal to you are the ones doing the most damage.',
+        sources: [
+          'Grounding Scores (highest: ' + Math.round(highestGrounding) + '/100)',
+          'Financial Stress (avg: ' + avgStress.toFixed(1) + ')'
+        ]
+      });
+    }
+
+    // --- HIGH: Single-Variable Triggers ---
+
+    // CONTROL_DENIAL — Tool 7, subdomain_1_3 ("Only I Can Do It Right") >= 60
+    var controlDenialScore = this._getSubdomainScore(summary, 'tool7', 'subdomain_1_3');
+    if (controlDenialScore !== null && controlDenialScore >= 60) {
+      warnings.push({
+        type: 'CONTROL_DENIAL',
+        priority: 'HIGH',
+        priorityOrder: 1,
+        message: 'Your "Only I Can Do It Right" score is elevated. This pattern typically causes you to underreport financial stress across all domains because you believe you have everything handled.',
+        score: Math.round(controlDenialScore),
+        sources: ['Tool 7: "Only I Can Do It Right" (' + Math.round(controlDenialScore) + '/100)']
+      });
+    }
+
+    // SABOTAGE_RISK — Tool 7, subdomain_2_2 ("I Sabotage Success") >= 60
+    var sabotageScore = this._getSubdomainScore(summary, 'tool7', 'subdomain_2_2');
+    if (sabotageScore !== null && sabotageScore >= 60) {
+      warnings.push({
+        type: 'SABOTAGE_RISK',
+        priority: 'HIGH',
+        priorityOrder: 1,
+        message: 'Your self-sabotage score is elevated. This pattern typically shows up as undermining your own growth and protection — you set things up and then find ways to tear them down.',
+        score: Math.round(sabotageScore),
+        sources: ['Tool 7: "I Sabotage Success" (' + Math.round(sabotageScore) + '/100)']
+      });
+    }
+
+    // CODEPENDENT_SPENDING — Tool 5, subdomain_1_1 ("I Must Give to Be Loved") >= 60
+    var codependentScore = this._getSubdomainScore(summary, 'tool5', 'subdomain_1_1');
+    if (codependentScore !== null && codependentScore >= 60) {
+      warnings.push({
+        type: 'CODEPENDENT_SPENDING',
+        priority: 'HIGH',
+        priorityOrder: 1,
+        message: 'Your tendency to take on the financial responsibilities of others is probably driving the essentials overspending you are seeing right now. Your budget serves everyone before it serves you.',
+        score: Math.round(codependentScore),
+        sources: ['Tool 5: "I Must Give to Be Loved" (' + Math.round(codependentScore) + '/100)']
+      });
+    }
+
+    // --- HIGH: Compound Patterns (require Tool 1 data) ---
+    var tool1 = summary.tools.tool1;
+    if (tool1 && tool1.status === 'completed' && tool1.data && tool1.data.scores) {
+      var scores = tool1.data.scores;
+
+      // ISOLATED_CONTROLLER — Control > 10 + Tool 7 subdomain_1_3 >= 50
+      var t7sub13 = this._getSubdomainScore(summary, 'tool7', 'subdomain_1_3');
+      if (scores.Control > 10 && t7sub13 !== null && t7sub13 >= 50) {
+        warnings.push({
+          type: 'ISOLATED_CONTROLLER',
+          priority: 'HIGH',
+          priorityOrder: 1,
+          message: 'Your control pattern combined with your self-reliance score tells a clear story: you are trying to handle everything alone. Your low obligation numbers look like independence, but they are actually isolation.',
+          sources: [
+            'Tool 1: Control (' + Math.round(scores.Control) + ')',
+            'Security: "Only I Can Do It Right" (' + Math.round(t7sub13) + '/100)'
+          ]
+        });
+      }
+
+      // SHAME_STAGNATION — FSV > 10 + Tool 3 subdomain_1_1 ("I am Not Worthy") >= 50
+      var t3sub11 = this._getSubdomainScore(summary, 'tool3', 'subdomain_1_1');
+      if (scores.FSV > 10 && t3sub11 !== null && t3sub11 >= 50) {
+        warnings.push({
+          type: 'SHAME_STAGNATION',
+          priority: 'HIGH',
+          priorityOrder: 1,
+          message: 'Your shame pattern and your unworthiness score are reinforcing each other. This is likely why your growth allocation stays low — part of you does not believe you deserve to build wealth.',
+          sources: [
+            'Tool 1: False Self-View (' + Math.round(scores.FSV) + ')',
+            'Identity: "I am Not Worthy of Financial Freedom" (' + Math.round(t3sub11) + '/100)'
+          ]
+        });
+      }
+
+      // CARETAKER_DRAIN — Showing > 10 + Tool 5 subdomain_1_1 ("I Must Give to Be Loved") >= 50
+      var t5sub11 = this._getSubdomainScore(summary, 'tool5', 'subdomain_1_1');
+      if (scores.Showing > 10 && t5sub11 !== null && t5sub11 >= 50) {
+        warnings.push({
+          type: 'CARETAKER_DRAIN',
+          priority: 'HIGH',
+          priorityOrder: 1,
+          message: 'Your caretaking pattern is being amplified by your codependency beliefs. This combination typically creates chronic financial overextension — you cannot stop giving even when your own accounts are suffering.',
+          sources: [
+            'Tool 1: Issues Showing Love (' + Math.round(scores.Showing) + ')',
+            'Love: "I Must Give to Be Loved" (' + Math.round(t5sub11) + '/100)'
+          ]
+        });
+      }
+
+      // SELF_DESTRUCT — Fear > 10 + Tool 7 subdomain_2_2 ("I Sabotage Success") >= 50
+      var t7sub22 = this._getSubdomainScore(summary, 'tool7', 'subdomain_2_2');
+      if (scores.Fear > 10 && t7sub22 !== null && t7sub22 >= 50) {
+        warnings.push({
+          type: 'SELF_DESTRUCT',
+          priority: 'HIGH',
+          priorityOrder: 1,
+          message: 'Your fear and self-sabotage scores are both elevated. This combination is particularly damaging — the fear creates urgency but the sabotage undermines every protective action you try to take.',
+          sources: [
+            'Tool 1: Fear (' + Math.round(scores.Fear) + ')',
+            'Security: "I Sabotage Success" (' + Math.round(t7sub22) + '/100)'
+          ]
+        });
+      }
+    }
+
+    // --- MEDIUM: Secondary Pattern Indicators ---
+
+    // REALITY_AVOIDANCE — Tool 3, subdomain_1_3 >= 60
+    var realityScore = this._getSubdomainScore(summary, 'tool3', 'subdomain_1_3');
+    if (realityScore !== null && realityScore >= 60) {
+      warnings.push({
+        type: 'REALITY_AVOIDANCE',
+        priority: 'MEDIUM',
+        priorityOrder: 2,
+        message: 'Your financial reality avoidance is active. This creates a scarcity mindset regardless of how much money you actually have.',
+        score: Math.round(realityScore),
+        sources: ['Tool 3: "I Cannot See My Financial Reality" (' + Math.round(realityScore) + '/100)']
+      });
+    }
+
+    // PROTECTION_GAP — Tool 7, subdomain_2_1 >= 60
+    var protectionScore = this._getSubdomainScore(summary, 'tool7', 'subdomain_2_1');
+    if (protectionScore !== null && protectionScore >= 60) {
+      warnings.push({
+        type: 'PROTECTION_GAP',
+        priority: 'MEDIUM',
+        priorityOrder: 2,
+        message: 'Your self-protection belief is low. This shows up directly in your protection domain being underserved — you do not protect yourself because you do not believe you are worth protecting.',
+        score: Math.round(protectionScore),
+        sources: ['Tool 7: "I Do Not Protect Myself" (' + Math.round(protectionScore) + '/100)']
+      });
+    }
+
+    // OBLIGATION_OVERSPEND — Tool 5, subdomain_2_2 >= 50
+    var obligationScore = this._getSubdomainScore(summary, 'tool5', 'subdomain_2_2');
+    if (obligationScore !== null && obligationScore >= 50) {
+      warnings.push({
+        type: 'OBLIGATION_OVERSPEND',
+        priority: 'MEDIUM',
+        priorityOrder: 2,
+        message: 'Your sense of owing others is elevated. What shows up in your budget as essentials likely includes perceived debts to other people.',
+        score: Math.round(obligationScore),
+        sources: ['Tool 5: "I Owe Them Everything" (' + Math.round(obligationScore) + '/100)']
+      });
+    }
+
+    // JUDGMENT_SCARCITY — Tool 3, subdomain_2_2 >= 50
+    var judgmentScore = this._getSubdomainScore(summary, 'tool3', 'subdomain_2_2');
+    if (judgmentScore !== null && judgmentScore >= 50) {
+      warnings.push({
+        type: 'JUDGMENT_SCARCITY',
+        priority: 'MEDIUM',
+        priorityOrder: 2,
+        message: 'Fear of judgment is active. This tends to create a scarcity mindset that suppresses confidence across all your financial domains.',
+        score: Math.round(judgmentScore),
+        sources: ['Tool 3: "What Will They Think?" (' + Math.round(judgmentScore) + '/100)']
+      });
+    }
+
+    // GROWTH_PARALYSIS — Tool 7, subdomain_1_2 >= 50
+    var growthScore = this._getSubdomainScore(summary, 'tool7', 'subdomain_1_2');
+    if (growthScore !== null && growthScore >= 50) {
+      warnings.push({
+        type: 'GROWTH_PARALYSIS',
+        priority: 'MEDIUM',
+        priorityOrder: 2,
+        message: 'Your money freezing belief is active. You may allocate money to growth on paper, but when it comes time to actually invest, you freeze.',
+        score: Math.round(growthScore),
+        sources: ['Tool 7: "I Have Money But Will Not Use It" (' + Math.round(growthScore) + '/100)']
+      });
+    }
+
+    // Sort by priority order (CRITICAL=0, HIGH=1, MEDIUM=2)
+    warnings.sort(function(a, b) {
+      return a.priorityOrder - b.priorityOrder;
+    });
+
+    return warnings;
+  },
+
   // ============================================================
   // TOOL 1 CARD: Trauma Strategy Overview
   // ============================================================
