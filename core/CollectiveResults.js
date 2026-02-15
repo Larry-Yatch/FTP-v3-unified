@@ -721,6 +721,227 @@ const CollectiveResults = {
   },
 
   // ============================================================
+  // PHASE 6: COACH INTEGRATION PAGE
+  // ============================================================
+
+  /**
+   * Render the full integration analysis page for coach/admin view.
+   * Shows everything the student sees plus additional analytics.
+   *
+   * @param {string} clientId - Student to analyze
+   * @returns {string} Full HTML page
+   */
+  renderCoachIntegrationPage(clientId) {
+    try {
+      var summary = this.getStudentSummary(clientId);
+
+      if (summary.completedCount < 1) {
+        return '<html><body style="background:#1e192b;color:#fff;font-family:sans-serif;padding:40px;">' +
+          '<h1>No Data Available</h1>' +
+          '<p>This student has not completed any tools yet.</p>' +
+          '<button onclick="history.back()" style="margin-top:20px;padding:10px 20px;background:#ad9168;color:#fff;border:none;border-radius:6px;cursor:pointer;">Go Back</button>' +
+        '</body></html>';
+      }
+
+      // Run all detection engines
+      var profile = this._detectProfile(summary);
+      var warnings = this._generateWarnings(summary);
+      var awarenessGap = this._calculateAwarenessGap(summary);
+      var locks = this._detectBeliefLocks(summary);
+      var bbGaps = this._detectBeliefBehaviorGaps(summary);
+
+      // Detect pipelines
+      var pipelineA = this._detectPipeline(summary, 'A');
+      var pipelineB = this._detectPipeline(summary, 'B');
+
+      var html = '<!DOCTYPE html><html><head>' +
+        '<title>Integration Analysis: ' + clientId + '</title>' +
+        '<meta name="viewport" content="width=device-width, initial-scale=1.0">' +
+        '<style>' +
+          'html { background: #1e192b; }' +
+          'body { background: linear-gradient(135deg, #4b4166, #1e192b); background-attachment: fixed; margin:0; padding:20px; font-family: -apple-system, sans-serif; color: #e5e0eb; }' +
+          '.container { max-width: 900px; margin: 0 auto; }' +
+          '.card { background: rgba(30, 25, 43, 0.85); border: 1px solid rgba(173, 145, 104, 0.2); border-radius: 12px; padding: 20px; margin-bottom: 16px; }' +
+          '.muted { color: #8b8498; }' +
+          '.gold { color: #ad9168; }' +
+          'h1 { color: #ad9168; font-size: 1.4rem; }' +
+          'h2 { color: #ad9168; font-size: 1.1rem; margin-top: 0; }' +
+          'h3 { color: #e5e0eb; font-size: 1rem; margin-top: 0; }' +
+          '.badge { display: inline-block; padding: 3px 10px; border-radius: 10px; font-size: 0.8rem; font-weight: 500; }' +
+          '.badge-critical { background: rgba(239,68,68,0.2); color: #fca5a5; }' +
+          '.badge-high { background: rgba(245,158,11,0.2); color: #fcd34d; }' +
+          '.badge-medium { background: rgba(107,114,128,0.2); color: #9ca3af; }' +
+          '.badge-strong { background: rgba(239,68,68,0.2); color: #fca5a5; }' +
+          '.badge-moderate { background: rgba(245,158,11,0.2); color: #fcd34d; }' +
+          '.badge-emerging { background: rgba(16,185,129,0.2); color: #6ee7b7; }' +
+          '.warning-row { padding: 10px; margin: 6px 0; border-radius: 6px; border-left: 3px solid; }' +
+          '.warning-critical { background: rgba(239,68,68,0.08); border-color: #ef4444; }' +
+          '.warning-high { background: rgba(245,158,11,0.08); border-color: #f59e0b; }' +
+          '.warning-medium { background: rgba(107,114,128,0.08); border-color: #6b7280; }' +
+          '.lock-row { background: rgba(139,92,246,0.06); border: 1px solid rgba(139,92,246,0.2); border-radius: 8px; padding: 12px; margin: 8px 0; }' +
+          '.gap-row { background: rgba(30,25,43,0.5); border: 1px solid rgba(173,145,104,0.15); border-radius: 8px; padding: 12px; margin: 6px 0; }' +
+          '.pipeline-card { padding: 14px; border-radius: 8px; margin: 8px 0; }' +
+          '.pipeline-a { background: rgba(239,68,68,0.06); border: 1px solid rgba(239,68,68,0.2); }' +
+          '.pipeline-b { background: rgba(59,130,246,0.06); border: 1px solid rgba(59,130,246,0.2); }' +
+          '.score-inline { font-weight: 600; }' +
+          '.back-btn { display: inline-block; padding: 10px 20px; background: #ad9168; color: #fff; border: none; border-radius: 6px; cursor: pointer; text-decoration: none; font-size: 0.9rem; margin-top: 20px; }' +
+          'table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }' +
+          'th { text-align: left; padding: 8px; border-bottom: 1px solid rgba(173,145,104,0.2); color: #ad9168; }' +
+          'td { padding: 8px; border-bottom: 1px solid rgba(173,145,104,0.1); }' +
+        '</style>' +
+      '</head><body><div class="container">';
+
+      // Header
+      html += '<div class="card">' +
+        '<h1>Integration Analysis</h1>' +
+        '<p class="muted">Student: <strong style="color:#e5e0eb;">' + clientId + '</strong></p>' +
+        '<p class="muted">Tools Completed: ' + summary.completedCount + ' / 8</p>' +
+      '</div>';
+
+      // Profile
+      if (profile) {
+        html += '<div class="card">' +
+          '<h2>Integration Profile</h2>' +
+          '<p style="font-size: 1.3rem; font-weight: 700; color: #ad9168;">' + profile.icon + ' ' + profile.name + '</p>' +
+          '<p>' + profile.description + '</p>' +
+          '<p class="muted" style="font-style:italic;">' + profile.financialSignature + '</p>' +
+          '<p class="muted">Confidence: ' + profile.confidence + ' | Sources: ' + profile.sources.join(', ') + '</p>' +
+        '</div>';
+      }
+
+      // Awareness Gap
+      if (awarenessGap) {
+        html += '<div class="card">' +
+          '<h2>Awareness Gap</h2>' +
+          '<p>Psychological Score: <span class="score-inline">' + awarenessGap.psychScore + '/100</span></p>' +
+          '<p>Stress Awareness: <span class="score-inline">' + awarenessGap.stressScore + '/100</span></p>' +
+          '<p>Gap: <span class="score-inline">' + awarenessGap.gapScore + ' points</span> ' +
+            '<span class="badge badge-' + (awarenessGap.severity === 'critical' ? 'critical' : awarenessGap.severity === 'elevated' ? 'high' : 'medium') + '">' + awarenessGap.severity + '</span>' +
+          '</p>' +
+          '<p class="muted">Raw avg stress: ' + (awarenessGap.rawStress !== null ? awarenessGap.rawStress.toFixed(2) : 'N/A') + ' | Grounding tools used: ' + awarenessGap.groundingToolsUsed + '</p>' +
+        '</div>';
+      }
+
+      // Pipeline Analysis
+      html += '<div class="card">' +
+        '<h2>Pipeline Analysis</h2>' +
+        '<p class="muted" style="margin-bottom: 12px;">Which psychological pipeline is this student running through?</p>';
+
+      if (pipelineA) {
+        html += '<div class="pipeline-card pipeline-a">' +
+          '<h3>Pipeline A: Identity to Sabotage (T3 to T7)</h3>' +
+          '<p>Strength: <span class="badge badge-' + (pipelineA.strength === 'strong' ? 'strong' : pipelineA.strength === 'moderate' ? 'moderate' : 'emerging') + '">' + pipelineA.strength + '</span></p>' +
+          '<p class="muted">' + pipelineA.description + '</p>' +
+        '</div>';
+      } else {
+        html += '<p class="muted">Pipeline A (Identity to Sabotage): Not enough data or not active</p>';
+      }
+
+      if (pipelineB) {
+        html += '<div class="pipeline-card pipeline-b">' +
+          '<h3>Pipeline B: Identity to Caretaking (T3 to T5)</h3>' +
+          '<p>Strength: <span class="badge badge-' + (pipelineB.strength === 'strong' ? 'strong' : pipelineB.strength === 'moderate' ? 'moderate' : 'emerging') + '">' + pipelineB.strength + '</span></p>' +
+          '<p class="muted">' + pipelineB.description + '</p>' +
+        '</div>';
+      } else {
+        html += '<p class="muted">Pipeline B (Identity to Caretaking): Not enough data or not active</p>';
+      }
+
+      html += '</div>';
+
+      // ALL Warnings (coach sees all, not just top 4)
+      html += '<div class="card">' +
+        '<h2>All Warnings (' + warnings.length + ' detected)</h2>';
+
+      if (warnings.length === 0) {
+        html += '<p class="muted">No warnings triggered for this student.</p>';
+      } else {
+        for (var w = 0; w < warnings.length; w++) {
+          var warning = warnings[w];
+          var wClass = 'warning-medium';
+          if (warning.priority === 'CRITICAL') wClass = 'warning-critical';
+          else if (warning.priority === 'HIGH') wClass = 'warning-high';
+
+          html += '<div class="warning-row ' + wClass + '">' +
+            '<p><strong>[' + warning.priority + '] ' + warning.type + '</strong></p>' +
+            '<p>' + warning.message + '</p>' +
+            '<p class="muted">Sources: ' + warning.sources.join(' + ') + '</p>' +
+          '</div>';
+        }
+      }
+
+      html += '</div>';
+
+      // ALL Belief Locks (coach sees all)
+      html += '<div class="card">' +
+        '<h2>Belief Locks (' + locks.length + ' detected)</h2>';
+
+      if (locks.length === 0) {
+        html += '<p class="muted">No belief locks detected. Student subdomain scores may not meet lock thresholds.</p>';
+      } else {
+        for (var l = 0; l < locks.length; l++) {
+          var lock = locks[l];
+          html += '<div class="lock-row">' +
+            '<p><strong>' + lock.name + '</strong> ' +
+              '<span class="badge badge-' + lock.strength + '">' + lock.strength + ' (avg: ' + lock.avgScore + ')</span>' +
+            '</p>';
+
+          for (var b = 0; b < lock.beliefs.length; b++) {
+            var belief = lock.beliefs[b];
+            html += '<p style="padding-left: 15px;">"' + belief.label + '" - ' + belief.tool + ': <span class="score-inline">' + belief.score + '/100</span></p>';
+          }
+
+          html += '<p class="muted" style="margin-top: 6px; font-style: italic;">' + lock.financialImpact + '</p>' +
+          '</div>';
+        }
+      }
+
+      html += '</div>';
+
+      // ALL Belief-Behavior Gaps (full table)
+      html += '<div class="card">' +
+        '<h2>Belief-Behavior Gaps (' + bbGaps.length + ' detected)</h2>';
+
+      if (bbGaps.length === 0) {
+        html += '<p class="muted">No belief-behavior gaps detected. This may mean aspect-level data is not available for this student, or their beliefs and behaviors are aligned.</p>';
+      } else {
+        html += '<table>' +
+          '<tr><th>Subdomain</th><th>Tool</th><th>Belief</th><th>Behavior</th><th>Gap</th><th>Direction</th></tr>';
+
+        for (var g = 0; g < bbGaps.length; g++) {
+          var gap = bbGaps[g];
+          html += '<tr>' +
+            '<td>"' + gap.label + '"</td>' +
+            '<td>' + gap.tool + '</td>' +
+            '<td>' + gap.beliefScore + '</td>' +
+            '<td>' + gap.behaviorScore + '</td>' +
+            '<td style="color: #f59e0b; font-weight: 600;">' + gap.gap + '</td>' +
+            '<td>' + gap.direction + '</td>' +
+          '</tr>';
+        }
+
+        html += '</table>';
+      }
+
+      html += '</div>';
+
+      // Back button
+      html += '<div style="text-align: center; margin: 20px 0 40px;">' +
+        '<button class="back-btn" onclick="history.back()">Back to Student Detail</button>' +
+      '</div>';
+
+      html += '</div></body></html>';
+      return html;
+
+    } catch (error) {
+      Logger.log('[CoachIntegration] Error: ' + error);
+      return '<html><body style="background:#1e192b;color:#fff;font-family:sans-serif;padding:40px;">' +
+        '<h1>Error</h1><p>' + error.message + '</p>' +
+      '</body></html>';
+    }
+  },
+
+  // ============================================================
   // INTEGRATION ENGINES (Section 3 Data Detection)
   // ============================================================
 
@@ -1394,6 +1615,61 @@ const CollectiveResults = {
     });
 
     return gaps;
+  },
+
+  /**
+   * Phase 6: Detect whether a psychological pipeline is active for this student.
+   *
+   * Pipeline A: Identity (T3) to Sabotage (T7) — FSV/ExVal beliefs feed into control/fear behaviors
+   * Pipeline B: Identity (T3) to Caretaking (T5) — FSV/ExVal beliefs feed into showing/receiving behaviors
+   *
+   * @param {Object} summary
+   * @param {string} pipeline - 'A' or 'B'
+   * @returns {Object|null} - { strength, description } or null if not active
+   */
+  _detectPipeline(summary, pipeline) {
+    var t3Overall = this._getOverallQuotient(summary, 'tool3');
+    if (t3Overall === null) return null;
+
+    if (pipeline === 'A') {
+      var t7Overall = this._getOverallQuotient(summary, 'tool7');
+      if (t7Overall === null) return null;
+
+      if (t3Overall < 40 && t7Overall < 40) return null;
+
+      var avgScore = (t3Overall + t7Overall) / 2;
+      var strength = 'emerging';
+      if (avgScore > 65) strength = 'strong';
+      else if (avgScore > 50) strength = 'moderate';
+
+      return {
+        strength: strength,
+        t3Score: Math.round(t3Overall),
+        t7Score: Math.round(t7Overall),
+        description: 'Identity beliefs (T3: ' + Math.round(t3Overall) + '/100) are feeding into security and control patterns (T7: ' + Math.round(t7Overall) + '/100). This student may be using control and fear-based behaviors as a response to identity-level wounds.'
+      };
+    }
+
+    if (pipeline === 'B') {
+      var t5Overall = this._getOverallQuotient(summary, 'tool5');
+      if (t5Overall === null) return null;
+
+      if (t3Overall < 40 && t5Overall < 40) return null;
+
+      var avgScoreB = (t3Overall + t5Overall) / 2;
+      var strengthB = 'emerging';
+      if (avgScoreB > 65) strengthB = 'strong';
+      else if (avgScoreB > 50) strengthB = 'moderate';
+
+      return {
+        strength: strengthB,
+        t3Score: Math.round(t3Overall),
+        t5Score: Math.round(t5Overall),
+        description: 'Identity beliefs (T3: ' + Math.round(t3Overall) + '/100) are feeding into love and connection patterns (T5: ' + Math.round(t5Overall) + '/100). This student may be using caretaking and codependent behaviors as a response to identity-level wounds.'
+      };
+    }
+
+    return null;
   },
 
   // ============================================================

@@ -1563,6 +1563,13 @@ function getToolReportHTML(clientId, toolId) {
 }
 
 /**
+ * Get integration analysis HTML for coach view
+ */
+function getIntegrationAnalysis(clientId) {
+  return handleGetIntegrationAnalysisRequest(clientId);
+}
+
+/**
  * Get tool completion analytics with date range
  */
 function getToolCompletionAnalytics(startDate, endDate) {

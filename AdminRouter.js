@@ -781,6 +781,31 @@ function handleGetToolReportHTMLRequest(clientId, toolId) {
 }
 
 // ========================================
+// COACH INTEGRATION ANALYSIS
+// ========================================
+
+/**
+ * Handle coach integration analysis request.
+ * Returns full integration analysis HTML for a student.
+ */
+function handleGetIntegrationAnalysisRequest(clientId) {
+  console.log('[INTEGRATION_ANALYSIS] Request received for', clientId);
+
+  if (!isAdminAuthenticated()) {
+    console.log('[INTEGRATION_ANALYSIS] Not authenticated');
+    return { success: false, error: 'Not authenticated' };
+  }
+
+  try {
+    var html = CollectiveResults.renderCoachIntegrationPage(clientId);
+    return { success: true, html: html };
+  } catch (error) {
+    console.error('[INTEGRATION_ANALYSIS] Error:', error);
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ========================================
 // ANALYTICS FUNCTIONS
 // ========================================
 
