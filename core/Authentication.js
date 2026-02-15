@@ -32,16 +32,14 @@ function lookupClientById(clientId) {
     const idNorm = normalizeId(input);
 
     // Load Students sheet
-    const studentsSheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.STUDENTS);
+    const data = SpreadsheetCache.getSheetData(CONFIG.SHEETS.STUDENTS);
 
-    if (!studentsSheet) {
+    if (!data) {
       return {
         success: false,
         error: 'Unable to access student roster. Please contact support.'
       };
     }
-
-    const data = studentsSheet.getDataRange().getValues();
 
     if (data.length < 2) {
       return { success: false, error: 'Student roster is empty' };
@@ -120,16 +118,14 @@ function lookupClientByDetails(params) {
     }
 
     // Load Students sheet
-    const studentsSheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.STUDENTS);
+    const data = SpreadsheetCache.getSheetData(CONFIG.SHEETS.STUDENTS);
 
-    if (!studentsSheet) {
+    if (!data) {
       return {
         success: false,
         error: 'Unable to access student roster. Please contact support.'
       };
     }
-
-    const data = studentsSheet.getDataRange().getValues();
 
     if (data.length < 2) {
       return { success: false, error: 'Student roster is empty' };

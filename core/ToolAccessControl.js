@@ -236,11 +236,8 @@ const ToolAccessControl = {
    */
   getStudentAccess(clientId) {
     try {
-      const sheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.TOOL_ACCESS);
-
-      if (!sheet) return [];
-
-      const data = sheet.getDataRange().getValues();
+      const data = SpreadsheetCache.getSheetData(CONFIG.SHEETS.TOOL_ACCESS);
+      if (!data || data.length < 2) return [];
 
       return data.slice(1)
         .filter(row => row[0] === clientId)
@@ -279,6 +276,7 @@ const ToolAccessControl = {
           sheet.getRange(i + 1, 5).setValue(new Date());
           sheet.getRange(i + 1, 6).setValue('system');
           sheet.getRange(i + 1, 7).setValue('Auto-unlocked (prerequisites met)');
+          SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.TOOL_ACCESS);
 
           // Log auto-unlock
           DataService.logActivity(clientId, 'auto_unlock', {
@@ -300,6 +298,7 @@ const ToolAccessControl = {
         'system',
         'Auto-unlocked (prerequisites met)'
       ]);
+      SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.TOOL_ACCESS);
 
       // Log auto-unlock for new record
       DataService.logActivity(clientId, 'auto_unlock', {
@@ -318,11 +317,8 @@ const ToolAccessControl = {
    */
   _getAccessRecord(clientId, toolId) {
     try {
-      const sheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.TOOL_ACCESS);
-
-      if (!sheet) return null;
-
-      const data = sheet.getDataRange().getValues();
+      const data = SpreadsheetCache.getSheetData(CONFIG.SHEETS.TOOL_ACCESS);
+      if (!data || data.length < 2) return null;
 
       for (let i = 1; i < data.length; i++) {
         if (data[i][0] === clientId && data[i][1] === toolId) {

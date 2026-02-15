@@ -100,16 +100,8 @@ const InsightsPipeline = {
    */
   getInsightMappings(toolId) {
     try {
-      const sheet = SpreadsheetApp.openById(CONFIG.MASTER_SHEET_ID)
-        .getSheetByName(CONFIG.SHEETS.INSIGHT_MAPPINGS);
-
-      if (!sheet) {
-        console.warn('InsightMappings sheet not found');
-        return [];
-      }
-
-      const data = sheet.getDataRange().getValues();
-      if (data.length < 2) return [];  // No data rows
+      const data = SpreadsheetCache.getSheetData(CONFIG.SHEETS.INSIGHT_MAPPINGS);
+      if (!data || data.length < 2) return [];
 
       const headers = data[0];
 
@@ -235,8 +227,7 @@ const InsightsPipeline = {
    */
   saveInsights(clientId, toolId, insights) {
     try {
-      const sheet = SpreadsheetApp.openById(CONFIG.MASTER_SHEET_ID)
-        .getSheetByName(CONFIG.SHEETS.CROSS_TOOL_INSIGHTS);
+      const sheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.CROSS_TOOL_INSIGHTS);
 
       if (!sheet) {
         console.error('CrossToolInsights sheet not found');
@@ -257,6 +248,7 @@ const InsightsPipeline = {
         ]);
       });
 
+      SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.CROSS_TOOL_INSIGHTS);
       console.log(`Saved ${insights.length} insights to CrossToolInsights`);
 
     } catch (error) {
@@ -272,16 +264,8 @@ const InsightsPipeline = {
    */
   getRelevantInsights(clientId, targetTool) {
     try {
-      const sheet = SpreadsheetApp.openById(CONFIG.MASTER_SHEET_ID)
-        .getSheetByName(CONFIG.SHEETS.CROSS_TOOL_INSIGHTS);
-
-      if (!sheet) {
-        console.warn('CrossToolInsights sheet not found');
-        return [];
-      }
-
-      const data = sheet.getDataRange().getValues();
-      if (data.length < 2) return [];  // No data rows
+      const data = SpreadsheetCache.getSheetData(CONFIG.SHEETS.CROSS_TOOL_INSIGHTS);
+      if (!data || data.length < 2) return [];
 
       const insights = data.slice(1)  // Skip headers
         .filter(row => {
@@ -326,8 +310,7 @@ const InsightsPipeline = {
    */
   archiveOldInsights(clientId, toolId) {
     try {
-      const sheet = SpreadsheetApp.openById(CONFIG.MASTER_SHEET_ID)
-        .getSheetByName(CONFIG.SHEETS.CROSS_TOOL_INSIGHTS);
+      const sheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.CROSS_TOOL_INSIGHTS);
 
       if (!sheet) return;
 
@@ -340,6 +323,7 @@ const InsightsPipeline = {
         }
       }
 
+      SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.CROSS_TOOL_INSIGHTS);
       console.log(`Archived old insights for ${clientId} / ${toolId}`);
 
     } catch (error) {
