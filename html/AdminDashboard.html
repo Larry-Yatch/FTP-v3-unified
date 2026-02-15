@@ -1791,6 +1791,14 @@
       });
       html += '</div>';
 
+      // Integration Analysis button (below tool cards)
+      html += '<div style="text-align: center; margin: 20px 0 4px; padding-top: 16px; border-top: 1px solid #e0e0e0;">' +
+        '<button onclick="viewIntegrationAnalysis()" ' +
+          'style="padding: 10px 24px; background: linear-gradient(135deg, #4b4166, #1e192b); border: 1px solid #ad9168; color: #ad9168; border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: 500;">' +
+          'View Integration Analysis' +
+        '</button>' +
+      '</div>';
+
       container.innerHTML = html;
     }
 
@@ -1824,6 +1832,30 @@
           body.innerHTML = `<div class="error">Error loading report: ${error.message}</div>`;
         })
         .getToolReportHTML(currentReportStudent.clientId, toolId);
+    }
+
+    // View integration analysis (coach view — full page)
+    function viewIntegrationAnalysis() {
+      if (!currentReportStudent) {
+        showAlert('No student selected', 'error');
+        return;
+      }
+
+      google.script.run
+        .withSuccessHandler(function(result) {
+          if (result && result.success && result.html) {
+            document.open();
+            document.write(result.html);
+            document.close();
+            window.scrollTo(0, 0);
+          } else {
+            showAlert('Error: ' + (result ? result.error : 'Unknown error'), 'error');
+          }
+        })
+        .withFailureHandler(function(err) {
+          showAlert('Error loading analysis: ' + err.message, 'error');
+        })
+        .getIntegrationAnalysis(currentReportStudent.clientId);
     }
 
     // Render tool report HTML (formatted student view)
