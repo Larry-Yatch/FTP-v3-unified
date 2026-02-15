@@ -759,6 +759,316 @@ const CollectiveResults = {
     return warnings;
   },
 
+  // --- Phase 3: Awareness Gap, Belief Locks, Belief-Behavior Gaps ---
+
+  /**
+   * Phase 3: Quantify the disconnect between psychological scores and
+   * reported financial stress. High psych + low stress = denial.
+   *
+   * @param {Object} summary - from getStudentSummary()
+   * @returns {Object|null} - { gapScore, psychScore, stressScore, rawStress, severity, groundingToolsUsed }
+   */
+  _calculateAwarenessGap(summary) {
+    // Need Tool 2 for stress data
+    var tool2 = summary.tools.tool2;
+    if (!tool2 || tool2.status !== 'completed' || !tool2.data) return null;
+
+    // Calculate average psychological score from grounding tools
+    var groundingTools = ['tool3', 'tool5', 'tool7'];
+    var totalQuotient = 0;
+    var quotientCount = 0;
+
+    for (var i = 0; i < groundingTools.length; i++) {
+      var oq = this._getOverallQuotient(summary, groundingTools[i]);
+      if (oq !== null) {
+        totalQuotient += oq;
+        quotientCount++;
+      }
+    }
+
+    if (quotientCount === 0) return null;
+
+    var avgPsychScore = totalQuotient / quotientCount;
+
+    // Calculate normalized stress score from Tool 2
+    var avgStress = this._calculateAverageStress(tool2.data);
+    if (avgStress === null) return null;
+
+    // Normalize stress from roughly -10..+10 range to 0-100 scale
+    var normalizedStress = Math.max(0, Math.min(100, (avgStress + 10) * 5));
+
+    // Gap = psychological score minus stress awareness
+    var gapScore = avgPsychScore - normalizedStress;
+
+    // Classify severity
+    var severity;
+    if (gapScore > 30) {
+      severity = 'critical';
+    } else if (gapScore > 15) {
+      severity = 'elevated';
+    } else {
+      severity = 'normal';
+    }
+
+    return {
+      gapScore: Math.round(gapScore),
+      psychScore: Math.round(avgPsychScore),
+      stressScore: Math.round(normalizedStress),
+      rawStress: avgStress,
+      severity: severity,
+      groundingToolsUsed: quotientCount
+    };
+  },
+
+  /**
+   * Phase 3: Detect interlocking beliefs across tools that reinforce each other.
+   * Six known lock patterns based on cross-tool correlation analysis.
+   *
+   * @param {Object} summary - from getStudentSummary()
+   * @returns {Array} - lock objects sorted by strength (strong first)
+   */
+  _detectBeliefLocks(summary) {
+    var self = this;
+
+    // Define the 6 known lock patterns
+    var lockPatterns = [
+      {
+        name: 'Scarcity + Shame Lock',
+        beliefs: [
+          { toolKey: 'tool3', subdomainKey: 'subdomain_1_1', threshold: 50 },
+          { toolKey: 'tool3', subdomainKey: 'subdomain_1_2', threshold: 50 },
+          { toolKey: 'tool7', subdomainKey: 'subdomain_2_2', threshold: 50 }
+        ],
+        financialImpact: 'Suppresses growth allocation and prevents wealth building despite affordability. Shame says you do not deserve it, scarcity says there is never enough, sabotage ensures the pattern continues.'
+      },
+      {
+        name: 'Caretaker Trap Lock',
+        beliefs: [
+          { toolKey: 'tool5', subdomainKey: 'subdomain_1_1', threshold: 50 },
+          { toolKey: 'tool5', subdomainKey: 'subdomain_1_2', threshold: 50 },
+          { toolKey: 'tool5', subdomainKey: 'subdomain_2_2', threshold: 50 }
+        ],
+        financialImpact: 'Inflated essentials budget driven by obligation to others, underfunded freedom and growth categories. Love equals giving, others come first, perpetual obligation.'
+      },
+      {
+        name: 'Control + Isolation Lock',
+        beliefs: [
+          { toolKey: 'tool7', subdomainKey: 'subdomain_1_1', threshold: 50 },
+          { toolKey: 'tool7', subdomainKey: 'subdomain_1_3', threshold: 50 },
+          { toolKey: 'tool3', subdomainKey: 'subdomain_1_3', threshold: 50 }
+        ],
+        financialImpact: 'Financial blindness through isolation and perfectionism. Undercharging erodes income, refusing help creates isolation, and reality avoidance prevents seeing the damage.'
+      },
+      {
+        name: 'Fear + Paralysis Lock',
+        beliefs: [
+          { toolKey: 'tool7', subdomainKey: 'subdomain_2_1', threshold: 50 },
+          { toolKey: 'tool7', subdomainKey: 'subdomain_2_2', threshold: 50 },
+          { toolKey: 'tool7', subdomainKey: 'subdomain_1_2', threshold: 50 }
+        ],
+        financialImpact: 'Complete financial paralysis. Cannot protect, actively sabotages, and freezes when money is available. Fear feeds sabotage feeds inaction in a self-reinforcing cycle.'
+      },
+      {
+        name: 'Validation + Spending Lock',
+        beliefs: [
+          { toolKey: 'tool3', subdomainKey: 'subdomain_2_1', threshold: 50 },
+          { toolKey: 'tool3', subdomainKey: 'subdomain_2_3', threshold: 50 },
+          { toolKey: 'tool5', subdomainKey: 'subdomain_2_2', threshold: 45 }
+        ],
+        financialImpact: 'Spending as proof of worth. Money becomes the primary tool for proving value to others, and savings feel like failure. Self-worth is externally validated through financial displays.'
+      },
+      {
+        name: 'Identity + Sabotage Pipeline',
+        beliefs: [
+          { toolKey: 'tool3', subdomainKey: 'subdomain_1_1', threshold: 50 },
+          { toolKey: 'tool3', subdomainKey: 'subdomain_1_3', threshold: 50 },
+          { toolKey: 'tool7', subdomainKey: 'subdomain_2_2', threshold: 50 },
+          { toolKey: 'tool7', subdomainKey: 'subdomain_2_1', threshold: 50 }
+        ],
+        financialImpact: 'Full pipeline from identity to sabotage. Unworthiness creates blindness, blindness enables sabotage, and lack of self-protection removes the safety net. The most comprehensive lock pattern.'
+      }
+    ];
+
+    var locks = [];
+
+    for (var p = 0; p < lockPatterns.length; p++) {
+      var pattern = lockPatterns[p];
+      var allMet = true;
+      var totalScore = 0;
+      var beliefDetails = [];
+
+      for (var b = 0; b < pattern.beliefs.length; b++) {
+        var belief = pattern.beliefs[b];
+        var score = self._getSubdomainScore(summary, belief.toolKey, belief.subdomainKey);
+
+        if (score === null || score < belief.threshold) {
+          allMet = false;
+          break;
+        }
+
+        totalScore += score;
+        var toolShortName = self.TOOL_META[belief.toolKey].shortName;
+        var subdomainLabel = self.GROUNDING_CONFIG[belief.toolKey].subdomains[belief.subdomainKey];
+
+        beliefDetails.push({
+          label: subdomainLabel,
+          score: Math.round(score),
+          tool: toolShortName
+        });
+      }
+
+      if (allMet) {
+        var avgScore = totalScore / pattern.beliefs.length;
+        var strength;
+        if (avgScore > 70) {
+          strength = 'strong';
+        } else if (avgScore < 55) {
+          strength = 'emerging';
+        } else {
+          strength = 'moderate';
+        }
+
+        locks.push({
+          name: pattern.name,
+          beliefs: beliefDetails,
+          financialImpact: pattern.financialImpact,
+          strength: strength,
+          avgScore: Math.round(avgScore),
+          beliefCount: pattern.beliefs.length
+        });
+      }
+    }
+
+    // Sort by strength order (strong first), then by avgScore descending
+    var strengthOrder = { strong: 0, moderate: 1, emerging: 2 };
+    locks.sort(function(a, b) {
+      var strengthDiff = strengthOrder[a.strength] - strengthOrder[b.strength];
+      if (strengthDiff !== 0) return strengthDiff;
+      return b.avgScore - a.avgScore;
+    });
+
+    return locks;
+  },
+
+  /**
+   * Phase 3: Detect gaps between stated beliefs and actual behaviors within
+   * grounding tool subdomains. Each subdomain has 4 aspects: belief, behavior,
+   * feeling, consequence. Gaps > 2.0 indicate internal conflict or autopilot.
+   *
+   * @param {Object} summary - from getStudentSummary()
+   * @returns {Array} - gap objects sorted by magnitude (largest first)
+   */
+  _detectBeliefBehaviorGaps(summary) {
+    var gaps = [];
+    var groundingTools = ['tool3', 'tool5', 'tool7'];
+
+    for (var t = 0; t < groundingTools.length; t++) {
+      var toolKey = groundingTools[t];
+      var tool = summary.tools[toolKey];
+      if (!tool || tool.status !== 'completed' || !tool.data) continue;
+
+      var config = this.GROUNDING_CONFIG[toolKey];
+      var subdomainKeys = Object.keys(config.subdomains);
+
+      for (var s = 0; s < subdomainKeys.length; s++) {
+        var sdKey = subdomainKeys[s];
+        var beliefScore = null;
+        var behaviorScore = null;
+
+        // Method 1: Direct aspectScores object
+        var aspectScores = tool.data.scoring && tool.data.scoring.aspectScores;
+        if (aspectScores) {
+          var bKey = sdKey + '_belief';
+          var behKey = sdKey + '_behavior';
+          var feelKey = sdKey + '_feeling';
+          var consKey = sdKey + '_consequence';
+
+          if (aspectScores[bKey] !== undefined && aspectScores[bKey] !== null) {
+            beliefScore = aspectScores[bKey];
+          }
+
+          // Average the action aspects (behavior, feeling, consequence)
+          var actionScores = [];
+          if (aspectScores[behKey] !== undefined && aspectScores[behKey] !== null) actionScores.push(aspectScores[behKey]);
+          if (aspectScores[feelKey] !== undefined && aspectScores[feelKey] !== null) actionScores.push(aspectScores[feelKey]);
+          if (aspectScores[consKey] !== undefined && aspectScores[consKey] !== null) actionScores.push(aspectScores[consKey]);
+
+          if (actionScores.length > 0) {
+            var actionTotal = 0;
+            for (var a = 0; a < actionScores.length; a++) actionTotal += actionScores[a];
+            behaviorScore = actionTotal / actionScores.length;
+          }
+        }
+
+        // Method 2: Question-level data array (fallback)
+        if (beliefScore === null && tool.data.formData && tool.data.formData.questions) {
+          var questions = tool.data.formData.questions;
+          var subdomainQs = [];
+          for (var q = 0; q < questions.length; q++) {
+            if (questions[q].subdomain === sdKey) {
+              subdomainQs.push(questions[q]);
+            }
+          }
+
+          if (subdomainQs.length >= 4) {
+            var actionQScores = [];
+            for (var sq = 0; sq < subdomainQs.length; sq++) {
+              if (subdomainQs[sq].aspect === 'belief') {
+                beliefScore = subdomainQs[sq].score;
+              } else {
+                if (subdomainQs[sq].score !== undefined && subdomainQs[sq].score !== null) {
+                  actionQScores.push(subdomainQs[sq].score);
+                }
+              }
+            }
+
+            if (actionQScores.length > 0) {
+              var aqTotal = 0;
+              for (var aq = 0; aq < actionQScores.length; aq++) aqTotal += actionQScores[aq];
+              behaviorScore = aqTotal / actionQScores.length;
+            }
+          }
+        }
+
+        // Calculate gap if both scores available
+        if (beliefScore !== null && behaviorScore !== null) {
+          var rawGap = beliefScore - behaviorScore;
+          var absGap = Math.abs(rawGap);
+
+          if (absGap > 2.0) {
+            var direction, interpretation;
+            if (rawGap > 0) {
+              direction = 'Belief exceeds action';
+              interpretation = 'You believe this strongly but your behavior does not fully reflect it. This suggests internal conflict — part of you resists what another part believes.';
+            } else {
+              direction = 'Action exceeds belief';
+              interpretation = 'You act on this more than you consciously believe it. This pattern often runs on autopilot without your awareness.';
+            }
+
+            gaps.push({
+              subdomain: sdKey,
+              tool: this.TOOL_META[toolKey].shortName,
+              toolKey: toolKey,
+              label: config.subdomains[sdKey],
+              beliefScore: Math.round(beliefScore * 10) / 10,
+              behaviorScore: Math.round(behaviorScore * 10) / 10,
+              gap: Math.round(absGap * 10) / 10,
+              direction: direction,
+              interpretation: interpretation
+            });
+          }
+        }
+      }
+    }
+
+    // Sort by gap magnitude (largest first)
+    gaps.sort(function(a, b) {
+      return b.gap - a.gap;
+    });
+
+    return gaps;
+  },
+
   // ============================================================
   // TOOL 1 CARD: Trauma Strategy Overview
   // ============================================================
