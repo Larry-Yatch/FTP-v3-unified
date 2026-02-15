@@ -72,6 +72,113 @@ const CollectiveResults = {
     }
   },
 
+  // Subdomain-specific belief-behavior gap interpretations
+  // Each subdomain gets two interpretations depending on gap direction
+  GAP_INTERPRETATIONS: {
+    tool3: {
+      // Domain 1: False Self-View (FSV) — Active Disconnection from Self
+      subdomain_1_1: {
+        // "I am Not Worthy of Financial Freedom"
+        beliefExceedsAction: 'You hold a deep belief that you are not worthy of financial freedom, but your behavior has not fully surrendered to that story. Part of you is still reaching for something better — that resistance to your own unworthiness narrative is worth noticing.',
+        actionExceedsBelief: 'You are living as though you do not deserve financial freedom more than you consciously believe it. You may tell yourself you want abundance, but your choices — scattered money, manufactured crises, avoided opportunities — are quietly proving a story of inadequacy you have not yet named.'
+      },
+      subdomain_1_2: {
+        // "I will Never Have Enough"
+        beliefExceedsAction: 'You strongly believe you will never have enough, but your actual financial behavior does not fully match that scarcity mindset. The gap suggests part of you knows better — your actions are more capable than your fear allows you to see.',
+        actionExceedsBelief: 'Your financial behavior is creating scarcity that you do not consciously intend. You may not think you believe in "never enough," but your pattern of selective financial blindness — attending to spending when scared, ignoring it when comfortable — is manufacturing the very shortage you fear.'
+      },
+      subdomain_1_3: {
+        // "I Cannot See My Financial Reality"
+        beliefExceedsAction: 'You believe you cannot see your financial reality clearly, yet your behavior shows more clarity than you give yourself credit for. This gap suggests your self-image as financially confused is more rigid than your actual capabilities.',
+        actionExceedsBelief: 'You are avoiding your financial reality more than you realize. You may think you have a handle on things, but the pattern of ignoring statements, avoiding account balances, and maintaining a fog around your money is running deeper than your conscious awareness.'
+      },
+      // Domain 2: External Validation (ExVal) — Passive Disconnection from Self
+      subdomain_2_1: {
+        // "Money Shows My Worth"
+        beliefExceedsAction: 'You deeply believe your financial status reflects your personal worth, but your behavior has not fully committed to that equation. Something in you resists reducing yourself to a number — that resistance is a sign of deeper self-knowledge.',
+        actionExceedsBelief: 'You are letting money define your worth more than you consciously realize. You may say money is not everything, but your emotional reactions to financial setbacks and your drive for financial achievement reveal a deeper equation: net worth equals self-worth.'
+      },
+      subdomain_2_2: {
+        // "What Will They Think?"
+        beliefExceedsAction: "You deeply believe that others' opinions determine your financial worth, but your behavior has not fully surrendered to that performance. Part of you resists curating your image — pay attention to what holds you back, because that resistance is healthy.",
+        actionExceedsBelief: 'You are managing your financial image more than you realize. You may not think you care what others think, but your spending patterns tell a different story — purchases made for perception, lifestyle choices driven by audience. This facade is running on autopilot.'
+      },
+      subdomain_2_3: {
+        // "I Need to Prove I am Successful"
+        beliefExceedsAction: 'You carry a strong need to prove your success financially, but your behavior has not fully committed to the performance. The gap suggests you are exhausted by the proving — part of you is ready to stop performing and start living.',
+        actionExceedsBelief: 'You are spending energy proving your financial success more than you consciously intend. The lifestyle inflation, the status purchases, the curated image — these are costing you more than money. The performance is running itself, even when you think you have stopped caring.'
+      }
+    },
+    tool5: {
+      // Domain 1: Issues Showing Love (ISL) — Active Disconnection from Others
+      subdomain_1_1: {
+        // "I Must Give to Be Loved"
+        beliefExceedsAction: 'You hold a deep conviction that love requires financial sacrifice, but your behavior has not fully followed that belief. Something in you resists the compulsive giving — that internal brake is worth understanding, not overriding.',
+        actionExceedsBelief: 'You are giving, paying, and financially sacrificing for others more than you consciously believe you need to. The martyrdom pattern is operating below your awareness — you may deny being a people-pleaser while your bank account tells the truth.'
+      },
+      subdomain_1_2: {
+        // "Their Needs Are Greater Than My Needs"
+        beliefExceedsAction: "You believe other people's financial needs outweigh your own, but your behavior has not fully surrendered to that hierarchy. Part of you still protects your own resources — that self-preservation instinct is not selfish, it is necessary.",
+        actionExceedsBelief: "You are prioritizing others' financial needs over your own more than you realize. You may think you maintain healthy boundaries, but the pattern of always paying, always covering, always being the financial safety net is eroding your own stability without your conscious permission."
+      },
+      subdomain_1_3: {
+        // "I Cannot Accept Help"
+        beliefExceedsAction: 'You strongly believe you should not accept financial help, but your behavior shows more flexibility than your belief allows. You have accepted help in ways you may not recognize as help — this capacity to receive is a strength, not a weakness.',
+        actionExceedsBelief: 'You are refusing financial support and assistance more than you consciously intend. You may think you are just independent, but the reflexive rejection of help — even when you need it — is isolating you financially and ensuring you carry burdens alone that were never meant for one person.'
+      },
+      // Domain 2: Issues Receiving Love (IRL) — Passive Disconnection from Others
+      subdomain_2_1: {
+        // "I Cannot Make It Alone"
+        beliefExceedsAction: 'You believe you cannot handle your finances independently, but your behavior shows more capability than you give yourself credit for. The gap suggests learned helplessness — you have more financial competence than your fear-based identity allows you to access.',
+        actionExceedsBelief: 'You are relying on others financially more than you consciously believe you need to. You may tell yourself you are just accepting help temporarily, but the pattern of dependency has become structural — others make decisions, pay bills, and manage money that you are capable of handling yourself.'
+      },
+      subdomain_2_2: {
+        // "I Owe Them Everything"
+        beliefExceedsAction: 'You carry a heavy sense of financial obligation to others, but your behavior has not fully surrendered to that debt. Part of you recognizes that love and obligation are different currencies — the gap between what you feel you owe and how you act reveals a quiet boundary you have not yet named.',
+        actionExceedsBelief: 'You are behaving as though you owe others financially more than you consciously believe. The pattern of accepting strings-attached support, staying in situations because of felt obligation, and being unable to receive freely is running deeper than you realize. Every transaction is creating invisible debt.'
+      },
+      subdomain_2_3: {
+        // "I Will Always Be in Debt"
+        beliefExceedsAction: 'You believe you will always carry financial debt to others, but your behavior shows more independence than that belief predicts. The gap suggests your identity as someone in debt is more stubborn than your actual financial relationships — you may be freer than you feel.',
+        actionExceedsBelief: 'You are living in a cycle of financial indebtedness — to people, institutions, and relationships — more than you consciously intend. You may not see yourself as chronically indebted, but the pattern of borrowing, owing, and feeling trapped by financial obligation is shaping your life more than you realize.'
+      }
+    },
+    tool7: {
+      // Domain 1: Control Leading to Isolation (CLI) — Active Disconnection from All That Is Greater
+      subdomain_1_1: {
+        // "I Undercharge and Give Away"
+        beliefExceedsAction: 'You believe you undercharge and give your work away, and you see the pattern — but your behavior has not fully corrected it. The awareness is there; what is missing is the felt permission to charge what you are worth without guilt.',
+        actionExceedsBelief: 'You are undercharging and giving away your financial value more than you realize. You may think your pricing is reasonable, but the pattern of discounting, doing free work, and letting invoices slide is systematically depriving you of income you have earned.'
+      },
+      subdomain_1_2: {
+        // "I Have Money But Will Not Use It"
+        beliefExceedsAction: 'You recognize that you hoard money and will not use it, but your behavior shows moments of spending that your scarcity identity discounts. The gap suggests you are more capable of trusting abundance than your fear-based belief system admits.',
+        actionExceedsBelief: 'You are hoarding and restricting your use of money more than you consciously intend. You may think you are just being careful, but living in artificial scarcity while having resources is a control strategy that keeps you suffering unnecessarily. The money exists to be used — not just guarded.'
+      },
+      subdomain_1_3: {
+        // "Only I Can Do It Right"
+        beliefExceedsAction: 'You strongly believe no one else can handle money as well as you, but your behavior shows some capacity to delegate or trust others. That willingness to occasionally let go — even reluctantly — is the edge of growth worth expanding.',
+        actionExceedsBelief: 'You are controlling financial decisions and refusing to delegate more than you consciously realize. You may think you are just thorough, but the refusal to hire help, share responsibility, or trust others with financial tasks is isolating you and capping your capacity.'
+      },
+      // Domain 2: Fear Leading to Isolation (FLI) — Passive Disconnection from All That Is Greater
+      subdomain_2_1: {
+        // "I Do Not Protect Myself"
+        beliefExceedsAction: 'You recognize that you fail to protect yourself financially, and that awareness has started to change your behavior. The gap between knowing and doing is narrowing — you are beginning to act on what you see, even if it feels uncomfortable.',
+        actionExceedsBelief: 'You are leaving yourself financially unprotected more than you realize. You may not think of yourself as reckless, but the pattern of entering deals without contracts, ignoring red flags, and not securing your interests is systematic. The vulnerability you are creating is not bad luck — it is a pattern.'
+      },
+      subdomain_2_2: {
+        // "I Sabotage Success"
+        beliefExceedsAction: 'You recognize a pattern of undermining your own financial success, but your recent behavior has not fully acted on it. This awareness is significant — the gap suggests you can see the pattern, which is the first step toward interrupting it.',
+        actionExceedsBelief: 'You are undermining your own financial success more than you realize. You may think you are just unlucky or that things keep going wrong, but the pattern of stopping just before breakthrough is systematic and unconscious.'
+      },
+      subdomain_2_3: {
+        // "I Am Destined to Be Betrayed"
+        beliefExceedsAction: 'You carry a belief that financial betrayal is inevitable, but your behavior shows more trust than that belief would predict. The gap suggests your lived experience has not been as universally hostile as your fear insists — some relationships have held.',
+        actionExceedsBelief: 'You are setting yourself up for financial betrayal more than you consciously realize. You may think others are simply untrustworthy, but the pattern of choosing the wrong partners, ignoring clear warnings, and not protecting your interests is creating the very betrayals you fear.'
+      }
+    }
+  },
+
   DOMAIN_LABELS: {
     moneyFlow: 'Money Flow',
     obligations: 'Obligations',
@@ -917,7 +1024,10 @@ const CollectiveResults = {
             '<td>' + gap.behaviorScore + '</td>' +
             '<td style="color: #f59e0b; font-weight: 600;">' + gap.gap + '</td>' +
             '<td>' + gap.direction + '</td>' +
-          '</tr>';
+          '</tr>' +
+          '<tr><td colspan="6" style="padding: 4px 8px 12px 8px; font-size: 0.8rem; color: #b0a8c0; font-style: italic; border-bottom: 1px solid rgba(173,145,104,0.15);">' +
+            gap.interpretation +
+          '</td></tr>';
         }
 
         html += '</table>';
@@ -1580,12 +1690,16 @@ const CollectiveResults = {
 
           if (absGap > 2.0) {
             var direction, interpretation;
+            // Look up subdomain-specific interpretation
+            var interpConfig = this.GAP_INTERPRETATIONS[toolKey] && this.GAP_INTERPRETATIONS[toolKey][sdKey];
             if (rawGap > 0) {
               direction = 'Belief exceeds action';
-              interpretation = 'You believe this strongly but your behavior does not fully reflect it. This suggests internal conflict — part of you resists what another part believes.';
+              interpretation = (interpConfig && interpConfig.beliefExceedsAction) ||
+                'You believe this strongly but your behavior does not fully reflect it. This suggests internal conflict — part of you resists what another part believes.';
             } else {
               direction = 'Action exceeds belief';
-              interpretation = 'You act on this more than you consciously believe it. This pattern often runs on autopilot without your awareness.';
+              interpretation = (interpConfig && interpConfig.actionExceedsBelief) ||
+                'You act on this more than you consciously believe it. This pattern often runs on autopilot without your awareness.';
             }
 
             gaps.push({
