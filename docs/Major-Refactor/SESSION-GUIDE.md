@@ -1,15 +1,15 @@
 # SESSION GUIDE - Start Here
 
 > Last updated: Feb 14, 2026
-> Status: **Tier 1 in progress — Phase 1 complete**
+> Status: **Tier 1 in progress — Phases 1-2 complete**
 
 ## Current State
 
-Phase 1 (Data Layer Caching) complete and verified. 12 read-only sheet calls now served from SpreadsheetCache across 5 core files. 14 invalidation calls added after all write operations. Also fixed a pre-existing temporal dead zone bug in `ResponseManager.submitEditedResponse()`.
+Phase 2 (HTML Payload Reduction) complete. Added `includeHistoryManager` option to `FormUtils.buildStandardPage()`. Investigation revealed the original plan overestimated savings: report pages (tools 1-7) already did not include history-manager, and all other includes are needed for back button/refresh recovery. The option provides future-proofing for new views (e.g., Collective Results Dashboard).
 
 ## What To Work On Next
 
-**Tier 1, Phase 2: HTML Payload Reduction** — Add `includeHistoryManager` option to `FormUtils.buildStandardPage()`. Skip the 40KB `history-manager.html` include for report pages and single-page tools. See `tier-1-plan.md` Phase 2.
+**Tier 1, Phase 3: Logger Cleanup** — Create `shared/LogUtils.js` utility with debug/info/error levels. Replace 265+ `Logger.log()` calls with `LogUtils.debug()` (suppressible in production). See `tier-1-plan.md` Phase 3.
 
 ## Quick Reference
 
@@ -38,10 +38,16 @@ Phase 1 (Data Layer Caching) complete and verified. 12 read-only sheet calls now
 - Fixed TDZ bug: renamed `const data` to `const sheetData` in `submitEditedResponse()` to avoid shadowing the `data` parameter
 - Verified: login, dashboard, upstream data loading, tool submission, completion status, locked tool display
 
+### Phase 2: HTML Payload Reduction (Feb 14, 2026)
+- Added `includeHistoryManager` option (default: `true`) to `FormUtils.buildStandardPage()`
+- When `false`, skips the 40KB `shared/history-manager.html` include and its init script
+- Finding: only Tool8Report.js included history-manager unnecessarily among reports; all tool pages need it
+- File modified: FormUtils.js
+
 ## Phase Tracking
 
 - [x] Tier 1, Phase 1: Data layer caching
-- [ ] Tier 1, Phase 2: HTML payload reduction (history-manager conditional loading)
+- [x] Tier 1, Phase 2: HTML payload reduction (history-manager conditional loading)
 - [ ] Tier 1, Phase 3: Logger cleanup (LogUtils utility)
 - [ ] Tier 1, Phase 4: Shared utility extraction (FormatUtils)
 - [ ] Tier 1, Phase 5: Code.js PDF wrapper consolidation

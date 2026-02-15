@@ -370,7 +370,8 @@ const FormUtils = {
       baseUrl,
       pageContent,
       isFinalPage = false,
-      customValidation = null  // Optional: name of validation function for final page
+      customValidation = null,  // Optional: name of validation function for final page
+      includeHistoryManager = true  // Set false for report/single-page views that do not need 40KB history script
     } = options;
 
     const formId = `${toolId}Page${page}Form`;
@@ -398,7 +399,7 @@ const FormUtils = {
         </style>
         <?!= include('shared/styles') ?>
         <?!= include('shared/loading-animation') ?>
-        <?!= include('shared/history-manager') ?>
+        ${includeHistoryManager ? "<?!= include('shared/history-manager') ?>" : ''}
       </head>
       <body>
         <div class="container">
@@ -423,11 +424,11 @@ const FormUtils = {
 
         <script>
           document.body.classList.add('loaded');
-
+          ${includeHistoryManager ? `
           // Initialize history manager for browser back button support
           if (typeof initHistoryManager === 'function') {
             initHistoryManager('${clientId}', '${ScriptApp.getService().getUrl()}');
-          }
+          }` : ''}
         </script>
       </body>
       </html>
