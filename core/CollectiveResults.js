@@ -80,6 +80,52 @@ const CollectiveResults = {
     protection: 'Protection'
   },
 
+  // Integration profile archetypes — triggered by Tool 1 winner + grounding tool subdomain scores
+  INTEGRATION_PROFILES: {
+    guardian: {
+      name: 'The Guardian',
+      icon: '🛡️',
+      triggers: { tool1Winner: 'Control', groundingKey: 'tool7', subdomainKey: 'subdomain_1_3', threshold: 50 },
+      description: 'You take full responsibility for your financial world. That strength becomes a wall when it blocks you from accepting help or delegating financial decisions.',
+      financialSignature: 'Low obligation spending, high self-reliance, growth may stagnate from isolation.'
+    },
+    provider: {
+      name: 'The Provider',
+      icon: '❤️',
+      triggers: { tool1Winner: 'Showing', groundingKey: 'tool5', subdomainKey: 'subdomain_1_1', threshold: 50 },
+      description: 'You pour your financial energy into others. Your budgets often prioritize everyone else before they prioritize you.',
+      financialSignature: 'High essentials allocation, low personal savings, freedom category underfunded.'
+    },
+    achiever: {
+      name: 'The Achiever',
+      icon: '🏆',
+      triggers: { tool1Winner: 'FSV', groundingKey: 'tool3', subdomainKey: 'subdomain_2_1', threshold: 50 },
+      description: 'You build wealth to prove something. Your financial engine runs hot, but the fuel is shame rather than strategy.',
+      financialSignature: 'Growth-focused allocation, but motivation is compensatory rather than strategic.'
+    },
+    protector: {
+      name: 'The Protector',
+      icon: '🔒',
+      triggers: { tool1Winner: 'Fear', groundingKey: 'tool7', subdomainKey: 'subdomain_2_2', threshold: 50 },
+      description: 'You know the dangers but cannot bring yourself to build real protection. The fear that should motivate you has become the thing that freezes you.',
+      financialSignature: 'Protection domain underserved, growth paralyzed, sabotage risk elevated.'
+    },
+    connector: {
+      name: 'The Connector',
+      icon: '🔗',
+      triggers: { tool1Winner: 'Receiving', groundingKey: 'tool5', subdomainKey: 'subdomain_2_2', threshold: 50 },
+      description: 'You experience money as a relationship currency. Financial obligations feel like emotional obligations, and both keep growing.',
+      financialSignature: 'Obligation spending elevated, debt patterns, essentials include perceived debts to others.'
+    },
+    seeker: {
+      name: 'The Seeker',
+      icon: '🔍',
+      triggers: null,
+      description: 'Your patterns do not point to a single dominant strategy. You are navigating multiple influences at once, which means broad awareness matters more than any single fix.',
+      financialSignature: 'Mixed financial indicators, no single pattern dominates.'
+    }
+  },
+
   // Tools with dedicated report pages vs calculator tools
   REPORT_TOOLS: ['tool1', 'tool2', 'tool3', 'tool5', 'tool7', 'tool8'],
   CALCULATOR_TOOLS: ['tool4', 'tool6'],
@@ -345,6 +391,99 @@ const CollectiveResults = {
         </div>
       </div>
     `;
+  },
+
+  // ============================================================
+  // INTEGRATION ENGINES (Section 3 Data Detection)
+  // ============================================================
+
+  /**
+   * Phase 1: Detect the student's integration profile based on Tool 1 winner
+   * and corresponding grounding tool subdomain scores.
+   *
+   * @param {Object} summary - from getStudentSummary()
+   * @returns {Object|null} - { key, name, icon, description, financialSignature, confidence, sources }
+   */
+  _detectProfile(summary) {
+    var tool1 = summary.tools.tool1;
+    if (!tool1 || tool1.status !== 'completed' || !tool1.data) return null;
+
+    var winner = tool1.data.winner;
+    if (!winner) return null;
+
+    // Check each profile trigger condition against Tool 1 winner
+    var profileKeys = ['guardian', 'provider', 'achiever', 'protector', 'connector'];
+
+    for (var i = 0; i < profileKeys.length; i++) {
+      var key = profileKeys[i];
+      var profile = this.INTEGRATION_PROFILES[key];
+      var triggers = profile.triggers;
+
+      // Does Tool 1 winner match this profile?
+      if (triggers.tool1Winner !== winner) continue;
+
+      // Winner matches — check if grounding tool has data
+      var groundingTool = summary.tools[triggers.groundingKey];
+      if (!groundingTool || groundingTool.status !== 'completed' || !groundingTool.data) {
+        // Winner matches but grounding tool not completed — partial confidence
+        return {
+          key: key,
+          name: profile.name,
+          icon: profile.icon,
+          description: profile.description,
+          financialSignature: profile.financialSignature,
+          confidence: 'partial',
+          sources: ['Tool 1: ' + this.STRATEGY_LABELS[winner]]
+        };
+      }
+
+      // Grounding tool completed — check subdomain score against threshold
+      var scoring = groundingTool.data.scoring;
+      var subdomainQuotients = scoring && scoring.subdomainQuotients;
+      var subdomainScore = subdomainQuotients ? subdomainQuotients[triggers.subdomainKey] : null;
+
+      if (subdomainScore !== null && subdomainScore !== undefined && subdomainScore >= triggers.threshold) {
+        // Full match — high confidence
+        var groundingName = this.TOOL_META[triggers.groundingKey].shortName;
+        var subdomainLabel = this.GROUNDING_CONFIG[triggers.groundingKey].subdomains[triggers.subdomainKey];
+
+        return {
+          key: key,
+          name: profile.name,
+          icon: profile.icon,
+          description: profile.description,
+          financialSignature: profile.financialSignature,
+          confidence: 'high',
+          sources: [
+            'Tool 1: ' + this.STRATEGY_LABELS[winner],
+            groundingName + ': "' + subdomainLabel + '" (' + Math.round(subdomainScore) + '/100)'
+          ]
+        };
+      }
+
+      // Winner matches, grounding completed, but subdomain below threshold — partial
+      return {
+        key: key,
+        name: profile.name,
+        icon: profile.icon,
+        description: profile.description,
+        financialSignature: profile.financialSignature,
+        confidence: 'partial',
+        sources: ['Tool 1: ' + this.STRATEGY_LABELS[winner]]
+      };
+    }
+
+    // No specific profile matched — ExVal winner or unmatched pattern
+    var seekerProfile = this.INTEGRATION_PROFILES.seeker;
+    return {
+      key: 'seeker',
+      name: seekerProfile.name,
+      icon: seekerProfile.icon,
+      description: seekerProfile.description,
+      financialSignature: seekerProfile.financialSignature,
+      confidence: 'default',
+      sources: ['Tool 1: ' + this.STRATEGY_LABELS[winner] + ' (no specific profile match)']
+    };
   },
 
   // ============================================================
