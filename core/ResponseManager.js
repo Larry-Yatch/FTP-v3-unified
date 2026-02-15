@@ -361,17 +361,17 @@ const ResponseManager = {
 
       // CRITICAL: Delete the EDIT_DRAFT (not just mark as not latest)
       // This prevents the edit loop where user keeps seeing "draft in progress"
-      const data = sheet.getDataRange().getValues();
-      const headers = data[0];
+      const sheetData = sheet.getDataRange().getValues();
+      const headers = sheetData[0];
       const clientIdCol = headers.indexOf('Client_ID');
       const toolIdCol = headers.indexOf('Tool_ID');
       const statusCol = headers.indexOf('Status');
 
       // Delete EDIT_DRAFT row
-      for (let i = data.length - 1; i >= 1; i--) {
-        if (data[i][clientIdCol] === clientId &&
-            data[i][toolIdCol] === toolId &&
-            data[i][statusCol] === 'EDIT_DRAFT') {
+      for (let i = sheetData.length - 1; i >= 1; i--) {
+        if (sheetData[i][clientIdCol] === clientId &&
+            sheetData[i][toolIdCol] === toolId &&
+            sheetData[i][statusCol] === 'EDIT_DRAFT') {
           Logger.log(`Deleting EDIT_DRAFT row at index ${i}`);
           sheet.deleteRow(i + 1);
           break; // Only delete the first EDIT_DRAFT found

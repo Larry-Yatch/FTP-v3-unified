@@ -727,9 +727,12 @@ const Router = {
       <body>
         <div class="container">
           <div class="card">
-            <div class="tool-header">
-              <h1>Welcome to TruPath Financial</h1>
-              <p class="muted">Your personalized financial journey dashboard</p>
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;">
+              <div class="tool-header" style="flex: 1;">
+                <h1>Welcome to TruPath Financial</h1>
+                <p class="muted">Your personalized financial journey dashboard</p>
+              </div>
+              <button class="btn-secondary" onclick="logout()" style="flex-shrink: 0; font-size: 0.85rem; padding: 6px 14px;">Logout</button>
             </div>
             <div class="hr"></div>
             <div class="tool-meta">
@@ -776,11 +779,6 @@ const Router = {
             ${this._buildTool8Card(clientId, tool8Latest, tool8Completed, tool8Access)}
           </div>
 
-          <div class="text-center mt-20">
-            <button class="btn-secondary" onclick="logout()">
-              Logout
-            </button>
-          </div>
         </div>
 
         <script>
