@@ -55,6 +55,7 @@ const LogUtils = {
   },
 
   debug(msg) {
+    if (!this._initialized) this.init();
     if (this.DEBUG) console.log(msg);
   },
 
