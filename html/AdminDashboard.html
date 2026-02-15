@@ -1834,26 +1834,39 @@
         .getToolReportHTML(currentReportStudent.clientId, toolId);
     }
 
-    // View integration analysis (coach view — full page)
+    // View integration analysis (coach view — rendered in modal)
     function viewIntegrationAnalysis() {
       if (!currentReportStudent) {
         showAlert('No student selected', 'error');
         return;
       }
 
+      // Show modal with loading state
+      const modal = document.getElementById('reportModal');
+      const body = document.getElementById('reportModalBody');
+      const title = document.getElementById('reportModalTitle');
+      const subtitle = document.getElementById('reportModalSubtitle');
+      const pdfButton = document.getElementById('reportPdfButton');
+
+      title.style.display = 'none';
+      subtitle.style.display = 'none';
+      if (pdfButton) pdfButton.innerHTML = '';
+      body.innerHTML = '<div class="loading"><div class="spinner"></div><p>Generating integration analysis...</p></div>';
+      modal.classList.add('show');
+
       google.script.run
         .withSuccessHandler(function(result) {
           if (result && result.success && result.html) {
-            document.open();
-            document.write(result.html);
-            document.close();
-            window.scrollTo(0, 0);
+            // Render in iframe within modal to preserve coach view styles
+            body.innerHTML = '<iframe srcdoc="" style="width:100%;height:70vh;border:none;border-radius:8px;"></iframe>';
+            var iframe = body.querySelector('iframe');
+            iframe.srcdoc = result.html;
           } else {
-            showAlert('Error: ' + (result ? result.error : 'Unknown error'), 'error');
+            body.innerHTML = '<div class="error">' + (result ? result.error : 'Unknown error') + '</div>';
           }
         })
         .withFailureHandler(function(err) {
-          showAlert('Error loading analysis: ' + err.message, 'error');
+          body.innerHTML = '<div class="error">Error loading analysis: ' + err.message + '</div>';
         })
         .getIntegrationAnalysis(currentReportStudent.clientId);
     }
