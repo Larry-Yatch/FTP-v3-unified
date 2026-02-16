@@ -708,16 +708,99 @@ const CollectiveResults = {
       html += this._renderBeliefBehaviorGaps(engines.bbGaps, isCoach);
     }
 
-    // Phase 9: Download Integration Report button
-    var reportSections = 0;
-    var reportTotal = 5;
-    if (engines.profile) reportSections++;
-    if (engines.warnings && engines.warnings.length > 0) reportSections++;
-    if (engines.awarenessGap && engines.awarenessGap.severity !== 'normal') reportSections++;
-    if (engines.locks && engines.locks.length > 0) reportSections++;
-    if (engines.bbGaps && engines.bbGaps.length > 0) reportSections++;
+    // Phase 9: Download Integration Report button with section breakdown
+    var sectionStatus = [];
 
+    // 1. Integration Profile
+    sectionStatus.push({
+      name: 'Integration Profile',
+      available: !!engines.profile,
+      hint: engines.profile ? '' : 'Complete Tool 1 (Core Trauma Assessment)'
+    });
+
+    // 2. Cross-Tool Warnings (hasWarnings already defined above)
+    var warningHint = '';
+    if (!hasWarnings) {
+      if (!engines.profile) {
+        warningHint = 'Complete Tool 1 first';
+      } else {
+        var hasAnyGrounding = (summary.tools.tool3 && summary.tools.tool3.status === 'completed') ||
+                              (summary.tools.tool5 && summary.tools.tool5.status === 'completed') ||
+                              (summary.tools.tool7 && summary.tools.tool7.status === 'completed');
+        if (!hasAnyGrounding) {
+          warningHint = 'Complete a grounding tool (Tool 3, 5, or 7)';
+        } else {
+          warningHint = 'No patterns detected in your results';
+        }
+      }
+    }
+    sectionStatus.push({
+      name: 'Cross-Tool Warnings',
+      available: hasWarnings,
+      hint: warningHint
+    });
+
+    // 3. Awareness Gap
+    var hasGap = engines.awarenessGap && engines.awarenessGap.severity !== 'normal';
+    var gapHint = '';
+    if (!hasGap) {
+      var hasT2 = summary.tools.tool2 && summary.tools.tool2.status === 'completed';
+      var hasGrounding = (summary.tools.tool3 && summary.tools.tool3.status === 'completed') ||
+                         (summary.tools.tool5 && summary.tools.tool5.status === 'completed') ||
+                         (summary.tools.tool7 && summary.tools.tool7.status === 'completed');
+      if (!hasT2 && !hasGrounding) {
+        gapHint = 'Complete Tool 2 and a grounding tool (Tool 3, 5, or 7)';
+      } else if (!hasT2) {
+        gapHint = 'Complete Tool 2 (Financial Clarity)';
+      } else if (!hasGrounding) {
+        gapHint = 'Complete a grounding tool (Tool 3, 5, or 7)';
+      } else {
+        // Both exist but gap is "normal" — no action needed
+        gapHint = 'No significant gap detected in your results';
+      }
+    }
+    sectionStatus.push({
+      name: 'Awareness Gap',
+      available: hasGap,
+      hint: gapHint
+    });
+
+    // 4. Belief Locks
+    var hasLocks = engines.locks && engines.locks.length > 0;
+    sectionStatus.push({
+      name: 'Belief Locks',
+      available: hasLocks,
+      hint: hasLocks ? '' : 'No patterns detected in your results'
+    });
+
+    // 5. Belief-Behavior Gaps
+    var hasBBGaps = engines.bbGaps && engines.bbGaps.length > 0;
+    sectionStatus.push({
+      name: 'Belief-Behavior Gaps',
+      available: hasBBGaps,
+      hint: hasBBGaps ? '' : 'No patterns detected in your results'
+    });
+
+    var reportSections = sectionStatus.filter(function(s) { return s.available; }).length;
+    var reportTotal = 5;
     var reportReady = reportSections >= 2;
+
+    // Build section breakdown list
+    var breakdownHtml = '<div style="text-align: left; display: inline-block; margin-top: 8px;">';
+    for (var si = 0; si < sectionStatus.length; si++) {
+      var sec = sectionStatus[si];
+      if (sec.available) {
+        breakdownHtml += '<div style="font-size: 0.78rem; color: #4a7c59; margin: 2px 0;">' +
+          '<span style="margin-right: 6px;">&#10003;</span>' + sec.name +
+        '</div>';
+      } else {
+        breakdownHtml += '<div style="font-size: 0.78rem; color: #999; margin: 2px 0;">' +
+          '<span style="margin-right: 6px;">&#9675;</span>' + sec.name +
+          (sec.hint ? ' <span style="font-size: 0.72rem; font-style: italic;">&mdash; ' + sec.hint + '</span>' : '') +
+        '</div>';
+      }
+    }
+    breakdownHtml += '</div>';
 
     if (reportReady) {
       html += '<div style="text-align: center; margin-top: 25px;">' +
@@ -727,6 +810,7 @@ const CollectiveResults = {
         '<p class="muted" style="font-size: 0.8rem; margin-top: 6px;">' +
           reportSections + ' of ' + reportTotal + ' report sections available' +
         '</p>' +
+        breakdownHtml +
         '<p id="integrationReportMsg" class="muted" style="font-size: 0.8rem; margin-top: 4px; min-height: 1.2em;"></p>' +
       '</div>';
     } else {
@@ -737,6 +821,7 @@ const CollectiveResults = {
         '<p class="muted" style="font-size: 0.8rem; margin-top: 6px;">' +
           'Complete more tools to unlock your integration report.' +
         '</p>' +
+        breakdownHtml +
       '</div>';
     }
 
