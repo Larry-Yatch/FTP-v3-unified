@@ -805,6 +805,50 @@ function handleGetIntegrationAnalysisRequest(clientId) {
   }
 }
 
+/**
+ * Get student progress over time page HTML (coach view)
+ * @param {string} clientId - Client ID
+ * @returns {Object} { success, html }
+ */
+function handleGetStudentProgressRequest(clientId) {
+  console.log('[STUDENT_PROGRESS] Request received for', clientId);
+
+  if (!isAdminAuthenticated()) {
+    console.log('[STUDENT_PROGRESS] Not authenticated');
+    return { success: false, error: 'Not authenticated' };
+  }
+
+  try {
+    // Get student name for the header
+    var studentName = clientId;
+    try {
+      var studentsSheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.STUDENTS);
+      if (studentsSheet) {
+        var data = studentsSheet.getDataRange().getValues();
+        var headers = data[0];
+        var clientIdCol = headers.indexOf('Client_ID');
+        var nameCol = headers.indexOf('Name');
+        if (clientIdCol >= 0 && nameCol >= 0) {
+          for (var i = 1; i < data.length; i++) {
+            if (data[i][clientIdCol] === clientId) {
+              studentName = data[i][nameCol] || clientId;
+              break;
+            }
+          }
+        }
+      }
+    } catch (e) {
+      // Non-fatal: fall back to clientId as name
+    }
+
+    var pageOutput = ProgressPage.render(clientId, { isCoach: true, studentName: studentName });
+    return { success: true, html: pageOutput.getContent() };
+  } catch (error) {
+    console.error('[STUDENT_PROGRESS] Error:', error);
+    return { success: false, error: error.toString() };
+  }
+}
+
 // ========================================
 // ANALYTICS FUNCTIONS
 // ========================================

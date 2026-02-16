@@ -45,7 +45,7 @@ const Router = {
    * @private
    */
   _isSystemRoute(route) {
-    const systemRoutes = ['login', 'dashboard', 'admin', 'admin-login', 'admin-dashboard', 'logout', 'tool1_report', 'tool2_report', 'tool3_report', 'tool5_report', 'tool7_report', 'tool8_report', 'results_summary'];
+    const systemRoutes = ['login', 'dashboard', 'admin', 'admin-login', 'admin-dashboard', 'logout', 'tool1_report', 'tool2_report', 'tool3_report', 'tool5_report', 'tool7_report', 'tool8_report', 'results_summary', 'progress'];
     return systemRoutes.includes(route);
   },
 
@@ -91,6 +91,9 @@ const Router = {
 
       case 'results_summary':
         return CollectiveResults.render(params.client || params.clientId);
+
+      case 'progress':
+        return ProgressPage.render(params.client || params.clientId);
 
       default:
         return this._handle404(route);
@@ -754,7 +757,10 @@ const Router = {
               <div style="height: 100%; width: ${completionPct}%; background: var(--gold, #ad9168); border-radius: 3px; transition: width 0.6s ease;"></div>
             </div>
             ${completedToolCount > 0
-              ? '<button class="btn-primary" onclick="viewResultsSummary()" style="margin-top: 8px;">View Collective Results</button>'
+              ? '<div style="display: flex; gap: 10px; margin-top: 8px; flex-wrap: wrap;">'
+                + '<button class="btn-primary" onclick="viewResultsSummary()">View Collective Results</button>'
+                + '<button class="btn-secondary" onclick="viewProgress()" style="border: 1px solid rgba(173, 145, 104, 0.3); background: rgba(173, 145, 104, 0.1); color: #ad9168;">Progress Over Time</button>'
+                + '</div>'
               : '<p class="muted" style="margin-top: 8px; font-size: 0.9rem;">Complete your first tool to see results here.</p>'}
           </div>
 
@@ -795,6 +801,7 @@ const Router = {
             window.startTool1 = startTool1;
             window.logout = logout;
             window.viewResultsSummary = viewResultsSummary;
+            window.viewProgress = viewProgress;
 
             // Helper to save location to sessionStorage for refresh recovery
             function saveLocationForRefresh(view, toolId, page) {
@@ -951,6 +958,26 @@ const Router = {
                   alert('Error loading results summary: ' + error.message);
                 })
                 .getResultsSummaryPage(clientId);
+            }
+
+            // View Progress Over Time - navigate using document.write() pattern
+            function viewProgress() {
+              showLoading('Loading Progress');
+
+              google.script.run
+                .withSuccessHandler(function(progressHtml) {
+                  saveLocationForRefresh('progress', null, null);
+                  document.open();
+                  document.write(progressHtml);
+                  document.close();
+                  window.scrollTo(0, 0);
+                })
+                .withFailureHandler(function(error) {
+                  hideLoading();
+                  console.error('Progress page navigation error:', error);
+                  alert('Error loading progress page: ' + error.message);
+                })
+                .getProgressPage(clientId);
             }
 
             // Logout - navigate to login page
