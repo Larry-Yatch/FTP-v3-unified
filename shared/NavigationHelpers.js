@@ -114,6 +114,31 @@ const NavigationHelpers = {
   },
 
   /**
+   * Get Progress Over Time page HTML for client-side navigation
+   * @param {string} clientId - Client ID
+   * @returns {string} Progress page HTML content
+   */
+  getProgressPage(clientId) {
+    try {
+      registerTools();
+
+      const fakeRequest = {
+        parameter: {
+          route: 'progress',
+          client: clientId
+        }
+      };
+
+      const pageOutput = Router.route(fakeRequest);
+      return pageOutput.getContent();
+
+    } catch (error) {
+      Logger.log(`[NavigationHelpers] Error getting progress page: ${error}`);
+      return this.renderErrorPage('Error Loading Progress', error, clientId, true);
+    }
+  },
+
+  /**
    * Get specific tool page HTML for client-side navigation
    * @param {string} toolId - Tool identifier (e.g., 'tool2')
    * @param {string} clientId - Client ID

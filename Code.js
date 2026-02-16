@@ -836,6 +836,38 @@ function getResultsSummaryPage(clientId) {
 }
 
 /**
+ * Get Progress Over Time page HTML
+ * @param {string} clientId - Client ID
+ * @returns {string} Progress page HTML
+ */
+function getProgressPage(clientId) {
+  return NavigationHelpers.getProgressPage(clientId);
+}
+
+/**
+ * Get student progress page HTML (coach view)
+ * @param {string} clientId - Client ID
+ * @returns {Object} { success, html }
+ */
+function getStudentProgressPage(clientId) {
+  return handleGetStudentProgressRequest(clientId);
+}
+
+/**
+ * Initialize PROGRESS_HISTORY sheet (run once from script editor)
+ */
+function initProgressHistory() {
+  return ProgressHistory.initSheet();
+}
+
+/**
+ * Migrate existing RESPONSES data to PROGRESS_HISTORY (run once from script editor)
+ */
+function migrateProgressHistory() {
+  return ProgressHistory.migrateFromResponses();
+}
+
+/**
  * Get specific tool page HTML (for back/forward navigation without white flash)
  * @param {string} toolId - Tool identifier (e.g., 'tool2')
  * @param {string} clientId - Client ID

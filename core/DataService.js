@@ -50,6 +50,11 @@ const DataService = {
         // Update tools completed count in STUDENTS sheet
         this.updateStudentToolsCompletedCount(clientId);
 
+        // Record in progress history for Progress Over Time feature
+        if (typeof ProgressHistory !== 'undefined') {
+          ProgressHistory.recordCompletion(clientId, toolId, data);
+        }
+
         // Log activity for tool completion
         this.logActivity(clientId, 'tool_completed', {
           toolId: toolId,

@@ -399,6 +399,11 @@ const ResponseManager = {
       // Clean up old versions (keep last 2)
       this._cleanupOldVersions(clientId, toolId, 2);
 
+      // Record in progress history for Progress Over Time feature
+      if (typeof ProgressHistory !== 'undefined') {
+        ProgressHistory.recordCompletion(clientId, toolId, cleanData);
+      }
+
       // Clear PropertiesService draft data (prevents orphaned data)
       if (typeof DraftService !== 'undefined') {
         DraftService.clearDraft(toolId, clientId);
