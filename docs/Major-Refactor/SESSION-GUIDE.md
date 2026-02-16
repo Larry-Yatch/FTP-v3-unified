@@ -1,15 +1,15 @@
 # SESSION GUIDE - Start Here
 
 > Last updated: Feb 15, 2026
-> Status: **Tier 2 COMPLETE — all 4 phases done**
+> Status: **Tier 3 IN PROGRESS — Phases 1-3 complete, Phase 4 next**
 
 ## Current State
 
-Tier 2 (Form Tool Consolidation) is complete. All 4 phases delivered: FormToolBase, GroundingToolBase + Tools 3/5/7 migration, Tool 1 migration, Tool 2 migration. ~1,800 lines of duplicate boilerplate eliminated.
+Tier 3 (Cross-Cutting Standardization) is in progress. Phases 1-3 delivered: shared report CSS (ReportStyles.js), shared report client JS (ReportClientJS.js), and standardized error pages (NavigationHelpers.renderErrorPage). ~850 lines of duplicate code eliminated.
 
 ## What To Work On Next
 
-**Tier 3: Cross-Cutting Standardization** — Standardize error handling, reduce inline CSS, standardize report patterns. Plan needs to be written before execution.
+**Tier 3, Phase 4: Calculator Tool Inline CSS Reduction** — Extract and consolidate inline CSS from Tools 4, 6, 8. Currently ~4,900 lines of CSS across the three calculator tools with ~25-30% duplication. Tool 6 already has extracted CSS (tool6-styles.html); Tools 4 and 8 have CSS embedded in their JS files.
 
 ## Quick Reference
 
@@ -98,6 +98,26 @@ Tier 2 (Form Tool Consolidation) is complete. All 4 phases delivered: FormToolBa
 - Kept getExistingData() override (different merge order: EDIT_DRAFT → Props → DRAFT)
 - Tool2.js: 1,857→1,764 lines (~93 lines removed)
 
+### Tier 3, Phase 1: Report Base CSS Extraction (Feb 15, 2026)
+- Created `shared/ReportStyles.js` — getBaseCSS(), getLoadingCSS(), getLoadingHTML()
+- Contains font imports, resets, body styles, report-container, header, typography, footer, buttons, spinner, media queries
+- Tool1Report.js: replaced inline CSS with `ReportStyles.getBaseCSS() + ReportStyles.getLoadingCSS() + this.getTool1CSS()`
+- Tool2Report.js: same pattern with getTool2CSS()
+- GroundingReport.js: uses getLoadingCSS() and getLoadingHTML() (keeps its own custom nav functions)
+- ~356 lines removed from Tool1Report, ~335 from Tool2Report
+
+### Tier 3, Phase 2: Report Client-Side JS Extraction (Feb 15, 2026)
+- Created `shared/ReportClientJS.js` — getLoadingFunctions(), getNavigationFunction(), getDownloadFunction(pdfFunctionName), getBackToDashboard()
+- Uses GAS-safe `document.write()` navigation pattern
+- Wired into Tool1Report and Tool2Report
+- GroundingReport intentionally excluded (custom multi-level report with special PDF logic)
+
+### Tier 3, Phase 3: Error Page Standardization (Feb 15, 2026)
+- Added `NavigationHelpers.renderErrorPage(title, error, clientId, options)` (+94 lines)
+- Options: `styled` (dark theme), `navigable` (adds dashboard button), `showStack` (shows error stack)
+- Replaced inline error pages in Tool4.js, Tool6.js, Tool8.js, Router.js, GroundingToolBase.js
+- Consistent styled dark-theme error pages across all tools
+
 ## Phase Tracking
 
 - [x] Tier 1, Phase 1: Data layer caching
@@ -112,3 +132,7 @@ Tier 2 (Form Tool Consolidation) is complete. All 4 phases delivered: FormToolBa
 - [x] Tier 2, Phase 3: Tool 1 migration
 - [x] Tier 2, Phase 4: Tool 2 migration
 - **Tier 2 COMPLETE**
+- [x] Tier 3, Phase 1: Report base CSS extraction (ReportStyles.js)
+- [x] Tier 3, Phase 2: Report client-side JS extraction (ReportClientJS.js)
+- [x] Tier 3, Phase 3: Error page standardization (NavigationHelpers.renderErrorPage)
+- [ ] Tier 3, Phase 4: Calculator tool inline CSS reduction (Tools 4, 6, 8)

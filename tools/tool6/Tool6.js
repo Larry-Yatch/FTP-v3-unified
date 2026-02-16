@@ -3422,6 +3422,7 @@ const Tool6 = {
    */
   buildUnifiedPage(clientId, resolvedData, preSurveyData, profile, allocation) {
     const styles = HtmlService.createHtmlOutputFromFile('shared/styles').getContent();
+    const calculatorStyles = HtmlService.createHtmlOutputFromFile('shared/calculator-styles').getContent();
     const tool6Styles = HtmlService.createHtmlOutputFromFile('tools/tool6/tool6-styles').getContent();
     const historyManager = HtmlService.createHtmlOutputFromFile('shared/history-manager').getContent();
     const hasPreSurvey = !!preSurveyData;
@@ -3501,6 +3502,7 @@ const Tool6 = {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Retirement Blueprint Calculator</title>
   ${styles}
+  ${calculatorStyles}
   ${tool6Styles}
   ${historyManager}
 </head>

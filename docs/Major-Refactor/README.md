@@ -54,7 +54,7 @@ Each tier completes and is verified before the next begins. Never refactor and a
 |------|--------|--------|-------|
 | Tier 1 | **COMPLETE** | 6 phases | All 6 phases done. See `tier-1-plan.md` |
 | Tier 2 | **COMPLETE** | 4 phases | FormToolBase + GroundingToolBase + 5 tool migrations |
-| Tier 3 | Planned | TBD | Plan after Tier 2 completes |
+| Tier 3 | **IN PROGRESS** | 3/4 done | Report CSS/JS extraction, error pages done. Inline CSS reduction remaining |
 | Tier 4 | Planned | TBD | Plan after Tier 3 completes |
 
 ### Tier 1 Phase Progress
