@@ -33,6 +33,68 @@ const CollectiveResults = {
     Fear: 'Fear Leading to Isolation'
   },
 
+  // Brief insight text per strategy (extracted from Tool1Templates first paragraphs)
+  STRATEGY_INSIGHTS: {
+    FSV: 'The core strategy behind False Self-View is to use a "mask" to be safe — attaching to untrue, usually negative views of ourselves such as I am not worthy or I am not good enough.',
+    ExVal: 'The core strategy behind External Validation is the need to be accepted, valued, or recognized to feel safe — giving up ourselves to be something we think others value.',
+    Showing: 'The core strategy behind Issues Showing Love is to suffer or sacrifice when showing love or care for another — feeling like everyone deserves to be happy except us.',
+    Receiving: 'The core strategy behind Issues Receiving Love is emotional disconnection — avoiding our emotions or emotional people because we believe love will cause pain.',
+    Control: 'The core strategy behind Control is that we must maintain control of our environment to stay safe — the more we control, the more fear reinforces the need for control.',
+    Fear: 'The core strategy behind Fear Leading to Isolation is the sense that we control nothing and are never safe — defaulting to worst-case scenarios and inaction.'
+  },
+
+  // Priority order for incomplete tool cards — tools that unlock the most integration value first
+  TOOL_PRIORITY: [
+    {
+      toolKey: 'tool1',
+      priority: 1,
+      unlocks: 'Your Integration Profile + all pattern warnings',
+      cta: 'This is the foundation — everything else builds on it.'
+    },
+    {
+      toolKey: 'tool3',
+      priority: 2,
+      unlocks: 'Identity beliefs, Pipeline A + B, belief locks',
+      cta: 'See how your identity beliefs drive your financial decisions.'
+    },
+    {
+      toolKey: 'tool2',
+      priority: 3,
+      unlocks: 'Awareness Gap calculation + financial stress analysis',
+      cta: 'Find out if you are seeing the full picture of your financial stress.'
+    },
+    {
+      toolKey: 'tool5',
+      priority: 4,
+      unlocks: 'Caretaking patterns, Pipeline B, belief locks',
+      cta: 'Discover how your relationships shape your spending.'
+    },
+    {
+      toolKey: 'tool7',
+      priority: 5,
+      unlocks: 'Control patterns, Pipeline A, belief locks',
+      cta: 'Understand the security behaviors driving your financial choices.'
+    },
+    {
+      toolKey: 'tool4',
+      priority: 6,
+      unlocks: 'Budget allocation data for GPT report',
+      cta: 'Map your ideal spending across the four financial categories.'
+    },
+    {
+      toolKey: 'tool6',
+      priority: 7,
+      unlocks: 'Retirement vehicle analysis for GPT report',
+      cta: 'Build your long-term financial blueprint.'
+    },
+    {
+      toolKey: 'tool8',
+      priority: 8,
+      unlocks: 'Investment planning data for GPT report',
+      cta: 'Define your investment strategy and risk tolerance.'
+    }
+  ],
+
   GROUNDING_CONFIG: {
     tool3: {
       domain1Name: 'False Self-View (FSV)',
@@ -317,18 +379,43 @@ const CollectiveResults = {
     }
   },
 
+  /**
+   * Render the coach Integration Analysis — full page with all tool cards + coaching extras.
+   * Returns fully-rendered HTML string (with shared styles inlined).
+   * @param {string} clientId
+   * @returns {string} HTML string
+   */
+  renderCoachPage(clientId) {
+    try {
+      var summary = this.getStudentSummary(clientId);
+      var html = this._buildPageHTML(clientId, summary, true);
+      var template = HtmlService.createTemplate(html);
+      return template.evaluate()
+        .setTitle('Integration Analysis: ' + clientId)
+        .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
+        .getContent();
+    } catch (error) {
+      Logger.log('[CollectiveResults] Coach render error: ' + error);
+      return '<html><body style="background:#1e192b;color:#fff;font-family:sans-serif;padding:40px;">' +
+        '<h1>Error Loading Analysis</h1><p>' + error.message + '</p></body></html>';
+    }
+  },
+
   // ============================================================
   // PAGE HTML BUILDER
   // ============================================================
 
-  _buildPageHTML(clientId, summary) {
+  _buildPageHTML(clientId, summary, isCoach) {
     const completionPct = Math.round((summary.completedCount / summary.totalTools) * 100);
+    const pageTitle = isCoach ? 'Integration Analysis' : 'Your TruPath Results';
+    const pageSubtitle = isCoach ? 'Coach view for ' + clientId : 'Collective summary across all assessments';
+    const baseUrl = ScriptApp.getService().getUrl();
 
     return `
       <!DOCTYPE html>
       <html>
       <head>
-        <title>TruPath - Your Results Summary</title>
+        <title>${isCoach ? 'Integration Analysis: ' + clientId : 'TruPath - Your Results Summary'}</title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta name="theme-color" content="#1e192b">
         <style>
@@ -352,8 +439,8 @@ const CollectiveResults = {
           <!-- Header -->
           <div class="card">
             <div class="tool-header">
-              <h1>Your TruPath Results</h1>
-              <p class="muted">Collective summary across all assessments</p>
+              <h1>${pageTitle}</h1>
+              <p class="muted">${pageSubtitle}</p>
             </div>
             <div class="hr"></div>
             <div class="tool-meta">
@@ -371,25 +458,32 @@ const CollectiveResults = {
             </div>
           </div>
 
+          <!-- Continue Your Journey (students only) -->
+          ${isCoach ? '' : this._renderIncompleteToolCards(summary)}
+
           <!-- Section 1: Psychological Landscape -->
-          ${this._renderSection1(summary, clientId)}
+          ${this._renderSection1(summary, clientId, isCoach)}
 
           <!-- Section 2: Financial Structure -->
-          ${this._renderSection2(summary, clientId)}
+          ${this._renderSection2(summary, clientId, isCoach)}
 
-          <!-- Section 3: Integration (Placeholder) -->
-          ${this._renderSection3(summary)}
+          <!-- Section 3: Integration -->
+          ${this._renderSection3(summary, isCoach)}
 
-          <!-- Back to Dashboard -->
+          <!-- Coach-only: Pipeline Analysis -->
+          ${isCoach ? this._renderCoachExtras(summary) : ''}
+
+          <!-- Navigation -->
           <div class="text-center" style="margin: 30px 0 40px;">
-            <button class="btn-primary" onclick="goToDashboard()">
-              Back to Dashboard
-            </button>
+            ${isCoach
+              ? '<button class="btn-primary" onclick="goBackToAdmin()">Back to Admin Dashboard</button>'
+              : '<button class="btn-primary" onclick="goToDashboard()">Back to Dashboard</button>'
+            }
           </div>
 
         </div>
 
-        ${this._getScripts(clientId)}
+        ${this._getScripts(clientId, isCoach, baseUrl)}
 
         <script>
           window.addEventListener('load', function() {
@@ -427,7 +521,7 @@ const CollectiveResults = {
   // SECTION 1: PSYCHOLOGICAL LANDSCAPE
   // ============================================================
 
-  _renderSection1(summary, clientId) {
+  _renderSection1(summary, clientId, isCoach) {
     return `
       <div class="card cr-section-card">
         <h2 class="cr-section-title">Your Psychological Landscape</h2>
@@ -435,15 +529,17 @@ const CollectiveResults = {
         <div class="hr" style="margin: 15px 0;"></div>
 
         <!-- Tool 1: Overview -->
-        ${this._renderTool1Card(summary.tools.tool1, clientId)}
+        ${this._renderTool1Card(summary.tools.tool1, clientId, isCoach)}
 
-        <!-- Tools 3, 5, 7: Deep Dives -->
-        <div class="cr-grid" style="margin-top: 15px;">
-          ${this._renderGroundingCard('tool3', summary.tools.tool3, clientId)}
-          ${this._renderGroundingCard('tool5', summary.tools.tool5, clientId)}
+        <!-- Tools 3, 5, 7: Full-width Deep Dives -->
+        <div style="margin-top: 15px;">
+          ${this._renderGroundingCard('tool3', summary.tools.tool3, clientId, isCoach)}
         </div>
         <div style="margin-top: 15px;">
-          ${this._renderGroundingCard('tool7', summary.tools.tool7, clientId)}
+          ${this._renderGroundingCard('tool5', summary.tools.tool5, clientId, isCoach)}
+        </div>
+        <div style="margin-top: 15px;">
+          ${this._renderGroundingCard('tool7', summary.tools.tool7, clientId, isCoach)}
         </div>
       </div>
     `;
@@ -453,7 +549,7 @@ const CollectiveResults = {
   // SECTION 2: FINANCIAL STRUCTURE
   // ============================================================
 
-  _renderSection2(summary, clientId) {
+  _renderSection2(summary, clientId, isCoach) {
     return `
       <div class="card cr-section-card">
         <h2 class="cr-section-title">Your Financial Structure</h2>
@@ -461,22 +557,94 @@ const CollectiveResults = {
         <div class="hr" style="margin: 15px 0;"></div>
 
         <div class="cr-grid">
-          ${this._renderTool2Card(summary.tools.tool2, clientId)}
-          ${this._renderTool4Card(summary.tools.tool4, clientId)}
+          ${this._renderTool2Card(summary.tools.tool2, clientId, isCoach)}
+          ${this._renderTool4Card(summary.tools.tool4, clientId, isCoach)}
         </div>
         <div class="cr-grid" style="margin-top: 15px;">
-          ${this._renderTool6Card(summary.tools.tool6, clientId)}
-          ${this._renderTool8Card(summary.tools.tool8, clientId)}
+          ${this._renderTool6Card(summary.tools.tool6, clientId, isCoach)}
+          ${this._renderTool8Card(summary.tools.tool8, clientId, isCoach)}
         </div>
       </div>
     `;
   },
 
   // ============================================================
+  // CONTINUE YOUR JOURNEY — INCOMPLETE TOOL NAVIGATION
+  // ============================================================
+
+  /**
+   * Render "Continue Your Journey" section — shows incomplete tools
+   * sorted by integration value, with direct navigation buttons.
+   * Only shown for students (not coaches).
+   *
+   * @param {Object} summary - from getStudentSummary()
+   * @returns {string} HTML (empty string if all 8 tools are completed)
+   */
+  _renderIncompleteToolCards(summary) {
+    var incomplete = [];
+
+    for (var i = 0; i < this.TOOL_PRIORITY.length; i++) {
+      var entry = this.TOOL_PRIORITY[i];
+      var tool = summary.tools[entry.toolKey];
+      var isComplete = tool && tool.status === 'completed';
+
+      if (!isComplete) {
+        var meta = this.TOOL_META[entry.toolKey];
+        var toolNum = entry.toolKey.replace('tool', '');
+        incomplete.push({
+          toolKey: entry.toolKey,
+          toolNum: toolNum,
+          name: meta.shortName,
+          icon: meta.icon,
+          unlocks: entry.unlocks,
+          cta: entry.cta,
+          status: (tool && tool.status === 'in_progress') ? 'in_progress' : 'not_started'
+        });
+      }
+    }
+
+    if (incomplete.length === 0) return '';
+
+    var html = '<div class="card cr-section-card">' +
+      '<h2 class="cr-section-title">Continue Your Journey</h2>' +
+      '<p class="muted">' + incomplete.length + ' tool' + (incomplete.length > 1 ? 's' : '') +
+        ' remaining — each one deepens your integration insights</p>' +
+      '<div class="hr" style="margin: 15px 0;"></div>';
+
+    for (var j = 0; j < incomplete.length; j++) {
+      var t = incomplete[j];
+
+      var statusBadge = '';
+      if (t.status === 'in_progress') {
+        statusBadge = '<span class="cr-journey-badge cr-journey-badge-progress">In Progress</span>';
+      }
+
+      var btnLabel = t.status === 'in_progress' ? 'Continue' : 'Start';
+
+      html += '<div class="cr-journey-card">' +
+        '<div class="cr-journey-left">' +
+          '<span class="cr-journey-icon">' + t.icon + '</span>' +
+          '<div class="cr-journey-info">' +
+            '<div class="cr-journey-name">Tool ' + t.toolNum + ': ' + t.name + ' ' + statusBadge + '</div>' +
+            '<div class="cr-journey-unlocks">Unlocks: ' + t.unlocks + '</div>' +
+            '<div class="cr-journey-cta">' + t.cta + '</div>' +
+          '</div>' +
+        '</div>' +
+        '<button class="cr-journey-btn" onclick="navigateToTool(\'' + t.toolKey + '\')">' +
+          btnLabel + ' Tool ' + t.toolNum +
+        '</button>' +
+      '</div>';
+    }
+
+    html += '</div>';
+    return html;
+  },
+
+  // ============================================================
   // SECTION 3: THE INTEGRATION
   // ============================================================
 
-  _renderSection3(summary) {
+  _renderSection3(summary, isCoach) {
     // Run all detection engines once — results reused by Phases 4, 5, and 9
     var engines = {
       profile: this._detectProfile(summary),
@@ -522,7 +690,7 @@ const CollectiveResults = {
 
     // 3B: Warning Cards
     if (hasWarnings) {
-      html += this._renderWarningCards(engines.warnings);
+      html += this._renderWarningCards(engines.warnings, isCoach);
     }
 
     // 3C: Awareness Gap (render before locks — it is the most important finding)
@@ -532,15 +700,54 @@ const CollectiveResults = {
 
     // 3D: Belief Locks
     if (engines.locks && engines.locks.length > 0) {
-      html += this._renderBeliefLocks(engines.locks);
+      html += this._renderBeliefLocks(engines.locks, isCoach);
     }
 
     // 3E: Belief-Behavior Gaps
     if (engines.bbGaps && engines.bbGaps.length > 0) {
-      html += this._renderBeliefBehaviorGaps(engines.bbGaps);
+      html += this._renderBeliefBehaviorGaps(engines.bbGaps, isCoach);
     }
 
     // Phase 9: Download button will be added here
+
+    html += '</div>';
+    return html;
+  },
+
+  /**
+   * Coach-only extras: Pipeline Analysis section.
+   * Rendered after Section 3 when isCoach is true.
+   * @param {Object} summary - student summary
+   * @returns {string} HTML string
+   */
+  _renderCoachExtras(summary) {
+    var pipelineA = this._detectPipeline(summary, 'A');
+    var pipelineB = this._detectPipeline(summary, 'B');
+
+    var html = '<div class="card cr-section-card">' +
+      '<h2 class="cr-section-title">Pipeline Analysis</h2>' +
+      '<p class="muted">Which psychological pipeline is this student running through?</p>' +
+      '<div class="hr" style="margin: 15px 0;"></div>';
+
+    if (pipelineA) {
+      html += '<div class="cr-pipeline-card cr-pipeline-a">' +
+        '<h3 style="color: var(--text); font-size: 1rem; margin: 0 0 8px;">Pipeline A: Identity to Sabotage (T3 to T7)</h3>' +
+        '<p>Strength: <span class="cr-pipeline-strength cr-lock-' + pipelineA.strength + '">' + pipelineA.strength + '</span></p>' +
+        '<p class="muted" style="font-size: 0.9rem;">' + pipelineA.description + '</p>' +
+      '</div>';
+    } else {
+      html += '<p class="muted" style="padding: 8px 0;">Pipeline A (Identity to Sabotage): Not enough data or not active</p>';
+    }
+
+    if (pipelineB) {
+      html += '<div class="cr-pipeline-card cr-pipeline-b">' +
+        '<h3 style="color: var(--text); font-size: 1rem; margin: 0 0 8px;">Pipeline B: Identity to Caretaking (T3 to T5)</h3>' +
+        '<p>Strength: <span class="cr-pipeline-strength cr-lock-' + pipelineB.strength + '">' + pipelineB.strength + '</span></p>' +
+        '<p class="muted" style="font-size: 0.9rem;">' + pipelineB.description + '</p>' +
+      '</div>';
+    } else {
+      html += '<p class="muted" style="padding: 8px 0;">Pipeline B (Identity to Caretaking): Not enough data or not active</p>';
+    }
 
     html += '</div>';
     return html;
@@ -588,8 +795,8 @@ const CollectiveResults = {
    * @param {Array} warnings - from _generateWarnings()
    * @returns {string} HTML string
    */
-  _renderWarningCards(warnings) {
-    var maxWarnings = Math.min(warnings.length, 4);
+  _renderWarningCards(warnings, isCoach) {
+    var maxWarnings = isCoach ? warnings.length : Math.min(warnings.length, 4);
     if (maxWarnings === 0) return '';
 
     var html = '<div class="cr-warnings-section" style="margin-top: 20px;">' +
@@ -626,7 +833,7 @@ const CollectiveResults = {
       '</div>';
     }
 
-    if (warnings.length > 4) {
+    if (!isCoach && warnings.length > 4) {
       html += '<p class="muted" style="font-size: 0.85rem; text-align: center; margin-top: 8px;">' +
         (warnings.length - 4) + ' additional pattern' + (warnings.length - 4 > 1 ? 's' : '') +
         ' detected. Speak with your coach for the complete analysis.' +
@@ -707,8 +914,8 @@ const CollectiveResults = {
    * @param {Array} locks - from _detectBeliefLocks()
    * @returns {string} HTML
    */
-  _renderBeliefLocks(locks) {
-    var maxLocks = Math.min(locks.length, 3);
+  _renderBeliefLocks(locks, isCoach) {
+    var maxLocks = isCoach ? locks.length : Math.min(locks.length, 3);
     if (maxLocks === 0) return '';
 
     var html = '<div class="cr-locks-section" style="margin-top: 20px;">' +
@@ -761,7 +968,7 @@ const CollectiveResults = {
       html += '</div>';
     }
 
-    if (locks.length > 3) {
+    if (!isCoach && locks.length > 3) {
       html += '<p class="muted" style="font-size: 0.85rem; text-align: center; margin-top: 8px;">' +
         (locks.length - 3) + ' additional lock' + (locks.length - 3 > 1 ? 's' : '') + ' detected. Speak with your coach for the complete analysis.' +
       '</p>';
@@ -779,8 +986,8 @@ const CollectiveResults = {
    * @param {Array} gaps - from _detectBeliefBehaviorGaps()
    * @returns {string} HTML
    */
-  _renderBeliefBehaviorGaps(gaps) {
-    var maxGaps = Math.min(gaps.length, 3);
+  _renderBeliefBehaviorGaps(gaps, isCoach) {
+    var maxGaps = isCoach ? gaps.length : Math.min(gaps.length, 3);
     if (maxGaps === 0) return '';
 
     var html = '<div class="cr-bb-gaps-section" style="margin-top: 20px;">' +
@@ -837,6 +1044,7 @@ const CollectiveResults = {
    *
    * @param {string} clientId - Student to analyze
    * @returns {string} Full HTML page
+   * @deprecated Use renderCoachPage() instead — unified view with all tool cards + coaching extras.
    */
   renderCoachIntegrationPage(clientId) {
     try {
@@ -1785,7 +1993,7 @@ const CollectiveResults = {
   // TOOL 1 CARD: Trauma Strategy Overview
   // ============================================================
 
-  _renderTool1Card(toolData, clientId) {
+  _renderTool1Card(toolData, clientId, isCoach) {
     if (toolData.status === 'in_progress') return this._renderInProgressCard('tool1');
     if (toolData.status !== 'completed' || !toolData.data) return this._renderLockedCard('tool1');
 
@@ -1804,17 +2012,28 @@ const CollectiveResults = {
       // Normalize -25..+25 to position on bar
       var pct = Math.abs(score) / 25 * 50;
       var barStyle = '';
-      var barColor = '';
+      // Negative = scaled greens (light green for strongest negative, dark for smallest)
+      // Positive = amber to red (any positive is bad)
+      var barHex;
+      if (score < 0) {
+        var negMag = Math.abs(score);
+        if (negMag >= 18) barHex = '#6ee7b7';       // Light green — strongest positive relationship
+        else if (negMag >= 10) barHex = '#10b981';   // Medium green
+        else barHex = '#047857';                     // Dark emerald — small negative
+      } else if (score === 0) {
+        barHex = '#6b7280';                          // Neutral gray
+      } else {
+        var posMag = Math.abs(score);
+        if (posMag >= 18) barHex = '#ef4444';        // Red — highest impact
+        else if (posMag >= 10) barHex = '#f59e0b';   // Amber — moderate impact
+        else barHex = '#fbbf24';                     // Yellow — low but still negative impact
+      }
+      var barColor = 'background: ' + barHex + ';';
       if (score >= 0) {
         barStyle = 'left: 50%; width: ' + pct + '%;';
-        barColor = 'background: var(--ok);';
       } else {
         var leftPos = 50 - pct;
         barStyle = 'left: ' + leftPos + '%; width: ' + pct + '%;';
-        barColor = 'background: var(--bad);';
-      }
-      if (isWinner) {
-        barColor = 'background: var(--gold);';
       }
 
       scoreBars += `
@@ -1829,6 +2048,8 @@ const CollectiveResults = {
       `;
     }
 
+    var insightText = this.STRATEGY_INSIGHTS[winner] || '';
+
     return `
       <div class="cr-tool-card cr-completed">
         <div class="cr-card-header">
@@ -1836,13 +2057,28 @@ const CollectiveResults = {
             <span class="cr-card-icon">${this.TOOL_META.tool1.icon}</span>
             <span class="cr-card-title">Tool 1: ${this.TOOL_META.tool1.shortName}</span>
           </div>
-          <button class="cr-report-link" onclick="viewToolReport('tool1')">View Full Report</button>
+          ${isCoach ? '' : '<button class="cr-report-link" onclick="viewToolReport(\'tool1\')">View Full Report</button>'}
         </div>
         <div class="cr-winner-badge">
           Dominant Strategy: <strong>${this.STRATEGY_LABELS[winner] || winner}</strong>
         </div>
-        <div class="cr-score-bars">
-          ${scoreBars}
+
+        <div class="cr-tool1-body">
+          <div class="cr-tool1-scores">
+            <div class="cr-score-bars">
+              ${scoreBars}
+            </div>
+          </div>
+          <div class="cr-tool1-insight">
+            <div class="cr-tool1-insight-title">About Your Dominant Strategy</div>
+            <div class="cr-tool1-insight-text">${insightText}</div>
+          </div>
+        </div>
+
+        <div class="cr-insight-strip">
+          <div class="cr-insight-highlight">
+            Negative numbers indicate a positive relationship with this strategy. Positive numbers indicate where this strategy may be negatively impacting your life.
+          </div>
         </div>
       </div>
     `;
@@ -1852,7 +2088,7 @@ const CollectiveResults = {
   // GROUNDING CARDS: Tools 3, 5, 7 (shared renderer)
   // ============================================================
 
-  _renderGroundingCard(toolId, toolData, clientId) {
+  _renderGroundingCard(toolId, toolData, clientId, isCoach) {
     if (toolData.status === 'in_progress') return this._renderInProgressCard(toolId);
     if (toolData.status !== 'completed' || !toolData.data) return this._renderLockedCard(toolId);
 
@@ -1887,6 +2123,10 @@ const CollectiveResults = {
       d2Subs += this._renderSubdomainBar(subLabel2, subVal2);
     }
 
+    // Get insight data
+    var sw = this._getStrongestWeakest(subs, config);
+    var insightText = this._getInsightText(data);
+
     return `
       <div class="cr-tool-card cr-completed">
         <div class="cr-card-header">
@@ -1894,32 +2134,38 @@ const CollectiveResults = {
             <span class="cr-card-icon">${meta.icon}</span>
             <span class="cr-card-title">Tool ${toolNum}: ${meta.shortName}</span>
           </div>
-          <button class="cr-report-link" onclick="viewToolReport('${toolId}')">View Full Report</button>
-        </div>
-
-        <!-- Overall Quotient -->
-        <div class="cr-quotient-display">
-          <span class="cr-big-number" style="color: ${this._quotientColor(overall)};">${Math.round(overall)}</span>
-          <span class="cr-big-suffix">/100</span>
-          <span class="muted" style="margin-left: 8px; font-size: 0.85rem;">Overall Quotient</span>
-        </div>
-
-        <!-- Domain 1 -->
-        <div class="cr-domain-section">
-          <div class="cr-domain-header">
-            <span class="cr-domain-name">${config ? config.domain1Name : 'Domain 1'}</span>
-            <span class="cr-domain-score" style="color: ${this._quotientColor(d1)};">${Math.round(d1)}</span>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="cr-header-score" style="color: ${this._quotientColor(overall)};">${Math.round(overall)}</span>
+            <span class="cr-header-score-suffix">/100</span>
+            ${isCoach ? '' : '<button class="cr-report-link" onclick="viewToolReport(\'' + toolId + '\')">View Full Report</button>'}
           </div>
-          ${d1Subs}
         </div>
 
-        <!-- Domain 2 -->
-        <div class="cr-domain-section">
-          <div class="cr-domain-header">
-            <span class="cr-domain-name">${config ? config.domain2Name : 'Domain 2'}</span>
-            <span class="cr-domain-score" style="color: ${this._quotientColor(d2)};">${Math.round(d2)}</span>
+        <!-- Domains Side-by-Side -->
+        <div class="cr-domain-grid">
+          <div class="cr-domain-section">
+            <div class="cr-domain-header">
+              <span class="cr-domain-name">${config ? config.domain1Name : 'Domain 1'}</span>
+              <span class="cr-domain-score" style="color: ${this._quotientColor(d1)};">${Math.round(d1)}</span>
+            </div>
+            ${d1Subs}
           </div>
-          ${d2Subs}
+          <div class="cr-domain-section">
+            <div class="cr-domain-header">
+              <span class="cr-domain-name">${config ? config.domain2Name : 'Domain 2'}</span>
+              <span class="cr-domain-score" style="color: ${this._quotientColor(d2)};">${Math.round(d2)}</span>
+            </div>
+            ${d2Subs}
+          </div>
+        </div>
+
+        <!-- Insight Strip -->
+        <div class="cr-insight-strip">
+          <div class="cr-insight-highlight">
+            Most impactful: <strong>"${sw.strongest.label}"</strong> (${sw.strongest.val}) &middot;
+            Healthiest: <strong>"${sw.weakest.label}"</strong> (${sw.weakest.val})
+          </div>
+          <div class="cr-insight-text">${insightText}</div>
         </div>
       </div>
     `;
@@ -1939,16 +2185,51 @@ const CollectiveResults = {
   },
 
   _quotientColor(value) {
-    if (value >= 70) return '#10b981';
-    if (value >= 40) return '#f59e0b';
+    if (value <= 30) return '#10b981';
+    if (value <= 60) return '#f59e0b';
     return '#ef4444';
+  },
+
+  // Find highest (most problematic) and lowest (healthiest) subdomain
+  _getStrongestWeakest(subs, config) {
+    var strongest = { key: '', val: -1, label: '' };
+    var weakest = { key: '', val: 101, label: '' };
+    var allKeys = ['subdomain_1_1', 'subdomain_1_2', 'subdomain_1_3', 'subdomain_2_1', 'subdomain_2_2', 'subdomain_2_3'];
+    for (var i = 0; i < allKeys.length; i++) {
+      var k = allKeys[i];
+      var v = Math.round(subs[k] || 0);
+      var label = (config && config.subdomains && config.subdomains[k]) || k;
+      if (v > strongest.val) { strongest = { key: k, val: v, label: label }; }
+      if (v < weakest.val) { weakest = { key: k, val: v, label: label }; }
+    }
+    return { strongest: strongest, weakest: weakest };
+  },
+
+  // Get insight text from the higher-scoring domain synthesis, with fallback
+  _getInsightText(data) {
+    var syntheses = data.syntheses;
+    if (syntheses) {
+      var d1Score = (data.scoring && data.scoring.domainQuotients && data.scoring.domainQuotients.domain1) || 0;
+      var d2Score = (data.scoring && data.scoring.domainQuotients && data.scoring.domainQuotients.domain2) || 0;
+      var higherDomain = d1Score >= d2Score ? 'domain1' : 'domain2';
+      if (syntheses[higherDomain] && syntheses[higherDomain].summary) {
+        return syntheses[higherDomain].summary;
+      }
+    }
+    // Fallback: static interpretation based on overall score
+    var overall = (data.scoring && data.scoring.overallQuotient) || 0;
+    if (overall >= 80) return 'This area shows a critical pattern requiring immediate attention.';
+    if (overall >= 60) return 'This area shows a significant pattern that would benefit from focused work.';
+    if (overall >= 40) return 'This area shows a moderate pattern with room for growth.';
+    if (overall >= 20) return 'This area shows a mild pattern with good foundations.';
+    return 'This area shows a healthy pattern with strong awareness.';
   },
 
   // ============================================================
   // TOOL 2 CARD: Financial Clarity
   // ============================================================
 
-  _renderTool2Card(toolData, clientId) {
+  _renderTool2Card(toolData, clientId, isCoach) {
     if (toolData.status === 'in_progress') return this._renderInProgressCard('tool2');
     if (toolData.status !== 'completed' || !toolData.data) return this._renderLockedCard('tool2');
 
@@ -1991,7 +2272,7 @@ const CollectiveResults = {
             <span class="cr-card-icon">${this.TOOL_META.tool2.icon}</span>
             <span class="cr-card-title">Tool 2: ${this.TOOL_META.tool2.shortName}</span>
           </div>
-          <button class="cr-report-link" onclick="viewToolReport('tool2')">View Full Report</button>
+          ${isCoach ? '' : '<button class="cr-report-link" onclick="viewToolReport(\'tool2\')">View Full Report</button>'}
         </div>
         <div class="cr-archetype-badge">${archetype}</div>
         <div class="cr-domain-bars" style="margin-top: 12px;">
@@ -2005,7 +2286,7 @@ const CollectiveResults = {
   // TOOL 4 CARD: Budget Framework
   // ============================================================
 
-  _renderTool4Card(toolData, clientId) {
+  _renderTool4Card(toolData, clientId, isCoach) {
     if (toolData.status === 'in_progress') return this._renderInProgressCard('tool4');
     if (toolData.status !== 'completed' || !toolData.data) return this._renderLockedCard('tool4');
 
@@ -2050,7 +2331,7 @@ const CollectiveResults = {
             <span class="cr-card-icon">${this.TOOL_META.tool4.icon}</span>
             <span class="cr-card-title">Tool 4: ${this.TOOL_META.tool4.shortName}</span>
           </div>
-          <button class="cr-report-link" onclick="viewToolReport('tool4')">Open Calculator</button>
+          ${isCoach ? '' : '<button class="cr-report-link" onclick="viewToolReport(\'tool4\')">Open Calculator</button>'}
         </div>
 
         <div class="cr-alloc-bar">${barSegments}</div>
@@ -2074,7 +2355,7 @@ const CollectiveResults = {
   // TOOL 6 CARD: Retirement Blueprint
   // ============================================================
 
-  _renderTool6Card(toolData, clientId) {
+  _renderTool6Card(toolData, clientId, isCoach) {
     if (toolData.status === 'in_progress') return this._renderInProgressCard('tool6');
     if (toolData.status !== 'completed' || !toolData.data) return this._renderLockedCard('tool6');
 
@@ -2095,7 +2376,7 @@ const CollectiveResults = {
             <span class="cr-card-icon">${this.TOOL_META.tool6.icon}</span>
             <span class="cr-card-title">Tool 6: ${this.TOOL_META.tool6.shortName}</span>
           </div>
-          <button class="cr-report-link" onclick="viewToolReport('tool6')">Open Calculator</button>
+          ${isCoach ? '' : '<button class="cr-report-link" onclick="viewToolReport(\'tool6\')">Open Calculator</button>'}
         </div>
 
         <div class="cr-archetype-badge">${profileId}</div>
@@ -2128,7 +2409,7 @@ const CollectiveResults = {
   // TOOL 8 CARD: Investment Planning
   // ============================================================
 
-  _renderTool8Card(toolData, clientId) {
+  _renderTool8Card(toolData, clientId, isCoach) {
     if (toolData.status === 'in_progress') return this._renderInProgressCard('tool8');
     if (toolData.status !== 'completed' || !toolData.data) return this._renderLockedCard('tool8');
 
@@ -2153,7 +2434,7 @@ const CollectiveResults = {
             <span class="cr-card-icon">${this.TOOL_META.tool8.icon}</span>
             <span class="cr-card-title">Tool 8: ${this.TOOL_META.tool8.shortName}</span>
           </div>
-          <button class="cr-report-link" onclick="viewToolReport('tool8')">View Full Report</button>
+          ${isCoach ? '' : '<button class="cr-report-link" onclick="viewToolReport(\'tool8\')">View Full Report</button>'}
         </div>
 
         <div class="cr-scenario-name">${scenarioName}</div>
@@ -2298,6 +2579,81 @@ const CollectiveResults = {
           .cr-grid {
             grid-template-columns: 1fr;
           }
+        }
+
+        /* Domain side-by-side layout for full-width grounding cards */
+        .cr-domain-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 12px;
+        }
+        @media (max-width: 768px) {
+          .cr-domain-grid { grid-template-columns: 1fr; }
+        }
+
+        /* Inline quotient in header */
+        .cr-header-score {
+          font-size: 1.3rem;
+          font-weight: 700;
+        }
+        .cr-header-score-suffix {
+          font-size: 0.8rem;
+          color: var(--muted);
+        }
+
+        /* Insight strip */
+        .cr-insight-strip {
+          margin-top: 12px;
+          padding: 12px 14px;
+          background: rgba(173, 145, 104, 0.06);
+          border-top: 1px solid rgba(173, 145, 104, 0.15);
+          border-radius: 0 0 8px 8px;
+        }
+        .cr-insight-highlight {
+          font-size: 0.8rem;
+          color: var(--muted);
+          margin-bottom: 6px;
+        }
+        .cr-insight-highlight strong {
+          color: var(--text);
+        }
+        .cr-insight-text {
+          font-size: 0.82rem;
+          color: var(--muted);
+          line-height: 1.5;
+          font-style: italic;
+        }
+
+        /* Tool 1 split layout */
+        .cr-tool1-body {
+          display: flex;
+          gap: 20px;
+          align-items: flex-start;
+        }
+        .cr-tool1-scores {
+          flex: 0 0 58%;
+        }
+        .cr-tool1-insight {
+          flex: 1;
+          padding: 12px;
+          background: rgba(173, 145, 104, 0.06);
+          border-radius: 8px;
+          border: 1px solid rgba(173, 145, 104, 0.12);
+        }
+        .cr-tool1-insight-title {
+          font-size: 0.8rem;
+          font-weight: 600;
+          color: var(--gold);
+          margin-bottom: 6px;
+        }
+        .cr-tool1-insight-text {
+          font-size: 0.8rem;
+          color: var(--muted);
+          line-height: 1.5;
+        }
+        @media (max-width: 768px) {
+          .cr-tool1-body { flex-direction: column; }
+          .cr-tool1-scores { flex: 1; }
         }
 
         /* Tool cards */
@@ -2978,6 +3334,136 @@ const CollectiveResults = {
         .cr-bb-gap-interpretation {
           line-height: 1.4;
         }
+
+        /* Coach-only: Pipeline Analysis */
+        .cr-pipeline-card {
+          padding: 14px;
+          border-radius: 8px;
+          margin: 8px 0;
+        }
+        .cr-pipeline-a {
+          background: rgba(239, 68, 68, 0.06);
+          border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+        .cr-pipeline-b {
+          background: rgba(59, 130, 246, 0.06);
+          border: 1px solid rgba(59, 130, 246, 0.2);
+        }
+        .cr-pipeline-strength {
+          display: inline-block;
+          padding: 2px 8px;
+          border-radius: 10px;
+          font-size: 0.8rem;
+          font-weight: 500;
+        }
+
+        /* Responsive: Section 3 components at mobile */
+        @media (max-width: 480px) {
+          .cr-profile-name {
+            font-size: 1.2rem;
+          }
+          .cr-profile-description {
+            font-size: 0.85rem;
+          }
+          .cr-lock-belief {
+            flex-direction: column;
+            gap: 4px;
+          }
+          .cr-lock-belief-meta {
+            margin-left: 0;
+          }
+          .cr-bb-gap-scores {
+            flex-direction: column;
+            gap: 8px;
+          }
+        }
+
+        /* Continue Your Journey Section */
+        .cr-journey-card {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 14px;
+          margin: 8px 0;
+          background: rgba(30, 25, 43, 0.4);
+          border: 1px solid rgba(173, 145, 104, 0.12);
+          border-radius: 10px;
+          gap: 12px;
+        }
+        .cr-journey-left {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          flex: 1;
+          min-width: 0;
+        }
+        .cr-journey-icon {
+          font-size: 1.4rem;
+          flex-shrink: 0;
+        }
+        .cr-journey-info {
+          flex: 1;
+          min-width: 0;
+        }
+        .cr-journey-name {
+          font-weight: 600;
+          color: var(--text);
+          font-size: 0.95rem;
+          margin-bottom: 3px;
+        }
+        .cr-journey-unlocks {
+          font-size: 0.8rem;
+          color: #ad9168;
+          margin-bottom: 2px;
+        }
+        .cr-journey-cta {
+          font-size: 0.8rem;
+          color: var(--muted);
+          font-style: italic;
+        }
+        .cr-journey-badge {
+          display: inline-block;
+          padding: 2px 8px;
+          border-radius: 8px;
+          font-size: 0.7rem;
+          font-weight: 500;
+          margin-left: 6px;
+          vertical-align: middle;
+        }
+        .cr-journey-badge-progress {
+          background: rgba(245, 158, 11, 0.15);
+          color: #fcd34d;
+        }
+        .cr-journey-btn {
+          background: linear-gradient(135deg, rgba(173, 145, 104, 0.15), rgba(75, 65, 102, 0.15));
+          border: 1px solid rgba(173, 145, 104, 0.3);
+          color: #ad9168;
+          padding: 8px 16px;
+          border-radius: 8px;
+          font-size: 0.85rem;
+          cursor: pointer;
+          white-space: nowrap;
+          flex-shrink: 0;
+          transition: all 0.2s ease;
+        }
+        .cr-journey-btn:hover {
+          background: linear-gradient(135deg, rgba(173, 145, 104, 0.25), rgba(75, 65, 102, 0.25));
+          transform: translateY(-1px);
+        }
+        @media (max-width: 480px) {
+          .cr-journey-card {
+            flex-direction: column;
+            text-align: center;
+            gap: 10px;
+          }
+          .cr-journey-left {
+            flex-direction: column;
+            text-align: center;
+          }
+          .cr-journey-btn {
+            width: 100%;
+          }
+        }
       </style>
     `;
   },
@@ -2986,9 +3472,22 @@ const CollectiveResults = {
   // SCRIPTS
   // ============================================================
 
-  _getScripts(clientId) {
+  _getScripts(clientId, isCoach, baseUrl) {
     // Tools with report pages vs calculator tools
     var reportToolsStr = "'" + this.REPORT_TOOLS.join("','") + "'";
+
+    if (isCoach) {
+      // Coach view: only needs back-to-admin navigation
+      return `
+        <script>
+          (function() {
+            window.goBackToAdmin = function() {
+              window.location.href = '${baseUrl}?route=admin-dashboard';
+            };
+          })();
+        </script>
+      `;
+    }
 
     return `
       <script>
@@ -3025,6 +3524,22 @@ const CollectiveResults = {
                 })
                 .getToolPageHtml(toolId, clientId, 1);
             }
+          };
+
+          window.navigateToTool = function(toolId) {
+            showLoading('Loading...');
+            google.script.run
+              .withSuccessHandler(function(html) {
+                document.open();
+                document.write(html);
+                document.close();
+                window.scrollTo(0, 0);
+              })
+              .withFailureHandler(function(err) {
+                hideLoading();
+                alert('Error loading tool: ' + err.message);
+              })
+              .getToolPageHtml(toolId, clientId, 1);
           };
 
           window.goToDashboard = function() {
