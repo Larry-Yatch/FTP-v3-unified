@@ -55,6 +55,15 @@ const Tool8 = {
     var resolvedData = this.resolveClientData(clientId);
     var prepopJson = JSON.stringify(resolvedData);
 
+    // Fetch all Tool 6 scenarios for scenario selector dropdown
+    var tool6Scenarios = [];
+    try {
+      tool6Scenarios = Tool6.getScenarios ? Tool6.getScenarios(clientId) : [];
+    } catch (e) {
+      LogUtils.error('[Tool8.buildPage] Error fetching Tool 6 scenarios: ' + e);
+    }
+    var tool6ScenariosJson = JSON.stringify(tool6Scenarios);
+
     // Load history manager for back button and refresh support
     var historyManager = HtmlService.createHtmlOutputFromFile('shared/history-manager').getContent();
 
@@ -75,11 +84,12 @@ const Tool8 = {
     tool8Styles +
 '</head>\n' +
 '<body>\n' +
-    this._buildHTML(clientId, resolvedData) +
+    this._buildHTML(clientId, resolvedData, tool6Scenarios) +
 '  <script>\n' +
 '    var SETTINGS = ' + settingsJson + ';\n' +
 '    var CLIENT_ID = "' + clientId + '";\n' +
 '    var PREPOP = ' + prepopJson + ';\n' +
+'    var TOOL6_SCENARIOS = ' + tool6ScenariosJson + ';\n' +
     this._buildJS(clientId) +
 '  </script>\n' +
 '  <script>\n' +
@@ -97,7 +107,7 @@ const Tool8 = {
    * @param {string} clientId
    * @param {Object} resolvedData - Pre-populated data from upstream tools (Phase 5)
    */
-  _buildHTML(clientId, resolvedData) {
+  _buildHTML(clientId, resolvedData, tool6Scenarios) {
     return [
       // Loading overlay
       '<div class="loading-overlay" id="loadingOverlay">',
@@ -113,7 +123,7 @@ const Tool8 = {
       '    <div style="font-size: 14px; color: #94a3b8;">Investment Planning Tool</div>',
       '    <button class="btn" style="padding: 6px 16px; font-size: 11px;" onclick="goToDashboard()">Back to Dashboard</button>',
       '  </div>',
-      this._buildDataReviewSection(resolvedData),
+      this._buildDataReviewSection(resolvedData, tool6Scenarios),
       this._buildTraumaSection(resolvedData),
 
       // LEFT: Controls
@@ -385,7 +395,7 @@ const Tool8 = {
    * @param {Object} d - Resolved data from resolveClientData()
    * @returns {string} HTML string
    */
-  _buildDataReviewSection(d) {
+  _buildDataReviewSection(d, tool6Scenarios) {
     if (!d || !d.hasFinancialData) return '';
 
     var items = [];
@@ -484,12 +494,33 @@ const Tool8 = {
       ? ' (based on your "' + d.scenarioName + '" scenario from Tool 6)'
       : ' (pre-populated from earlier tools)';
 
+    // Build Tool 6 scenario selector dropdown (only if multiple scenarios exist)
+    var t6Scenarios = tool6Scenarios || [];
+    var scenarioSelector = '';
+    if (t6Scenarios.length > 1) {
+      var opts = '';
+      for (var si = 0; si < t6Scenarios.length; si++) {
+        var s = t6Scenarios[si];
+        var sel = s.isLatest ? ' selected' : '';
+        var lbl = (s.name || 'Scenario ' + (si + 1)) + ' ($' + (s.monthlyBudget || 0).toLocaleString() + '/mo)';
+        opts += '<option value="' + si + '"' + sel + '>' + lbl + '</option>';
+      }
+      scenarioSelector = '<div style="margin-bottom:12px; padding:10px; background:rgba(255,255,255,0.03); border-radius:8px;">' +
+        '<div class="small" style="margin-bottom:6px; font-weight:500; color:#94a3b8;">Tool 6 Scenario:</div>' +
+        '<select id="tool6ScenarioSelect" onchange="onTool6ScenarioChange()" style="width:100%; padding:8px; border-radius:6px; background:rgba(0,0,0,0.3); color:var(--color-text-primary); border:1px solid rgba(255,255,255,0.2); font-size:14px;">' +
+        opts +
+        '</select>' +
+        '<div id="t6ScenarioMsg" class="small muted" style="margin-top:4px;"></div>' +
+        '</div>';
+    }
+
     return '<div class="data-review">' +
       '<details open>' +
       '  <summary>' +
       '    <span class="dr-title">Your Financial Profile' + headerNote + '</span>' +
       '    <span class="dr-toggle">Click to collapse</span>' +
       '  </summary>' +
+      scenarioSelector +
       '  <div class="dr-grid">' + items.join('') + '</div>' +
       '  <div style="margin-top:8px; font-size:11px; color:var(--muted);">Values below have been set from your profile. Change any value freely - use Reset buttons to restore.</div>' +
       '</details>' +
@@ -1431,6 +1462,54 @@ const Tool8 = {
       '  }',
       '}',
       'setupAltButtons();',
+      '',
+      '// Tool 6 scenario selection for data review panel',
+      'function onTool6ScenarioChange() {',
+      '  var select = document.getElementById("tool6ScenarioSelect");',
+      '  if (!select || typeof TOOL6_SCENARIOS === "undefined" || !TOOL6_SCENARIOS) return;',
+      '  var idx = parseInt(select.value);',
+      '  var scn = TOOL6_SCENARIOS[idx];',
+      '  if (!scn) return;',
+      '',
+      '  // Update Monthly Savings Capacity',
+      '  if (scn.monthlyBudget > 0) {',
+      '    var capField = el("capN");',
+      '    if (capField) capField.value = Math.round(scn.monthlyBudget);',
+      '    var capDisplay = document.getElementById("drv_capN");',
+      '    if (capDisplay) capDisplay.innerHTML = "$" + Math.round(scn.monthlyBudget).toLocaleString() + "<span class=\\"dr-edit-hint\\">edit</span>";',
+      '  }',
+      '',
+      '  // Update Risk Tolerance (investmentScore 1-7 -> 0-10 dial)',
+      '  if (scn.investmentScore) {',
+      '    var riskVal = Math.round(((scn.investmentScore - 1) / 6) * 10 * 10) / 10;',
+      '    var riskField = el("riskN");',
+      '    if (riskField) riskField.value = riskVal;',
+      '    var riskSlider = el("risk");',
+      '    if (riskSlider) riskSlider.value = riskVal;',
+      '    var riskDisplay = document.getElementById("drv_riskN");',
+      '    if (riskDisplay) riskDisplay.innerHTML = riskVal.toFixed(1) + " / 10<span class=\\"dr-edit-hint\\">edit</span>";',
+      '  }',
+      '',
+      '  // Update Years to Retirement',
+      '  if (scn.yearsToRetirement > 0) {',
+      '    var yearsField = el("yearsN");',
+      '    if (yearsField) yearsField.value = scn.yearsToRetirement;',
+      '    var yearsSlider = el("years");',
+      '    if (yearsSlider) yearsSlider.value = scn.yearsToRetirement;',
+      '    var yearsDisplay = document.getElementById("drv_yearsN");',
+      '    if (yearsDisplay) yearsDisplay.innerHTML = scn.yearsToRetirement + " years<span class=\\"dr-edit-hint\\">edit</span>";',
+      '  }',
+      '',
+      '  // Recalculate with new values',
+      '  recalc();',
+      '',
+      '  // Show confirmation',
+      '  var msg = document.getElementById("t6ScenarioMsg");',
+      '  if (msg) {',
+      '    msg.textContent = "Using scenario: " + (scn.name || "Scenario " + (idx + 1));',
+      '    msg.style.color = "#34d399";',
+      '  }',
+      '}',
       '',
       '// Click value spans to scroll to and focus the actual calculator input',
       'document.querySelectorAll(".dr-value[data-target]").forEach(function(span) {',

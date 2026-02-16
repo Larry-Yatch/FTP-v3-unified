@@ -58,8 +58,13 @@ const Tool6 = {
         }
       }
 
+      // Fetch all Tool 4 scenarios for scenario selector UI
+      const tool4Scenarios = resolvedData.hasTool4
+        ? (Tool4.getScenariosFromSheet ? Tool4.getScenariosFromSheet(clientId) : [])
+        : [];
+
       // Build unified page with RESOLVED data as single source of truth
-      const htmlContent = this.buildUnifiedPage(clientId, resolvedData, preSurveyData, profile, allocation);
+      const htmlContent = this.buildUnifiedPage(clientId, resolvedData, preSurveyData, profile, allocation, tool4Scenarios);
 
       return HtmlService.createHtmlOutput(htmlContent)
         .setTitle('TruPath - Retirement Blueprint Calculator')
@@ -85,8 +90,32 @@ const Tool6 = {
       LogUtils.debug('tool1Data: ' + (tool1Data ? 'found' : 'null'));
       const tool2Data = DataService.getLatestResponse(clientId, 'tool2');
       const tool3Data = DataService.getLatestResponse(clientId, 'tool3');
-      const tool4Data = DataService.getLatestResponse(clientId, 'tool4');
       const tool5Data = DataService.getLatestResponse(clientId, 'tool5');
+
+      // PRIMARY: Read from TOOL4_SCENARIOS (latest scenario with full data)
+      // FALLBACK: Read from RESPONSES (for backward compat if no scenarios saved yet)
+      const tool4Scenario = this.getLatestTool4Scenario(clientId);
+      const tool4Fallback = DataService.getLatestResponse(clientId, 'tool4');
+
+      let tool4Data;
+      if (tool4Scenario) {
+        // Reshape scenario into tool4Data format for mapUpstreamFields() compatibility
+        tool4Data = {
+          data: {
+            monthlyIncome: tool4Scenario.monthlyIncome,
+            multiply: tool4Scenario.multiplyPercent,
+            allocations: tool4Scenario.allocations,
+            scenarioName: tool4Scenario.name,
+            priority: tool4Scenario.priority
+          }
+        };
+        LogUtils.debug('Tool 4 data sourced from TOOL4_SCENARIOS (scenario: ' + tool4Scenario.name + ')');
+      } else {
+        tool4Data = tool4Fallback;
+        if (tool4Data) {
+          LogUtils.debug('Tool 4 data sourced from RESPONSES (fallback)');
+        }
+      }
 
       // Map fields from upstream tools per spec
       const mappedFields = this.mapUpstreamFields(tool1Data, tool2Data, tool3Data, tool4Data, tool5Data);
@@ -96,7 +125,7 @@ const Tool6 = {
         hasTool1: !!tool1Data,
         hasTool2: !!tool2Data,
         hasTool3: !!tool3Data,
-        hasTool4: !!tool4Data,
+        hasTool4: !!(tool4Scenario || tool4Fallback),
         hasTool5: !!tool5Data,
 
         // Raw data (for debugging/advanced use)
@@ -110,8 +139,8 @@ const Tool6 = {
         ...mappedFields,
 
         // Summary stats
-        missingCount: [tool1Data, tool2Data, tool3Data, tool4Data, tool5Data].filter(d => !d).length,
-        hasCriticalData: !!tool4Data && (tool4Data.data?.multiply > 0 || tool4Data.data?.multiplyAmount > 0)
+        missingCount: [tool1Data, tool2Data, tool3Data, (tool4Scenario || tool4Fallback), tool5Data].filter(d => !d).length,
+        hasCriticalData: !!(tool4Scenario || (tool4Data && (tool4Data.data?.multiply > 0 || tool4Data.data?.multiplyAmount > 0)))
       };
     } catch (error) {
       LogUtils.error(`Error checking tool completion: ${error}`);
@@ -549,6 +578,93 @@ const Tool6 = {
   },
 
   /**
+   * Get the latest Tool 4 scenario from TOOL4_SCENARIOS sheet
+   * Mirrors Tool8.getLatestTool6Scenario() pattern
+   * Prefers Is_Latest=true, falls back to newest by timestamp
+   * @param {string} clientId
+   * @returns {Object|null} Scenario with monthlyIncome, multiplyPercent, monthlyBudget, allocations, etc.
+   */
+  getLatestTool4Scenario(clientId) {
+    try {
+      var scenariosSheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.TOOL4_SCENARIOS);
+      if (!scenariosSheet) return null;
+
+      var allData = scenariosSheet.getDataRange().getValues();
+      if (allData.length <= 1) return null;
+
+      var headers = allData[0];
+      var clientIdCol = headers.indexOf('Client_ID');
+      var nameCol = headers.indexOf('Scenario_Name');
+      var timestampCol = headers.indexOf('Timestamp');
+      var priorityCol = headers.indexOf('Priority_Selected');
+      var incomeCol = headers.indexOf('Monthly_Income');
+      var multiplyCol = headers.indexOf('Custom_M_Percent');
+      var essentialsCol = headers.indexOf('Custom_E_Percent');
+      var freedomCol = headers.indexOf('Custom_F_Percent');
+      var enjoymentCol = headers.indexOf('Custom_J_Percent');
+      var isLatestCol = headers.indexOf('Is_Latest');
+
+      function parsePercent(val) {
+        if (typeof val === 'number') return val;
+        if (typeof val === 'string') return parseFloat(val.replace('%', '').replace(',', '')) || 0;
+        return 0;
+      }
+
+      function parseCurrency(val) {
+        if (typeof val === 'number') return val;
+        if (typeof val === 'string') return parseFloat(val.replace(/[$,]/g, '')) || 0;
+        return 0;
+      }
+
+      var latest = null;
+      var latestTimestamp = null;
+
+      for (var i = 1; i < allData.length; i++) {
+        if (String(allData[i][clientIdCol]) !== String(clientId)) continue;
+
+        // Prefer Is_Latest = true
+        if (isLatestCol !== -1 && allData[i][isLatestCol] === true) {
+          latest = allData[i];
+          break;
+        }
+
+        // Otherwise track newest by timestamp
+        var ts = allData[i][timestampCol];
+        if (!latestTimestamp || (ts instanceof Date && ts > latestTimestamp)) {
+          latestTimestamp = ts;
+          latest = allData[i];
+        }
+      }
+
+      if (!latest) return null;
+
+      var multiplyPercent = parsePercent(latest[multiplyCol]);
+      var monthlyIncome = parseCurrency(latest[incomeCol]);
+
+      var tsVal = latest[timestampCol];
+      var tsStr = (tsVal instanceof Date) ? tsVal.toISOString() : (tsVal ? String(tsVal) : '');
+
+      return {
+        timestamp: tsStr,
+        name: String(latest[nameCol] || ''),
+        priority: String(latest[priorityCol] || ''),
+        monthlyIncome: monthlyIncome,
+        multiplyPercent: multiplyPercent,
+        monthlyBudget: Math.round(monthlyIncome * multiplyPercent / 100),
+        allocations: {
+          Multiply: multiplyPercent,
+          Essentials: parsePercent(latest[essentialsCol]),
+          Freedom: parsePercent(latest[freedomCol]),
+          Enjoyment: parsePercent(latest[enjoymentCol])
+        }
+      };
+    } catch (error) {
+      LogUtils.error('[Tool6.getLatestTool4Scenario] Error: ' + error);
+      return null;
+    }
+  },
+
+  /**
    * Get data availability status for UI display
    * Returns status badges (green/yellow/red) for each data category
    */
@@ -692,7 +808,12 @@ const Tool6 = {
         }
       }
 
-      const htmlContent = this.buildUnifiedPage(clientId, resolvedData, savedPreSurvey, profile, allocation);
+      // Fetch Tool 4 scenarios for selector UI
+      const tool4Scenarios = resolvedData.hasTool4
+        ? (Tool4.getScenariosFromSheet ? Tool4.getScenariosFromSheet(clientId) : [])
+        : [];
+
+      const htmlContent = this.buildUnifiedPage(clientId, resolvedData, savedPreSurvey, profile, allocation, tool4Scenarios);
       return { success: true, nextPageHtml: htmlContent };
     } catch (error) {
       LogUtils.error(`Error saving pre-survey: ${error}`);
@@ -3420,7 +3541,7 @@ const Tool6 = {
    * @param {Object} profile - Classified investor profile
    * @param {Object} allocation - Calculated vehicle allocation
    */
-  buildUnifiedPage(clientId, resolvedData, preSurveyData, profile, allocation) {
+  buildUnifiedPage(clientId, resolvedData, preSurveyData, profile, allocation, tool4Scenarios) {
     const styles = HtmlService.createHtmlOutputFromFile('shared/styles').getContent();
     const calculatorStyles = HtmlService.createHtmlOutputFromFile('shared/calculator-styles').getContent();
     const tool6Styles = HtmlService.createHtmlOutputFromFile('tools/tool6/tool6-styles').getContent();
@@ -3443,6 +3564,28 @@ const Tool6 = {
       ? this.calculateCompleteProjections(preSurveyData, allocation, toolStatus)
       : null;
     const hasProjections = !!projections;
+
+    // Build Tool 4 scenario selector options (outside template literal to avoid escaping issues)
+    const t4Scenarios = tool4Scenarios || [];
+    const hasMultipleT4Scenarios = t4Scenarios.length > 1;
+    let t4SelectorHtml = '';
+    if (hasMultipleT4Scenarios) {
+      let optionsHtml = '';
+      for (let si = 0; si < t4Scenarios.length; si++) {
+        const s = t4Scenarios[si];
+        const selected = s.isLatest ? ' selected' : '';
+        const label = (s.name || 'Scenario ' + (si + 1)) + ' (Multiply: ' + s.allocations.Multiply + '%)';
+        optionsHtml += '<option value="' + si + '"' + selected + '>' + label + '</option>';
+      }
+      t4SelectorHtml = '<div style="margin-bottom: 12px;">' +
+        '<div class="small" style="margin-bottom:6px; font-weight:500; color:#94a3b8;">Select Tool 4 Scenario:</div>' +
+        '<select id="tool4ScenarioSelect" onchange="onTool4ScenarioChange()" style="width:100%; padding:10px; border-radius:8px; background:rgba(0,0,0,0.3); color:var(--color-text-primary); border:1px solid rgba(255,255,255,0.2); font-size:14px;">' +
+        optionsHtml +
+        '</select>' +
+        '<div id="tool4ScenarioMsg" class="small muted" style="margin-top:4px;"></div>' +
+        '</div>';
+    }
+    const t4ScenariosJson = JSON.stringify(t4Scenarios);
 
     // Build Section 0: Backup Questions (if needed)
     const needsBackup = !resolvedData.hasTool1 || !resolvedData.hasTool2 || !resolvedData.hasTool4;
@@ -3535,16 +3678,17 @@ const Tool6 = {
         <!-- Data Summary from Tools 1-5 (uses resolvedData for consistency) -->
         <div style="margin-bottom: 24px;">
           <h4 style="color: var(--color-text-secondary); margin-bottom: 12px;">Your Tool 4 Allocation</h4>
-          <div class="data-summary">
+          ${t4SelectorHtml}
+          <div class="data-summary" id="tool4DataSummary">
             <div class="data-summary-item">
               <div class="data-summary-label">Monthly Retirement Budget</div>
-              <div class="data-summary-value ${!resolvedData.monthlyBudget ? 'missing' : ''}">
+              <div class="data-summary-value ${!resolvedData.monthlyBudget ? 'missing' : ''}" id="t4BudgetDisplay">
                 ${resolvedData.monthlyBudget ? '$' + Number(resolvedData.monthlyBudget).toLocaleString() + '/mo' : 'Not available'}
               </div>
             </div>
             <div class="data-summary-item">
               <div class="data-summary-label">Investment Score</div>
-              <div class="data-summary-value">${resolvedData.investmentScore}/7 (${INVESTMENT_SCORE_LABELS[resolvedData.investmentScore] || 'Moderate'})</div>
+              <div class="data-summary-value" id="t4ScoreDisplay">${resolvedData.investmentScore}/7 (${INVESTMENT_SCORE_LABELS[resolvedData.investmentScore] || 'Moderate'})</div>
             </div>
             ${resolvedData.age ? `
             <div class="data-summary-item">
@@ -3747,6 +3891,9 @@ const Tool6 = {
     var upstreamFilingStatus = '${resolvedData.filingStatus || 'Single'}';
     var upstreamWorkSituation = '${resolvedData.workSituation || 'W-2 Employee'}';
 
+    // Tool 4 scenarios data for scenario selector
+    var tool4Scenarios = ${t4ScenariosJson};
+
     // ========================================================================
     // PROJECTION CONFIG (Sprint 6.1)
     // ========================================================================
@@ -3836,6 +3983,60 @@ const Tool6 = {
       a18_monthlyHSAContribution: function() { return formData.a7_hsaEligible === 'Yes'; },
       a19_monthlyEducationContribution: function() { return formData.a8_hasChildren === 'Yes'; }
     };
+
+    // ========================================================================
+    // TOOL 4 SCENARIO SELECTOR
+    // ========================================================================
+
+    function onTool4ScenarioChange() {
+      var select = document.getElementById('tool4ScenarioSelect');
+      if (!select || !tool4Scenarios || tool4Scenarios.length === 0) return;
+      var idx = parseInt(select.value);
+      var scenario = tool4Scenarios[idx];
+      if (!scenario) return;
+
+      // Derive monthly budget from selected scenario
+      var income = scenario.monthlyIncome || 0;
+      var multiply = (scenario.allocations && scenario.allocations.Multiply) || 0;
+      var budget = Math.round(income * multiply / 100);
+
+      // Update the data summary display
+      var budgetEl = document.getElementById('t4BudgetDisplay');
+      if (budgetEl) {
+        if (budget > 0) {
+          budgetEl.textContent = '$' + budget.toLocaleString() + '/mo';
+          budgetEl.className = 'data-summary-value';
+        } else {
+          budgetEl.textContent = 'Not available';
+          budgetEl.className = 'data-summary-value missing';
+        }
+      }
+
+      // Update upstream monthly budget so calculator uses new value
+      upstreamMonthlyBudget = budget;
+
+      // Update formData backup so recalculation picks it up
+      if (budget > 0) {
+        formData.backup_monthlyBudget = budget;
+      }
+
+      // Update allocation state if it exists
+      if (typeof allocationState !== 'undefined' && budget > 0) {
+        allocationState.budget = budget;
+      }
+
+      // Trigger recalculation if calculator is active
+      if (typeof recalculate === 'function') {
+        recalculate();
+      }
+
+      // Show confirmation message
+      var msg = document.getElementById('tool4ScenarioMsg');
+      if (msg) {
+        msg.textContent = 'Using "' + scenario.name + '" - Budget: $' + budget.toLocaleString() + '/mo';
+        msg.style.color = '#34d399';
+      }
+    }
 
     // ========================================================================
     // SECTION TOGGLE

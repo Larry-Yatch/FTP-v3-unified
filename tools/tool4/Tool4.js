@@ -248,12 +248,36 @@ const Tool4 = {
           'Subscriptions', 'Other_Essentials', 'Rec_M_Percent', 'Rec_E_Percent', 'Rec_F_Percent',
           'Rec_J_Percent', 'Rec_M_Dollars', 'Rec_E_Dollars', 'Rec_F_Dollars', 'Rec_J_Dollars',
           'Custom_M_Percent', 'Custom_E_Percent', 'Custom_F_Percent', 'Custom_J_Percent', 'Is_Custom',
-          'Report_Generated', 'Tool1_Source', 'Tool2_Source', 'Tool3_Source', 'Backup_Data'
+          'Report_Generated', 'Tool1_Source', 'Tool2_Source', 'Tool3_Source', 'Backup_Data',
+          'Is_Latest'
         ]);
 
         // Flush to ensure headers are written
         SpreadsheetApp.flush();
         LogUtils.debug('TOOL4_SCENARIOS sheet created with headers');
+      } else {
+        // Migration: Ensure Is_Latest column exists on existing sheets
+        const existingHeaders = scenariosSheet.getRange(1, 1, 1, scenariosSheet.getLastColumn()).getValues()[0];
+        if (existingHeaders.indexOf('Is_Latest') === -1) {
+          const nextCol = scenariosSheet.getLastColumn() + 1;
+          scenariosSheet.getRange(1, nextCol).setValue('Is_Latest');
+          SpreadsheetApp.flush();
+          LogUtils.debug('Added Is_Latest column to existing TOOL4_SCENARIOS sheet');
+        }
+      }
+
+      // Mark all previous scenarios for this client as not latest
+      const markData = scenariosSheet.getDataRange().getValues();
+      const markHeaders = markData[0];
+      const isLatestColIdx = markHeaders.indexOf('Is_Latest');
+      const markClientIdCol = markHeaders.indexOf('Client_ID');
+
+      if (isLatestColIdx !== -1) {
+        for (let i = 1; i < markData.length; i++) {
+          if (markData[i][markClientIdCol] === clientId && markData[i][isLatestColIdx] === true) {
+            scenariosSheet.getRange(i + 1, isLatestColIdx + 1).setValue(false);
+          }
+        }
       }
 
       // Calculate dollar amounts
@@ -293,7 +317,8 @@ const Tool4 = {
         scenario.allocations.Enjoyment,                 // Custom_J_Percent
         true,                                           // Is_Custom
         false,                                          // Report_Generated
-        '', '', '', ''                                  // Tool1/2/3_Source, Backup_Data
+        '', '', '', '',                                 // Tool1/2/3_Source, Backup_Data
+        true                                            // Is_Latest
       ];
 
       LogUtils.debug(`Row data to append (${row.length} columns):`);
@@ -6274,6 +6299,7 @@ buildUnifiedPage(clientId, toolStatus, preSurveyData, allocation) {
       const debtBalanceCol = headers.indexOf('Debt_Balance');
       const emergencyFundCol = headers.indexOf('Emergency_Fund');
       const incomeStabilityCol = headers.indexOf('Income_Stability');
+      const isLatestCol = headers.indexOf('Is_Latest');
 
       // Helper to parse percentage strings like "16%" to numbers
       function parsePercent(val) {
@@ -6321,7 +6347,8 @@ buildUnifiedPage(clientId, toolStatus, preSurveyData, allocation) {
               debtBalance: parseCurrency(data[i][debtBalanceCol]),
               emergencyFund: parseCurrency(data[i][emergencyFundCol]),
               incomeStability: String(data[i][incomeStabilityCol] || '')
-            }
+            },
+            isLatest: isLatestCol !== -1 ? (data[i][isLatestCol] === true) : false
           });
         }
       }
@@ -6333,6 +6360,19 @@ buildUnifiedPage(clientId, toolStatus, preSurveyData, allocation) {
       LogUtils.error('Error getting scenarios from sheet: ' + error);
       return [];
     }
+  },
+
+  /**
+   * Get the latest (Is_Latest=true) scenario for a client from TOOL4_SCENARIOS
+   * Mirrors Tool6.getLatestScenario() pattern
+   * @param {string} clientId
+   * @returns {Object|null} Latest scenario or null
+   */
+  getLatestScenario(clientId) {
+    const scenarios = this.getScenariosFromSheet(clientId);
+    if (!scenarios || scenarios.length === 0) return null;
+    // Prefer Is_Latest=true, fall back to newest (already sorted by timestamp desc)
+    return scenarios.find(s => s.isLatest) || scenarios[0];
   },
 
   // ============================================================================
@@ -6408,4 +6448,20 @@ function getScenariosFromSheet(clientId) {
  */
 function generateComparisonNarrative(scenario1, scenario2, preSurveyData) {
   return Tool4.generateComparisonNarrative(scenario1, scenario2, preSurveyData);
+}
+
+/**
+ * Global wrapper for getting the latest Tool 4 scenario
+ * Called by: Tool 6 for upstream data resolution
+ */
+function getLatestTool4Scenario(clientId) {
+  return Tool4.getLatestScenario(clientId);
+}
+
+/**
+ * Global wrapper for getting all Tool 4 scenarios (for selector UI)
+ * Called by: Tool 6 scenario selector dropdown
+ */
+function getTool4ScenariosForSelector(clientId) {
+  return Tool4.getScenariosFromSheet(clientId);
 }
