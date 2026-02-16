@@ -177,7 +177,7 @@ const ProgressPage = {
       html += this._renderOverallTrend(toolId, entries);
     }
 
-    html += '<span class="expand-arrow" id="arrow-' + toolId + '">&#9660;</span>'
+    html += '<span class="expand-arrow open" id="arrow-' + toolId + '">&#9660;</span>'
       + '</div>'
       + '</div>';
 
@@ -205,10 +205,11 @@ const ProgressPage = {
     var inverted = false; // For grounding tools: lower = better
 
     if (toolId === 'tool1') {
-      // Compare max strategy score
+      // Compare max strategy score (higher = more trauma = worse)
       var firstMax = this._getMaxScore(first.scores.scores);
       var lastMax = this._getMaxScore(last.scores.scores);
       delta = lastMax - firstMax;
+      inverted = true;
     } else if (toolId === 'tool2') {
       // Compare average domain score
       delta = this._avgDomainScore(last.scores.domainScores) - this._avgDomainScore(first.scores.domainScores);
@@ -259,8 +260,14 @@ const ProgressPage = {
         + '</div>';
     } else {
       return '<div class="empty-state">'
-        + '<p class="empty-text">You have completed this assessment once.</p>'
-        + '<p class="empty-hint">Complete ' + meta.shortName + ' again to see how your results have changed.</p>'
+        + '<div class="empty-icon">'
+        + '<svg width="40" height="40" viewBox="0 0 40 40" fill="none">'
+        + '<circle cx="20" cy="20" r="18" stroke="rgba(173,145,104,0.3)" stroke-width="2" stroke-dasharray="4 3"/>'
+        + '<path d="M14 20h12M20 14v12" stroke="rgba(173,145,104,0.5)" stroke-width="2" stroke-linecap="round"/>'
+        + '</svg>'
+        + '</div>'
+        + '<p class="empty-text">Completed once — take it again to unlock trends</p>'
+        + '<p class="empty-hint">Complete ' + meta.shortName + ' a second time and your progress charts will appear here.</p>'
         + '</div>';
     }
   },
@@ -320,7 +327,7 @@ const ProgressPage = {
           version: entries[j].versionNumber
         });
       }
-      html += this._renderTrendChart(dataPoints, this.STRATEGY_LABELS[key], { inverted: false });
+      html += this._renderTrendChart(dataPoints, this.STRATEGY_LABELS[key], { inverted: true });
     }
 
     html += '</div></div>';
@@ -486,7 +493,7 @@ const ProgressPage = {
     } else {
       var rangePad = (maxVal - minVal) * 0.15 || 2;
       maxVal = maxVal + rangePad;
-      minVal = Math.max(0, minVal - rangePad);
+      minVal = minVal - rangePad;
     }
 
     var range = maxVal - minVal || 1;
@@ -515,17 +522,22 @@ const ProgressPage = {
           + Math.round(dataPoints[i].value) + '</text>';
       }
 
-      // Date label on x-axis
-      dateLabels += '<text x="' + Math.round(x) + '" y="' + (height - 4) + '" '
-        + 'text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="9">'
-        + dataPoints[i].date + '</text>';
+      // Date label on x-axis (skip some labels when many points to avoid overlap)
+      var showLabel = dataPoints.length <= 6
+        || i === 0 || isLast
+        || (dataPoints.length <= 10 && i % 2 === 0);
+      if (showLabel) {
+        dateLabels += '<text x="' + Math.round(x) + '" y="' + (height - 4) + '" '
+          + 'text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="9">'
+          + dataPoints[i].date + '</text>';
+      }
     }
 
-    // Delta calculation (first vs last)
+    // Delta calculation (first vs last), using +/-2 dead zone to match overall badge
     var delta = dataPoints[dataPoints.length - 1].value - dataPoints[0].value;
     var deltaRounded = Math.round(delta * 10) / 10;
-    var isImproving = inverted ? delta < 0 : delta > 0;
-    var isWorsening = inverted ? delta > 0 : delta < 0;
+    var isImproving = inverted ? (delta < -2) : (delta > 2);
+    var isWorsening = inverted ? (delta > 2) : (delta < -2);
     var deltaColor = isImproving ? '#4ade80' : isWorsening ? '#f87171' : 'rgba(255,255,255,0.5)';
     var deltaArrow = isImproving ? (inverted ? '↓' : '↑') : isWorsening ? (inverted ? '↑' : '↓') : '→';
     var deltaText = deltaArrow + ' ' + (delta > 0 ? '+' : '') + deltaRounded;
@@ -562,6 +574,7 @@ const ProgressPage = {
   _formatDate(timestamp) {
     try {
       var d = new Date(timestamp);
+      if (isNaN(d.getTime())) return '';
       var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
       return months[d.getMonth()] + ' ' + d.getDate();
     } catch (e) {
@@ -703,7 +716,8 @@ const ProgressPage = {
       + '  text-align: center;'
       + '  padding: 30px 20px;'
       + '}'
-      + '.empty-text { color: rgba(255,255,255,0.6); margin-bottom: 6px; }'
+      + '.empty-icon { margin-bottom: 12px; }'
+      + '.empty-text { color: rgba(255,255,255,0.6); margin-bottom: 6px; font-weight: 500; }'
       + '.empty-hint { color: rgba(255,255,255,0.35); font-size: 0.85rem; }'
 
       // Chart groups
@@ -735,6 +749,7 @@ const ProgressPage = {
       + '.trend-card-large {'
       + '  grid-column: 1 / -1;'
       + '  max-width: 560px;'
+      + '  justify-self: center;'
       + '}'
       + '.trend-label {'
       + '  display: flex;'
@@ -758,6 +773,7 @@ const ProgressPage = {
       + '  display: flex;'
       + '  gap: 8px;'
       + '  overflow-x: auto;'
+      + '  padding-top: 12px;'
       + '  padding-bottom: 8px;'
       + '  margin-bottom: 16px;'
       + '}'
@@ -813,15 +829,28 @@ const ProgressPage = {
 
   _getScripts(clientId, isCoach) {
     return 'function goBack(clientId, isCoach) {'
+      + '  var overlay = document.createElement("div");'
+      + '  overlay.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:9999;color:#fff;font-size:1.1rem;";'
+      + '  overlay.textContent = "Loading dashboard...";'
+      + '  document.body.appendChild(overlay);'
       + '  if (isCoach) {'
-      + '    window.history.back();'
-      + '  } else {'
-      + '    var overlay = document.createElement("div");'
-      + '    overlay.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:9999;color:#fff;font-size:1.1rem;";'
-      + '    overlay.textContent = "Loading dashboard...";'
-      + '    document.body.appendChild(overlay);'
       + '    google.script.run'
       + '      .withSuccessHandler(function(html) {'
+      + '        document.open();'
+      + '        document.write(html);'
+      + '        document.close();'
+      + '        window.scrollTo(0, 0);'
+      + '      })'
+      + '      .withFailureHandler(function(err) {'
+      + '        overlay.textContent = "Error: " + err.message;'
+      + '      })'
+      + '      .getAdminDashboardPage();'
+      + '  } else {'
+      + '    google.script.run'
+      + '      .withSuccessHandler(function(html) {'
+      + '        if (typeof saveLocationForRefresh === "function") {'
+      + '          saveLocationForRefresh("dashboard", null, null);'
+      + '        }'
       + '        document.open();'
       + '        document.write(html);'
       + '        document.close();'

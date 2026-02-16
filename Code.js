@@ -854,6 +854,19 @@ function getStudentProgressPage(clientId) {
 }
 
 /**
+ * Get admin dashboard HTML for navigation back from full-page views (e.g., progress page)
+ * @returns {string} Admin dashboard HTML content
+ */
+function getAdminDashboardPage() {
+  var template = HtmlService.createTemplateFromFile('html/AdminDashboard');
+  template.getScriptUrl = function() { return ScriptApp.getService().getUrl(); };
+  return template.evaluate()
+    .setTitle('Admin Dashboard - Financial TruPath')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
+    .getContent();
+}
+
+/**
  * Initialize PROGRESS_HISTORY sheet (run once from script editor)
  */
 function initProgressHistory() {

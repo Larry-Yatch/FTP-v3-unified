@@ -225,6 +225,8 @@ const ProgressHistory = {
         'completion'                  // Source
       ]);
 
+      // Flush to ensure the appended row is committed before reading for version cap
+      SpreadsheetApp.flush();
       SpreadsheetCache.invalidateSheetData(this.SHEET_NAME);
 
       // Enforce version cap
@@ -395,19 +397,14 @@ const ProgressHistory = {
         return { success: false, error: 'Could not initialize PROGRESS_HISTORY sheet' };
       }
 
-      // Check if migration already ran
+      // Check which client+tool pairs already have migration entries
       var existingData = historySheet.getDataRange().getValues();
-      var hasMigrationEntries = false;
+      var migratedPairs = {};
       for (var check = 1; check < existingData.length; check++) {
         if (existingData[check][6] === 'migration') {
-          hasMigrationEntries = true;
-          break;
+          var pairKey = existingData[check][1] + '|' + existingData[check][2];
+          migratedPairs[pairKey] = true;
         }
-      }
-
-      if (hasMigrationEntries) {
-        LogUtils.debug('ProgressHistory: Migration entries already exist, skipping');
-        return { success: true, message: 'Migration already completed', migrated: 0 };
       }
 
       // Read all COMPLETED responses for tracked tools
@@ -420,6 +417,11 @@ const ProgressHistory = {
       var statusCol = headers.indexOf('Status');
       var timestampCol = headers.indexOf('Timestamp');
 
+      // Validate required columns exist
+      if (clientIdCol === -1 || toolIdCol === -1 || dataCol === -1 || statusCol === -1 || timestampCol === -1) {
+        return { success: false, error: 'RESPONSES sheet missing required columns. Found: Client_ID=' + clientIdCol + ', Tool_ID=' + toolIdCol + ', Data=' + dataCol + ', Status=' + statusCol + ', Timestamp=' + timestampCol };
+      }
+
       // Group by client+tool, sorted by timestamp
       var groups = {};
       for (var i = 1; i < responsesData.length; i++) {
@@ -431,6 +433,9 @@ const ProgressHistory = {
 
         var cId = responsesData[i][clientIdCol];
         var key = cId + '|' + tId;
+
+        // Skip pairs that were already migrated
+        if (migratedPairs[key]) continue;
 
         if (!groups[key]) groups[key] = [];
 
@@ -452,6 +457,7 @@ const ProgressHistory = {
 
       // Write history entries
       var migrated = 0;
+      var skippedPairs = Object.keys(migratedPairs).length;
       var rows = [];
 
       for (var groupKey in groups) {
@@ -466,16 +472,18 @@ const ProgressHistory = {
           entries = entries.slice(entries.length - this.MAX_VERSIONS);
         }
 
+        var versionCounter = 0;
         for (var v = 0; v < entries.length; v++) {
           var entry = entries[v];
           var scores = this.extractScores(entry.toolId, entry.data);
           if (!scores) continue;
 
+          versionCounter++;
           rows.push([
             entry.timestamp,
             entry.clientId,
             entry.toolId,
-            v + 1,                           // Version_Number (sequential)
+            versionCounter,
             JSON.stringify(scores),
             this._generateSummary(entry.toolId, scores),
             'migration'
@@ -491,8 +499,12 @@ const ProgressHistory = {
         SpreadsheetCache.invalidateSheetData(this.SHEET_NAME);
       }
 
-      LogUtils.debug('ProgressHistory: Migration complete. Migrated ' + migrated + ' entries');
-      return { success: true, message: 'Migrated ' + migrated + ' entries', migrated: migrated };
+      var message = 'Migrated ' + migrated + ' entries';
+      if (skippedPairs > 0) {
+        message += ' (' + skippedPairs + ' client+tool pairs already migrated)';
+      }
+      LogUtils.debug('ProgressHistory: Migration complete. ' + message);
+      return { success: true, message: message, migrated: migrated };
 
     } catch (error) {
       LogUtils.error('ProgressHistory: Migration error: ' + error);

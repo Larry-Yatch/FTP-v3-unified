@@ -275,9 +275,9 @@
           shouldRecover = true;
         }
 
-        // Case 3: Stored tool/report but current is login or dashboard (URL had no params)
+        // Case 3: Stored tool/report/progress but current is login or dashboard (URL had no params)
         // This happens when login used document.write() and URL never changed
-        if ((storedLocation.view === 'tool' || storedLocation.view === 'report') &&
+        if ((storedLocation.view === 'tool' || storedLocation.view === 'report' || storedLocation.view === 'progress') &&
             (currentLocation.view === 'login' || currentLocation.view === 'dashboard')) {
           console.log('[HistoryManager] Refresh detected! User was in', storedLocation.view, 'but URL loaded', currentLocation.view);
           shouldRecover = true;
@@ -304,6 +304,12 @@
             case 'report':
               if (storedLocation.toolId && recoveryClientId) {
                 loadReport(storedLocation.toolId, recoveryClientId);
+                return; // Exit - page will reload
+              }
+              break;
+            case 'progress':
+              if (recoveryClientId) {
+                loadProgressPage(recoveryClientId);
                 return; // Exit - page will reload
               }
               break;
@@ -494,6 +500,9 @@
             console.warn('[HistoryManager] Report state missing toolId, going to dashboard');
             loadDashboard(clientId, HIST_NAV_FALLBACK_MS);
           }
+          break;
+        case 'progress':
+          loadProgressPage(clientId, HIST_NAV_FALLBACK_MS);
           break;
         default:
           console.warn('[HistoryManager] Unknown view:', state.view);
@@ -1005,6 +1014,37 @@
   }
 
   /**
+   * Load the progress page
+   * @param {string} clientId
+   * @param {number} [timeoutMs] - Fallback timeout (default NAV_FALLBACK_MS)
+   */
+  function loadProgressPage(clientId, timeoutMs) {
+    if (typeof showLoading === 'function') {
+      showLoading('Loading Progress');
+    }
+
+    var timeout = timeoutMs || NAV_FALLBACK_MS;
+    var fallbackTimer = setTimeout(function() {
+      console.warn('[HistoryManager] google.script.run callback timeout (' + timeout + 'ms) - showing fallback button');
+      showFallbackButton('progress', clientId);
+    }, timeout);
+
+    google.script.run
+      .withSuccessHandler(function(html) {
+        clearTimeout(fallbackTimer);
+        if (_fallbackClicked) return;
+        saveLocation('progress', {});
+        writeAndFinishRestore(html);
+      })
+      .withFailureHandler(function(error) {
+        clearTimeout(fallbackTimer);
+        if (_fallbackClicked) return;
+        handleNavError(error, 'progress page');
+      })
+      .getProgressPage(clientId);
+  }
+
+  /**
    * Write HTML to document and finish restoration
    * @param {string} html
    */
@@ -1096,6 +1136,9 @@
         break;
       case 'dashboard':
         loadDashboard(storedLocation.clientId);
+        break;
+      case 'progress':
+        loadProgressPage(storedLocation.clientId);
         break;
     }
   }
