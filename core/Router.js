@@ -1955,10 +1955,8 @@ const Router = {
    */
   _handleError(error) {
     LogUtils.error('Route handler error: ' + error);
-    return HtmlService.createHtmlOutput(`
-      <h1>Error</h1>
-      <p>${error.toString()}</p>
-      <a href="${ScriptApp.getService().getUrl()}?route=login">Go to Login</a>
-    `);
+    return HtmlService.createHtmlOutput(
+      NavigationHelpers.renderErrorPage('Error', error, null)
+    );
   }
 };

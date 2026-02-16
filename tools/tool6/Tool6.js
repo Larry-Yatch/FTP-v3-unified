@@ -7840,27 +7840,9 @@ const Tool6 = {
    * Render error page
    */
   renderError(error) {
-    return HtmlService.createHtmlOutput(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Error - Tool 6</title>
-        <style>
-          body { font-family: system-ui, sans-serif; padding: 40px; background: #1a1a2e; color: #eee; }
-          .error-box { background: rgba(239, 68, 68, 0.1); border: 1px solid #ef4444; padding: 24px; border-radius: 8px; }
-          h1 { color: #ef4444; }
-          pre { background: rgba(0,0,0,0.3); padding: 16px; border-radius: 4px; overflow-x: auto; }
-        </style>
-      </head>
-      <body>
-        <div class="error-box">
-          <h1>Tool 6 Error</h1>
-          <p>${error.message || error.toString()}</p>
-          <pre>${error.stack || 'No stack trace available'}</pre>
-        </div>
-      </body>
-      </html>
-    `);
+    return HtmlService.createHtmlOutput(
+      NavigationHelpers.renderErrorPage('Tool 6 Error', error, null, { styled: true, showStack: true })
+    ).setTitle('TruPath - Error');
   },
 
   /**

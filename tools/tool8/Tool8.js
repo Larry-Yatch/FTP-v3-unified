@@ -2555,40 +2555,6 @@ const Tool8 = {
    * @returns {string} HTML
    */
   renderError(message) {
-    return '<!DOCTYPE html>\n' +
-'<html>\n' +
-'<head>\n' +
-'  <meta charset="utf-8">\n' +
-'  <title>Tool 8 - Error</title>\n' +
-'  <style>\n' +
-'    body {\n' +
-'      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;\n' +
-'      background: #1a1a2e;\n' +
-'      color: #e0e0e0;\n' +
-'      display: flex;\n' +
-'      align-items: center;\n' +
-'      justify-content: center;\n' +
-'      min-height: 100vh;\n' +
-'      padding: 20px;\n' +
-'    }\n' +
-'    .error-card {\n' +
-'      background: #16213e;\n' +
-'      border: 1px solid rgba(220, 53, 69, 0.3);\n' +
-'      border-radius: 12px;\n' +
-'      padding: 40px;\n' +
-'      max-width: 500px;\n' +
-'      text-align: center;\n' +
-'    }\n' +
-'    .error-card h2 { color: #dc3545; margin-bottom: 12px; }\n' +
-'    .error-card p { color: #a0a0a0; line-height: 1.6; }\n' +
-'  </style>\n' +
-'</head>\n' +
-'<body>\n' +
-'  <div class="error-card">\n' +
-'    <h2>Something went wrong</h2>\n' +
-'    <p>' + message + '</p>\n' +
-'  </div>\n' +
-'</body>\n' +
-'</html>';
+    return NavigationHelpers.renderErrorPage('Something went wrong', message, null, { styled: true });
   }
 };

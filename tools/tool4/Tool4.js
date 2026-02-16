@@ -7090,24 +7090,9 @@ buildUnifiedPage(clientId, toolStatus, preSurveyData, allocation) {
    * Render error page
    */
   renderError(error) {
-    return HtmlService.createHtmlOutput(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <style>
-          body { font-family: system-ui; padding: 40px; }
-          .error { background: #fee; padding: 20px; border-left: 4px solid #ef4444; }
-        </style>
-      </head>
-      <body>
-        <h1>Error Loading Tool 4</h1>
-        <div class="error">
-          <strong>Error:</strong> ${error.toString()}
-        </div>
-        <p>This error has been logged. Please try again or contact support.</p>
-      </body>
-      </html>
-    `).setTitle('TruPath - Error');
+    return HtmlService.createHtmlOutput(
+      NavigationHelpers.renderErrorPage('Error Loading Tool 4', error, null, { styled: true })
+    ).setTitle('TruPath - Error');
   }
 };
 

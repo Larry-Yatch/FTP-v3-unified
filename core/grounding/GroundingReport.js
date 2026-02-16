@@ -141,42 +141,7 @@ const GroundingReport = {
             transform: translateY(-2px);
           }
 
-          .loading-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(30, 25, 43, 0.95);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 9999;
-            flex-direction: column;
-          }
-
-          .loading-overlay.active {
-            display: flex;
-          }
-
-          .loading-spinner {
-            width: 50px;
-            height: 50px;
-            border: 4px solid rgba(173, 145, 104, 0.3);
-            border-top-color: #ad9168;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-          }
-
-          @keyframes spin {
-            to { transform: rotate(360deg); }
-          }
-
-          .loading-text {
-            color: #ad9168;
-            font-size: 18px;
-            margin-top: 20px;
-          }
+          ${ReportStyles.getLoadingCSS()}
           .report-header {
             text-align: center;
             margin-bottom: 40px;
@@ -366,11 +331,7 @@ const GroundingReport = {
         </style>
       </head>
       <body>
-        <!-- Loading Overlay -->
-        <div id="loadingOverlay" class="loading-overlay">
-          <div class="loading-spinner"></div>
-          <div class="loading-text">Loading...</div>
-        </div>
+        ${ReportStyles.getLoadingHTML()}
 
         <div class="container">
           <div class="tool-navigation">
