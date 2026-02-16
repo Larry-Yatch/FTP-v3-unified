@@ -1624,13 +1624,41 @@ const PDFGenerator = {
       html += '</div>';
       html += '<p>' + narrative.gapNarrative + '</p>';
     } else if (!sections.awarenessGap) {
-      var hasGapData = gap && gap.severity === 'normal';
-      if (!hasGapData) {
+      // Check if the required tools are actually completed — if so, the gap is
+      // either "normal" or the calculation returned null (data extraction issue).
+      // In either case, do NOT show the misleading "complete tools to unlock" message.
+      var gapSummary = analysisData.summary || {};
+      var gapTools = gapSummary.tools || {};
+      var hasT2Done = gapTools.tool2 && gapTools.tool2.status === 'completed';
+      var hasGroundingDone = (gapTools.tool3 && gapTools.tool3.status === 'completed') ||
+                             (gapTools.tool5 && gapTools.tool5.status === 'completed') ||
+                             (gapTools.tool7 && gapTools.tool7.status === 'completed');
+
+      if (hasT2Done && hasGroundingDone) {
+        // Tools are complete but no significant gap detected — this is a valid finding
         html += '<hr class="section-divider">';
         html += '<h2>Your Awareness Gap</h2>';
         html += this._buildMissingSectionBox(
           'The awareness gap measures whether you see the full financial impact of your psychological patterns.',
-          'Complete Tool 2 (Financial Clarity) and a grounding tool (Tool 3, 5, or 7) to unlock this section.'
+          'No significant awareness gap detected in your results.'
+        );
+      } else if (!(gap && gap.severity === 'normal')) {
+        // Tools genuinely missing — show unlock hint
+        var gapHint = 'Complete ';
+        if (!hasT2Done && !hasGroundingDone) {
+          gapHint += 'Tool 2 (Financial Clarity) and a grounding tool (Tool 3, 5, or 7)';
+        } else if (!hasT2Done) {
+          gapHint += 'Tool 2 (Financial Clarity)';
+        } else {
+          gapHint += 'a grounding tool (Tool 3, 5, or 7)';
+        }
+        gapHint += ' to unlock this section.';
+
+        html += '<hr class="section-divider">';
+        html += '<h2>Your Awareness Gap</h2>';
+        html += this._buildMissingSectionBox(
+          'The awareness gap measures whether you see the full financial impact of your psychological patterns.',
+          gapHint
         );
       }
     }
@@ -1818,16 +1846,12 @@ const PDFGenerator = {
         }
       }
 
-      // Tool 3: Identity & Validation (Grounding)
-      if (summary.tools.tool3 && summary.tools.tool3.status === 'completed') {
-        try {
-          data.tool3 = GroundingReport.getResults(clientId, 'tool3');
-        } catch (e) {
-          Logger.log('[Capstone] Tool 3 data fetch failed: ' + e.message);
-        }
+      // Tool 3: Identity & Validation (Grounding) — data already in summary
+      if (summary.tools.tool3 && summary.tools.tool3.status === 'completed' && summary.tools.tool3.data) {
+        data.tool3 = summary.tools.tool3.data;
       }
 
-      // Tool 4: Budget Framework — data comes from summary directly (no separate Report class)
+      // Tool 4: Budget Framework — data comes from summary directly
       if (summary.tools.tool4 && summary.tools.tool4.status === 'completed') {
         var t4raw = summary.tools.tool4.data;
         if (t4raw) {
@@ -1842,40 +1866,32 @@ const PDFGenerator = {
         }
       }
 
-      // Tool 5: Love & Connection (Grounding)
-      if (summary.tools.tool5 && summary.tools.tool5.status === 'completed') {
-        try {
-          data.tool5 = GroundingReport.getResults(clientId, 'tool5');
-        } catch (e) {
-          Logger.log('[Capstone] Tool 5 data fetch failed: ' + e.message);
-        }
+      // Tool 5: Love & Connection (Grounding) — data already in summary
+      if (summary.tools.tool5 && summary.tools.tool5.status === 'completed' && summary.tools.tool5.data) {
+        data.tool5 = summary.tools.tool5.data;
       }
 
-      // Tool 6: Retirement Blueprint
-      if (summary.tools.tool6 && summary.tools.tool6.status === 'completed') {
-        try {
-          data.tool6 = Tool6Report.getResults(clientId);
-        } catch (e) {
-          Logger.log('[Capstone] Tool 6 data fetch failed: ' + e.message);
-        }
+      // Tool 6: Retirement Blueprint — data already in summary
+      if (summary.tools.tool6 && summary.tools.tool6.status === 'completed' && summary.tools.tool6.data) {
+        data.tool6 = summary.tools.tool6.data;
       }
 
-      // Tool 7: Security & Control (Grounding)
-      if (summary.tools.tool7 && summary.tools.tool7.status === 'completed') {
-        try {
-          data.tool7 = GroundingReport.getResults(clientId, 'tool7');
-        } catch (e) {
-          Logger.log('[Capstone] Tool 7 data fetch failed: ' + e.message);
-        }
+      // Tool 7: Security & Control (Grounding) — data already in summary
+      if (summary.tools.tool7 && summary.tools.tool7.status === 'completed' && summary.tools.tool7.data) {
+        data.tool7 = summary.tools.tool7.data;
       }
 
-      // Tool 8: Investment Planning
-      if (summary.tools.tool8 && summary.tools.tool8.status === 'completed') {
-        try {
-          data.tool8 = Tool8Report.getResults(clientId);
-        } catch (e) {
-          Logger.log('[Capstone] Tool 8 data fetch failed: ' + e.message);
-        }
+      // Tool 8: Investment Planning — data already in summary, map field names
+      if (summary.tools.tool8 && summary.tools.tool8.status === 'completed' && summary.tools.tool8.data) {
+        var t8raw = summary.tools.tool8.data;
+        data.tool8 = {
+          scenarioName: t8raw.scenarioName || '',
+          monthlyInvestment: t8raw.M_real || t8raw.monthlyInvestment || 0,
+          timeHorizon: t8raw.T || t8raw.timeHorizon || 0,
+          risk: t8raw.risk,
+          projectedBalance: t8raw.projectedBalance || 0,
+          feasibility: t8raw.feasibility || ''
+        };
       }
 
     } catch (e) {
@@ -2048,13 +2064,39 @@ const PDFGenerator = {
       html += '</div>';
       html += '<p>' + narrative.gapNarrative + '</p>';
     } else if (!sections.awarenessGap) {
-      var hasGapData = gap && gap.severity === 'normal';
-      if (!hasGapData) {
+      // Check if required tools are completed — if so, gap is normal or data
+      // extraction returned null. Do not show misleading "complete tools" message.
+      var capTools = summary.tools || {};
+      var capHasT2 = capTools.tool2 && capTools.tool2.status === 'completed';
+      var capHasGrounding = (capTools.tool3 && capTools.tool3.status === 'completed') ||
+                            (capTools.tool5 && capTools.tool5.status === 'completed') ||
+                            (capTools.tool7 && capTools.tool7.status === 'completed');
+
+      if (capHasT2 && capHasGrounding) {
+        // Tools complete but no significant gap — valid finding
         html += '<hr class="section-divider">';
         html += '<h3>Your Awareness Gap</h3>';
         html += this._buildMissingSectionBox(
           'The awareness gap measures whether you see the full financial impact of your psychological patterns.',
-          'Complete Tool 2 (Financial Clarity) and a grounding tool (Tool 3, 5, or 7) to unlock this section.'
+          'No significant awareness gap detected in your results.'
+        );
+      } else if (!(gap && gap.severity === 'normal')) {
+        // Tools genuinely missing — show specific unlock hint
+        var capGapHint = 'Complete ';
+        if (!capHasT2 && !capHasGrounding) {
+          capGapHint += 'Tool 2 (Financial Clarity) and a grounding tool (Tool 3, 5, or 7)';
+        } else if (!capHasT2) {
+          capGapHint += 'Tool 2 (Financial Clarity)';
+        } else {
+          capGapHint += 'a grounding tool (Tool 3, 5, or 7)';
+        }
+        capGapHint += ' to unlock this section.';
+
+        html += '<hr class="section-divider">';
+        html += '<h3>Your Awareness Gap</h3>';
+        html += this._buildMissingSectionBox(
+          'The awareness gap measures whether you see the full financial impact of your psychological patterns.',
+          capGapHint
         );
       }
     }
@@ -2184,15 +2226,18 @@ const PDFGenerator = {
       html += '</div>';
     }
 
-    // Closing Statement
-    html += '<div style="text-align: center; margin-top: 30px; padding: 20px;">';
+    // Closing Statement + Footer (kept together to avoid orphan footer page)
+    html += '<div style="page-break-inside: avoid;">';
+    html += '<div style="text-align: center; margin-top: 20px; padding: 15px 20px;">';
     html += '<p style="font-size: 15px; color: #555; line-height: 1.7;">This report is a snapshot of where you are today. ' +
       'Your patterns are not your destiny — they are the starting point for change. ' +
       'Bring this document to your next coaching session and use it as a roadmap for your financial transformation.</p>';
     html += '</div>';
-
-    // Footer
-    html += this.buildFooter('This capstone report integrates your psychological and financial assessment results. Use it as a comprehensive guide for your coaching conversations and future growth.');
+    html += '<div class="footer" style="font-size: 13px; margin-top: 15px;">' +
+      '<p style="margin: 0 0 10px 0;">This capstone report integrates your psychological and financial assessment results. Use it as a comprehensive guide for your coaching conversations and future growth.</p>' +
+      '<p style="margin-top: 10px;"><strong>TruPath Financial</strong><br>Generated: ' + new Date().toLocaleDateString() + '</p>' +
+    '</div>';
+    html += '</div>';
 
     return html;
   },
@@ -2354,7 +2399,9 @@ const PDFGenerator = {
 
       // Priority domain
       if (t2Data.results.priorityList && t2Data.results.priorityList.length > 0) {
-        html += '<p style="margin-top: 8px;"><strong>Priority Focus:</strong> ' + t2Data.results.priorityList[0].domain + '</p>';
+        var domainName = t2Data.results.priorityList[0].domain;
+        domainName = domainName.charAt(0).toUpperCase() + domainName.slice(1);
+        html += '<p style="margin-top: 8px;"><strong>Priority Focus:</strong> ' + domainName + '</p>';
       }
     }
 
