@@ -3087,12 +3087,46 @@ const CollectiveResults = {
 
             btn.textContent = 'Generating Report...';
             btn.disabled = true;
+
+            // Coaching tips that cycle while the report generates
+            var tips = [
+              'Analyzing your psychological patterns...',
+              'Did you know? Your dominant trauma strategy shapes how you budget, save, and invest.',
+              'Cross-referencing your financial behaviors with your beliefs...',
+              'Tip: Awareness of your patterns is the first step to changing them.',
+              'Building your personalized narrative...',
+              'Insight: The gap between what you believe and how you act reveals where growth happens.',
+              'Assembling your integration report...',
+              'Tip: Share this report with your coach to get the most out of your next session.',
+              'Finalizing your PDF...'
+            ];
+            var tipIndex = 0;
+            var tipInterval = null;
+
             if (typeof showLoading === 'function') {
-              showLoading('Generating Report...', 'Creating your personalized integration PDF');
+              showLoading(tips[0]);
+              tipInterval = setInterval(function() {
+                tipIndex = (tipIndex + 1) % tips.length;
+                var overlay = document.getElementById('loadingOverlay');
+                if (overlay) {
+                  var text = overlay.querySelector('.loading-text');
+                  if (text) {
+                    text.innerHTML = tips[tipIndex] + '<span class="loading-dots"></span>';
+                  }
+                }
+              }, 3000);
+            }
+
+            function stopTips() {
+              if (tipInterval) {
+                clearInterval(tipInterval);
+                tipInterval = null;
+              }
             }
 
             google.script.run
               .withSuccessHandler(function(res) {
+                stopTips();
                 if (typeof hideLoading === 'function') hideLoading();
                 btn.textContent = 'Download Integration Report';
                 btn.disabled = false;
@@ -3111,6 +3145,7 @@ const CollectiveResults = {
                 }
               })
               .withFailureHandler(function(err) {
+                stopTips();
                 if (typeof hideLoading === 'function') hideLoading();
                 btn.textContent = 'Download Integration Report';
                 btn.disabled = false;
