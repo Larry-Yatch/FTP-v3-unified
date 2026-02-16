@@ -36,6 +36,7 @@ console-*.js
 tests/**
 !tests/Tool4Tests.js
 !tests/Phase1ValidationSuite.js
+!tests/Tier2ValidationSuite.js
 examples/**
 tools/MultiPageToolTemplate.js
 
