@@ -1457,5 +1457,298 @@ const PDFGenerator = {
       Logger.log('[PDFGenerator] Error generating Tool 4 Comparison PDF: ' + error);
       return { success: false, error: error.toString() };
     }
+  },
+
+  // ============================================================
+  // INTEGRATION REPORT PDF
+  // ============================================================
+
+  /**
+   * Generate Integration Report PDF.
+   * Combines detection engine outputs with GPT narrative into a print-ready PDF.
+   *
+   * Uses _checkReportReadiness() to determine which sections have data and
+   * to avoid running detection engines twice.
+   *
+   * @param {string} clientId - Student ID
+   * @returns {Object} {success, pdf, fileName, mimeType} or {success: false, error}
+   */
+  generateIntegrationPDF(clientId) {
+    try {
+      Logger.log('[PDFGenerator] Generating Integration PDF for ' + clientId);
+
+      // 1. Get student summary and check readiness
+      var summary = CollectiveResults.getStudentSummary(clientId);
+      var readiness = CollectiveResults._checkReportReadiness(summary);
+
+      if (!readiness.ready) {
+        var reason = readiness.sectionCount === 0
+          ? 'No integration data available yet. Complete Tool 1 and at least one other tool.'
+          : 'Only ' + readiness.sectionCount + ' section available. Complete more tools for a meaningful report.';
+        return { success: false, error: reason };
+      }
+
+      // Use pre-computed analysis data from readiness check (avoids running engines twice)
+      var analysisData = readiness.analysisData;
+
+      // 2. Generate GPT narrative (with 3-tier fallback)
+      var narrative = IntegrationGPT.generateNarrative(analysisData);
+      Logger.log('[PDFGenerator] Narrative source: ' + narrative.source);
+
+      // 3. Build report HTML
+      var studentName = this._getStudentName(clientId) || 'Student';
+      var styles = this.getCommonStyles() + this._getIntegrationStyles();
+      var bodyContent = this._buildIntegrationReportBody(clientId, studentName, analysisData, narrative, readiness);
+      var html = this.buildHTMLDocument(styles, bodyContent);
+
+      // 4. Convert to PDF
+      var fileName = this.generateFileName('IntegrationReport', studentName);
+      return this.htmlToPDF(html, fileName);
+
+    } catch (error) {
+      Logger.log('[PDFGenerator] Integration PDF error: ' + error);
+      return { success: false, error: error.toString() };
+    }
+  },
+
+  /**
+   * Integration Report specific styles (supplements getCommonStyles)
+   */
+  _getIntegrationStyles() {
+    return '\n' +
+      '.profile-card { background: #f8f6f3; border: 2px solid #ad9168; border-radius: 12px; padding: 20px; text-align: center; margin: 20px 0; }\n' +
+      '.profile-name { font-size: 22px; font-weight: 700; color: #ad9168; margin: 10px 0; }\n' +
+      '.profile-desc { color: #555; line-height: 1.6; max-width: 600px; margin: 0 auto; }\n' +
+      '.warning-box { padding: 12px 15px; border-radius: 6px; margin: 10px 0; border-left: 4px solid; }\n' +
+      '.warning-critical { background: #fef2f2; border-color: #ef4444; }\n' +
+      '.warning-high { background: #fffbeb; border-color: #f59e0b; }\n' +
+      '.warning-medium { background: #f9fafb; border-color: #9ca3af; }\n' +
+      '.lock-box { background: #f5f3ff; border: 1px solid #c4b5fd; border-radius: 8px; padding: 15px; margin: 10px 0; }\n' +
+      '.lock-belief { padding: 4px 0; font-size: 14px; }\n' +
+      '.lock-impact { font-size: 13px; color: #666; margin-top: 8px; font-style: italic; }\n' +
+      '.gap-visual { background: #f0f9ff; border: 1px solid #93c5fd; border-radius: 8px; padding: 15px; margin: 15px 0; }\n' +
+      '.gap-bar { height: 18px; border-radius: 9px; margin: 6px 0; }\n' +
+      '.gap-bar-psych { background: linear-gradient(90deg, #fbbf24, #ef4444); }\n' +
+      '.gap-bar-stress { background: linear-gradient(90deg, #10b981, #22c55e); }\n' +
+      '.synthesis-box { background: #f0fdf4; border-left: 4px solid #22c55e; padding: 20px; margin: 20px 0; font-size: 15px; line-height: 1.7; }\n' +
+      '.action-list { background: #eff6ff; border: 1px solid #93c5fd; border-radius: 8px; padding: 15px 15px 15px 35px; margin: 15px 0; }\n' +
+      '.action-list li { margin: 10px 0; line-height: 1.5; }\n' +
+      '.source-tag { display: inline-block; background: #f3f4f6; padding: 3px 10px; border-radius: 10px; font-size: 11px; color: #6b7280; margin-top: 5px; }\n' +
+      '.source-tag.gpt { background: #dcfce7; color: #16a34a; }\n' +
+      '.section-divider { border: none; border-top: 1px solid #e5e7eb; margin: 25px 0; }\n' +
+      '.bb-gap-table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 10px 0; }\n' +
+      '.bb-gap-table th { text-align: left; padding: 8px; border-bottom: 2px solid #e5e7eb; color: #555; font-size: 12px; }\n' +
+      '.bb-gap-table td { padding: 8px; border-bottom: 1px solid #f3f4f6; }\n' +
+      '.missing-section-box { background: #f9fafb; border: 1px dashed #d1d5db; border-radius: 8px; padding: 20px; text-align: center; margin: 15px 0; }\n' +
+      '@media print { .page-break { page-break-before: always; } }\n';
+  },
+
+  /**
+   * Build the Integration Report body HTML from analysis data and GPT narrative.
+   *
+   * For sections without data, shows a brief explanatory box telling the student
+   * which tool(s) to complete to unlock that section.
+   *
+   * @param {string} clientId
+   * @param {string} studentName
+   * @param {Object} analysisData - detection engine results
+   * @param {Object} narrative - GPT or fallback narrative
+   * @param {Object} readiness - from _checkReportReadiness()
+   */
+  _buildIntegrationReportBody(clientId, studentName, analysisData, narrative, readiness) {
+    var profile = analysisData.profile;
+    var warnings = analysisData.warnings;
+    var gap = analysisData.awarenessGap;
+    var locks = analysisData.locks;
+    var bbGaps = analysisData.bbGaps;
+    var sections = readiness.sections;
+
+    var html = '';
+
+    // Header
+    html += this.buildHeader('Your Integration Report', studentName);
+
+    // Source tag
+    var sourceLabel = (narrative.source && narrative.source.indexOf('gpt') !== -1) ? 'Personalized Analysis' : 'Standard Analysis';
+    var sourceClass = (narrative.source && narrative.source.indexOf('gpt') !== -1) ? 'gpt' : '';
+    html += '<p style="text-align: right;"><span class="source-tag ' + sourceClass + '">' + sourceLabel + '</span></p>';
+
+    // Completion context
+    if (readiness.sectionCount < readiness.totalSections) {
+      html += '<div style="margin-bottom: 20px;">' +
+        '<p style="line-height: 1.6;">This report integrates your results across all completed TruPath assessments. It identifies ' +
+        'where your psychological patterns are directly affecting your financial behaviors, and gives you ' +
+        'specific areas to focus on.</p>' +
+        '<p style="color: #ad9168; font-size: 14px;"><strong>Report Coverage: ' +
+          readiness.sectionCount + ' of ' + readiness.totalSections + ' sections.</strong> ' +
+          'Complete additional tools to unlock the remaining sections and get a more comprehensive analysis.</p>' +
+      '</div>';
+    } else {
+      html += '<div style="margin-bottom: 20px;">' +
+        '<p style="line-height: 1.6;">This report integrates your results across all completed TruPath assessments. It identifies ' +
+        'where your psychological patterns are directly affecting your financial behaviors, and gives you ' +
+        'specific areas to focus on.</p>' +
+      '</div>';
+    }
+
+    // --- Section 1: Your Profile ---
+    if (sections.profile && profile && narrative.profileNarrative) {
+      html += '<h2>Your Integration Profile</h2>';
+      html += '<div class="profile-card">';
+      html += '<div style="font-size: 2rem;">' + (profile.icon || '') + '</div>';
+      html += '<div class="profile-name">' + profile.name + '</div>';
+      html += '<p class="profile-desc">' + narrative.profileNarrative + '</p>';
+      html += '</div>';
+    } else if (!sections.profile) {
+      html += '<h2>Your Integration Profile</h2>';
+      html += this._buildMissingSectionBox(
+        'Your integration profile identifies your core psychological-financial pattern.',
+        'Complete Tool 1 (Core Trauma Assessment) to unlock this section.'
+      );
+    }
+
+    // --- Section 2: Awareness Gap ---
+    if (sections.awarenessGap && gap && gap.severity !== 'normal' && narrative.gapNarrative) {
+      html += '<hr class="section-divider">';
+      html += '<h2>Your Awareness Gap</h2>';
+      html += '<div class="gap-visual">';
+      html += '<p><strong>Psychological Patterns:</strong> ' + gap.psychScore + '/100</p>';
+      html += '<div class="gap-bar gap-bar-psych" style="width: ' + gap.psychScore + '%;"></div>';
+      html += '<p><strong>Stress Awareness:</strong> ' + gap.stressScore + '/100</p>';
+      html += '<div class="gap-bar gap-bar-stress" style="width: ' + gap.stressScore + '%;"></div>';
+      html += '<p style="text-align: center; margin-top: 10px;"><strong>Gap: ' + gap.gapScore + ' points</strong></p>';
+      html += '</div>';
+      html += '<p>' + narrative.gapNarrative + '</p>';
+    } else if (!sections.awarenessGap) {
+      var hasGapData = gap && gap.severity === 'normal';
+      if (!hasGapData) {
+        html += '<hr class="section-divider">';
+        html += '<h2>Your Awareness Gap</h2>';
+        html += this._buildMissingSectionBox(
+          'The awareness gap measures whether you see the full financial impact of your psychological patterns.',
+          'Complete Tool 2 (Financial Clarity) and a grounding tool (Tool 3, 5, or 7) to unlock this section.'
+        );
+      }
+    }
+
+    // --- Section 3: Active Warnings ---
+    if (sections.warnings && warnings && warnings.length > 0 && narrative.warningNarrative) {
+      html += '<hr class="section-divider">';
+      html += '<h2>Active Patterns Affecting Your Finances</h2>';
+      html += '<p>' + narrative.warningNarrative + '</p>';
+
+      for (var w = 0; w < Math.min(warnings.length, 6); w++) {
+        var warning = warnings[w];
+        var wClass = 'warning-medium';
+        if (warning.priority === 'CRITICAL') wClass = 'warning-critical';
+        else if (warning.priority === 'HIGH') wClass = 'warning-high';
+
+        html += '<div class="warning-box ' + wClass + '">';
+        html += '<p><strong>' + warning.type.replace(/_/g, ' ') + '</strong></p>';
+        html += '<p>' + warning.message + '</p>';
+        html += '<p style="font-size: 12px; color: #888;">Based on: ' + warning.sources.join(' + ') + '</p>';
+        html += '</div>';
+      }
+    }
+
+    // --- Section 4: Belief Locks ---
+    if (sections.beliefLocks && locks && locks.length > 0 && narrative.lockNarrative) {
+      html += '<hr class="section-divider">';
+      html += '<div class="page-break"></div>';
+      html += '<h2>Your Belief Locks</h2>';
+      html += '<p>' + narrative.lockNarrative + '</p>';
+
+      for (var l = 0; l < Math.min(locks.length, 4); l++) {
+        var lock = locks[l];
+        html += '<div class="lock-box">';
+        html += '<p><strong>' + lock.name + '</strong> <span style="color: #888;">(' + lock.strength + ')</span></p>';
+
+        for (var b = 0; b < lock.beliefs.length; b++) {
+          var belief = lock.beliefs[b];
+          html += '<p class="lock-belief">"' + belief.label + '" - ' + belief.tool + ': ' + belief.score + '/100</p>';
+        }
+
+        html += '<p class="lock-impact">' + lock.financialImpact + '</p>';
+        html += '</div>';
+      }
+    }
+
+    // --- Section 5: Belief-Behavior Gaps ---
+    if (sections.beliefBehaviorGaps && bbGaps && bbGaps.length > 0) {
+      html += '<hr class="section-divider">';
+      html += '<h2>Where Your Beliefs and Actions Diverge</h2>';
+      html += '<p style="color: #555; margin-bottom: 12px;">These gaps show where what you believe does not match how you act. The larger the gap, the more internal conflict is present.</p>';
+
+      html += '<table class="bb-gap-table">';
+      html += '<tr><th>Belief</th><th>Tool</th><th>Belief Score</th><th>Action Score</th><th>Gap</th><th>Pattern</th></tr>';
+
+      for (var g = 0; g < Math.min(bbGaps.length, 6); g++) {
+        var bbGap = bbGaps[g];
+        html += '<tr>';
+        html += '<td>"' + bbGap.label + '"</td>';
+        html += '<td>' + bbGap.tool + '</td>';
+        html += '<td>' + bbGap.beliefScore + '</td>';
+        html += '<td>' + bbGap.behaviorScore + '</td>';
+        html += '<td style="color: #f59e0b; font-weight: 600;">' + bbGap.gap + '</td>';
+        html += '<td>' + bbGap.direction + '</td>';
+        html += '</tr>';
+      }
+
+      html += '</table>';
+
+      if (bbGaps.length > 6) {
+        html += '<p style="font-size: 12px; color: #888; text-align: center; margin-top: 8px;">' +
+          (bbGaps.length - 6) + ' additional gap' + (bbGaps.length - 6 > 1 ? 's' : '') + ' detected. Speak with your coach for the complete analysis.</p>';
+      }
+    }
+
+    // --- Overall Synthesis ---
+    if (narrative.overallSynthesis) {
+      html += '<hr class="section-divider">';
+      html += '<h2>The Big Picture</h2>';
+      html += '<div class="synthesis-box">' + narrative.overallSynthesis + '</div>';
+    }
+
+    // --- Action Items ---
+    if (narrative.actionItems && narrative.actionItems.length > 0) {
+      html += '<h2>Your Next Steps</h2>';
+      html += '<ol class="action-list">';
+      for (var a = 0; a < narrative.actionItems.length; a++) {
+        html += '<li>' + narrative.actionItems[a] + '</li>';
+      }
+      html += '</ol>';
+    }
+
+    // --- Missing Tools Summary ---
+    if (readiness.missing.length > 0) {
+      html += '<hr class="section-divider">';
+      html += '<h2>Unlock More Insights</h2>';
+      html += '<div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 15px;">';
+      html += '<p style="margin-bottom: 10px;">Complete these tools to get a more comprehensive integration report:</p>';
+      html += '<ul style="padding-left: 20px;">';
+      for (var m = 0; m < readiness.missing.length; m++) {
+        html += '<li style="margin: 8px 0; color: #555;">' + readiness.missing[m] + '</li>';
+      }
+      html += '</ul>';
+      html += '</div>';
+    }
+
+    // Footer
+    html += this.buildFooter('This integration report connects your psychological assessment results to your financial behaviors. Use it as a guide for your coaching conversations and future tool work.');
+
+    return html;
+  },
+
+  /**
+   * Build a "missing section" placeholder box for the PDF report.
+   * @param {string} description - What this section does
+   * @param {string} instruction - What tool(s) to complete
+   * @returns {string} HTML
+   */
+  _buildMissingSectionBox(description, instruction) {
+    return '<div class="missing-section-box">' +
+      '<p style="color: #6b7280; font-size: 14px; margin-bottom: 8px;">' + description + '</p>' +
+      '<p style="color: #ad9168; font-size: 13px; font-weight: 500;">' + instruction + '</p>' +
+    '</div>';
   }
 };

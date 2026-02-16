@@ -433,7 +433,37 @@ const CollectiveResults = {
       html += this._renderBeliefBehaviorGaps(engines.bbGaps);
     }
 
-    // Phase 9: Download button will be added here
+    // Phase 9: Download Integration Report button
+    var reportSections = 0;
+    var reportTotal = 5;
+    if (engines.profile) reportSections++;
+    if (engines.warnings && engines.warnings.length > 0) reportSections++;
+    if (engines.awarenessGap && engines.awarenessGap.severity !== 'normal') reportSections++;
+    if (engines.locks && engines.locks.length > 0) reportSections++;
+    if (engines.bbGaps && engines.bbGaps.length > 0) reportSections++;
+
+    var reportReady = reportSections >= 2;
+
+    if (reportReady) {
+      html += '<div style="text-align: center; margin-top: 25px;">' +
+        '<button id="integrationReportBtn" class="cr-report-download-btn" onclick="downloadIntegrationReport()">' +
+          'Download Integration Report' +
+        '</button>' +
+        '<p class="muted" style="font-size: 0.8rem; margin-top: 6px;">' +
+          reportSections + ' of ' + reportTotal + ' report sections available' +
+        '</p>' +
+        '<p id="integrationReportMsg" class="muted" style="font-size: 0.8rem; margin-top: 4px; min-height: 1.2em;"></p>' +
+      '</div>';
+    } else {
+      html += '<div style="text-align: center; margin-top: 25px;">' +
+        '<button class="cr-report-download-btn" disabled style="opacity: 0.4; cursor: not-allowed;">' +
+          'Download Integration Report' +
+        '</button>' +
+        '<p class="muted" style="font-size: 0.8rem; margin-top: 6px;">' +
+          'Complete more tools to unlock your integration report.' +
+        '</p>' +
+      '</div>';
+    }
 
     html += '</div>';
     return html;
@@ -1668,6 +1698,103 @@ const CollectiveResults = {
   },
 
   // ============================================================
+  // REPORT READINESS CHECK
+  // ============================================================
+
+  /**
+   * Phase 9: Check whether enough meaningful data exists for an integration report.
+   * Runs the detection engines and counts how many report sections actually have content.
+   *
+   * Ready when at least 2 of 5 sections have data.
+   *
+   * @param {Object} summary - from getStudentSummary()
+   * @returns {Object} { ready, sectionCount, totalSections, sections, missing, analysisData }
+   */
+  _checkReportReadiness(summary) {
+    var result = {
+      ready: false,
+      sectionCount: 0,
+      totalSections: 5,
+      sections: {
+        profile: false,
+        warnings: false,
+        awarenessGap: false,
+        beliefLocks: false,
+        beliefBehaviorGaps: false
+      },
+      missing: [],
+      analysisData: null
+    };
+
+    // Run all detection engines (they handle null data gracefully)
+    var profile = this._detectProfile(summary);
+    var warnings = this._generateWarnings(summary);
+    var gap = this._calculateAwarenessGap(summary);
+    var locks = this._detectBeliefLocks(summary);
+    var bbGaps = this._detectBeliefBehaviorGaps(summary);
+
+    // Check each section
+    if (profile) {
+      result.sections.profile = true;
+      result.sectionCount++;
+    } else {
+      result.missing.push('Complete Tool 1 (Core Trauma Assessment) to unlock your integration profile');
+    }
+
+    if (warnings && warnings.length > 0) {
+      result.sections.warnings = true;
+      result.sectionCount++;
+    } else if (profile) {
+      result.missing.push('Complete a grounding tool (Tool 3, 5, or 7) to detect cross-tool warning patterns');
+    }
+
+    if (gap && gap.severity !== 'normal') {
+      result.sections.awarenessGap = true;
+      result.sectionCount++;
+    } else {
+      var hasT2 = summary.tools.tool2 && summary.tools.tool2.status === 'completed';
+      var hasGrounding = (summary.tools.tool3 && summary.tools.tool3.status === 'completed') ||
+                         (summary.tools.tool5 && summary.tools.tool5.status === 'completed') ||
+                         (summary.tools.tool7 && summary.tools.tool7.status === 'completed');
+      if (!hasT2 && !hasGrounding) {
+        result.missing.push('Complete Tool 2 (Financial Clarity) and a grounding tool to calculate your awareness gap');
+      } else if (!hasT2) {
+        result.missing.push('Complete Tool 2 (Financial Clarity) to calculate your awareness gap');
+      } else if (!hasGrounding) {
+        result.missing.push('Complete a grounding tool (Tool 3, 5, or 7) to calculate your awareness gap');
+      }
+      // If both exist but gap is "normal", that is a valid finding — not missing
+    }
+
+    if (locks && locks.length > 0) {
+      result.sections.beliefLocks = true;
+      result.sectionCount++;
+    }
+    // Locks require specific cross-tool combinations — no simple missing message needed
+
+    if (bbGaps && bbGaps.length > 0) {
+      result.sections.beliefBehaviorGaps = true;
+      result.sectionCount++;
+    }
+    // BB Gaps depend on aspect-level data — absence is not necessarily "missing"
+
+    // Store engine results to avoid running them twice
+    result.analysisData = {
+      profile: profile,
+      warnings: warnings,
+      awarenessGap: gap,
+      locks: locks,
+      bbGaps: bbGaps,
+      summary: summary
+    };
+
+    // Ready if at least 2 sections have content
+    result.ready = result.sectionCount >= 2;
+
+    return result;
+  },
+
+  // ============================================================
   // TOOL 1 CARD: Trauma Strategy Overview
   // ============================================================
 
@@ -2864,6 +2991,30 @@ const CollectiveResults = {
         .cr-bb-gap-interpretation {
           line-height: 1.4;
         }
+
+        /* Integration Report Download Button */
+        .cr-report-download-btn {
+          background: linear-gradient(135deg, rgba(173, 145, 104, 0.2), rgba(75, 65, 102, 0.2));
+          border: 1px solid #ad9168;
+          color: #ad9168;
+          padding: 12px 24px;
+          border-radius: 8px;
+          font-size: 0.95rem;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          font-weight: 500;
+        }
+
+        .cr-report-download-btn:hover {
+          background: linear-gradient(135deg, rgba(173, 145, 104, 0.3), rgba(75, 65, 102, 0.3));
+          transform: translateY(-1px);
+        }
+
+        .cr-report-download-btn:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+          transform: none;
+        }
       </style>
     `;
   },
@@ -2927,6 +3078,45 @@ const CollectiveResults = {
                 alert('Error: ' + err.message);
               })
               .getDashboardPage(clientId);
+          };
+
+          window.downloadIntegrationReport = function() {
+            var btn = document.getElementById('integrationReportBtn');
+            var msg = document.getElementById('integrationReportMsg');
+            if (!btn) return;
+
+            btn.textContent = 'Generating Report...';
+            btn.disabled = true;
+            if (typeof showLoading === 'function') {
+              showLoading('Generating Report...', 'Creating your personalized integration PDF');
+            }
+
+            google.script.run
+              .withSuccessHandler(function(res) {
+                if (typeof hideLoading === 'function') hideLoading();
+                btn.textContent = 'Download Integration Report';
+                btn.disabled = false;
+
+                if (res && res.success) {
+                  var link = document.createElement('a');
+                  link.href = 'data:application/pdf;base64,' + res.pdf;
+                  link.download = res.fileName || 'TruPath_IntegrationReport.pdf';
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                  if (msg) msg.textContent = 'Report downloaded successfully!';
+                  setTimeout(function() { if (msg) msg.textContent = ''; }, 5000);
+                } else {
+                  if (msg) msg.textContent = 'Report generation failed: ' + (res ? res.error : 'Unknown error');
+                }
+              })
+              .withFailureHandler(function(err) {
+                if (typeof hideLoading === 'function') hideLoading();
+                btn.textContent = 'Download Integration Report';
+                btn.disabled = false;
+                if (msg) msg.textContent = 'Report generation failed: ' + err.message;
+              })
+              .generateIntegrationPDF(clientId);
           };
         })();
       </script>

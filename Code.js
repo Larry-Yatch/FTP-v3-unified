@@ -449,6 +449,11 @@ function generateTool8ComparisonPDF(clientId, scenario1, scenario2) {
   return _generatePDFForTool(clientId, 'tool8', function() { return Tool8Report.generateComparisonPDF(clientId, scenario1, scenario2); });
 }
 
+/** Generate Integration Report PDF */
+function generateIntegrationPDF(clientId) {
+  return _generatePDFForTool(clientId, 'integration', function() { return PDFGenerator.generateIntegrationPDF(clientId); });
+}
+
 // ========================================
 // ADMIN PDF WRAPPER FUNCTIONS
 // These fetch scenario data server-side so admin dashboard only needs clientId
