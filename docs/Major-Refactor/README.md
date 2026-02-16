@@ -8,7 +8,7 @@ All 8 tools are built and working. The application is slow and the codebase has 
 
 Each tier completes and is verified before the next begins. Never refactor and add features simultaneously.
 
-### Tier 1: Performance + Zero-Risk Extractions (CURRENT)
+### Tier 1: Performance + Zero-Risk Extractions
 **Risk: None** — No behavior changes. Cache data, reduce payloads, move duplicated code to shared locations.
 - Data layer caching (biggest performance win)
 - HTML payload reduction
@@ -53,7 +53,7 @@ Each tier completes and is verified before the next begins. Never refactor and a
 | Tier | Status | Phases | Notes |
 |------|--------|--------|-------|
 | Tier 1 | **COMPLETE** | 6 phases | All 6 phases done. See `tier-1-plan.md` |
-| Tier 2 | Planned | TBD | Plan after Tier 1 completes |
+| Tier 2 | **COMPLETE** | 4 phases | FormToolBase + GroundingToolBase + 5 tool migrations |
 | Tier 3 | Planned | TBD | Plan after Tier 2 completes |
 | Tier 4 | Planned | TBD | Plan after Tier 3 completes |
 
@@ -67,6 +67,15 @@ Each tier completes and is verified before the next begins. Never refactor and a
 | 4 | Shared Utility Extraction | **COMPLETE** — FormatUtils with currency/percentage/escapeHtml, Tool4 server-side wired |
 | 5 | Code.js PDF Wrapper Consolidation | **COMPLETE** — 9 wrappers consolidated via _generatePDFForTool helper |
 | 6 | Constants Extraction | **COMPLETE** — Tool2Constants + Tool4Constants created, inline config relocated |
+
+### Tier 2 Phase Progress
+
+| Phase | Description | Status |
+|-------|-------------|--------|
+| 1 | FormToolBase | **COMPLETE** — shared render/getExistingData/savePageData (188 lines) |
+| 2 | GroundingToolBase + Tools 3, 5, 7 | **COMPLETE** — ~1,500 lines eliminated from grounding tools |
+| 3 | Tool 1 Migration | **COMPLETE** — 700→547 lines, uses FormToolBase render + formConfig |
+| 4 | Tool 2 Migration | **COMPLETE** — 1,857→1,764 lines, overrides savePageData/getExistingData |
 
 ## Architecture Context
 

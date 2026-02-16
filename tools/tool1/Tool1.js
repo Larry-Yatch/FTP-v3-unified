@@ -3,105 +3,36 @@
  * Top-level psychological assessment
  */
 
-const Tool1 = {
+const Tool1 = Object.assign({}, FormToolBase, {
   manifest: null, // Will be injected by ToolRegistry
 
+  formConfig: {
+    toolId: 'tool1',
+    toolName: 'Core Trauma Strategy Assessment',
+    pageTitle: 'Core Trauma Strategy Assessment',
+    totalPages: 5
+  },
+
   /**
-   * Render the tool UI
-   * @param {Object} params - {clientId, sessionId, page, editMode, clearDraft}
-   * @returns {HtmlOutput}
+   * Custom validation for page 5 (unique ranking requirement)
    */
-  render(params) {
-    const clientId = params.clientId;
-    const page = parseInt(params.page) || 1;
-    const baseUrl = ScriptApp.getService().getUrl();
-
-    // Handle URL parameters for immediate navigation (preserves user gesture)
-    const editMode = params.editMode === 'true' || params.editMode === true;
-    const clearDraft = params.clearDraft === 'true' || params.clearDraft === true;
-
-    // Execute actions on page load (after navigation completes with user gesture)
-    // Call loadResponseForEditing to create EDIT_DRAFT from COMPLETED response
-    // This happens AFTER navigation so we preserve user gesture (no iframe errors)
-
-    if (editMode && page === 1) {
-      LogUtils.debug(`Edit mode detected for ${clientId} - creating EDIT_DRAFT`);
-      DataService.loadResponseForEditing(clientId, 'tool1');
-    }
-
-    if (clearDraft && page === 1) {
-      // Clear all drafts for fresh start
-      LogUtils.debug(`Clear draft triggered for ${clientId}`);
-      DataService.startFreshAttempt(clientId, 'tool1');
-    }
-
-    // Get existing data if resuming
-    const existingData = this.getExistingData(clientId);
-
-    // Get page-specific content
-    const pageContent = this.renderPageContent(page, existingData, clientId);
-
-    // Use FormUtils to build standard page structure
-    const template = HtmlService.createTemplate(
-      FormUtils.buildStandardPage({
-        toolName: 'Core Trauma Strategy Assessment',
-        toolId: 'tool1',
-        page: page,
-        totalPages: 5,
-        clientId: clientId,
-        baseUrl: baseUrl,
-        pageContent: pageContent,
-        isFinalPage: (page === 5),
-        customValidation: (page === 5) ? 'validateRankings' : null  // Page 5 has custom validation
-      })
-    );
-
-    return template.evaluate()
-      .setTitle('TruPath - Core Trauma Strategy Assessment')
-      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  getCustomValidation(page) {
+    return (page === 5) ? 'validateRankings' : null;
   },
 
   /**
    * Render page-specific content (just the form fields, not the full page)
-   * FormUtils will wrap this in standard page structure
+   * FormToolBase.render() wraps this in standard page structure
    */
   renderPageContent(page, existingData, clientId) {
-    let content = '';
-
-    // Add edit mode banner if editing previous response
-    if (existingData && existingData._editMode) {
-      const originalDate = existingData._originalTimestamp ?
-        new Date(existingData._originalTimestamp).toLocaleDateString('en-US', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric'
-        }) : 'previous submission';
-
-      content += EditModeBanner.render(originalDate, clientId, 'tool1');
-    }
-
-    // Add page-specific content
     switch(page) {
-      case 1:
-        content += this.renderPage1Content(existingData, clientId);
-        break;
-      case 2:
-        content += this.renderPage2Content(existingData, clientId);
-        break;
-      case 3:
-        content += this.renderPage3Content(existingData, clientId);
-        break;
-      case 4:
-        content += this.renderPage4Content(existingData, clientId);
-        break;
-      case 5:
-        content += this.renderPage5Content(existingData, clientId);
-        break;
-      default:
-        content += '<p class="error">Invalid page number</p>';
+      case 1: return this.renderPage1Content(existingData, clientId);
+      case 2: return this.renderPage2Content(existingData, clientId);
+      case 3: return this.renderPage3Content(existingData, clientId);
+      case 4: return this.renderPage4Content(existingData, clientId);
+      case 5: return this.renderPage5Content(existingData, clientId);
+      default: return '<p class="error">Invalid page number</p>';
     }
-
-    return content;
   },
 
   /**
@@ -435,82 +366,6 @@ const Tool1 = {
   },
 
   /**
-   * Save page data to both PropertiesService and RESPONSES sheet
-   * PropertiesService: Fast page-to-page navigation
-   * RESPONSES sheet: Dashboard draft detection
-   */
-  savePageData(clientId, page, formData) {
-    // Save to PropertiesService for fast page-to-page navigation
-    DraftService.saveDraft('tool1', clientId, page, formData);
-
-    // Get the complete merged data (includes all pages)
-    const draftData = DraftService.getDraft('tool1', clientId);
-
-    // Also save/update RESPONSES sheet for dashboard detection
-    // BUT: Don't create/update if we're in edit mode (EDIT_DRAFT already exists)
-    const activeDraft = DataService.getActiveDraft(clientId, 'tool1');
-    const isEditMode = activeDraft && activeDraft.status === 'EDIT_DRAFT';
-
-    if (!isEditMode) {
-      // Use complete draft data so RESPONSES sheet has ALL pages
-      if (page === 1) {
-        // Page 1: Create new DRAFT row with complete data
-        DataService.saveDraft(clientId, 'tool1', draftData);
-      } else {
-        // Pages 2-5: Update existing DRAFT row with complete merged data
-        DataService.updateDraft(clientId, 'tool1', draftData);
-      }
-    } else {
-      // EDIT MODE: Also update EDIT_DRAFT row to keep RESPONSES sheet in sync
-      // This ensures data isn't lost if PropertiesService gets cleared mid-session
-      LogUtils.debug(`[Tool1] Updating EDIT_DRAFT with current data`);
-      DataService.updateDraft(clientId, 'tool1', draftData);
-    }
-
-    return { success: true };
-  },
-
-  /**
-   * Get existing data for a client
-   * Checks both EDIT_DRAFT (from ResponseManager) and PropertiesService drafts
-   */
-  getExistingData(clientId) {
-    try {
-      let data = null;
-
-      // First check if there's an EDIT_DRAFT in RESPONSES sheet
-      if (typeof DataService !== 'undefined') {
-        const activeDraft = DataService.getActiveDraft(clientId, 'tool1');
-
-        if (activeDraft && (activeDraft.status === 'EDIT_DRAFT' || activeDraft.status === 'DRAFT')) {
-          LogUtils.debug(`Found active draft with status: ${activeDraft.status}`);
-          data = activeDraft.data;
-        }
-      }
-
-      // CRITICAL: Also check PropertiesService and merge (for page 5 data in edit mode)
-      // When editing, page 5 data gets saved to PropertiesService but EDIT_DRAFT is in RESPONSES
-      const propData = DraftService.getDraft('tool1', clientId);
-
-      if (propData) {
-        if (data) {
-          // Merge: PropertiesService data takes precedence (has latest page 5 data)
-          LogUtils.debug(`Merging PropertiesService data with EDIT_DRAFT`);
-          data = { ...data, ...propData };
-        } else {
-          // No EDIT_DRAFT, use PropertiesService data
-          data = propData;
-        }
-      }
-
-      return data;
-    } catch (error) {
-      LogUtils.error(`Error getting existing data: ${error}`);
-    }
-    return null;
-  },
-
-  /**
    * Process final submission - Calculate scores and generate report
    * Handles both new submissions and edited responses
    * Returns redirect URL for completeToolSubmission() handler
@@ -688,13 +543,4 @@ const Tool1 = {
     return winner;
   },
 
-  /**
-   * DEPRECATED: This method has been removed.
-   * Use DataService.saveToolResponse() instead.
-   *
-   * DataService properly handles:
-   * - Is_Latest flag (7th column)
-   * - Marking old responses as not latest
-   * - Version control and cleanup
-   */
-};
+});

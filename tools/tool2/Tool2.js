@@ -10,103 +10,28 @@
  * Uses FormUtils for consistent, error-free form handling
  */
 
-const Tool2 = {
+const Tool2 = Object.assign({}, FormToolBase, {
   manifest: null, // Will be injected by ToolRegistry
 
-  /**
-   * REQUIRED: Render the tool UI
-   * FormUtils handles all the boilerplate
-   */
-  render(params) {
-    const clientId = params.clientId;
-    const page = parseInt(params.page) || 1;
-    const baseUrl = ScriptApp.getService().getUrl();
-
-    // CRITICAL: Handle URL parameters for navigation (preserves user gesture)
-    const editMode = params.editMode === 'true' || params.editMode === true;
-    const clearDraft = params.clearDraft === 'true' || params.clearDraft === true;
-
-    // Execute actions on page 1 AFTER navigation completes (with user gesture)
-    // Call loadResponseForEditing to create EDIT_DRAFT from COMPLETED response
-    // This happens AFTER navigation so we preserve user gesture (no iframe errors)
-
-    if (editMode && page === 1) {
-      LogUtils.debug(`Edit mode detected for ${clientId} - creating EDIT_DRAFT`);
-      DataService.loadResponseForEditing(clientId, 'tool2');
-    }
-
-    if (clearDraft && page === 1) {
-      // Clear all drafts for fresh start
-      LogUtils.debug(`Clear draft triggered for ${clientId}`);
-      DataService.startFreshAttempt(clientId, 'tool2');
-    }
-
-    // Get existing data if resuming
-    const existingData = this.getExistingData(clientId);
-
-    // Get page-specific content
-    const pageContent = this.renderPageContent(page, existingData, clientId);
-
-    // Use FormUtils to build standard page structure
-    const template = HtmlService.createTemplate(
-      FormUtils.buildStandardPage({
-        toolName: 'Financial Clarity & Values Assessment',
-        toolId: 'tool2',
-        page: page,
-        totalPages: 5, // TODO: Adjust based on final structure
-        clientId: clientId,
-        baseUrl: baseUrl,
-        pageContent: pageContent,
-        isFinalPage: (page === 5),
-        customValidation: null
-      })
-    );
-
-    return template.evaluate()
-      .setTitle('TruPath - Financial Clarity & Values')
-      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  formConfig: {
+    toolId: 'tool2',
+    toolName: 'Financial Clarity & Values Assessment',
+    pageTitle: 'Financial Clarity & Values',
+    totalPages: 5
   },
 
   /**
    * Route to appropriate page content
    */
   renderPageContent(page, existingData, clientId) {
-    let content = '';
-
-    // Add edit mode banner if editing previous response
-    if (existingData && existingData._editMode) {
-      const originalDate = existingData._originalTimestamp ?
-        new Date(existingData._originalTimestamp).toLocaleDateString('en-US', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric'
-        }) : 'previous submission';
-
-      content += EditModeBanner.render(originalDate, clientId, 'tool2');
-    }
-
-    // Add page-specific content
     switch(page) {
-      case 1:
-        content += this.renderPage1Content(existingData, clientId);
-        break;
-      case 2:
-        content += this.renderPage2Content(existingData, clientId);
-        break;
-      case 3:
-        content += this.renderPage3Content(existingData, clientId);
-        break;
-      case 4:
-        content += this.renderPage4Content(existingData, clientId);
-        break;
-      case 5:
-        content += this.renderPage5Content(existingData, clientId);
-        break;
-      default:
-        content += '<p class="error">Invalid page number</p>';
+      case 1: return this.renderPage1Content(existingData, clientId);
+      case 2: return this.renderPage2Content(existingData, clientId);
+      case 3: return this.renderPage3Content(existingData, clientId);
+      case 4: return this.renderPage4Content(existingData, clientId);
+      case 5: return this.renderPage5Content(existingData, clientId);
+      default: return '<p class="error">Invalid page number</p>';
     }
-
-    return content;
   },
 
   /**
@@ -1836,22 +1761,4 @@ const Tool2 = {
    *
    * Bug reference: Deploy @58 (ec82987)
    */
-};
-
-/**
- * PHASE 1 COMPLETE: Core structure updated with critical patterns ✅
- *
- * What was added:
- * - ✅ Edit mode & clearDraft URL parameter handling in render()
- * - ✅ Edit mode banner in renderPageContent()
- * - ✅ DataService.getActiveDraft() check in getExistingData()
- * - ✅ Edit mode detection in processFinalSubmission()
- * - ✅ Using DataService.saveToolResponse() instead of manual saves
- *
- * NEXT STEPS:
- * - Phase 2a: Implement Page 1 (demographics + mindset - 13 questions)
- * - Phase 2b: Implement Page 2 (Money Flow - 11 questions)
- * - Phase 2c: Implement Page 3 (Obligations - 11 questions)
- * - Phase 2d: Implement Page 4 (Growth - 13 questions)
- * - Phase 2e: Implement Page 5 (Protection + Psychological + Adaptive - 11 questions)
- */
+});

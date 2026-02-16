@@ -1,15 +1,15 @@
 # SESSION GUIDE - Start Here
 
 > Last updated: Feb 15, 2026
-> Status: **Tier 1 COMPLETE — all 6 phases done**
+> Status: **Tier 2 COMPLETE — all 4 phases done**
 
 ## Current State
 
-Tier 1 (Performance + Zero-Risk Extractions) is complete. All 6 phases delivered: data caching, payload reduction, logger cleanup, shared utilities, PDF wrapper consolidation, and constants extraction.
+Tier 2 (Form Tool Consolidation) is complete. All 4 phases delivered: FormToolBase, GroundingToolBase + Tools 3/5/7 migration, Tool 1 migration, Tool 2 migration. ~1,800 lines of duplicate boilerplate eliminated.
 
 ## What To Work On Next
 
-**Tier 2: Form Tool Consolidation** — Extract shared boilerplate from form-based tools (1, 2, 3, 5, 7) into a base class or shared module. Plan needs to be written before execution.
+**Tier 3: Cross-Cutting Standardization** — Standardize error handling, reduce inline CSS, standardize report patterns. Plan needs to be written before execution.
 
 ## Quick Reference
 
@@ -72,6 +72,32 @@ Tier 1 (Performance + Zero-Risk Extractions) is complete. All 6 phases delivered
 - Tool4.js: 2 methods updated to reference Tool4Constants
 - ~95 lines of inline config relocated to dedicated files
 
+### Tier 2, Phase 1: FormToolBase (Feb 15, 2026)
+- Created `core/FormToolBase.js` (188 lines) — shared render(), getExistingData(), savePageData()
+- Config resolution: `this.formConfig` (Tool1/2) OR fallback to `this.config` (Tool3/5/7)
+- Handles editMode/clearDraft URL params, EditModeBanner, page validation, FormUtils wrapping
+- Optional hooks: getCustomValidation(), onPageSaved()
+
+### Tier 2, Phase 2: GroundingToolBase + Tools 3, 5, 7 (Feb 15, 2026)
+- Created `core/grounding/GroundingToolBase.js` (390 lines) extending FormToolBase
+- Shared: renderPageContent, onPageSaved (GPT trigger), processFinalSubmission, scoring helpers, report generation
+- Tool3.js: 987→488 lines, Tool5.js: 986→488 lines, Tool7.js: 986→487 lines
+- ~1,500 lines of duplicate code eliminated
+- Bug fix: ResponseManager.cancelEditDraft stale row index + orphaned DRAFT cleanup in saveToolResponse
+
+### Tier 2, Phase 3: Tool 1 Migration (Feb 15, 2026)
+- Tool1.js migrated to Object.assign({}, FormToolBase, {...})
+- Added formConfig, getCustomValidation (page 5 ranking validation)
+- Removed render(), getExistingData(), savePageData(), EditModeBanner from renderPageContent
+- Tool1.js: 700→547 lines (~153 lines removed)
+
+### Tier 2, Phase 4: Tool 2 Migration (Feb 15, 2026)
+- Tool2.js migrated to Object.assign({}, FormToolBase, {...})
+- Added formConfig, removed render() and EditModeBanner from renderPageContent
+- Kept savePageData() override (extra DraftService args + GPT trigger)
+- Kept getExistingData() override (different merge order: EDIT_DRAFT → Props → DRAFT)
+- Tool2.js: 1,857→1,764 lines (~93 lines removed)
+
 ## Phase Tracking
 
 - [x] Tier 1, Phase 1: Data layer caching
@@ -81,3 +107,8 @@ Tier 1 (Performance + Zero-Risk Extractions) is complete. All 6 phases delivered
 - [x] Tier 1, Phase 5: Code.js PDF wrapper consolidation
 - [x] Tier 1, Phase 6: Constants extraction
 - **Tier 1 COMPLETE**
+- [x] Tier 2, Phase 1: FormToolBase (shared render/getExistingData/savePageData)
+- [x] Tier 2, Phase 2: GroundingToolBase + Tools 3, 5, 7 migration
+- [x] Tier 2, Phase 3: Tool 1 migration
+- [x] Tier 2, Phase 4: Tool 2 migration
+- **Tier 2 COMPLETE**
