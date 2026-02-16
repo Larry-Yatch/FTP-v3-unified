@@ -1834,39 +1834,34 @@
         .getToolReportHTML(currentReportStudent.clientId, toolId);
     }
 
-    // View integration analysis (coach view — rendered in modal)
+    // View integration analysis (coach view — full page via document.write)
     function viewIntegrationAnalysis() {
       if (!currentReportStudent) {
         showAlert('No student selected', 'error');
         return;
       }
 
-      // Show modal with loading state
-      const modal = document.getElementById('reportModal');
-      const body = document.getElementById('reportModalBody');
-      const title = document.getElementById('reportModalTitle');
-      const subtitle = document.getElementById('reportModalSubtitle');
-      const pdfButton = document.getElementById('reportPdfButton');
-
-      title.style.display = 'none';
-      subtitle.style.display = 'none';
-      if (pdfButton) pdfButton.innerHTML = '';
-      body.innerHTML = '<div class="loading"><div class="spinner"></div><p>Generating integration analysis...</p></div>';
-      modal.classList.add('show');
+      // Show loading indicator before replacing page
+      document.body.style.opacity = '0.5';
+      document.body.style.pointerEvents = 'none';
 
       google.script.run
         .withSuccessHandler(function(result) {
           if (result && result.success && result.html) {
-            // Render in iframe within modal to preserve coach view styles
-            body.innerHTML = '<iframe srcdoc="" style="width:100%;height:70vh;border:none;border-radius:8px;"></iframe>';
-            var iframe = body.querySelector('iframe');
-            iframe.srcdoc = result.html;
+            document.open();
+            document.write(result.html);
+            document.close();
+            window.scrollTo(0, 0);
           } else {
-            body.innerHTML = '<div class="error">' + (result ? result.error : 'Unknown error') + '</div>';
+            document.body.style.opacity = '1';
+            document.body.style.pointerEvents = '';
+            showAlert(result ? result.error : 'Unknown error', 'error');
           }
         })
         .withFailureHandler(function(err) {
-          body.innerHTML = '<div class="error">Error loading analysis: ' + err.message + '</div>';
+          document.body.style.opacity = '1';
+          document.body.style.pointerEvents = '';
+          showAlert('Error loading analysis: ' + err.message, 'error');
         })
         .getIntegrationAnalysis(currentReportStudent.clientId);
     }

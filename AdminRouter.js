@@ -797,7 +797,7 @@ function handleGetIntegrationAnalysisRequest(clientId) {
   }
 
   try {
-    var html = CollectiveResults.renderCoachIntegrationPage(clientId);
+    var html = CollectiveResults.renderCoachPage(clientId);
     return { success: true, html: html };
   } catch (error) {
     console.error('[INTEGRATION_ANALYSIS] Error:', error);
