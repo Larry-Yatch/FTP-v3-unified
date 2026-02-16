@@ -708,7 +708,7 @@ const CollectiveResults = {
       html += this._renderBeliefBehaviorGaps(engines.bbGaps, isCoach);
     }
 
-    // Phase 9: Download Integration Report button with section breakdown
+    // Phase 10: Download Capstone Report button with section breakdown
     var sectionStatus = [];
 
     // 1. Integration Profile
@@ -805,10 +805,10 @@ const CollectiveResults = {
     if (reportReady) {
       html += '<div style="text-align: center; margin-top: 25px;">' +
         '<button id="integrationReportBtn" class="cr-report-download-btn" onclick="downloadIntegrationReport()">' +
-          'Download Integration Report' +
+          'Download Capstone Report' +
         '</button>' +
         '<p class="muted" style="font-size: 0.8rem; margin-top: 6px;">' +
-          reportSections + ' of ' + reportTotal + ' report sections available' +
+          reportSections + ' of ' + reportTotal + ' integration sections available — includes per-tool summaries for all completed assessments' +
         '</p>' +
         breakdownHtml +
         '<p id="integrationReportMsg" class="muted" style="font-size: 0.8rem; margin-top: 4px; min-height: 1.2em;"></p>' +
@@ -816,10 +816,10 @@ const CollectiveResults = {
     } else {
       html += '<div style="text-align: center; margin-top: 25px;">' +
         '<button class="cr-report-download-btn" disabled style="opacity: 0.4; cursor: not-allowed;">' +
-          'Download Integration Report' +
+          'Download Capstone Report' +
         '</button>' +
         '<p class="muted" style="font-size: 0.8rem; margin-top: 6px;">' +
-          'Complete more tools to unlock your integration report.' +
+          'Complete more tools to unlock your capstone report.' +
         '</p>' +
         breakdownHtml +
       '</div>';
@@ -3810,7 +3810,7 @@ const CollectiveResults = {
               'Tip: Awareness of your patterns is the first step to changing them.',
               'Building your personalized narrative...',
               'Insight: The gap between what you believe and how you act reveals where growth happens.',
-              'Assembling your integration report...',
+              'Assembling your capstone report...',
               'Tip: Share this report with your coach to get the most out of your next session.',
               'Finalizing your PDF...'
             ];
@@ -3842,7 +3842,7 @@ const CollectiveResults = {
               .withSuccessHandler(function(res) {
                 stopTips();
                 if (typeof hideLoading === 'function') hideLoading();
-                btn.textContent = 'Download Integration Report';
+                btn.textContent = 'Download Capstone Report';
                 btn.disabled = false;
 
                 if (res && res.success) {
@@ -3861,7 +3861,7 @@ const CollectiveResults = {
               .withFailureHandler(function(err) {
                 stopTips();
                 if (typeof hideLoading === 'function') hideLoading();
-                btn.textContent = 'Download Integration Report';
+                btn.textContent = 'Download Capstone Report';
                 btn.disabled = false;
                 if (msg) msg.textContent = 'Report generation failed: ' + err.message;
               })

@@ -1475,7 +1475,7 @@ const PDFGenerator = {
    */
   generateIntegrationPDF(clientId) {
     try {
-      Logger.log('[PDFGenerator] Generating Integration PDF for ' + clientId);
+      Logger.log('[PDFGenerator] Generating Capstone Report PDF for ' + clientId);
 
       // 1. Get student summary and check readiness
       var summary = CollectiveResults.getStudentSummary(clientId);
@@ -1491,22 +1491,26 @@ const PDFGenerator = {
       // Use pre-computed analysis data from readiness check (avoids running engines twice)
       var analysisData = readiness.analysisData;
 
-      // 2. Generate GPT narrative (with 3-tier fallback)
+      // 2. Gather rich per-tool data for Parts 1 and 2
+      var perToolData = this._gatherPerToolData(summary);
+      analysisData.perToolData = perToolData;
+
+      // 3. Generate GPT narrative (with 3-tier fallback) — now includes per-tool context
       var narrative = IntegrationGPT.generateNarrative(analysisData);
       Logger.log('[PDFGenerator] Narrative source: ' + narrative.source);
 
-      // 3. Build report HTML
+      // 4. Build report HTML
       var studentName = this._getStudentName(clientId) || 'Student';
-      var styles = this.getCommonStyles() + this._getIntegrationStyles();
-      var bodyContent = this._buildIntegrationReportBody(clientId, studentName, analysisData, narrative, readiness);
+      var styles = this.getCommonStyles() + this._getIntegrationStyles() + this._getCapstoneStyles();
+      var bodyContent = this._buildCapstoneReportBody(clientId, studentName, summary, analysisData, narrative, readiness, perToolData);
       var html = this.buildHTMLDocument(styles, bodyContent);
 
-      // 4. Convert to PDF
-      var fileName = this.generateFileName('IntegrationReport', studentName);
+      // 5. Convert to PDF
+      var fileName = this.generateFileName('CapstoneReport', studentName);
       return this.htmlToPDF(html, fileName);
 
     } catch (error) {
-      Logger.log('[PDFGenerator] Integration PDF error: ' + error);
+      Logger.log('[PDFGenerator] Capstone Report PDF error: ' + error);
       return { success: false, error: error.toString() };
     }
   },
@@ -1745,6 +1749,749 @@ const PDFGenerator = {
    * @param {string} instruction - What tool(s) to complete
    * @returns {string} HTML
    */
+  // ============================================================
+  // PHASE 10: CAPSTONE REPORT — Per-Tool Data + Expanded Report
+  // ============================================================
+
+  /**
+   * Capstone-specific styles that supplement _getIntegrationStyles().
+   * Adds per-tool section styles, cover page, allocation bars, etc.
+   */
+  _getCapstoneStyles() {
+    return '\n' +
+      '.part-header { background: linear-gradient(135deg, #f8f6f3, #f0ebe3); border: 1px solid #d4c5a9; border-radius: 10px; padding: 20px; margin: 30px 0 15px 0; }\n' +
+      '.part-header h2 { color: #ad9168; margin: 0 0 8px 0; font-size: 20px; }\n' +
+      '.part-header p { color: #666; margin: 0; line-height: 1.6; font-size: 14px; }\n' +
+      '.tool-section { background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 18px; margin: 12px 0; }\n' +
+      '.tool-section-header { font-size: 16px; font-weight: 600; color: #374151; margin: 0 0 12px 0; padding-bottom: 8px; border-bottom: 1px solid #f3f4f6; }\n' +
+      '.score-bar-container { margin: 6px 0; }\n' +
+      '.score-bar-label { font-size: 13px; color: #555; margin-bottom: 3px; }\n' +
+      '.score-bar-track { height: 14px; background: #f3f4f6; border-radius: 7px; overflow: hidden; }\n' +
+      '.score-bar-fill { height: 100%; border-radius: 7px; }\n' +
+      '.allocation-bar { display: flex; height: 28px; border-radius: 6px; overflow: hidden; margin: 10px 0; }\n' +
+      '.allocation-segment { display: flex; align-items: center; justify-content: center; color: #fff; font-size: 11px; font-weight: 600; }\n' +
+      '.tool-insight { background: #f9fafb; border-left: 3px solid #ad9168; padding: 10px 12px; margin: 10px 0; font-size: 13px; color: #555; line-height: 1.5; font-style: italic; }\n' +
+      '.metric-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #f3f4f6; font-size: 14px; }\n' +
+      '.metric-label { color: #555; }\n' +
+      '.metric-value { font-weight: 600; color: #374151; }\n' +
+      '.cover-page { text-align: center; padding: 40px 30px 20px 30px; }\n' +
+      '.cover-completion { font-size: 14px; color: #888; margin-top: 10px; }\n';
+  },
+
+  /**
+   * Gather rich per-tool data for the Capstone Report.
+   * Uses existing ToolXReport.getResults() methods to get full data
+   * including GPT insights that were generated at submission time.
+   *
+   * @param {Object} summary - from getStudentSummary()
+   * @returns {Object} Per-tool data keyed by tool number
+   */
+  _gatherPerToolData(summary) {
+    var clientId = summary.clientId;
+    var data = {
+      tool1: null,
+      tool2: null,
+      tool3: null,
+      tool4: null,
+      tool5: null,
+      tool6: null,
+      tool7: null,
+      tool8: null
+    };
+
+    try {
+      // Tool 1: Core Trauma Strategy
+      if (summary.tools.tool1 && summary.tools.tool1.status === 'completed') {
+        try {
+          data.tool1 = Tool1Report.getResults(clientId);
+        } catch (e) {
+          Logger.log('[Capstone] Tool 1 data fetch failed: ' + e.message);
+        }
+      }
+
+      // Tool 2: Financial Clarity
+      if (summary.tools.tool2 && summary.tools.tool2.status === 'completed') {
+        try {
+          data.tool2 = Tool2Report.getResults(clientId);
+        } catch (e) {
+          Logger.log('[Capstone] Tool 2 data fetch failed: ' + e.message);
+        }
+      }
+
+      // Tool 3: Identity & Validation (Grounding)
+      if (summary.tools.tool3 && summary.tools.tool3.status === 'completed') {
+        try {
+          data.tool3 = GroundingReport.getResults(clientId, 'tool3');
+        } catch (e) {
+          Logger.log('[Capstone] Tool 3 data fetch failed: ' + e.message);
+        }
+      }
+
+      // Tool 4: Budget Framework — data comes from summary directly (no separate Report class)
+      if (summary.tools.tool4 && summary.tools.tool4.status === 'completed') {
+        var t4raw = summary.tools.tool4.data;
+        if (t4raw) {
+          data.tool4 = {
+            monthlyIncome: t4raw.monthlyIncome || 0,
+            multiply: t4raw.multiply || 0,
+            essentials: t4raw.essentials || 0,
+            freedom: t4raw.freedom || 0,
+            enjoyment: t4raw.enjoyment || 0,
+            priority: t4raw.priority || 'Not selected'
+          };
+        }
+      }
+
+      // Tool 5: Love & Connection (Grounding)
+      if (summary.tools.tool5 && summary.tools.tool5.status === 'completed') {
+        try {
+          data.tool5 = GroundingReport.getResults(clientId, 'tool5');
+        } catch (e) {
+          Logger.log('[Capstone] Tool 5 data fetch failed: ' + e.message);
+        }
+      }
+
+      // Tool 6: Retirement Blueprint
+      if (summary.tools.tool6 && summary.tools.tool6.status === 'completed') {
+        try {
+          data.tool6 = Tool6Report.getResults(clientId);
+        } catch (e) {
+          Logger.log('[Capstone] Tool 6 data fetch failed: ' + e.message);
+        }
+      }
+
+      // Tool 7: Security & Control (Grounding)
+      if (summary.tools.tool7 && summary.tools.tool7.status === 'completed') {
+        try {
+          data.tool7 = GroundingReport.getResults(clientId, 'tool7');
+        } catch (e) {
+          Logger.log('[Capstone] Tool 7 data fetch failed: ' + e.message);
+        }
+      }
+
+      // Tool 8: Investment Planning
+      if (summary.tools.tool8 && summary.tools.tool8.status === 'completed') {
+        try {
+          data.tool8 = Tool8Report.getResults(clientId);
+        } catch (e) {
+          Logger.log('[Capstone] Tool 8 data fetch failed: ' + e.message);
+        }
+      }
+
+    } catch (e) {
+      Logger.log('[Capstone] Per-tool data gathering error: ' + e.message);
+    }
+
+    return data;
+  },
+
+  /**
+   * Build the Capstone Report body HTML.
+   *
+   * 4-Part structure:
+   * - Cover Page
+   * - Part 1: Psychological Foundation (per-tool data from Tools 1, 3, 5, 7)
+   * - Part 2: Financial Landscape (per-tool data from Tools 2, 4, 6, 8)
+   * - Part 3: The Integration (existing detection engine analysis)
+   * - Part 4: Your Path Forward (action items + closing)
+   */
+  _buildCapstoneReportBody(clientId, studentName, summary, analysisData, narrative, readiness, perToolData) {
+    var profile = analysisData.profile;
+    var warnings = analysisData.warnings;
+    var gap = analysisData.awarenessGap;
+    var locks = analysisData.locks;
+    var bbGaps = analysisData.bbGaps;
+    var sections = readiness.sections;
+
+    var html = '';
+
+    // =============================================
+    // COVER PAGE
+    // =============================================
+    html += '<div class="cover-page">';
+    html += this.buildHeader('Your TruPath Capstone Report', studentName);
+
+    // Count completed tools
+    var completedCount = 0;
+    var toolKeys = ['tool1', 'tool2', 'tool3', 'tool4', 'tool5', 'tool6', 'tool7', 'tool8'];
+    for (var i = 0; i < toolKeys.length; i++) {
+      if (summary.tools[toolKeys[i]] && summary.tools[toolKeys[i]].status === 'completed') {
+        completedCount++;
+      }
+    }
+
+    // Source tag
+    var sourceLabel = (narrative.source && narrative.source.indexOf('gpt') !== -1) ? 'Personalized Analysis' : 'Standard Analysis';
+    var sourceClass = (narrative.source && narrative.source.indexOf('gpt') !== -1) ? 'gpt' : '';
+    html += '<p style="text-align: center;"><span class="source-tag ' + sourceClass + '">' + sourceLabel + '</span></p>';
+
+    html += '<p class="cover-completion">' + completedCount + ' of 8 assessments completed</p>';
+
+    html += '<div style="text-align: left; margin-top: 20px;">' +
+      '<p style="line-height: 1.6;">This capstone report brings together everything you have discovered through your TruPath assessments. ' +
+      'Part 1 covers your psychological foundation — the inner patterns that drive your decisions. ' +
+      'Part 2 maps your financial landscape — how those patterns show up in your money. ' +
+      'Part 3 is the integration — where psychology meets finance. ' +
+      'Part 4 is your path forward.</p>' +
+    '</div>';
+    html += '</div>';
+
+    // =============================================
+    // PART 1: YOUR PSYCHOLOGICAL FOUNDATION
+    // =============================================
+    html += '<div class="page-break"></div>';
+    html += '<div class="part-header">';
+    html += '<h2>Part 1: Your Psychological Foundation</h2>';
+    if (narrative.psychFoundationNarrative) {
+      html += '<p>' + narrative.psychFoundationNarrative + '</p>';
+    }
+    html += '</div>';
+
+    // Tool 1: Core Trauma Strategy
+    if (perToolData.tool1) {
+      html += this._buildTool1Section(perToolData.tool1);
+    }
+
+    // Grounding Tools (3, 5, 7)
+    if (perToolData.tool3) {
+      html += this._buildGroundingToolSection(perToolData.tool3, 'Tool 3: Identity and Validation');
+    }
+    if (perToolData.tool5) {
+      html += this._buildGroundingToolSection(perToolData.tool5, 'Tool 5: Love and Connection');
+    }
+    if (perToolData.tool7) {
+      html += this._buildGroundingToolSection(perToolData.tool7, 'Tool 7: Security and Control');
+    }
+
+    // If no psychological tools completed, show placeholder
+    if (!perToolData.tool1 && !perToolData.tool3 && !perToolData.tool5 && !perToolData.tool7) {
+      html += this._buildMissingSectionBox(
+        'Your psychological foundation assessments have not been completed yet.',
+        'Complete Tool 1 (Core Trauma Assessment) and at least one grounding tool (Tool 3, 5, or 7) to populate this section.'
+      );
+    }
+
+    // =============================================
+    // PART 2: YOUR FINANCIAL LANDSCAPE
+    // =============================================
+    html += '<div class="page-break"></div>';
+    html += '<div class="part-header">';
+    html += '<h2>Part 2: Your Financial Landscape</h2>';
+    if (narrative.financialLandscapeNarrative) {
+      html += '<p>' + narrative.financialLandscapeNarrative + '</p>';
+    }
+    html += '</div>';
+
+    // Tool 2: Financial Clarity
+    if (perToolData.tool2) {
+      html += this._buildTool2Section(perToolData.tool2);
+    }
+
+    // Tool 4: Budget Framework
+    if (perToolData.tool4) {
+      html += this._buildTool4Section(perToolData.tool4);
+    }
+
+    // Tool 6: Retirement Blueprint
+    if (perToolData.tool6) {
+      html += this._buildTool6Section(perToolData.tool6);
+    }
+
+    // Tool 8: Investment Planning
+    if (perToolData.tool8) {
+      html += this._buildTool8Section(perToolData.tool8);
+    }
+
+    // If no financial tools completed, show placeholder
+    if (!perToolData.tool2 && !perToolData.tool4 && !perToolData.tool6 && !perToolData.tool8) {
+      html += this._buildMissingSectionBox(
+        'Your financial landscape assessments have not been completed yet.',
+        'Complete Tool 2 (Financial Clarity) and Tool 4 (Budget Framework) to populate this section.'
+      );
+    }
+
+    // =============================================
+    // PART 3: THE INTEGRATION (existing Phase 9 content)
+    // =============================================
+    html += '<div class="page-break"></div>';
+    html += '<div class="part-header">';
+    html += '<h2>Part 3: The Integration</h2>';
+    html += '<p>This is where your psychological patterns meet your financial behaviors. The detection engines below analyzed your data across all completed tools to find patterns, warnings, and gaps.</p>';
+    html += '</div>';
+
+    // --- Integration Profile ---
+    if (sections.profile && profile && narrative.profileNarrative) {
+      html += '<h3>Your Integration Profile</h3>';
+      html += '<div class="profile-card">';
+      html += '<div style="font-size: 2rem;">' + (profile.icon || '') + '</div>';
+      html += '<div class="profile-name">' + profile.name + '</div>';
+      html += '<p class="profile-desc">' + narrative.profileNarrative + '</p>';
+      html += '</div>';
+    } else if (!sections.profile) {
+      html += '<h3>Your Integration Profile</h3>';
+      html += this._buildMissingSectionBox(
+        'Your integration profile identifies your core psychological-financial pattern.',
+        'Complete Tool 1 (Core Trauma Assessment) to unlock this section.'
+      );
+    }
+
+    // --- Awareness Gap ---
+    if (sections.awarenessGap && gap && gap.severity !== 'normal' && narrative.gapNarrative) {
+      html += '<hr class="section-divider">';
+      html += '<h3>Your Awareness Gap</h3>';
+      html += '<div class="gap-visual">';
+      html += '<p><strong>Psychological Patterns:</strong> ' + gap.psychScore + '/100</p>';
+      html += '<div class="gap-bar gap-bar-psych" style="width: ' + gap.psychScore + '%;"></div>';
+      html += '<p><strong>Stress Awareness:</strong> ' + gap.stressScore + '/100</p>';
+      html += '<div class="gap-bar gap-bar-stress" style="width: ' + gap.stressScore + '%;"></div>';
+      html += '<p style="text-align: center; margin-top: 10px;"><strong>Gap: ' + gap.gapScore + ' points</strong></p>';
+      html += '</div>';
+      html += '<p>' + narrative.gapNarrative + '</p>';
+    } else if (!sections.awarenessGap) {
+      var hasGapData = gap && gap.severity === 'normal';
+      if (!hasGapData) {
+        html += '<hr class="section-divider">';
+        html += '<h3>Your Awareness Gap</h3>';
+        html += this._buildMissingSectionBox(
+          'The awareness gap measures whether you see the full financial impact of your psychological patterns.',
+          'Complete Tool 2 (Financial Clarity) and a grounding tool (Tool 3, 5, or 7) to unlock this section.'
+        );
+      }
+    }
+
+    // --- Active Warnings ---
+    if (sections.warnings && warnings && warnings.length > 0 && narrative.warningNarrative) {
+      html += '<hr class="section-divider">';
+      html += '<h3>Active Patterns Affecting Your Finances</h3>';
+      html += '<p>' + narrative.warningNarrative + '</p>';
+
+      for (var w = 0; w < Math.min(warnings.length, 6); w++) {
+        var warning = warnings[w];
+        var wClass = 'warning-medium';
+        if (warning.priority === 'CRITICAL') wClass = 'warning-critical';
+        else if (warning.priority === 'HIGH') wClass = 'warning-high';
+
+        html += '<div class="warning-box ' + wClass + '">';
+        html += '<p><strong>' + warning.type.replace(/_/g, ' ') + '</strong></p>';
+        html += '<p>' + warning.message + '</p>';
+        html += '<p style="font-size: 12px; color: #888;">Based on: ' + warning.sources.join(' + ') + '</p>';
+        html += '</div>';
+      }
+    }
+
+    // --- Belief Locks ---
+    if (sections.beliefLocks && locks && locks.length > 0 && narrative.lockNarrative) {
+      html += '<hr class="section-divider">';
+      html += '<h3>Your Belief Locks</h3>';
+      html += '<p>' + narrative.lockNarrative + '</p>';
+
+      for (var l = 0; l < Math.min(locks.length, 4); l++) {
+        var lock = locks[l];
+        html += '<div class="lock-box">';
+        html += '<p><strong>' + lock.name + '</strong> <span style="color: #888;">(' + lock.strength + ')</span></p>';
+
+        for (var b = 0; b < lock.beliefs.length; b++) {
+          var belief = lock.beliefs[b];
+          html += '<p class="lock-belief">"' + belief.label + '" - ' + belief.tool + ': ' + belief.score + '/100</p>';
+        }
+
+        html += '<p class="lock-impact">' + lock.financialImpact + '</p>';
+        html += '</div>';
+      }
+    }
+
+    // --- Belief-Behavior Gaps ---
+    if (sections.beliefBehaviorGaps && bbGaps && bbGaps.length > 0) {
+      html += '<hr class="section-divider">';
+      html += '<h3>Where Your Beliefs and Actions Diverge</h3>';
+      html += '<p style="color: #555; margin-bottom: 12px;">These gaps show where what you believe does not match how you act. The larger the gap, the more internal conflict is present.</p>';
+
+      html += '<table class="bb-gap-table">';
+      html += '<tr><th>Belief</th><th>Tool</th><th>Belief Score</th><th>Action Score</th><th>Gap</th><th>Pattern</th></tr>';
+
+      for (var g = 0; g < Math.min(bbGaps.length, 6); g++) {
+        var bbGap = bbGaps[g];
+        html += '<tr>';
+        html += '<td>"' + bbGap.label + '"</td>';
+        html += '<td>' + bbGap.tool + '</td>';
+        html += '<td>' + bbGap.beliefScore + '</td>';
+        html += '<td>' + bbGap.behaviorScore + '</td>';
+        html += '<td style="color: #f59e0b; font-weight: 600;">' + bbGap.gap + '</td>';
+        html += '<td>' + bbGap.direction + '</td>';
+        html += '</tr>';
+      }
+
+      html += '</table>';
+
+      if (bbGaps.length > 6) {
+        html += '<p style="font-size: 12px; color: #888; text-align: center; margin-top: 8px;">' +
+          (bbGaps.length - 6) + ' additional gap' + (bbGaps.length - 6 > 1 ? 's' : '') + ' detected. Speak with your coach for the complete analysis.</p>';
+      }
+    }
+
+    // --- The Big Picture ---
+    if (narrative.overallSynthesis) {
+      html += '<hr class="section-divider">';
+      html += '<h3>The Big Picture</h3>';
+      html += '<div class="synthesis-box">' + narrative.overallSynthesis + '</div>';
+    }
+
+    // =============================================
+    // PART 4: YOUR PATH FORWARD
+    // =============================================
+    html += '<div class="page-break"></div>';
+    html += '<div class="part-header">';
+    html += '<h2>Part 4: Your Path Forward</h2>';
+    html += '</div>';
+
+    // Action Items
+    if (narrative.actionItems && narrative.actionItems.length > 0) {
+      html += '<h3>Your Next Steps</h3>';
+      html += '<ol class="action-list">';
+      for (var a = 0; a < narrative.actionItems.length; a++) {
+        html += '<li>' + narrative.actionItems[a] + '</li>';
+      }
+      html += '</ol>';
+    }
+
+    // Missing Tools Summary
+    if (completedCount < 8) {
+      html += '<h3>Unlock More Insights</h3>';
+      html += '<div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 15px;">';
+      html += '<p style="margin-bottom: 10px;">Complete these remaining tools to get the full picture:</p>';
+      html += '<ul style="padding-left: 20px;">';
+
+      var toolMissing = {
+        tool1: { name: 'Tool 1: Core Trauma Strategy', benefit: 'Unlocks your integration profile and warning patterns' },
+        tool2: { name: 'Tool 2: Financial Clarity', benefit: 'Unlocks your awareness gap analysis' },
+        tool3: { name: 'Tool 3: Identity and Validation', benefit: 'Deepens belief lock and cross-tool pattern detection' },
+        tool4: { name: 'Tool 4: Budget Framework', benefit: 'Shows how your psychology shapes budget allocation' },
+        tool5: { name: 'Tool 5: Love and Connection', benefit: 'Reveals how relationships affect financial decisions' },
+        tool6: { name: 'Tool 6: Retirement Blueprint', benefit: 'Maps your long-term financial trajectory' },
+        tool7: { name: 'Tool 7: Security and Control', benefit: 'Uncovers control-based financial patterns' },
+        tool8: { name: 'Tool 8: Investment Planning', benefit: 'Connects your risk tolerance to growth strategy' }
+      };
+
+      for (var tk = 0; tk < toolKeys.length; tk++) {
+        var tKey = toolKeys[tk];
+        if (!summary.tools[tKey] || summary.tools[tKey].status !== 'completed') {
+          var info = toolMissing[tKey];
+          html += '<li style="margin: 8px 0; color: #555;"><strong>' + info.name + '</strong> — ' + info.benefit + '</li>';
+        }
+      }
+
+      html += '</ul>';
+      html += '</div>';
+    }
+
+    // Closing Statement
+    html += '<div style="text-align: center; margin-top: 30px; padding: 20px;">';
+    html += '<p style="font-size: 15px; color: #555; line-height: 1.7;">This report is a snapshot of where you are today. ' +
+      'Your patterns are not your destiny — they are the starting point for change. ' +
+      'Bring this document to your next coaching session and use it as a roadmap for your financial transformation.</p>';
+    html += '</div>';
+
+    // Footer
+    html += this.buildFooter('This capstone report integrates your psychological and financial assessment results. Use it as a comprehensive guide for your coaching conversations and future growth.');
+
+    return html;
+  },
+
+  // ============================================================
+  // PER-TOOL SECTION BUILDERS (Phase 10)
+  // ============================================================
+
+  /**
+   * Build Tool 1 section: Core Trauma Strategy
+   * Shows dominant strategy and all 6 scores with visual bars.
+   */
+  _buildTool1Section(t1Data) {
+    var html = '<div class="tool-section">';
+    html += '<div class="tool-section-header">Tool 1: Core Trauma Strategy</div>';
+
+    // Dominant strategy
+    html += '<p><strong>Your Dominant Strategy:</strong> ' + (t1Data.winner || 'Unknown') + '</p>';
+
+    // Strategy scores with bipolar bars
+    if (t1Data.scores) {
+      var strategyNames = {
+        FSV: 'Financial Self-Value',
+        ExVal: 'External Validation',
+        Showing: 'Showing Love',
+        Receiving: 'Receiving Love',
+        Control: 'Control',
+        Fear: 'Fear'
+      };
+
+      html += '<div style="margin: 12px 0;">';
+      for (var key in t1Data.scores) {
+        var score = t1Data.scores[key];
+        var name = strategyNames[key] || key;
+        var isWinner = key === t1Data.winner;
+        var barWidth = Math.min(Math.abs(score) * 2, 50);
+        var barColor = score > 0 ? '#ef4444' : '#22c55e';
+
+        html += '<div class="score-bar-container">';
+        html += '<div class="score-bar-label">' + (isWinner ? '<strong>' : '') + name + ': ' + score + (isWinner ? ' (dominant)</strong>' : '') + '</div>';
+        html += '<div class="score-bar-track" style="position: relative;">';
+        html += '<div style="position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: #d1d5db;"></div>';
+        html += '<div style="position: absolute; ' + (score >= 0 ? 'left: 50%' : 'right: 50%') + '; top: 0; height: 100%; width: ' + barWidth + '%; background: ' + barColor + '; border-radius: 7px;"></div>';
+        html += '</div>';
+        html += '</div>';
+      }
+      html += '</div>';
+    }
+
+    html += '</div>';
+    return html;
+  },
+
+  /**
+   * Build a grounding tool section: Tools 3, 5, or 7.
+   * Shows overall quotient, domain quotients, top subdomains, and GPT synthesis.
+   * All three tools share the same data shape via GroundingReport.
+   */
+  _buildGroundingToolSection(gtData, title) {
+    var html = '<div class="tool-section">';
+    html += '<div class="tool-section-header">' + title + '</div>';
+
+    if (gtData.scoring) {
+      // Overall quotient
+      html += '<p><strong>Overall Score:</strong> ' + gtData.scoring.overallQuotient + '/100</p>';
+
+      // Domain scores
+      if (gtData.scoring.domainQuotients) {
+        for (var dk in gtData.scoring.domainQuotients) {
+          var dScore = gtData.scoring.domainQuotients[dk];
+          var dColor = dScore >= 70 ? '#22c55e' : (dScore >= 40 ? '#f59e0b' : '#ef4444');
+          html += '<div class="score-bar-container">';
+          html += '<div class="score-bar-label">' + dk + ': ' + dScore + '/100</div>';
+          html += '<div class="score-bar-track">';
+          html += '<div class="score-bar-fill" style="width: ' + dScore + '%; background: ' + dColor + ';"></div>';
+          html += '</div>';
+          html += '</div>';
+        }
+      }
+
+      // Top 3 strongest and weakest subdomains
+      if (gtData.scoring.subdomainQuotients) {
+        var subdomains = [];
+        for (var sk in gtData.scoring.subdomainQuotients) {
+          subdomains.push({ key: sk, score: gtData.scoring.subdomainQuotients[sk] });
+        }
+        subdomains.sort(function(a, b) { return b.score - a.score; });
+
+        if (subdomains.length > 0) {
+          html += '<div style="display: flex; gap: 20px; margin-top: 10px;">';
+
+          // Strongest
+          html += '<div style="flex: 1;">';
+          html += '<p style="font-size: 13px; color: #16a34a; font-weight: 600;">Strongest Areas</p>';
+          for (var s = 0; s < Math.min(3, subdomains.length); s++) {
+            html += '<p style="font-size: 13px; color: #555;">' + subdomains[s].key + ': ' + subdomains[s].score + '</p>';
+          }
+          html += '</div>';
+
+          // Weakest
+          html += '<div style="flex: 1;">';
+          html += '<p style="font-size: 13px; color: #ef4444; font-weight: 600;">Growth Areas</p>';
+          for (var wk = subdomains.length - 1; wk >= Math.max(0, subdomains.length - 3); wk--) {
+            html += '<p style="font-size: 13px; color: #555;">' + subdomains[wk].key + ': ' + subdomains[wk].score + '</p>';
+          }
+          html += '</div>';
+
+          html += '</div>';
+        }
+      }
+    }
+
+    // GPT synthesis (reused from tool submission — no additional cost)
+    if (gtData.syntheses && gtData.syntheses.overall && gtData.syntheses.overall.summary) {
+      html += '<div class="tool-insight">' + gtData.syntheses.overall.summary + '</div>';
+    }
+
+    html += '</div>';
+    return html;
+  },
+
+  /**
+   * Build Tool 2 section: Financial Clarity
+   * Shows archetype, domain clarity scores with bars, priority, and GPT insight.
+   */
+  _buildTool2Section(t2Data) {
+    var html = '<div class="tool-section">';
+    html += '<div class="tool-section-header">Tool 2: Financial Clarity</div>';
+
+    if (t2Data.results) {
+      // Archetype
+      if (t2Data.results.archetype) {
+        html += '<p><strong>Your Archetype:</strong> ' + t2Data.results.archetype + '</p>';
+      }
+
+      // Domain scores
+      if (t2Data.results.domainScores) {
+        var domainLabels = {
+          moneyFlow: 'Money Flow',
+          obligations: 'Obligations',
+          liquidity: 'Liquidity',
+          growth: 'Growth',
+          protection: 'Protection'
+        };
+
+        for (var dom in t2Data.results.domainScores) {
+          var score = t2Data.results.domainScores[dom];
+          var label = domainLabels[dom] || dom;
+          var color = score >= 70 ? '#22c55e' : (score >= 40 ? '#f59e0b' : '#ef4444');
+
+          html += '<div class="score-bar-container">';
+          html += '<div class="score-bar-label">' + label + ': ' + score + '%</div>';
+          html += '<div class="score-bar-track">';
+          html += '<div class="score-bar-fill" style="width: ' + score + '%; background: ' + color + ';"></div>';
+          html += '</div>';
+          html += '</div>';
+        }
+      }
+
+      // Priority domain
+      if (t2Data.results.priorityList && t2Data.results.priorityList.length > 0) {
+        html += '<p style="margin-top: 8px;"><strong>Priority Focus:</strong> ' + t2Data.results.priorityList[0].domain + '</p>';
+      }
+    }
+
+    // GPT overall insight (reused from tool submission)
+    if (t2Data.overallInsight && t2Data.overallInsight.summary) {
+      html += '<div class="tool-insight">' + t2Data.overallInsight.summary + '</div>';
+    }
+
+    html += '</div>';
+    return html;
+  },
+
+  /**
+   * Build Tool 4 section: Budget Framework
+   * Shows monthly income, MEFI allocation bar, dollar amounts, and priority.
+   */
+  _buildTool4Section(t4Data) {
+    var html = '<div class="tool-section">';
+    html += '<div class="tool-section-header">Tool 4: Budget Framework</div>';
+
+    // Monthly income
+    var income = t4Data.monthlyIncome || 0;
+    html += '<div class="metric-row">';
+    html += '<span class="metric-label">Monthly Income</span>';
+    html += '<span class="metric-value">$' + Number(income).toLocaleString() + '</span>';
+    html += '</div>';
+
+    // Allocation bar (MEFI)
+    var colors = { multiply: '#ad9168', essentials: '#6366f1', freedom: '#22c55e', enjoyment: '#f59e0b' };
+    var labels = { multiply: 'Multiply', essentials: 'Essentials', freedom: 'Freedom', enjoyment: 'Enjoyment' };
+    var allocations = {
+      multiply: t4Data.multiply || 0,
+      essentials: t4Data.essentials || 0,
+      freedom: t4Data.freedom || 0,
+      enjoyment: t4Data.enjoyment || 0
+    };
+
+    html += '<div class="allocation-bar">';
+    for (var aKey in allocations) {
+      var pct = allocations[aKey];
+      if (pct > 0) {
+        html += '<div class="allocation-segment" style="width: ' + pct + '%; background: ' + colors[aKey] + ';">' +
+          labels[aKey].charAt(0) + ' ' + pct + '%</div>';
+      }
+    }
+    html += '</div>';
+
+    // Dollar amounts
+    html += '<div style="display: flex; justify-content: space-around; margin: 10px 0; font-size: 13px;">';
+    for (var dKey in allocations) {
+      var dollars = Math.round(income * allocations[dKey] / 100);
+      html += '<div style="text-align: center;">';
+      html += '<div style="color: ' + colors[dKey] + '; font-weight: 600;">' + labels[dKey] + '</div>';
+      html += '<div>$' + Number(dollars).toLocaleString() + '</div>';
+      html += '</div>';
+    }
+    html += '</div>';
+
+    // Priority
+    if (t4Data.priority && t4Data.priority !== 'Not selected') {
+      html += '<p style="margin-top: 8px;"><strong>Selected Priority:</strong> ' + t4Data.priority + '</p>';
+    }
+
+    html += '</div>';
+    return html;
+  },
+
+  /**
+   * Build Tool 6 section: Retirement Blueprint
+   * Shows retirement profile, key metrics, and investment score.
+   */
+  _buildTool6Section(t6Data) {
+    var html = '<div class="tool-section">';
+    html += '<div class="tool-section-header">Tool 6: Retirement Blueprint</div>';
+
+    // Profile
+    if (t6Data.profileId) {
+      html += '<p><strong>Your Profile:</strong> ' + t6Data.profileId + '</p>';
+    }
+
+    // Key metrics
+    var metrics = [];
+    if (t6Data.monthlyBudget) metrics.push({ label: 'Monthly Retirement Budget', value: '$' + Number(t6Data.monthlyBudget).toLocaleString() });
+    if (t6Data.projectedBalance) metrics.push({ label: 'Projected Balance', value: '$' + Number(t6Data.projectedBalance).toLocaleString() });
+    if (t6Data.investmentScore !== undefined) metrics.push({ label: 'Investment Score', value: t6Data.investmentScore + '/10' });
+    if (t6Data.yearsToRetirement) metrics.push({ label: 'Years to Retirement', value: t6Data.yearsToRetirement + ' years' });
+    if (t6Data.taxStrategy) metrics.push({ label: 'Tax Strategy', value: t6Data.taxStrategy });
+
+    for (var m = 0; m < metrics.length; m++) {
+      html += '<div class="metric-row">';
+      html += '<span class="metric-label">' + metrics[m].label + '</span>';
+      html += '<span class="metric-value">' + metrics[m].value + '</span>';
+      html += '</div>';
+    }
+
+    html += '</div>';
+    return html;
+  },
+
+  /**
+   * Build Tool 8 section: Investment Planning
+   * Shows scenario details, risk, projections, and feasibility.
+   */
+  _buildTool8Section(t8Data) {
+    var html = '<div class="tool-section">';
+    html += '<div class="tool-section-header">Tool 8: Investment Planning</div>';
+
+    // Scenario name
+    if (t8Data.scenarioName) {
+      html += '<p><strong>Scenario:</strong> ' + t8Data.scenarioName + '</p>';
+    }
+
+    // Key metrics
+    var metrics = [];
+    if (t8Data.monthlyInvestment) metrics.push({ label: 'Monthly Investment', value: '$' + Number(t8Data.monthlyInvestment).toLocaleString() });
+    if (t8Data.timeHorizon) metrics.push({ label: 'Time Horizon', value: t8Data.timeHorizon + ' years' });
+    if (t8Data.risk !== undefined) {
+      var riskLabel = t8Data.risk <= 3 ? 'Conservative' : (t8Data.risk <= 6 ? 'Moderate' : 'Aggressive');
+      metrics.push({ label: 'Risk Level', value: riskLabel + ' (' + t8Data.risk + '/10)' });
+    }
+    if (t8Data.projectedBalance) metrics.push({ label: 'Projected Balance', value: '$' + Number(t8Data.projectedBalance).toLocaleString() });
+    if (t8Data.feasibility) {
+      var feasLabel = t8Data.feasibility === 'OK' ? 'On Track' : (t8Data.feasibility === 'WARN' ? 'Needs Attention' : 'At Risk');
+      metrics.push({ label: 'Feasibility', value: feasLabel });
+    }
+
+    for (var m = 0; m < metrics.length; m++) {
+      html += '<div class="metric-row">';
+      html += '<span class="metric-label">' + metrics[m].label + '</span>';
+      html += '<span class="metric-value">' + metrics[m].value + '</span>';
+      html += '</div>';
+    }
+
+    html += '</div>';
+    return html;
+  },
+
   _buildMissingSectionBox(description, instruction) {
     return '<div class="missing-section-box">' +
       '<p style="color: #6b7280; font-size: 14px; margin-bottom: 8px;">' + description + '</p>' +
