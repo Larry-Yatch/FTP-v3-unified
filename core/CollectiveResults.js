@@ -708,6 +708,40 @@ const CollectiveResults = {
       html += this._renderBeliefBehaviorGaps(engines.bbGaps, isCoach);
     }
 
+    // 3F: AI Capstone Analysis (GPT-powered)
+    var hasT1 = summary.tools.tool1 && summary.tools.tool1.status === 'completed';
+    var hasT2 = summary.tools.tool2 && summary.tools.tool2.status === 'completed';
+    var hasGrounding = (summary.tools.tool3 && summary.tools.tool3.status === 'completed') ||
+                       (summary.tools.tool5 && summary.tools.tool5.status === 'completed') ||
+                       (summary.tools.tool7 && summary.tools.tool7.status === 'completed');
+
+    if (hasT1 && hasT2 && hasGrounding) {
+      html += '<div class="hr" style="margin: 25px 0;"></div>' +
+        '<h3 class="cr-capstone-section-title">AI-Powered Capstone Analysis</h3>' +
+        '<p class="muted" style="font-size: 0.85rem; margin-bottom: 15px;">' +
+          'GPT synthesizes patterns across all your completed assessments' +
+        '</p>' +
+        '<div style="text-align: center;">' +
+          '<button id="generateCapstoneBtn" class="cr-report-download-btn" onclick="generateCapstoneGPTInsights()">' +
+            'Generate Your Financial Story' +
+          '</button>' +
+          '<p id="capstoneMsg" class="muted" style="font-size: 0.8rem; margin-top: 6px; min-height: 1.2em;"></p>' +
+        '</div>' +
+        '<div id="financialStoryContainer" style="display: none;"></div>' +
+        '<div id="capstoneInsightsContainer" style="display: none;"></div>';
+    } else {
+      // Show placeholder if minimum requirements not met
+      var missing = [];
+      if (!hasT1) missing.push('Tool 1 (Core Trauma Strategy)');
+      if (!hasT2) missing.push('Tool 2 (Financial Clarity)');
+      if (!hasGrounding) missing.push('a grounding tool (Tool 3, 5, or 7)');
+      html += '<div class="hr" style="margin: 25px 0;"></div>' +
+        '<h3 class="cr-capstone-section-title" style="opacity: 0.5;">AI-Powered Capstone Analysis</h3>' +
+        '<p class="muted" style="font-size: 0.85rem; opacity: 0.5;">' +
+          'Complete ' + missing.join(' and ') + ' to unlock your personalized financial story and cross-tool insights.' +
+        '</p>';
+    }
+
     // Phase 10: Download Capstone Report button with section breakdown
     var sectionStatus = [];
 
@@ -2477,6 +2511,21 @@ const CollectiveResults = {
       `;
     }
 
+    // Data-driven summary (concise, matching Tool 4/6/8 style)
+    var strongest = '';
+    var weakest = '';
+    var highScore = 0;
+    var lowScore = 101;
+    for (var di = 0; di < domains.length; di++) {
+      var db = benchmarks[domains[di]] || {};
+      var dp = db.percentage || 0;
+      if (dp > highScore) { highScore = dp; strongest = this.DOMAIN_LABELS[domains[di]]; }
+      if (dp < lowScore) { lowScore = dp; weakest = this.DOMAIN_LABELS[domains[di]]; }
+    }
+    var insightOverview = 'As a "' + archetype + '," your strongest clarity is in ' + strongest +
+      ' (' + Math.round(highScore) + '%) while ' + weakest + ' (' + Math.round(lowScore) +
+      '%) needs the most attention.' + (topPriority ? ' Your top priority focus is ' + this.DOMAIN_LABELS[topPriority] + '.' : '');
+
     return `
       <div class="cr-tool-card cr-completed">
         <div class="cr-card-header">
@@ -2489,6 +2538,9 @@ const CollectiveResults = {
         <div class="cr-archetype-badge">${archetype}</div>
         <div class="cr-domain-bars" style="margin-top: 12px;">
           ${domainBars}
+        </div>
+        <div class="cr-insight-strip">
+          <div class="cr-insight-text">${insightOverview}</div>
         </div>
       </div>
     `;
@@ -2536,6 +2588,40 @@ const CollectiveResults = {
         segmentLabels[seg.label] + ': ' + seg.value + '%</span>';
     }
 
+    // Dollar amounts per category
+    var dollarItems = '';
+    var fullLabels = { M: 'Multiply', E: 'Essentials', F: 'Freedom', J: 'Enjoyment' };
+    var segColors = { M: '#188bf6', E: '#6b7280', F: '#10b981', J: '#ad9168' };
+    for (var di = 0; di < segments.length; di++) {
+      var ds = segments[di];
+      if (ds.value > 0) {
+        var dollarAmt = Math.round(income * ds.value / 100);
+        dollarItems += '<span style="color: ' + segColors[ds.label] + '; font-weight: 600;">' +
+          fullLabels[ds.label] + ':</span> $' + Number(dollarAmt).toLocaleString('en-US') + '/mo &nbsp; ';
+      }
+    }
+
+    // Data-driven narrative
+    var allCats = [
+      { name: 'Multiply', pct: multiply },
+      { name: 'Essentials', pct: essentials },
+      { name: 'Freedom', pct: freedom },
+      { name: 'Enjoyment', pct: enjoyment }
+    ];
+    allCats.sort(function(a, b) { return b.pct - a.pct; });
+    var narrative = 'Your budget prioritizes ' + allCats[0].name + ' at ' + allCats[0].pct + '% of income.';
+    if (multiply < 15 && multiply > 0) {
+      narrative += ' With only ' + multiply + '% going to Multiply, wealth-building capacity is limited.';
+    } else if (multiply === 0) {
+      narrative += ' No allocation toward Multiply means no active wealth-building.';
+    }
+    if (enjoyment === 0) {
+      narrative += ' Consider allocating something to Enjoyment for sustainable balance.';
+    }
+    if (priority && priority !== 'Not selected') {
+      narrative += ' Your selected priority is ' + priority + '.';
+    }
+
     return `
       <div class="cr-tool-card cr-completed">
         <div class="cr-card-header">
@@ -2549,7 +2635,9 @@ const CollectiveResults = {
         <div class="cr-alloc-bar">${barSegments}</div>
         <div class="cr-legend">${legendItems}</div>
 
-        <div class="cr-meta-row" style="margin-top: 12px;">
+        <div style="font-size: 12px; color: #555; margin: 8px 0 4px 0; line-height: 1.5;">${dollarItems}</div>
+
+        <div class="cr-meta-row" style="margin-top: 8px;">
           <div class="cr-meta-item">
             <span class="muted">Monthly Income</span>
             <span class="cr-meta-value">${incomeFormatted}</span>
@@ -2558,6 +2646,10 @@ const CollectiveResults = {
             <span class="muted">Priority</span>
             <span class="cr-meta-value">${priority}</span>
           </div>
+        </div>
+
+        <div class="cr-insight-strip">
+          <div class="cr-insight-text">${narrative}</div>
         </div>
       </div>
     `;
@@ -2571,15 +2663,97 @@ const CollectiveResults = {
     if (toolData.status === 'in_progress') return this._renderInProgressCard('tool6');
     if (toolData.status !== 'completed' || !toolData.data) return this._renderLockedCard('tool6');
 
-    const data = toolData.data;
-    var profileId = data.profileId || 'Not determined';
-    var monthlyBudget = data.monthlyBudget || 0;
-    var projectedBalance = data.projectedBalance || 0;
-    var investmentScore = data.investmentScore || 0;
-    var taxStrategy = data.taxStrategy || 'Not set';
+    // Try to get full data from TOOL6_SCENARIOS sheet
+    var fullData = null;
+    try {
+      var scenarios = Tool6.getScenarios ? Tool6.getScenarios(clientId) : [];
+      if (scenarios && scenarios.length > 0) {
+        fullData = scenarios.find(function(s) { return s.isLatest; }) || scenarios[0];
+      }
+    } catch (e) {
+      Logger.log('[CollectiveResults] Tool 6 scenario fetch: ' + e.message);
+    }
 
-    var budgetFormatted = '$' + Number(monthlyBudget).toLocaleString('en-US');
-    var projectedFormatted = '$' + Number(projectedBalance).toLocaleString('en-US');
+    // Merge: prefer full scenario data, fall back to response data
+    var data = toolData.data;
+    var profileId = (fullData && fullData.profileId) || data.profileId || null;
+    var monthlyBudget = (fullData && fullData.monthlyBudget) || data.monthlyBudget || 0;
+    var projectedBalance = (fullData && fullData.projectedBalance) || data.projectedBalance || 0;
+    var investmentScore = (fullData && fullData.investmentScore) || data.investmentScore || 0;
+    var taxStrategy = (fullData && fullData.taxStrategy) || data.taxStrategy || 'Not set';
+    var yearsToRetirement = fullData ? fullData.yearsToRetirement : null;
+    var age = fullData ? fullData.age : null;
+    var allocations = (fullData && fullData.allocations) || data.allocations || {};
+    var scenarioName = (fullData && fullData.name) || data.scenarioName || '';
+
+    // Profile name lookup
+    var profileNames = {
+      1: 'ROBS-In-Use Strategist', 2: 'ROBS-Curious Candidate',
+      3: 'Business Owner with Employees', 4: 'Solo 401(k) Optimizer',
+      5: 'Bracket Strategist', 6: 'Catch-Up Contributor',
+      7: 'Foundation Builder', 8: 'Roth Growth Strategist', 9: 'Balanced Builder'
+    };
+    var profileName = profileNames[profileId] || (profileId ? 'Profile ' + profileId : 'Not determined');
+
+    // Risk tolerance label
+    var riskDesc = investmentScore <= 2 ? 'Conservative' :
+                   (investmentScore <= 4 ? 'Moderate' :
+                   (investmentScore <= 6 ? 'Growth' : 'Aggressive'));
+
+    // Tax strategy label
+    var taxLabel = taxStrategy === 'Now' ? 'Roth Focus' :
+                   (taxStrategy === 'Later' ? 'Traditional Focus' :
+                   (taxStrategy === 'Both' ? 'Balanced' : taxStrategy));
+
+    // Estimated monthly retirement income (4% rule, inflation-adjusted)
+    var monthlyRetIncome = 0;
+    if (projectedBalance && yearsToRetirement && yearsToRetirement > 0) {
+      var realBalance = projectedBalance / Math.pow(1.025, yearsToRetirement);
+      monthlyRetIncome = Math.round(realBalance * 0.04 / 12);
+    }
+
+    // Build account structure bars (top vehicles)
+    var vehicleBars = '';
+    if (allocations && typeof allocations === 'object') {
+      var vehicles = [];
+      var totalAlloc = 0;
+      for (var vk in allocations) {
+        var vAmt = allocations[vk] || 0;
+        if (vAmt > 0) {
+          var vName = vk.replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
+          vName = vName.replace(/401\s*k\b/gi, '401(k)');
+          vName = vName.replace(/\bEmployee\s+Roth\b/gi, 'Employee (Roth)');
+          vName = vName.replace(/\bEmployee\s+Traditional\b/gi, 'Employee (Traditional)');
+          vehicles.push({ name: vName, amount: vAmt });
+          totalAlloc += vAmt;
+        }
+      }
+      vehicles.sort(function(a, b) { return b.amount - a.amount; });
+      var topVehicles = vehicles.slice(0, 4);
+      for (var vi = 0; vi < topVehicles.length; vi++) {
+        var vPct = totalAlloc > 0 ? Math.round(topVehicles[vi].amount / totalAlloc * 100) : 0;
+        vehicleBars += '<div class="cr-subdomain-row">' +
+          '<div class="cr-subdomain-label">' + topVehicles[vi].name + '</div>' +
+          '<div class="cr-subdomain-bar-track">' +
+            '<div class="cr-subdomain-bar-fill" style="width: ' + vPct + '%; background: #ad9168;"></div>' +
+          '</div>' +
+          '<div class="cr-subdomain-value" style="color: #ad9168;">$' + Number(topVehicles[vi].amount).toLocaleString('en-US') + '</div>' +
+        '</div>';
+      }
+    }
+
+    // Data-driven narrative
+    var narrative = 'As a "' + profileName + '," you are contributing $' +
+      Number(monthlyBudget).toLocaleString('en-US') + '/mo toward a projected nest egg of $' +
+      Number(Math.round(projectedBalance)).toLocaleString('en-US') + '.';
+    if (yearsToRetirement) {
+      narrative += ' With ' + yearsToRetirement + ' years to retirement';
+      if (age) narrative += ' (age ' + age + ')';
+      narrative += ', your ' + taxLabel.toLowerCase() + ' strategy targets ' + riskDesc.toLowerCase() + ' growth.';
+    }
+    if (monthlyRetIncome > 0) {
+      narrative += ' This could provide approximately $' + Number(monthlyRetIncome).toLocaleString('en-US') + '/mo in retirement income (today dollars).';
+    }
 
     return `
       <div class="cr-tool-card cr-completed">
@@ -2591,27 +2765,34 @@ const CollectiveResults = {
           ${isCoach ? '' : '<button class="cr-report-link" onclick="viewToolReport(\'tool6\')">Open Calculator</button>'}
         </div>
 
-        <div class="cr-archetype-badge">${profileId}</div>
+        <div class="cr-archetype-badge">${profileName}</div>
+        ${scenarioName ? '<div style="font-size: 12px; color: #888; margin-top: 4px;">Scenario: ' + scenarioName + '</div>' : ''}
 
         <div class="cr-meta-row" style="margin-top: 12px;">
           <div class="cr-meta-item">
-            <span class="muted">Monthly Budget</span>
-            <span class="cr-meta-value">${budgetFormatted}</span>
+            <span class="muted">Monthly Contribution</span>
+            <span class="cr-meta-value">$${Number(monthlyBudget).toLocaleString('en-US')}</span>
           </div>
           <div class="cr-meta-item">
-            <span class="muted">Projected Balance</span>
-            <span class="cr-meta-value">${projectedFormatted}</span>
+            <span class="muted">Projected Nest Egg</span>
+            <span class="cr-meta-value">$${Number(Math.round(projectedBalance)).toLocaleString('en-US')}</span>
           </div>
         </div>
         <div class="cr-meta-row">
           <div class="cr-meta-item">
-            <span class="muted">Investment Score</span>
-            <span class="cr-meta-value">${investmentScore}/10</span>
+            <span class="muted">${yearsToRetirement ? 'Years to Retirement' : 'Risk Tolerance'}</span>
+            <span class="cr-meta-value">${yearsToRetirement ? yearsToRetirement + ' years' : riskDesc + ' (' + investmentScore + '/7)'}</span>
           </div>
           <div class="cr-meta-item">
-            <span class="muted">Tax Strategy</span>
-            <span class="cr-meta-value">${taxStrategy}</span>
+            <span class="muted">${monthlyRetIncome > 0 ? 'Est. Monthly Income' : 'Tax Strategy'}</span>
+            <span class="cr-meta-value">${monthlyRetIncome > 0 ? '$' + Number(monthlyRetIncome).toLocaleString('en-US') + '/mo' : taxLabel}</span>
           </div>
+        </div>
+
+        ${vehicleBars ? '<div style="margin-top: 10px; font-size: 12px; font-weight: 600; color: #555;">Account Structure</div>' + vehicleBars : ''}
+
+        <div class="cr-insight-strip">
+          <div class="cr-insight-text">${narrative}</div>
         </div>
       </div>
     `;
@@ -2625,19 +2806,74 @@ const CollectiveResults = {
     if (toolData.status === 'in_progress') return this._renderInProgressCard('tool8');
     if (toolData.status !== 'completed' || !toolData.data) return this._renderLockedCard('tool8');
 
-    const data = toolData.data;
-    var mode = data.mode || 'Unknown';
-    var monthlyInvestment = data.M_real || 0;
-    var timeHorizon = data.T || 0;
-    var risk = data.risk || 0;
-    var scenarioName = data.scenarioName || 'Unnamed Scenario';
+    // Try to get full data from TOOL8_SCENARIOS sheet
+    var fullData = null;
+    try {
+      var scenarios = Tool8.getUserScenarios ? Tool8.getUserScenarios(clientId) : [];
+      if (scenarios && scenarios.length > 0) {
+        fullData = scenarios.find(function(s) { return s.isLatest; }) || scenarios[0];
+      }
+    } catch (e) {
+      Logger.log('[CollectiveResults] Tool 8 scenario fetch: ' + e.message);
+    }
 
-    var monthlyFormatted = '$' + Number(monthlyInvestment).toLocaleString('en-US');
+    // Merge: prefer full scenario data, fall back to response data
+    var data = toolData.data;
+    var scenarioName = (fullData && fullData.name) || data.scenarioName || 'Unnamed Scenario';
+    var monthlyInvestment = (fullData && fullData.M_real) || data.M_real || 0;
+    var timeHorizon = (fullData && fullData.T) || data.T || 0;
+    var risk = (fullData && fullData.risk) || data.risk || 0;
+    var currentAssets = fullData ? (fullData.A0 || 0) : 0;
+    var requiredNestEgg = fullData ? (fullData.Areq || 0) : 0;
+    var monthlyRetIncome = fullData ? (fullData.M0 || 0) : 0;
+    var drawYears = fullData ? (fullData.D || 30) : 30;
+    var requiredContrib = fullData ? (fullData.Creq || 0) : 0;
+    var contribCapacity = fullData ? (fullData.C_cap || 0) : 0;
 
-    // Risk label
-    var riskLabel = 'Conservative';
-    if (risk >= 7) riskLabel = 'Aggressive';
-    else if (risk >= 4) riskLabel = 'Moderate';
+    // Funding progress
+    var pctFunded = requiredNestEgg > 0 ? Math.round(currentAssets / requiredNestEgg * 100) : 0;
+    pctFunded = Math.min(pctFunded, 100);
+    var fundingColor = pctFunded >= 75 ? '#10b981' : (pctFunded >= 40 ? '#f59e0b' : '#ef4444');
+    var gap = requiredNestEgg > 0 ? requiredNestEgg - currentAssets : 0;
+
+    // Funding progress bar HTML
+    var progressBar = '';
+    if (requiredNestEgg > 0) {
+      progressBar = '<div style="margin-top: 10px;">' +
+        '<div style="font-size: 12px; font-weight: 600; color: ' + fundingColor + '; margin-bottom: 4px;">' +
+          'Funding Progress: ' + pctFunded + '%' +
+          (gap > 0 ? ' <span style="color: #888; font-weight: 400;">($' + Number(Math.round(gap)).toLocaleString('en-US') + ' remaining)</span>' : '') +
+        '</div>' +
+        '<div class="cr-domain-bar-track">' +
+          '<div class="cr-domain-bar-fill" style="width: ' + pctFunded + '%; background: ' + fundingColor + ';"></div>' +
+        '</div>' +
+      '</div>';
+    }
+
+    // Data-driven narrative
+    var narrative = '';
+    if (requiredNestEgg > 0) {
+      narrative = 'Your plan targets a $' + Number(Math.round(requiredNestEgg)).toLocaleString('en-US') +
+        ' nest egg to sustain $' + Number(Math.round(monthlyRetIncome)).toLocaleString('en-US') +
+        '/mo over ' + drawYears + ' years of retirement.';
+      if (currentAssets > 0) {
+        narrative += ' With $' + Number(Math.round(currentAssets)).toLocaleString('en-US') +
+          ' currently saved (' + pctFunded + '% funded), ';
+      } else {
+        narrative += ' Starting from zero, ';
+      }
+      if (requiredContrib > 0) {
+        narrative += 'you need $' + Number(Math.round(requiredContrib)).toLocaleString('en-US') + '/mo in contributions.';
+        if (contribCapacity > 0 && contribCapacity >= requiredContrib) {
+          narrative += ' You have sufficient capacity at $' + Number(Math.round(contribCapacity)).toLocaleString('en-US') + '/mo.';
+        } else if (contribCapacity > 0) {
+          narrative += ' Your capacity of $' + Number(Math.round(contribCapacity)).toLocaleString('en-US') + '/mo falls short.';
+        }
+      }
+    } else {
+      narrative = 'Investing $' + Number(Math.round(monthlyInvestment)).toLocaleString('en-US') +
+        '/mo over ' + timeHorizon + ' years toward your retirement goals.';
+    }
 
     return `
       <div class="cr-tool-card cr-completed">
@@ -2653,23 +2889,29 @@ const CollectiveResults = {
 
         <div class="cr-meta-row" style="margin-top: 12px;">
           <div class="cr-meta-item">
-            <span class="muted">Monthly Investment</span>
-            <span class="cr-meta-value">${monthlyFormatted}</span>
+            <span class="muted">${requiredNestEgg > 0 ? 'Required Nest Egg' : 'Monthly Investment'}</span>
+            <span class="cr-meta-value">${requiredNestEgg > 0 ? '$' + Number(Math.round(requiredNestEgg)).toLocaleString('en-US') : '$' + Number(Math.round(monthlyInvestment)).toLocaleString('en-US')}</span>
           </div>
           <div class="cr-meta-item">
-            <span class="muted">Time Horizon</span>
-            <span class="cr-meta-value">${timeHorizon} years</span>
+            <span class="muted">${monthlyRetIncome > 0 ? 'Monthly at Retirement' : 'Time Horizon'}</span>
+            <span class="cr-meta-value">${monthlyRetIncome > 0 ? '$' + Number(Math.round(monthlyRetIncome)).toLocaleString('en-US') + '/mo' : timeHorizon + ' years'}</span>
           </div>
         </div>
         <div class="cr-meta-row">
           <div class="cr-meta-item">
-            <span class="muted">Risk Level</span>
-            <span class="cr-meta-value">${riskLabel} (${risk}/10)</span>
+            <span class="muted">${timeHorizon && requiredNestEgg > 0 ? 'Years to Retirement' : 'Risk Level'}</span>
+            <span class="cr-meta-value">${timeHorizon && requiredNestEgg > 0 ? timeHorizon + ' years' : (risk <= 25 ? 'Conservative' : (risk <= 50 ? 'Moderate' : (risk <= 75 ? 'Growth' : 'Aggressive')))}</span>
           </div>
           <div class="cr-meta-item">
-            <span class="muted">Calculation Mode</span>
-            <span class="cr-meta-value">${mode}</span>
+            <span class="muted">Retirement Duration</span>
+            <span class="cr-meta-value">${drawYears} years</span>
           </div>
+        </div>
+
+        ${progressBar}
+
+        <div class="cr-insight-strip">
+          <div class="cr-insight-text">${narrative}</div>
         </div>
       </div>
     `;
@@ -3793,6 +4035,124 @@ const CollectiveResults = {
               })
               .getDashboardPage(clientId);
           };
+
+          // ---- Capstone GPT Analysis ----
+          var capstoneGenerated = false;
+          window.generateCapstoneGPTInsights = function() {
+            var btn = document.getElementById('generateCapstoneBtn');
+            var msg = document.getElementById('capstoneMsg');
+            if (!btn) return;
+
+            var isRegenerate = capstoneGenerated;
+            btn.textContent = 'Generating...';
+            btn.disabled = true;
+
+            var tips = [
+              'Analyzing patterns across all your tools...',
+              'Connecting psychological strategies to financial decisions...',
+              'Identifying cross-tool contradictions and opportunities...',
+              'Building your personalized financial story...',
+              'Drawing conclusions from your complete assessment data...',
+              'Generating actionable insights...'
+            ];
+            var tipIndex = 0;
+            var tipInterval = null;
+
+            if (typeof showLoading === 'function') {
+              showLoading(tips[0]);
+              tipInterval = setInterval(function() {
+                tipIndex = (tipIndex + 1) % tips.length;
+                var overlay = document.getElementById('loadingOverlay');
+                if (overlay) {
+                  var text = overlay.querySelector('.loading-text');
+                  if (text) {
+                    text.innerHTML = tips[tipIndex] + '<span class="loading-dots"></span>';
+                  }
+                }
+              }, 3000);
+            }
+
+            function stopTips() {
+              if (tipInterval) { clearInterval(tipInterval); tipInterval = null; }
+            }
+
+            google.script.run
+              .withSuccessHandler(function(result) {
+                stopTips();
+                if (typeof hideLoading === 'function') hideLoading();
+                btn.textContent = 'Regenerate Analysis';
+                btn.disabled = false;
+
+                if (result && result.success) {
+                  capstoneGenerated = true;
+                  renderFinancialStory(result.story);
+                  renderCapstoneInsights(result.insights);
+                  if (msg) msg.textContent = '';
+                } else {
+                  if (msg) msg.textContent = 'Generation failed: ' + (result ? result.error : 'Unknown error');
+                }
+              })
+              .withFailureHandler(function(err) {
+                stopTips();
+                if (typeof hideLoading === 'function') hideLoading();
+                btn.textContent = 'Generate Your Financial Story';
+                btn.disabled = false;
+                if (msg) msg.textContent = 'Error: ' + err.message;
+              })
+              .generateCapstoneGPT(clientId, isRegenerate);
+          };
+
+          function renderFinancialStory(story) {
+            var container = document.getElementById('financialStoryContainer');
+            if (!container || !story || !story.paragraphs || story.paragraphs.length === 0) return;
+
+            var html = '<div class="cr-capstone-card">' +
+              '<h3 class="cr-capstone-title">Your Financial Story</h3>';
+
+            for (var i = 0; i < story.paragraphs.length; i++) {
+              html += '<p class="cr-capstone-text">' + story.paragraphs[i] + '</p>';
+            }
+
+            html += '<div class="cr-capstone-source">' +
+              (story.source && story.source.indexOf('gpt') !== -1 ? 'Personalized Analysis' : 'Standard Analysis') +
+              '</div></div>';
+
+            container.innerHTML = html;
+            container.style.display = 'block';
+          }
+
+          function renderCapstoneInsights(insights) {
+            var container = document.getElementById('capstoneInsightsContainer');
+            if (!container || !insights) return;
+
+            var html = '<div class="cr-capstone-card">' +
+              '<h3 class="cr-capstone-title">Capstone Insights</h3>';
+
+            if (insights.insights && insights.insights.length > 0) {
+              for (var i = 0; i < insights.insights.length; i++) {
+                html += '<div class="cr-insight-item">' +
+                  '<div class="cr-insight-number">' + (i + 1) + '</div>' +
+                  '<div class="cr-insight-body">' + insights.insights[i] + '</div>' +
+                '</div>';
+              }
+            }
+
+            if (insights.actions && insights.actions.length > 0) {
+              html += '<div class="cr-actions-title">Priority Action Steps</div>';
+              html += '<ol class="cr-actions-list">';
+              for (var j = 0; j < insights.actions.length; j++) {
+                html += '<li>' + insights.actions[j] + '</li>';
+              }
+              html += '</ol>';
+            }
+
+            html += '<div class="cr-capstone-source">' +
+              (insights.source && insights.source.indexOf('gpt') !== -1 ? 'Personalized Analysis' : 'Standard Analysis') +
+              '</div></div>';
+
+            container.innerHTML = html;
+            container.style.display = 'block';
+          }
 
           window.downloadIntegrationReport = function() {
             var btn = document.getElementById('integrationReportBtn');

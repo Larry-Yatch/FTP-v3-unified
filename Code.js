@@ -454,6 +454,16 @@ function generateIntegrationPDF(clientId) {
   return _generatePDFForTool(clientId, 'integration', function() { return PDFGenerator.generateIntegrationPDF(clientId); });
 }
 
+/** Generate Capstone GPT Insights (Financial Story + Cross-Tool Insights) */
+function generateCapstoneGPT(clientId, forceRefresh) {
+  try {
+    return CapstoneGPT.generate(clientId, forceRefresh);
+  } catch (error) {
+    Logger.log('[generateCapstoneGPT] Error: ' + error);
+    return { success: false, error: error.toString() };
+  }
+}
+
 // ========================================
 // ADMIN PDF WRAPPER FUNCTIONS
 // These fetch scenario data server-side so admin dashboard only needs clientId

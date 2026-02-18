@@ -1499,10 +1499,28 @@ const PDFGenerator = {
       var narrative = IntegrationGPT.generateNarrative(analysisData);
       Logger.log('[PDFGenerator] Narrative source: ' + narrative.source);
 
+      // 3b. Generate CapstoneGPT insights (Financial Story + Cross-Tool Insights)
+      var capstoneGPT = null;
+      try {
+        if (typeof CapstoneGPT !== 'undefined' && CapstoneGPT.meetsMinimumRequirements(summary)) {
+          capstoneGPT = CapstoneGPT.generate(clientId);
+          if (capstoneGPT && capstoneGPT.success) {
+            Logger.log('[PDFGenerator] CapstoneGPT source: story=' + (capstoneGPT.story ? capstoneGPT.story.source : 'none') +
+              ', insights=' + (capstoneGPT.insights ? capstoneGPT.insights.source : 'none'));
+          } else {
+            Logger.log('[PDFGenerator] CapstoneGPT returned unsuccessful: ' + (capstoneGPT ? capstoneGPT.error : 'null'));
+            capstoneGPT = null;
+          }
+        }
+      } catch (e) {
+        Logger.log('[PDFGenerator] CapstoneGPT error (non-fatal): ' + e.message);
+        capstoneGPT = null;
+      }
+
       // 4. Build report HTML
       var studentName = this._getStudentName(clientId) || 'Student';
       var styles = this.getCommonStyles() + this._getIntegrationStyles() + this._getCapstoneStyles();
-      var bodyContent = this._buildCapstoneReportBody(clientId, studentName, summary, analysisData, narrative, readiness, perToolData);
+      var bodyContent = this._buildCapstoneReportBody(clientId, studentName, summary, analysisData, narrative, readiness, perToolData, capstoneGPT);
       var html = this.buildHTMLDocument(styles, bodyContent);
 
       // 5. Convert to PDF
@@ -1794,7 +1812,11 @@ const PDFGenerator = {
       '.metric-label { color: #555; }\n' +
       '.metric-value { font-weight: 600; color: #374151; }\n' +
       '.cover-page { text-align: center; padding: 40px 30px 20px 30px; }\n' +
-      '.cover-completion { font-size: 14px; color: #888; margin-top: 10px; }\n';
+      '.cover-completion { font-size: 14px; color: #888; margin-top: 10px; }\n' +
+      '.capstone-insights-list { margin: 12px 0; }\n' +
+      '.capstone-insight-item { display: flex; gap: 12px; margin: 12px 0; padding: 12px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb; }\n' +
+      '.capstone-insight-number { min-width: 28px; height: 28px; background: #ad9168; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 14px; flex-shrink: 0; }\n' +
+      '.capstone-insight-text { color: #374151; line-height: 1.6; font-size: 14px; }\n';
   },
 
   /**
@@ -1902,7 +1924,7 @@ const PDFGenerator = {
    * - Part 3: The Integration (existing detection engine analysis)
    * - Part 4: Your Path Forward (action items + closing)
    */
-  _buildCapstoneReportBody(clientId, studentName, summary, analysisData, narrative, readiness, perToolData) {
+  _buildCapstoneReportBody(clientId, studentName, summary, analysisData, narrative, readiness, perToolData, capstoneGPT) {
     var profile = analysisData.profile;
     var warnings = analysisData.warnings;
     var gap = analysisData.awarenessGap;
@@ -2160,6 +2182,17 @@ const PDFGenerator = {
       }
     }
 
+    // --- Your Financial Story (from CapstoneGPT) ---
+    if (capstoneGPT && capstoneGPT.story && capstoneGPT.story.paragraphs && capstoneGPT.story.paragraphs.length > 0) {
+      html += '<hr class="section-divider">';
+      html += '<h3>Your Financial Story</h3>';
+      html += '<div class="synthesis-box">';
+      for (var sp = 0; sp < capstoneGPT.story.paragraphs.length; sp++) {
+        html += '<p>' + capstoneGPT.story.paragraphs[sp] + '</p>';
+      }
+      html += '</div>';
+    }
+
     // --- The Big Picture ---
     if (narrative.overallSynthesis) {
       html += '<hr class="section-divider">';
@@ -2175,12 +2208,33 @@ const PDFGenerator = {
     html += '<h2>Part 4: Your Path Forward</h2>';
     html += '</div>';
 
-    // Action Items
-    if (narrative.actionItems && narrative.actionItems.length > 0) {
+    // Capstone Insights (from CapstoneGPT) — cross-tool patterns
+    if (capstoneGPT && capstoneGPT.insights && capstoneGPT.insights.insights && capstoneGPT.insights.insights.length > 0) {
+      html += '<h3>Capstone Insights</h3>';
+      html += '<p style="color: #555; margin-bottom: 12px;">These cross-tool patterns reveal what no single assessment can show on its own.</p>';
+      html += '<div class="capstone-insights-list">';
+      for (var ci = 0; ci < capstoneGPT.insights.insights.length; ci++) {
+        html += '<div class="capstone-insight-item">' +
+          '<div class="capstone-insight-number">' + (ci + 1) + '</div>' +
+          '<div class="capstone-insight-text">' + capstoneGPT.insights.insights[ci] + '</div>' +
+        '</div>';
+      }
+      html += '</div>';
+    }
+
+    // Action Items — prefer CapstoneGPT actions, fall back to IntegrationGPT
+    var actionItems = [];
+    if (capstoneGPT && capstoneGPT.insights && capstoneGPT.insights.actions && capstoneGPT.insights.actions.length > 0) {
+      actionItems = capstoneGPT.insights.actions;
+    } else if (narrative.actionItems && narrative.actionItems.length > 0) {
+      actionItems = narrative.actionItems;
+    }
+
+    if (actionItems.length > 0) {
       html += '<h3>Your Next Steps</h3>';
       html += '<ol class="action-list">';
-      for (var a = 0; a < narrative.actionItems.length; a++) {
-        html += '<li>' + narrative.actionItems[a] + '</li>';
+      for (var a = 0; a < actionItems.length; a++) {
+        html += '<li>' + actionItems[a] + '</li>';
       }
       html += '</ol>';
     }
