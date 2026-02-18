@@ -1963,13 +1963,13 @@ const PDFGenerator = {
 
     // Grounding Tools (3, 5, 7)
     if (perToolData.tool3) {
-      html += this._buildGroundingToolSection(perToolData.tool3, 'Tool 3: Identity and Validation');
+      html += this._buildGroundingToolSection(perToolData.tool3, 'Tool 3: Identity and Validation', 'tool3');
     }
     if (perToolData.tool5) {
-      html += this._buildGroundingToolSection(perToolData.tool5, 'Tool 5: Love and Connection');
+      html += this._buildGroundingToolSection(perToolData.tool5, 'Tool 5: Love and Connection', 'tool5');
     }
     if (perToolData.tool7) {
-      html += this._buildGroundingToolSection(perToolData.tool7, 'Tool 7: Security and Control');
+      html += this._buildGroundingToolSection(perToolData.tool7, 'Tool 7: Security and Control', 'tool7');
     }
 
     // If no psychological tools completed, show placeholder
@@ -2219,18 +2219,15 @@ const PDFGenerator = {
       html += '</div>';
     }
 
-    // Closing Statement + Footer (kept together to avoid orphan footer page)
-    html += '<div style="page-break-inside: avoid;">';
-    html += '<div style="text-align: center; margin-top: 20px; padding: 15px 20px;">';
-    html += '<p style="font-size: 15px; color: #555; line-height: 1.7;">This report is a snapshot of where you are today. ' +
+    // Closing Statement + Footer (compact to avoid orphan page)
+    html += '<div style="text-align: center; margin-top: 10px; padding: 10px 20px;">';
+    html += '<p style="font-size: 14px; color: #555; line-height: 1.6;">This report is a snapshot of where you are today. ' +
       'Your patterns are not your destiny — they are the starting point for change. ' +
       'Bring this document to your next coaching session and use it as a roadmap for your financial transformation.</p>';
     html += '</div>';
-    html += '<div class="footer" style="font-size: 13px; margin-top: 15px;">' +
-      '<p style="margin: 0 0 10px 0;">This capstone report integrates your psychological and financial assessment results. Use it as a comprehensive guide for your coaching conversations and future growth.</p>' +
-      '<p style="margin-top: 10px;"><strong>TruPath Financial</strong><br>Generated: ' + new Date().toLocaleDateString() + '</p>' +
-    '</div>';
-    html += '</div>';
+    html += '<hr style="border: none; border-top: 2px solid #ad9168; margin: 10px 0;">';
+    html += '<p style="font-size: 12px; color: #666; margin: 5px 0;">This capstone report integrates your psychological and financial assessment results. Use it as a comprehensive guide for your coaching conversations and future growth.</p>';
+    html += '<p style="font-size: 12px; color: #666; margin: 5px 0;"><strong>TruPath Financial</strong> &mdash; Generated: ' + new Date().toLocaleDateString() + '</p>';
 
     return html;
   },
@@ -2284,27 +2281,35 @@ const PDFGenerator = {
    * Shows overall quotient, domain quotients, top subdomains, and GPT synthesis.
    * All three tools share the same data shape via GroundingReport.
    */
-  _buildGroundingToolSection(gtData, title) {
+  _buildGroundingToolSection(gtData, title, toolKey) {
     var html = '<div class="tool-section">';
     html += '<div class="tool-section-header">' + title + '</div>';
 
-    if (gtData.scoring) {
-      // Overall quotient
-      html += '<p><strong>Overall Score:</strong> ' + gtData.scoring.overallQuotient + '/100</p>';
+    // Look up human-readable labels from GROUNDING_CONFIG
+    var config = (CollectiveResults.GROUNDING_CONFIG && CollectiveResults.GROUNDING_CONFIG[toolKey]) || {};
+    var domainLabels = {};
+    domainLabels['domain1'] = config.domain1Name || 'Domain 1';
+    domainLabels['domain2'] = config.domain2Name || 'Domain 2';
+    var subdomainLabels = config.subdomains || {};
 
-      // Domain scores
+    if (gtData.scoring) {
+      // Overall quotient (rounded)
+      html += '<p><strong>Overall Score:</strong> ' + Math.round(gtData.scoring.overallQuotient) + '/100</p>';
+
+      // Domain scores (rounded, with labels)
       if (gtData.scoring.domainQuotients) {
         for (var dk in gtData.scoring.domainQuotients) {
-          var dScore = gtData.scoring.domainQuotients[dk];
+          var dScore = Math.round(gtData.scoring.domainQuotients[dk]);
+          var dLabel = domainLabels[dk] || dk;
           var dColor = dScore >= 70 ? '#22c55e' : (dScore >= 40 ? '#f59e0b' : '#ef4444');
           html += '<div style="margin: 6px 0;">';
-          html += '<div style="font-size: 13px; color: #555; margin-bottom: 3px;">' + dk + ': ' + dScore + '/100</div>';
+          html += '<div style="font-size: 13px; color: #555; margin-bottom: 3px;">' + dLabel + ': ' + dScore + '/100</div>';
           html += this._buildPercentageBar(dScore, dColor);
           html += '</div>';
         }
       }
 
-      // Top 3 strongest and weakest subdomains
+      // Top 3 strongest and weakest subdomains (rounded, with labels)
       if (gtData.scoring.subdomainQuotients) {
         var subdomains = [];
         for (var sk in gtData.scoring.subdomainQuotients) {
@@ -2319,7 +2324,8 @@ const PDFGenerator = {
           html += '<div style="flex: 1;">';
           html += '<p style="font-size: 13px; color: #16a34a; font-weight: 600;">Strongest Areas</p>';
           for (var s = 0; s < Math.min(3, subdomains.length); s++) {
-            html += '<p style="font-size: 13px; color: #555;">' + subdomains[s].key + ': ' + subdomains[s].score + '</p>';
+            var sLabel = subdomainLabels[subdomains[s].key] || subdomains[s].key;
+            html += '<p style="font-size: 13px; color: #555;">' + sLabel + ': ' + Math.round(subdomains[s].score) + '</p>';
           }
           html += '</div>';
 
@@ -2327,7 +2333,8 @@ const PDFGenerator = {
           html += '<div style="flex: 1;">';
           html += '<p style="font-size: 13px; color: #ef4444; font-weight: 600;">Growth Areas</p>';
           for (var wk = subdomains.length - 1; wk >= Math.max(0, subdomains.length - 3); wk--) {
-            html += '<p style="font-size: 13px; color: #555;">' + subdomains[wk].key + ': ' + subdomains[wk].score + '</p>';
+            var wLabel = subdomainLabels[subdomains[wk].key] || subdomains[wk].key;
+            html += '<p style="font-size: 13px; color: #555;">' + wLabel + ': ' + Math.round(subdomains[wk].score) + '</p>';
           }
           html += '</div>';
 
@@ -2536,12 +2543,14 @@ const PDFGenerator = {
   _buildPercentageBar(percent, color, height) {
     var h = height || 14;
     var p = Math.max(0, Math.min(100, Math.round(percent)));
+    // GAS PDF collapses empty table cells — use &nbsp; and font-size:1px to force height
+    var cellContent = '<span style="font-size:1px;line-height:1px;">&nbsp;</span>';
     var html = '<table style="width:100%;border-collapse:collapse;margin:4px 0;"><tr>';
     if (p > 0) {
-      html += '<td style="width:' + p + '%;background:' + color + ';height:' + h + 'px;padding:0;"></td>';
+      html += '<td style="width:' + p + '%;background:' + color + ';height:' + h + 'px;padding:0;font-size:1px;line-height:' + h + 'px;">' + cellContent + '</td>';
     }
     if (p < 100) {
-      html += '<td style="width:' + (100 - p) + '%;background:#f3f4f6;height:' + h + 'px;padding:0;"></td>';
+      html += '<td style="width:' + (100 - p) + '%;background:#f3f4f6;height:' + h + 'px;padding:0;font-size:1px;line-height:' + h + 'px;">' + cellContent + '</td>';
     }
     html += '</tr></table>';
     return html;
@@ -2558,28 +2567,31 @@ const PDFGenerator = {
   _buildBipolarBar(score) {
     var barWidth = Math.min(Math.abs(score) * 2, 50);
     var barColor = score > 0 ? '#ef4444' : '#22c55e';
+    // GAS PDF collapses empty table cells — use &nbsp; and font-size:1px to force height
+    var c = '<span style="font-size:1px;line-height:1px;">&nbsp;</span>';
+    var cellStyle = 'height:14px;padding:0;font-size:1px;line-height:14px;';
     var html = '<table style="width:100%;border-collapse:collapse;margin:4px 0;"><tr>';
 
     if (score < 0) {
       var leftEmpty = 50 - barWidth;
       if (leftEmpty > 0) {
-        html += '<td style="width:' + leftEmpty + '%;background:#f3f4f6;height:14px;padding:0;"></td>';
+        html += '<td style="width:' + leftEmpty + '%;background:#f3f4f6;' + cellStyle + '">' + c + '</td>';
       }
-      html += '<td style="width:' + barWidth + '%;background:' + barColor + ';height:14px;padding:0;"></td>';
-      html += '<td style="width:1px;background:#9ca3af;height:14px;padding:0;"></td>';
-      html += '<td style="width:50%;background:#f3f4f6;height:14px;padding:0;"></td>';
+      html += '<td style="width:' + barWidth + '%;background:' + barColor + ';' + cellStyle + '">' + c + '</td>';
+      html += '<td style="width:1px;background:#9ca3af;' + cellStyle + '">' + c + '</td>';
+      html += '<td style="width:50%;background:#f3f4f6;' + cellStyle + '">' + c + '</td>';
     } else if (score > 0) {
       var rightEmpty = 50 - barWidth;
-      html += '<td style="width:50%;background:#f3f4f6;height:14px;padding:0;"></td>';
-      html += '<td style="width:1px;background:#9ca3af;height:14px;padding:0;"></td>';
-      html += '<td style="width:' + barWidth + '%;background:' + barColor + ';height:14px;padding:0;"></td>';
+      html += '<td style="width:50%;background:#f3f4f6;' + cellStyle + '">' + c + '</td>';
+      html += '<td style="width:1px;background:#9ca3af;' + cellStyle + '">' + c + '</td>';
+      html += '<td style="width:' + barWidth + '%;background:' + barColor + ';' + cellStyle + '">' + c + '</td>';
       if (rightEmpty > 0) {
-        html += '<td style="width:' + rightEmpty + '%;background:#f3f4f6;height:14px;padding:0;"></td>';
+        html += '<td style="width:' + rightEmpty + '%;background:#f3f4f6;' + cellStyle + '">' + c + '</td>';
       }
     } else {
-      html += '<td style="width:50%;background:#f3f4f6;height:14px;padding:0;"></td>';
-      html += '<td style="width:1px;background:#9ca3af;height:14px;padding:0;"></td>';
-      html += '<td style="width:50%;background:#f3f4f6;height:14px;padding:0;"></td>';
+      html += '<td style="width:50%;background:#f3f4f6;' + cellStyle + '">' + c + '</td>';
+      html += '<td style="width:1px;background:#9ca3af;' + cellStyle + '">' + c + '</td>';
+      html += '<td style="width:50%;background:#f3f4f6;' + cellStyle + '">' + c + '</td>';
     }
 
     html += '</tr></table>';
