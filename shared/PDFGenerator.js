@@ -1612,13 +1612,11 @@ const PDFGenerator = {
     if (sections.awarenessGap && gap && gap.severity !== 'normal' && narrative.gapNarrative) {
       html += '<hr class="section-divider">';
       html += '<h2>Your Awareness Gap</h2>';
-      html += '<div class="gap-visual">';
       html += '<p><strong>Psychological Patterns:</strong> ' + gap.psychScore + '/100</p>';
       html += this._buildPercentageBar(gap.psychScore, '#f59e0b', 18);
       html += '<p><strong>Stress Awareness:</strong> ' + gap.stressScore + '/100</p>';
       html += this._buildPercentageBar(gap.stressScore, '#22c55e', 18);
       html += '<p style="text-align: center; margin-top: 10px;"><strong>Gap: ' + gap.gapScore + ' points</strong></p>';
-      html += '</div>';
       html += '<p>' + narrative.gapNarrative + '</p>';
     } else if (!sections.awarenessGap) {
       // Check if the required tools are actually completed — if so, the gap is
@@ -2048,13 +2046,11 @@ const PDFGenerator = {
     if (sections.awarenessGap && gap && gap.severity !== 'normal' && narrative.gapNarrative) {
       html += '<hr class="section-divider">';
       html += '<h3>Your Awareness Gap</h3>';
-      html += '<div class="gap-visual">';
       html += '<p><strong>Psychological Patterns:</strong> ' + gap.psychScore + '/100</p>';
       html += this._buildPercentageBar(gap.psychScore, '#f59e0b', 18);
       html += '<p><strong>Stress Awareness:</strong> ' + gap.stressScore + '/100</p>';
       html += this._buildPercentageBar(gap.stressScore, '#22c55e', 18);
       html += '<p style="text-align: center; margin-top: 10px;"><strong>Gap: ' + gap.gapScore + ' points</strong></p>';
-      html += '</div>';
       html += '<p>' + narrative.gapNarrative + '</p>';
     } else if (!sections.awarenessGap) {
       // Check if required tools are completed — if so, gap is normal or data
@@ -2258,18 +2254,14 @@ const PDFGenerator = {
         Fear: 'Fear Leading to Isolation'
       };
 
-      html += '<div style="margin: 12px 0;">';
       for (var key in t1Data.scores) {
         var score = t1Data.scores[key];
         var name = strategyNames[key] || key;
         var isWinner = key === t1Data.winner;
 
-        html += '<div style="margin: 6px 0;">';
-        html += '<div style="font-size: 13px; color: #555; margin-bottom: 3px;">' + (isWinner ? '<strong>' : '') + name + ': ' + score + (isWinner ? ' (dominant)</strong>' : '') + '</div>';
+        html += '<p style="font-size: 13px; color: #555; margin: 8px 0 2px 0;">' + (isWinner ? '<strong>' : '') + name + ': ' + score + (isWinner ? ' (dominant)</strong>' : '') + '</p>';
         html += this._buildBipolarBar(score);
-        html += '</div>';
       }
-      html += '</div>';
     }
 
     html += '</div>';
@@ -2302,10 +2294,8 @@ const PDFGenerator = {
           var dScore = Math.round(gtData.scoring.domainQuotients[dk]);
           var dLabel = domainLabels[dk] || dk;
           var dColor = dScore >= 70 ? '#22c55e' : (dScore >= 40 ? '#f59e0b' : '#ef4444');
-          html += '<div style="margin: 6px 0;">';
-          html += '<div style="font-size: 13px; color: #555; margin-bottom: 3px;">' + dLabel + ': ' + dScore + '/100</div>';
+          html += '<p style="font-size: 13px; color: #555; margin: 8px 0 2px 0;">' + dLabel + ': ' + dScore + '/100</p>';
           html += this._buildPercentageBar(dScore, dColor);
-          html += '</div>';
         }
       }
 
@@ -2381,10 +2371,8 @@ const PDFGenerator = {
           var label = domainLabels[dom] || dom;
           var color = score >= 70 ? '#22c55e' : (score >= 40 ? '#f59e0b' : '#ef4444');
 
-          html += '<div style="margin: 6px 0;">';
-          html += '<div style="font-size: 13px; color: #555; margin-bottom: 3px;">' + label + ': ' + score + '%</div>';
+          html += '<p style="font-size: 13px; color: #555; margin: 8px 0 2px 0;">' + label + ': ' + score + '%</p>';
           html += this._buildPercentageBar(score, color);
-          html += '</div>';
         }
       }
 
@@ -2531,71 +2519,64 @@ const PDFGenerator = {
   },
 
   /**
-   * Build a table-based percentage bar for GAS PDF compatibility.
-   * GAS PDF renderer does not support nested-div height:100% or position:absolute.
-   * Native HTML tables render reliably.
+   * Build a percentage bar reusing the EXACT .allocation-bar/.allocation-segment
+   * classes that are proven to render with colored backgrounds in GAS PDF.
+   * This is a diagnostic approach — if allocation classes work here, the issue
+   * was with our custom CSS. If they don't, it's about HTML context/nesting.
    *
    * @param {number} percent - Fill percentage (0-100)
    * @param {string} color - Hex color for the filled portion
-   * @param {number} [height=14] - Bar height in pixels
-   * @returns {string} HTML table element
+   * @param {number} [height] - Unused (kept for API compatibility)
+   * @returns {string} HTML flex bar element
    */
   _buildPercentageBar(percent, color, height) {
-    var h = height || 14;
     var p = Math.max(0, Math.min(100, Math.round(percent)));
-    // GAS PDF collapses empty table cells — use &nbsp; and font-size:1px to force height
-    var cellContent = '<span style="font-size:1px;line-height:1px;">&nbsp;</span>';
-    var html = '<table style="width:100%;border-collapse:collapse;margin:4px 0;"><tr>';
-    if (p > 0) {
-      html += '<td style="width:' + p + '%;background:' + color + ';height:' + h + 'px;padding:0;font-size:1px;line-height:' + h + 'px;">' + cellContent + '</td>';
-    }
-    if (p < 100) {
-      html += '<td style="width:' + (100 - p) + '%;background:#f3f4f6;height:' + h + 'px;padding:0;font-size:1px;line-height:' + h + 'px;">' + cellContent + '</td>';
-    }
-    html += '</tr></table>';
-    return html;
+    var totalBlocks = 20;
+    var filledBlocks = Math.round(p / 100 * totalBlocks);
+    var emptyBlocks = totalBlocks - filledBlocks;
+    var filled = '';
+    for (var i = 0; i < filledBlocks; i++) filled += '\u2588';
+    var empty = '';
+    for (var i = 0; i < emptyBlocks; i++) empty += '\u2591';
+    return '<p style="font-size: 13px; letter-spacing: 1px; margin: 2px 0 6px 0; line-height: 1;">' +
+      '<span style="color: ' + color + ';">' + filled + '</span>' +
+      '<span style="color: #d1d5db;">' + empty + '</span></p>';
   },
 
   /**
-   * Build a table-based bipolar bar for Tool 1 scores (negative-to-positive, centered).
-   * Left half = negative territory, right half = positive territory.
-   * Center line uses a 1px-wide cell with gray background.
+   * Build a unicode block bipolar bar for Tool 1 scores.
+   * Left half = negative territory, right half = positive.
+   * Center marked with a pipe character.
    *
    * @param {number} score - Raw score (can be negative or positive)
-   * @returns {string} HTML table element
+   * @returns {string} HTML with colored unicode blocks
    */
   _buildBipolarBar(score) {
-    var barWidth = Math.min(Math.abs(score) * 2, 50);
+    var halfBlocks = 10;
+    var barCount = Math.min(Math.round(Math.abs(score) / 25 * halfBlocks), halfBlocks);
     var barColor = score > 0 ? '#ef4444' : '#22c55e';
-    // GAS PDF collapses empty table cells — use &nbsp; and font-size:1px to force height
-    var c = '<span style="font-size:1px;line-height:1px;">&nbsp;</span>';
-    var cellStyle = 'height:14px;padding:0;font-size:1px;line-height:14px;';
-    var html = '<table style="width:100%;border-collapse:collapse;margin:4px 0;"><tr>';
+    var leftHalf = '';
+    var rightHalf = '';
 
     if (score < 0) {
-      var leftEmpty = 50 - barWidth;
-      if (leftEmpty > 0) {
-        html += '<td style="width:' + leftEmpty + '%;background:#f3f4f6;' + cellStyle + '">' + c + '</td>';
-      }
-      html += '<td style="width:' + barWidth + '%;background:' + barColor + ';' + cellStyle + '">' + c + '</td>';
-      html += '<td style="width:1px;background:#9ca3af;' + cellStyle + '">' + c + '</td>';
-      html += '<td style="width:50%;background:#f3f4f6;' + cellStyle + '">' + c + '</td>';
+      var emptyLeft = halfBlocks - barCount;
+      for (var i = 0; i < emptyLeft; i++) leftHalf += '\u2591';
+      for (var i = 0; i < barCount; i++) leftHalf += '\u2588';
+      for (var i = 0; i < halfBlocks; i++) rightHalf += '\u2591';
     } else if (score > 0) {
-      var rightEmpty = 50 - barWidth;
-      html += '<td style="width:50%;background:#f3f4f6;' + cellStyle + '">' + c + '</td>';
-      html += '<td style="width:1px;background:#9ca3af;' + cellStyle + '">' + c + '</td>';
-      html += '<td style="width:' + barWidth + '%;background:' + barColor + ';' + cellStyle + '">' + c + '</td>';
-      if (rightEmpty > 0) {
-        html += '<td style="width:' + rightEmpty + '%;background:#f3f4f6;' + cellStyle + '">' + c + '</td>';
-      }
+      for (var i = 0; i < halfBlocks; i++) leftHalf += '\u2591';
+      for (var i = 0; i < barCount; i++) rightHalf += '\u2588';
+      var emptyRight = halfBlocks - barCount;
+      for (var i = 0; i < emptyRight; i++) rightHalf += '\u2591';
     } else {
-      html += '<td style="width:50%;background:#f3f4f6;' + cellStyle + '">' + c + '</td>';
-      html += '<td style="width:1px;background:#9ca3af;' + cellStyle + '">' + c + '</td>';
-      html += '<td style="width:50%;background:#f3f4f6;' + cellStyle + '">' + c + '</td>';
+      for (var i = 0; i < halfBlocks; i++) leftHalf += '\u2591';
+      for (var i = 0; i < halfBlocks; i++) rightHalf += '\u2591';
     }
 
-    html += '</tr></table>';
-    return html;
+    return '<p style="font-size: 13px; letter-spacing: 1px; margin: 2px 0 6px 0; line-height: 1;">' +
+      '<span style="color: ' + (score < 0 ? barColor : '#d1d5db') + ';">' + leftHalf + '</span>' +
+      '<span style="color: #374151; font-weight: 700;">|</span>' +
+      '<span style="color: ' + (score > 0 ? barColor : '#d1d5db') + ';">' + rightHalf + '</span></p>';
   },
 
   _buildMissingSectionBox(description, instruction) {
