@@ -1813,6 +1813,14 @@ const PDFGenerator = {
       '.metric-value { font-weight: 600; color: #374151; }\n' +
       '.cover-page { text-align: center; padding: 40px 30px 20px 30px; }\n' +
       '.cover-completion { font-size: 14px; color: #888; margin-top: 10px; }\n' +
+      '.t1-grid { width: 100%; border-collapse: collapse; }\n' +
+      '.t1-grid td { width: 50%; padding: 6px 8px; vertical-align: top; }\n' +
+      '.domain-row { display: flex; align-items: center; margin: 4px 0; }\n' +
+      '.domain-label { width: 55%; font-size: 13px; color: #555; }\n' +
+      '.domain-bar { width: 45%; }\n' +
+      '.t2-layout { display: flex; gap: 15px; }\n' +
+      '.t2-bars { flex: 3; }\n' +
+      '.t2-card { flex: 2; background: #f8f6f3; border: 1px solid #e5e7eb; border-radius: 8px; padding: 14px; font-size: 13px; }\n' +
       '.capstone-insights-list { margin: 12px 0; }\n' +
       '.capstone-insight-item { display: flex; gap: 12px; margin: 12px 0; padding: 12px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb; }\n' +
       '.capstone-insight-number { min-width: 28px; height: 28px; background: #ad9168; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 14px; flex-shrink: 0; }\n' +
@@ -1884,9 +1892,39 @@ const PDFGenerator = {
         data.tool5 = summary.tools.tool5.data;
       }
 
-      // Tool 6: Retirement Blueprint — data already in summary
-      if (summary.tools.tool6 && summary.tools.tool6.status === 'completed' && summary.tools.tool6.data) {
-        data.tool6 = summary.tools.tool6.data;
+      // Tool 6: Retirement Blueprint — enrich from TOOL6_SCENARIOS sheet for full data
+      if (summary.tools.tool6 && summary.tools.tool6.status === 'completed') {
+        try {
+          var t6Scenarios = Tool6.getScenarios ? Tool6.getScenarios(clientId) : [];
+          var t6Latest = null;
+          if (t6Scenarios && t6Scenarios.length > 0) {
+            t6Latest = t6Scenarios.find(function(s) { return s.isLatest; }) || t6Scenarios[0];
+          }
+          if (t6Latest) {
+            data.tool6 = {
+              scenarioName: t6Latest.name || '',
+              profileId: t6Latest.profileId,
+              monthlyBudget: t6Latest.monthlyBudget || 0,
+              allocations: t6Latest.allocations || {},
+              projectedBalance: t6Latest.projectedBalance || 0,
+              investmentScore: t6Latest.investmentScore,
+              taxStrategy: t6Latest.taxStrategy || '',
+              yearsToRetirement: t6Latest.yearsToRetirement || null,
+              age: t6Latest.age || null,
+              grossIncome: t6Latest.grossIncome || null,
+              currentBalances: t6Latest.currentBalances || {},
+              currentContributions: t6Latest.currentContributions || {}
+            };
+          } else if (summary.tools.tool6.data) {
+            // Fallback to response data if no scenarios found
+            data.tool6 = summary.tools.tool6.data;
+          }
+        } catch (e) {
+          Logger.log('[Capstone] Tool 6 scenario fetch failed: ' + e.message);
+          if (summary.tools.tool6.data) {
+            data.tool6 = summary.tools.tool6.data;
+          }
+        }
       }
 
       // Tool 7: Security & Control (Grounding) — data already in summary
@@ -1894,17 +1932,66 @@ const PDFGenerator = {
         data.tool7 = summary.tools.tool7.data;
       }
 
-      // Tool 8: Investment Planning — data already in summary, map field names
-      if (summary.tools.tool8 && summary.tools.tool8.status === 'completed' && summary.tools.tool8.data) {
-        var t8raw = summary.tools.tool8.data;
-        data.tool8 = {
-          scenarioName: t8raw.scenarioName || '',
-          monthlyInvestment: t8raw.M_real || t8raw.monthlyInvestment || 0,
-          timeHorizon: t8raw.T || t8raw.timeHorizon || 0,
-          risk: t8raw.risk,
-          projectedBalance: t8raw.projectedBalance || 0,
-          feasibility: t8raw.feasibility || ''
-        };
+      // Tool 8: Investment Planning — enrich from TOOL8_SCENARIOS sheet for full data
+      if (summary.tools.tool8 && summary.tools.tool8.status === 'completed') {
+        try {
+          var t8Scenarios = Tool8.getUserScenarios ? Tool8.getUserScenarios(clientId) : [];
+          var t8Latest = null;
+          if (t8Scenarios && t8Scenarios.length > 0) {
+            t8Latest = t8Scenarios.find(function(s) { return s.isLatest; }) || t8Scenarios[0];
+          }
+          if (t8Latest) {
+            data.tool8 = {
+              scenarioName: t8Latest.name || '',
+              monthlyInvestment: t8Latest.M_real || 0,
+              timeHorizon: t8Latest.T || 0,
+              risk: t8Latest.risk || 0,
+              currentAssets: t8Latest.A0 || 0,
+              contributionCapacity: t8Latest.C_cap || 0,
+              requiredNestEgg: t8Latest.Areq || 0,
+              requiredContribution: t8Latest.Creq || '',
+              monthlyIncomeAtRetirement: t8Latest.M0 || 0,
+              drawYears: t8Latest.D || 30,
+              inflation: t8Latest.infl || 0.025,
+              effectiveReturn: t8Latest.rAccEff || 0,
+              maintenanceReturn: t8Latest.rRet || 0,
+              mode: t8Latest.mode || 'contrib'
+            };
+          } else if (summary.tools.tool8.data) {
+            // Fallback to response data
+            var t8raw = summary.tools.tool8.data;
+            data.tool8 = {
+              scenarioName: t8raw.scenarioName || '',
+              monthlyInvestment: t8raw.M_real || t8raw.monthlyInvestment || 0,
+              timeHorizon: t8raw.T || t8raw.timeHorizon || 0,
+              risk: t8raw.risk || 0,
+              currentAssets: 0,
+              contributionCapacity: 0,
+              requiredNestEgg: 0,
+              requiredContribution: '',
+              monthlyIncomeAtRetirement: 0,
+              drawYears: 30,
+              inflation: 0.025,
+              effectiveReturn: 0,
+              maintenanceReturn: 0,
+              mode: t8raw.mode || 'contrib'
+            };
+          }
+        } catch (e) {
+          Logger.log('[Capstone] Tool 8 scenario fetch failed: ' + e.message);
+          if (summary.tools.tool8.data) {
+            var t8raw2 = summary.tools.tool8.data;
+            data.tool8 = {
+              scenarioName: t8raw2.scenarioName || '',
+              monthlyInvestment: t8raw2.M_real || t8raw2.monthlyInvestment || 0,
+              timeHorizon: t8raw2.T || t8raw2.timeHorizon || 0,
+              risk: t8raw2.risk || 0,
+              currentAssets: 0, contributionCapacity: 0, requiredNestEgg: 0,
+              requiredContribution: '', monthlyIncomeAtRetirement: 0, drawYears: 30,
+              inflation: 0.025, effectiveReturn: 0, maintenanceReturn: 0, mode: 'contrib'
+            };
+          }
+        }
       }
 
     } catch (e) {
@@ -2021,8 +2108,9 @@ const PDFGenerator = {
       html += this._buildTool4Section(perToolData.tool4);
     }
 
-    // Tool 6: Retirement Blueprint
+    // Tool 6: Retirement Blueprint (new page)
     if (perToolData.tool6) {
+      html += '<div class="page-break"></div>';
       html += this._buildTool6Section(perToolData.tool6);
     }
 
@@ -2297,7 +2385,7 @@ const PDFGenerator = {
     // Dominant strategy
     html += '<p><strong>Your Dominant Strategy:</strong> ' + (t1Data.winner || 'Unknown') + '</p>';
 
-    // Strategy scores with bipolar bars (table-based for GAS PDF compatibility)
+    // Strategy scores with bipolar bars in a 3x2 grid
     if (t1Data.scores) {
       var strategyNames = CollectiveResults.STRATEGY_LABELS || {
         FSV: 'False Self-View',
@@ -2308,14 +2396,38 @@ const PDFGenerator = {
         Fear: 'Fear Leading to Isolation'
       };
 
+      // Collect strategies into array for grid layout
+      var strategies = [];
       for (var key in t1Data.scores) {
-        var score = t1Data.scores[key];
-        var name = strategyNames[key] || key;
-        var isWinner = key === t1Data.winner;
-
-        html += '<p style="font-size: 13px; color: #555; margin: 8px 0 2px 0;">' + (isWinner ? '<strong>' : '') + name + ': ' + score + (isWinner ? ' (dominant)</strong>' : '') + '</p>';
-        html += this._buildBipolarBar(score);
+        strategies.push({
+          key: key,
+          name: strategyNames[key] || key,
+          score: t1Data.scores[key],
+          isWinner: key === t1Data.winner
+        });
       }
+
+      // Render as 3-row x 2-column table
+      html += '<table class="t1-grid">';
+      for (var row = 0; row < strategies.length; row += 2) {
+        html += '<tr>';
+        for (var col = 0; col < 2; col++) {
+          var idx = row + col;
+          if (idx < strategies.length) {
+            var s = strategies[idx];
+            html += '<td>';
+            html += '<p style="font-size: 12px; color: #555; margin: 2px 0 1px 0;">' +
+              (s.isWinner ? '<strong>' : '') + s.name + ': ' + s.score +
+              (s.isWinner ? ' (dominant)</strong>' : '') + '</p>';
+            html += this._buildBipolarBar(s.score);
+            html += '</td>';
+          } else {
+            html += '<td></td>';
+          }
+        }
+        html += '</tr>';
+      }
+      html += '</table>';
     }
 
     html += '</div>';
@@ -2342,18 +2454,23 @@ const PDFGenerator = {
       // Overall quotient (rounded)
       html += '<p><strong>Overall Score:</strong> ' + Math.round(gtData.scoring.overallQuotient) + '/100</p>';
 
-      // Domain scores (rounded, with labels)
+      // Domain scores (inline: label + score + bar on same row)
+      // NOTE: Higher score = stronger negative belief grip = WORSE (red)
+      //        Lower score = less impact = BETTER (green)
       if (gtData.scoring.domainQuotients) {
         for (var dk in gtData.scoring.domainQuotients) {
           var dScore = Math.round(gtData.scoring.domainQuotients[dk]);
           var dLabel = domainLabels[dk] || dk;
-          var dColor = dScore >= 70 ? '#22c55e' : (dScore >= 40 ? '#f59e0b' : '#ef4444');
-          html += '<p style="font-size: 13px; color: #555; margin: 8px 0 2px 0;">' + dLabel + ': ' + dScore + '/100</p>';
-          html += this._buildPercentageBar(dScore, dColor);
+          var dColor = dScore >= 70 ? '#ef4444' : (dScore >= 40 ? '#f59e0b' : '#22c55e');
+          html += '<div class="domain-row">';
+          html += '<span class="domain-label">' + dLabel + ': <strong>' + dScore + '/100</strong></span>';
+          html += '<span class="domain-bar">' + this._buildInlineBar(dScore, dColor) + '</span>';
+          html += '</div>';
         }
       }
 
-      // Top 3 strongest and weakest subdomains (rounded, with labels)
+      // Top 3 subdomains by impact (rounded, with labels)
+      // Highest scores = greatest negative impact; Lowest = least impact (healthiest)
       if (gtData.scoring.subdomainQuotients) {
         var subdomains = [];
         for (var sk in gtData.scoring.subdomainQuotients) {
@@ -2364,18 +2481,18 @@ const PDFGenerator = {
         if (subdomains.length > 0) {
           html += '<div style="display: flex; gap: 20px; margin-top: 10px;">';
 
-          // Strongest
+          // Highest scores = greatest negative impact (red)
           html += '<div style="flex: 1;">';
-          html += '<p style="font-size: 13px; color: #16a34a; font-weight: 600;">Strongest Areas</p>';
+          html += '<p style="font-size: 13px; color: #ef4444; font-weight: 600;">Greatest Impact</p>';
           for (var s = 0; s < Math.min(3, subdomains.length); s++) {
             var sLabel = subdomainLabels[subdomains[s].key] || subdomains[s].key;
             html += '<p style="font-size: 13px; color: #555;">' + sLabel + ': ' + Math.round(subdomains[s].score) + '</p>';
           }
           html += '</div>';
 
-          // Weakest
+          // Lowest scores = least impact (green / healthiest)
           html += '<div style="flex: 1;">';
-          html += '<p style="font-size: 13px; color: #ef4444; font-weight: 600;">Growth Areas</p>';
+          html += '<p style="font-size: 13px; color: #16a34a; font-weight: 600;">Least Impact</p>';
           for (var wk = subdomains.length - 1; wk >= Math.max(0, subdomains.length - 3); wk--) {
             var wLabel = subdomainLabels[subdomains[wk].key] || subdomains[wk].key;
             html += '<p style="font-size: 13px; color: #555;">' + wLabel + ': ' + Math.round(subdomains[wk].score) + '</p>';
@@ -2404,13 +2521,26 @@ const PDFGenerator = {
     var html = '<div class="tool-section">';
     html += '<div class="tool-section-header">Tool 2: Financial Clarity</div>';
 
+    // Domain descriptions
+    html += '<p style="font-size: 12px; color: #777; line-height: 1.5; margin: 0 0 10px 0;">' +
+      'Financial clarity measures how well you understand five core areas: ' +
+      '<strong>Money Flow</strong> (how freely money moves through your life), ' +
+      '<strong>Obligations</strong> (your relationship with debts and commitments), ' +
+      '<strong>Liquidity</strong> (access to cash reserves for the unexpected), ' +
+      '<strong>Growth</strong> (capacity to build wealth through investing), and ' +
+      '<strong>Protection</strong> (how well you safeguard yourself against risk).</p>';
+
     if (t2Data.results) {
       // Archetype
       if (t2Data.results.archetype) {
         html += '<p><strong>Your Archetype:</strong> ' + t2Data.results.archetype + '</p>';
       }
 
-      // Domain scores
+      // Two-column layout: bars on left, summary card on right
+      html += '<div class="t2-layout">';
+
+      // Left: domain scores with bars
+      html += '<div class="t2-bars">';
       if (t2Data.results.domainScores) {
         var domainLabels = {
           moneyFlow: 'Money Flow',
@@ -2420,22 +2550,42 @@ const PDFGenerator = {
           protection: 'Protection'
         };
 
+        var highDomain = '';
+        var highScore = -1;
+        var lowDomain = '';
+        var lowScore = 101;
+
         for (var dom in t2Data.results.domainScores) {
           var score = t2Data.results.domainScores[dom];
           var label = domainLabels[dom] || dom;
           var color = score >= 70 ? '#22c55e' : (score >= 40 ? '#f59e0b' : '#ef4444');
 
-          html += '<p style="font-size: 13px; color: #555; margin: 8px 0 2px 0;">' + label + ': ' + score + '%</p>';
+          html += '<p style="font-size: 13px; color: #555; margin: 6px 0 1px 0;">' + label + ': ' + score + '%</p>';
           html += this._buildPercentageBar(score, color);
+
+          if (score > highScore) { highScore = score; highDomain = label; }
+          if (score < lowScore) { lowScore = score; lowDomain = label; }
         }
       }
+      html += '</div>';
 
-      // Priority domain
+      // Right: summary card
+      html += '<div class="t2-card">';
+      html += '<p style="font-size: 15px; font-weight: 700; color: #ad9168; margin: 0 0 10px 0;">' + (t2Data.results.archetype || 'Your Profile') + '</p>';
+      if (highDomain) {
+        html += '<p style="margin: 6px 0;"><span style="color: #22c55e; font-weight: 600;">Strongest:</span> ' + highDomain + ' (' + highScore + '%)</p>';
+      }
+      if (lowDomain) {
+        html += '<p style="margin: 6px 0;"><span style="color: #ef4444; font-weight: 600;">Weakest:</span> ' + lowDomain + ' (' + lowScore + '%)</p>';
+      }
       if (t2Data.results.priorityList && t2Data.results.priorityList.length > 0) {
         var domainName = t2Data.results.priorityList[0].domain;
         domainName = domainName.charAt(0).toUpperCase() + domainName.slice(1);
-        html += '<p style="margin-top: 8px;"><strong>Priority Focus:</strong> ' + domainName + '</p>';
+        html += '<p style="margin: 10px 0 0 0;"><strong>Priority Focus:</strong><br>' + domainName + '</p>';
       }
+      html += '</div>';
+
+      html += '</div>'; // end t2-layout
     }
 
     // GPT overall insight (reused from tool submission)
@@ -2462,36 +2612,25 @@ const PDFGenerator = {
     html += '<span class="metric-value">$' + Number(income).toLocaleString() + '</span>';
     html += '</div>';
 
-    // Allocation bar (MEFI)
-    var colors = { multiply: '#ad9168', essentials: '#6366f1', freedom: '#22c55e', enjoyment: '#f59e0b' };
-    var labels = { multiply: 'Multiply', essentials: 'Essentials', freedom: 'Freedom', enjoyment: 'Enjoyment' };
-    var allocations = {
-      multiply: t4Data.multiply || 0,
-      essentials: t4Data.essentials || 0,
-      freedom: t4Data.freedom || 0,
-      enjoyment: t4Data.enjoyment || 0
-    };
+    // MEFI allocation breakdown using unicode text bars
+    var mefiCategories = [
+      { key: 'multiply', label: 'Multiply', color: '#ad9168' },
+      { key: 'essentials', label: 'Essentials', color: '#6366f1' },
+      { key: 'freedom', label: 'Freedom', color: '#22c55e' },
+      { key: 'enjoyment', label: 'Enjoyment', color: '#f59e0b' }
+    ];
 
-    html += '<div class="allocation-bar">';
-    for (var aKey in allocations) {
-      var pct = allocations[aKey];
-      if (pct > 0) {
-        html += '<div class="allocation-segment" style="width: ' + pct + '%; background: ' + colors[aKey] + ';">' +
-          labels[aKey].charAt(0) + ' ' + pct + '%</div>';
-      }
-    }
-    html += '</div>';
-
-    // Dollar amounts
-    html += '<div style="display: flex; justify-content: space-around; margin: 10px 0; font-size: 13px;">';
-    for (var dKey in allocations) {
-      var dollars = Math.round(income * allocations[dKey] / 100);
-      html += '<div style="text-align: center;">';
-      html += '<div style="color: ' + colors[dKey] + '; font-weight: 600;">' + labels[dKey] + '</div>';
-      html += '<div>$' + Number(dollars).toLocaleString() + '</div>';
+    for (var ci = 0; ci < mefiCategories.length; ci++) {
+      var cat = mefiCategories[ci];
+      var pct = t4Data[cat.key] || 0;
+      if (pct <= 0) continue;
+      var dollars = Math.round(income * pct / 100);
+      html += '<div class="domain-row">';
+      html += '<span class="domain-label" style="color: ' + cat.color + '; font-weight: 600;">' +
+        cat.label + ' ' + pct + '% <span style="color: #555; font-weight: 400;">($' + Number(dollars).toLocaleString() + '/mo)</span></span>';
+      html += '<span class="domain-bar">' + this._buildInlineBar(pct, cat.color) + '</span>';
       html += '</div>';
     }
-    html += '</div>';
 
     // Priority
     if (t4Data.priority && t4Data.priority !== 'Not selected') {
@@ -2504,24 +2643,56 @@ const PDFGenerator = {
 
   /**
    * Build Tool 6 section: Retirement Blueprint
-   * Shows retirement profile, key metrics, and investment score.
+   * Shows retirement profile, key metrics, account structure, and projections.
    */
   _buildTool6Section(t6Data) {
     var html = '<div class="tool-section">';
     html += '<div class="tool-section-header">Tool 6: Retirement Blueprint</div>';
 
-    // Profile
+    // Investor profile name lookup
+    var profileNames = {
+      1: 'ROBS-In-Use Strategist', 2: 'ROBS-Curious Candidate',
+      3: 'Business Owner with Employees', 4: 'Solo 401(k) Optimizer',
+      5: 'Bracket Strategist', 6: 'Catch-Up Contributor',
+      7: 'Foundation Builder', 8: 'Roth Growth Strategist', 9: 'Balanced Builder'
+    };
+
+    // Profile + scenario name
     if (t6Data.profileId) {
-      html += '<p><strong>Your Profile:</strong> ' + t6Data.profileId + '</p>';
+      var pName = profileNames[t6Data.profileId] || ('Profile ' + t6Data.profileId);
+      html += '<p><strong>Investor Profile:</strong> ' + pName + '</p>';
+    }
+    if (t6Data.scenarioName) {
+      html += '<p style="font-size: 13px; color: #777;">Scenario: ' + t6Data.scenarioName + '</p>';
     }
 
     // Key metrics
     var metrics = [];
-    if (t6Data.monthlyBudget) metrics.push({ label: 'Monthly Retirement Budget', value: '$' + Number(t6Data.monthlyBudget).toLocaleString() });
-    if (t6Data.projectedBalance) metrics.push({ label: 'Projected Balance', value: '$' + Number(t6Data.projectedBalance).toLocaleString() });
-    if (t6Data.investmentScore !== undefined) metrics.push({ label: 'Investment Score', value: t6Data.investmentScore + '/10' });
+    if (t6Data.monthlyBudget) metrics.push({ label: 'Monthly Contribution', value: '$' + Number(t6Data.monthlyBudget).toLocaleString() });
+    if (t6Data.projectedBalance) metrics.push({ label: 'Projected Nest Egg', value: '$' + Number(t6Data.projectedBalance).toLocaleString() });
     if (t6Data.yearsToRetirement) metrics.push({ label: 'Years to Retirement', value: t6Data.yearsToRetirement + ' years' });
-    if (t6Data.taxStrategy) metrics.push({ label: 'Tax Strategy', value: t6Data.taxStrategy });
+    if (t6Data.age) metrics.push({ label: 'Current Age', value: t6Data.age });
+    if (t6Data.investmentScore !== undefined && t6Data.investmentScore !== null) {
+      var riskDesc = t6Data.investmentScore <= 2 ? 'Conservative' :
+                     (t6Data.investmentScore <= 4 ? 'Moderate' :
+                     (t6Data.investmentScore <= 6 ? 'Growth' : 'Aggressive'));
+      metrics.push({ label: 'Risk Tolerance', value: riskDesc + ' (' + t6Data.investmentScore + '/7)' });
+    }
+    if (t6Data.taxStrategy) {
+      var taxLabel = t6Data.taxStrategy === 'Now' ? 'Roth Focus (Tax-Free Growth)' :
+                     (t6Data.taxStrategy === 'Later' ? 'Traditional Focus (Tax-Deferred)' : 'Balanced');
+      metrics.push({ label: 'Tax Strategy', value: taxLabel });
+    }
+
+    // Estimated monthly retirement income (4% rule, inflation-adjusted)
+    if (t6Data.projectedBalance && t6Data.yearsToRetirement) {
+      var inflRate = 0.025;
+      var realBalance = t6Data.projectedBalance / Math.pow(1 + inflRate, t6Data.yearsToRetirement);
+      var monthlyRetIncome = Math.round(realBalance * 0.04 / 12);
+      if (monthlyRetIncome > 0) {
+        metrics.push({ label: 'Est. Monthly Retirement Income', value: '$' + Number(monthlyRetIncome).toLocaleString() + '/mo (today dollars)' });
+      }
+    }
 
     for (var m = 0; m < metrics.length; m++) {
       html += '<div class="metric-row">';
@@ -2530,13 +2701,63 @@ const PDFGenerator = {
       html += '</div>';
     }
 
+    // Account structure — vehicle allocations
+    if (t6Data.allocations && typeof t6Data.allocations === 'object') {
+      var vehicles = [];
+      var totalAlloc = 0;
+      for (var vKey in t6Data.allocations) {
+        var vAmt = t6Data.allocations[vKey] || 0;
+        if (vAmt > 0) {
+          // Clean up vehicle name: underscores to spaces, restore parentheses
+          var vName = vKey.replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
+          vName = vName.replace(/401\s*k\b/gi, '401(k)');
+          vName = vName.replace(/\bEmployee\s+Roth\b/gi, 'Employee (Roth)');
+          vName = vName.replace(/\bEmployee\s+Traditional\b/gi, 'Employee (Traditional)');
+          vehicles.push({ name: vName, amount: vAmt });
+          totalAlloc += vAmt;
+        }
+      }
+
+      if (vehicles.length > 0) {
+        vehicles.sort(function(a, b) { return b.amount - a.amount; });
+        html += '<p style="margin-top: 12px; font-weight: 600; font-size: 14px;">Account Structure</p>';
+
+        for (var v = 0; v < vehicles.length; v++) {
+          var vPct = totalAlloc > 0 ? Math.round(vehicles[v].amount / totalAlloc * 100) : 0;
+          html += '<div class="domain-row">';
+          html += '<span class="domain-label">' + vehicles[v].name + ': <strong>$' +
+            Number(vehicles[v].amount).toLocaleString() + '/mo</strong> (' + vPct + '%)</span>';
+          html += '<span class="domain-bar">' + this._buildInlineBar(vPct, '#ad9168') + '</span>';
+          html += '</div>';
+        }
+      }
+    }
+
+    // Current balances summary
+    if (t6Data.currentBalances && typeof t6Data.currentBalances === 'object') {
+      var balKeys = { '401k': '401(k)', ira: 'IRA', hsa: 'HSA', education: 'Education' };
+      var hasBalances = false;
+      var balHtml = '';
+      for (var bk in t6Data.currentBalances) {
+        var bal = t6Data.currentBalances[bk] || 0;
+        if (bal > 0) {
+          hasBalances = true;
+          var bLabel = balKeys[bk] || bk;
+          balHtml += '<span style="margin-right: 15px;">' + bLabel + ': <strong>$' + Number(bal).toLocaleString() + '</strong></span>';
+        }
+      }
+      if (hasBalances) {
+        html += '<p style="margin-top: 10px; font-size: 13px; color: #555;">Current Balances: ' + balHtml + '</p>';
+      }
+    }
+
     html += '</div>';
     return html;
   },
 
   /**
    * Build Tool 8 section: Investment Planning
-   * Shows scenario details, risk, projections, and feasibility.
+   * Shows nest egg target, monthly retirement income, timeline, and plan structure.
    */
   _buildTool8Section(t8Data) {
     var html = '<div class="tool-section">';
@@ -2547,18 +2768,42 @@ const PDFGenerator = {
       html += '<p><strong>Scenario:</strong> ' + t8Data.scenarioName + '</p>';
     }
 
-    // Key metrics
+    // Key metrics — organized for clarity
     var metrics = [];
-    if (t8Data.monthlyInvestment) metrics.push({ label: 'Monthly Investment', value: '$' + Number(t8Data.monthlyInvestment).toLocaleString() });
-    if (t8Data.timeHorizon) metrics.push({ label: 'Time Horizon', value: t8Data.timeHorizon + ' years' });
-    if (t8Data.risk !== undefined) {
-      var riskLabel = t8Data.risk <= 3 ? 'Conservative' : (t8Data.risk <= 6 ? 'Moderate' : 'Aggressive');
-      metrics.push({ label: 'Risk Level', value: riskLabel + ' (' + t8Data.risk + '/10)' });
+
+    if (t8Data.requiredNestEgg && t8Data.requiredNestEgg > 0) {
+      metrics.push({ label: 'Required Nest Egg', value: '$' + Number(Math.round(t8Data.requiredNestEgg)).toLocaleString() });
     }
-    if (t8Data.projectedBalance) metrics.push({ label: 'Projected Balance', value: '$' + Number(t8Data.projectedBalance).toLocaleString() });
-    if (t8Data.feasibility) {
-      var feasLabel = t8Data.feasibility === 'OK' ? 'On Track' : (t8Data.feasibility === 'WARN' ? 'Needs Attention' : 'At Risk');
-      metrics.push({ label: 'Feasibility', value: feasLabel });
+    if (t8Data.currentAssets && t8Data.currentAssets > 0) {
+      metrics.push({ label: 'Current Nest Egg', value: '$' + Number(Math.round(t8Data.currentAssets)).toLocaleString() });
+    }
+    if (t8Data.monthlyIncomeAtRetirement && t8Data.monthlyIncomeAtRetirement > 0) {
+      metrics.push({ label: 'Monthly Income at Retirement', value: '$' + Number(Math.round(t8Data.monthlyIncomeAtRetirement)).toLocaleString() + '/mo' });
+    }
+    if (t8Data.timeHorizon) {
+      metrics.push({ label: 'Years to Retirement', value: t8Data.timeHorizon + ' years' });
+    }
+    if (t8Data.drawYears) {
+      metrics.push({ label: 'Retirement Duration', value: t8Data.drawYears + ' years' });
+    }
+    if (t8Data.monthlyInvestment && t8Data.monthlyInvestment > 0) {
+      metrics.push({ label: 'Monthly Investment Available', value: '$' + Number(Math.round(t8Data.monthlyInvestment)).toLocaleString() + '/mo' });
+    }
+    if (t8Data.requiredContribution && t8Data.requiredContribution !== '' && Number(t8Data.requiredContribution) > 0) {
+      metrics.push({ label: 'Required Monthly Contribution', value: '$' + Number(Math.round(t8Data.requiredContribution)).toLocaleString() + '/mo' });
+    }
+    if (t8Data.contributionCapacity && t8Data.contributionCapacity > 0) {
+      metrics.push({ label: 'Contribution Capacity', value: '$' + Number(Math.round(t8Data.contributionCapacity)).toLocaleString() + '/mo' });
+    }
+    if (t8Data.risk !== undefined && t8Data.risk > 0) {
+      var riskLabel = t8Data.risk <= 25 ? 'Conservative' : (t8Data.risk <= 50 ? 'Moderate' : (t8Data.risk <= 75 ? 'Growth' : 'Aggressive'));
+      metrics.push({ label: 'Risk Dial', value: riskLabel });
+    }
+    if (t8Data.effectiveReturn && t8Data.effectiveReturn > 0) {
+      metrics.push({ label: 'Effective Return Rate', value: (t8Data.effectiveReturn * 100).toFixed(1) + '%' });
+    }
+    if (t8Data.inflation) {
+      metrics.push({ label: 'Inflation Assumption', value: (t8Data.inflation * 100).toFixed(1) + '%' });
     }
 
     for (var m = 0; m < metrics.length; m++) {
@@ -2566,6 +2811,20 @@ const PDFGenerator = {
       html += '<span class="metric-label">' + metrics[m].label + '</span>';
       html += '<span class="metric-value">' + metrics[m].value + '</span>';
       html += '</div>';
+    }
+
+    // Funding progress bar
+    if (t8Data.requiredNestEgg > 0 && t8Data.currentAssets >= 0) {
+      var gap = t8Data.requiredNestEgg - t8Data.currentAssets;
+      var pctFunded = t8Data.requiredNestEgg > 0 ? Math.round(t8Data.currentAssets / t8Data.requiredNestEgg * 100) : 0;
+      var gapColor = pctFunded >= 75 ? '#22c55e' : (pctFunded >= 40 ? '#f59e0b' : '#ef4444');
+      html += '<p style="margin-top: 10px; font-size: 13px;">';
+      html += '<strong style="color: ' + gapColor + ';">Funding Progress: ' + pctFunded + '%</strong>';
+      if (gap > 0) {
+        html += ' <span style="color: #555;">($' + Number(Math.round(gap)).toLocaleString() + ' remaining)</span>';
+      }
+      html += '</p>';
+      html += this._buildPercentageBar(pctFunded, gapColor, 18);
     }
 
     html += '</div>';
@@ -2595,6 +2854,24 @@ const PDFGenerator = {
     return '<p style="font-size: 13px; letter-spacing: 1px; margin: 2px 0 6px 0; line-height: 1;">' +
       '<span style="color: ' + color + ';">' + filled + '</span>' +
       '<span style="color: #d1d5db;">' + empty + '</span></p>';
+  },
+
+  /**
+   * Build a compact inline bar (span, not p) for use inside flex rows.
+   * Uses 15 blocks for a tighter fit alongside labels.
+   */
+  _buildInlineBar(percent, color) {
+    var p = Math.max(0, Math.min(100, Math.round(percent)));
+    var totalBlocks = 15;
+    var filledBlocks = Math.round(p / 100 * totalBlocks);
+    var emptyBlocks = totalBlocks - filledBlocks;
+    var filled = '';
+    for (var i = 0; i < filledBlocks; i++) filled += '\u2588';
+    var empty = '';
+    for (var i = 0; i < emptyBlocks; i++) empty += '\u2591';
+    return '<span style="font-size: 13px; letter-spacing: 1px; line-height: 1;">' +
+      '<span style="color: ' + color + ';">' + filled + '</span>' +
+      '<span style="color: #d1d5db;">' + empty + '</span></span>';
   },
 
   /**
