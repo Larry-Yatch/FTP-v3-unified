@@ -960,24 +960,9 @@ const Router = {
                 .getResultsSummaryPage(clientId);
             }
 
-            // View Progress Over Time - navigate using document.write() pattern
+            // View Progress Over Time - temporarily disabled (coming soon)
             function viewProgress() {
-              showLoading('Loading Progress');
-
-              google.script.run
-                .withSuccessHandler(function(progressHtml) {
-                  saveLocationForRefresh('progress', null, null);
-                  document.open();
-                  document.write(progressHtml);
-                  document.close();
-                  window.scrollTo(0, 0);
-                })
-                .withFailureHandler(function(error) {
-                  hideLoading();
-                  console.error('Progress page navigation error:', error);
-                  alert('Error loading progress page: ' + error.message);
-                })
-                .getProgressPage(clientId);
+              alert('Progress Over Time is coming soon! This feature will allow you to track how your assessment results change over time.');
             }
 
             // Logout - navigate to login page
