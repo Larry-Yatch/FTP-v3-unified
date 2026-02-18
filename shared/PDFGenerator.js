@@ -1531,9 +1531,6 @@ const PDFGenerator = {
       '.lock-belief { padding: 4px 0; font-size: 14px; }\n' +
       '.lock-impact { font-size: 13px; color: #666; margin-top: 8px; font-style: italic; }\n' +
       '.gap-visual { background: #f0f9ff; border: 1px solid #93c5fd; border-radius: 8px; padding: 15px; margin: 15px 0; }\n' +
-      '.gap-bar { height: 18px; border-radius: 9px; margin: 6px 0; }\n' +
-      '.gap-bar-psych { background: linear-gradient(90deg, #fbbf24, #ef4444); }\n' +
-      '.gap-bar-stress { background: linear-gradient(90deg, #10b981, #22c55e); }\n' +
       '.synthesis-box { background: #f0fdf4; border-left: 4px solid #22c55e; padding: 20px; margin: 20px 0; font-size: 15px; line-height: 1.7; }\n' +
       '.action-list { background: #eff6ff; border: 1px solid #93c5fd; border-radius: 8px; padding: 15px 15px 15px 35px; margin: 15px 0; }\n' +
       '.action-list li { margin: 10px 0; line-height: 1.5; }\n' +
@@ -1617,9 +1614,9 @@ const PDFGenerator = {
       html += '<h2>Your Awareness Gap</h2>';
       html += '<div class="gap-visual">';
       html += '<p><strong>Psychological Patterns:</strong> ' + gap.psychScore + '/100</p>';
-      html += '<div class="gap-bar gap-bar-psych" style="width: ' + gap.psychScore + '%;"></div>';
+      html += this._buildPercentageBar(gap.psychScore, '#f59e0b', 18);
       html += '<p><strong>Stress Awareness:</strong> ' + gap.stressScore + '/100</p>';
-      html += '<div class="gap-bar gap-bar-stress" style="width: ' + gap.stressScore + '%;"></div>';
+      html += this._buildPercentageBar(gap.stressScore, '#22c55e', 18);
       html += '<p style="text-align: center; margin-top: 10px;"><strong>Gap: ' + gap.gapScore + ' points</strong></p>';
       html += '</div>';
       html += '<p>' + narrative.gapNarrative + '</p>';
@@ -1792,10 +1789,6 @@ const PDFGenerator = {
       '.part-header p { color: #666; margin: 0; line-height: 1.6; font-size: 14px; }\n' +
       '.tool-section { background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 18px; margin: 12px 0; }\n' +
       '.tool-section-header { font-size: 16px; font-weight: 600; color: #374151; margin: 0 0 12px 0; padding-bottom: 8px; border-bottom: 1px solid #f3f4f6; }\n' +
-      '.score-bar-container { margin: 6px 0; }\n' +
-      '.score-bar-label { font-size: 13px; color: #555; margin-bottom: 3px; }\n' +
-      '.score-bar-track { height: 14px; background: #f3f4f6; border-radius: 7px; overflow: hidden; }\n' +
-      '.score-bar-fill { height: 100%; border-radius: 7px; }\n' +
       '.allocation-bar { display: flex; height: 28px; border-radius: 6px; overflow: hidden; margin: 10px 0; }\n' +
       '.allocation-segment { display: flex; align-items: center; justify-content: center; color: #fff; font-size: 11px; font-weight: 600; }\n' +
       '.tool-insight { background: #f9fafb; border-left: 3px solid #ad9168; padding: 10px 12px; margin: 10px 0; font-size: 13px; color: #555; line-height: 1.5; font-style: italic; }\n' +
@@ -2057,9 +2050,9 @@ const PDFGenerator = {
       html += '<h3>Your Awareness Gap</h3>';
       html += '<div class="gap-visual">';
       html += '<p><strong>Psychological Patterns:</strong> ' + gap.psychScore + '/100</p>';
-      html += '<div class="gap-bar gap-bar-psych" style="width: ' + gap.psychScore + '%;"></div>';
+      html += this._buildPercentageBar(gap.psychScore, '#f59e0b', 18);
       html += '<p><strong>Stress Awareness:</strong> ' + gap.stressScore + '/100</p>';
-      html += '<div class="gap-bar gap-bar-stress" style="width: ' + gap.stressScore + '%;"></div>';
+      html += this._buildPercentageBar(gap.stressScore, '#22c55e', 18);
       html += '<p style="text-align: center; margin-top: 10px;"><strong>Gap: ' + gap.gapScore + ' points</strong></p>';
       html += '</div>';
       html += '<p>' + narrative.gapNarrative + '</p>';
@@ -2257,15 +2250,15 @@ const PDFGenerator = {
     // Dominant strategy
     html += '<p><strong>Your Dominant Strategy:</strong> ' + (t1Data.winner || 'Unknown') + '</p>';
 
-    // Strategy scores with bipolar bars
+    // Strategy scores with bipolar bars (table-based for GAS PDF compatibility)
     if (t1Data.scores) {
-      var strategyNames = {
-        FSV: 'Financial Self-Value',
+      var strategyNames = CollectiveResults.STRATEGY_LABELS || {
+        FSV: 'False Self-View',
         ExVal: 'External Validation',
-        Showing: 'Showing Love',
-        Receiving: 'Receiving Love',
-        Control: 'Control',
-        Fear: 'Fear'
+        Showing: 'Issues Showing Love',
+        Receiving: 'Issues Receiving Love',
+        Control: 'Control Leading to Isolation',
+        Fear: 'Fear Leading to Isolation'
       };
 
       html += '<div style="margin: 12px 0;">';
@@ -2273,15 +2266,10 @@ const PDFGenerator = {
         var score = t1Data.scores[key];
         var name = strategyNames[key] || key;
         var isWinner = key === t1Data.winner;
-        var barWidth = Math.min(Math.abs(score) * 2, 50);
-        var barColor = score > 0 ? '#ef4444' : '#22c55e';
 
-        html += '<div class="score-bar-container">';
-        html += '<div class="score-bar-label">' + (isWinner ? '<strong>' : '') + name + ': ' + score + (isWinner ? ' (dominant)</strong>' : '') + '</div>';
-        html += '<div class="score-bar-track" style="position: relative;">';
-        html += '<div style="position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: #d1d5db;"></div>';
-        html += '<div style="position: absolute; ' + (score >= 0 ? 'left: 50%' : 'right: 50%') + '; top: 0; height: 100%; width: ' + barWidth + '%; background: ' + barColor + '; border-radius: 7px;"></div>';
-        html += '</div>';
+        html += '<div style="margin: 6px 0;">';
+        html += '<div style="font-size: 13px; color: #555; margin-bottom: 3px;">' + (isWinner ? '<strong>' : '') + name + ': ' + score + (isWinner ? ' (dominant)</strong>' : '') + '</div>';
+        html += this._buildBipolarBar(score);
         html += '</div>';
       }
       html += '</div>';
@@ -2309,11 +2297,9 @@ const PDFGenerator = {
         for (var dk in gtData.scoring.domainQuotients) {
           var dScore = gtData.scoring.domainQuotients[dk];
           var dColor = dScore >= 70 ? '#22c55e' : (dScore >= 40 ? '#f59e0b' : '#ef4444');
-          html += '<div class="score-bar-container">';
-          html += '<div class="score-bar-label">' + dk + ': ' + dScore + '/100</div>';
-          html += '<div class="score-bar-track">';
-          html += '<div class="score-bar-fill" style="width: ' + dScore + '%; background: ' + dColor + ';"></div>';
-          html += '</div>';
+          html += '<div style="margin: 6px 0;">';
+          html += '<div style="font-size: 13px; color: #555; margin-bottom: 3px;">' + dk + ': ' + dScore + '/100</div>';
+          html += this._buildPercentageBar(dScore, dColor);
           html += '</div>';
         }
       }
@@ -2388,11 +2374,9 @@ const PDFGenerator = {
           var label = domainLabels[dom] || dom;
           var color = score >= 70 ? '#22c55e' : (score >= 40 ? '#f59e0b' : '#ef4444');
 
-          html += '<div class="score-bar-container">';
-          html += '<div class="score-bar-label">' + label + ': ' + score + '%</div>';
-          html += '<div class="score-bar-track">';
-          html += '<div class="score-bar-fill" style="width: ' + score + '%; background: ' + color + ';"></div>';
-          html += '</div>';
+          html += '<div style="margin: 6px 0;">';
+          html += '<div style="font-size: 13px; color: #555; margin-bottom: 3px;">' + label + ': ' + score + '%</div>';
+          html += this._buildPercentageBar(score, color);
           html += '</div>';
         }
       }
@@ -2536,6 +2520,69 @@ const PDFGenerator = {
     }
 
     html += '</div>';
+    return html;
+  },
+
+  /**
+   * Build a table-based percentage bar for GAS PDF compatibility.
+   * GAS PDF renderer does not support nested-div height:100% or position:absolute.
+   * Native HTML tables render reliably.
+   *
+   * @param {number} percent - Fill percentage (0-100)
+   * @param {string} color - Hex color for the filled portion
+   * @param {number} [height=14] - Bar height in pixels
+   * @returns {string} HTML table element
+   */
+  _buildPercentageBar(percent, color, height) {
+    var h = height || 14;
+    var p = Math.max(0, Math.min(100, Math.round(percent)));
+    var html = '<table style="width:100%;border-collapse:collapse;margin:4px 0;"><tr>';
+    if (p > 0) {
+      html += '<td style="width:' + p + '%;background:' + color + ';height:' + h + 'px;padding:0;"></td>';
+    }
+    if (p < 100) {
+      html += '<td style="width:' + (100 - p) + '%;background:#f3f4f6;height:' + h + 'px;padding:0;"></td>';
+    }
+    html += '</tr></table>';
+    return html;
+  },
+
+  /**
+   * Build a table-based bipolar bar for Tool 1 scores (negative-to-positive, centered).
+   * Left half = negative territory, right half = positive territory.
+   * Center line uses a 1px-wide cell with gray background.
+   *
+   * @param {number} score - Raw score (can be negative or positive)
+   * @returns {string} HTML table element
+   */
+  _buildBipolarBar(score) {
+    var barWidth = Math.min(Math.abs(score) * 2, 50);
+    var barColor = score > 0 ? '#ef4444' : '#22c55e';
+    var html = '<table style="width:100%;border-collapse:collapse;margin:4px 0;"><tr>';
+
+    if (score < 0) {
+      var leftEmpty = 50 - barWidth;
+      if (leftEmpty > 0) {
+        html += '<td style="width:' + leftEmpty + '%;background:#f3f4f6;height:14px;padding:0;"></td>';
+      }
+      html += '<td style="width:' + barWidth + '%;background:' + barColor + ';height:14px;padding:0;"></td>';
+      html += '<td style="width:1px;background:#9ca3af;height:14px;padding:0;"></td>';
+      html += '<td style="width:50%;background:#f3f4f6;height:14px;padding:0;"></td>';
+    } else if (score > 0) {
+      var rightEmpty = 50 - barWidth;
+      html += '<td style="width:50%;background:#f3f4f6;height:14px;padding:0;"></td>';
+      html += '<td style="width:1px;background:#9ca3af;height:14px;padding:0;"></td>';
+      html += '<td style="width:' + barWidth + '%;background:' + barColor + ';height:14px;padding:0;"></td>';
+      if (rightEmpty > 0) {
+        html += '<td style="width:' + rightEmpty + '%;background:#f3f4f6;height:14px;padding:0;"></td>';
+      }
+    } else {
+      html += '<td style="width:50%;background:#f3f4f6;height:14px;padding:0;"></td>';
+      html += '<td style="width:1px;background:#9ca3af;height:14px;padding:0;"></td>';
+      html += '<td style="width:50%;background:#f3f4f6;height:14px;padding:0;"></td>';
+    }
+
+    html += '</tr></table>';
     return html;
   },
 
