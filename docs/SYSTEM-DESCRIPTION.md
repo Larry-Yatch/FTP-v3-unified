@@ -158,58 +158,68 @@ Tools fall into three architectural patterns, each with a shared base class:
 
 ### Tool-by-Tool Detail
 
+*File sizes and subdomain names verified directly from the codebase (March 2026).*
+
 #### Tool 1: Core Trauma Strategy Assessment
+- **Status:** Production-complete — reference implementation for the framework
 - **Duration:** 15-20 minutes | 5 pages | 26 questions
 - **What It Does:** Identifies which of the six childhood survival strategies is dominant. Scores each strategy from -25 to +25. The "winner" becomes the lens through which all subsequent tools interpret the client's behavior.
 - **Output:** Detailed report with strategy explanation, personalized narratives, cross-tool insights
-- **Key Files:** `tools/tool1/Tool1.js`, `Tool1Report.js`, `Tool1Templates.js`
+- **Key Files:** `tools/tool1/Tool1.js`, `Tool1Report.js`, `Tool1Templates.js`, `tool.manifest.json` (1,107 lines total)
 
 #### Tool 2: Financial Clarity & Values Assessment
-- **Duration:** 20-30 minutes | 5 pages | 30 questions
-- **What It Does:** Consolidates demographics, mindset, and financial picture. Pre-fills from Tool 1. Covers income, expenses, debt, investments, and emotional relationship to money. GPT analyzes 8 response domains in background.
-- **Output:** Financial clarity score, domain-level GPT insights, synthesis narrative
-- **Key Files:** `tools/tool2/Tool2.js`, `Tool2Report.js`, `Tool2GPTAnalysis.js`, `Tool2Fallbacks.js`
+- **Status:** Production-complete
+- **Duration:** 20-30 minutes | 5 pages | ~30 questions
+- **What It Does:** Consolidates demographics, mindset, and financial picture. Pre-fills from Tool 1. Covers income, expenses, debt, investments, and emotional relationship to money. GPT-4o-mini analyzes free-text responses across multiple domains in background; GPT-4o synthesizes on submission.
+- **Output:** Financial clarity score, domain-level GPT insights, synthesis narrative, PDF report
+- **Key Files:** `tools/tool2/Tool2.js`, `Tool2Report.js`, `Tool2GPTAnalysis.js`, `Tool2Constants.js`, `Tool2Fallbacks.js`, `tool.manifest.json` (3,926 lines total)
 
 #### Tool 3: Identity & Validation Grounding
-- **Duration:** 25 minutes | 7 pages | 30 questions
-- **What It Does:** Deep dive into False Self-View (FSV) and External Validation (ExVal) patterns. Three subdomains per domain explore how identity distortions and approval-seeking show up in financial decisions.
-- **Subdomains:** Unworthiness, Self-Sabotage, Mask Maintenance (FSV) | Approval-Seeking, Others' Opinions, People-Pleasing (ExVal)
-- **Output:** Subdomain quotient scores, GPT narratives per subdomain, domain synthesis
-- **Key Files:** `tools/tool3/Tool3.js`, `Tool3Report.js`
+- **Status:** Production-complete
+- **Duration:** 25 minutes | 7 pages | 30 questions (6 subdomains × 4 dimensions × 1-2 questions each)
+- **What It Does:** Deep dive into False Self-View (FSV) and External Validation (ExVal) patterns — how identity distortions and approval-seeking show up in financial decisions.
+- **Subdomains:** "I'm Not Worthy of Financial Freedom", "I'll Never Have Enough", "Money Shows My Worth" (FSV) | "What Will They Think?", "I Need to Prove Myself", "I Can't See My Financial Reality" (ExVal)
+- **Output:** Subdomain quotient scores (Disconnection from Self Quotient), GPT narratives per subdomain, domain synthesis
+- **Key Files:** `tools/tool3/Tool3.js`, `Tool3Report.js`, `tool3.manifest.json` (670 lines total)
 
 #### Tool 4: Financial Freedom Framework
-- **Duration:** 30 minutes | Single-page calculator
-- **What It Does:** Discovers optimal budget allocation across four financial categories (M/E/F/J) based on 10 progressively unlocked financial priorities and 29 trauma-informed modifiers drawn from Tools 1-3. Supports multiple saved scenarios.
-- **Data Sources:** Pre-survey (income, balances), Tool 1/2/3 psychological modifiers, client customization
-- **Output:** Allocation recommendations, scenario comparison, PDF report with GPT narrative
-- **Key Files:** `tools/tool4/Tool4.js` (6,467 lines), `Tool4GPTAnalysis.js`, `Tool4Constants.js`, `Tool4Fallbacks.js`
+- **Status:** Production-complete
+- **Duration:** 30 minutes | Single-page calculator with pre-survey
+- **What It Does:** Discovers optimal budget allocation across four financial categories (Multiply/Essentials/Freedom/Enjoyment) based on a client pre-survey, 10 progressively unlocked financial priorities, and 29 trauma-informed modifiers drawn from Tools 1-3. Supports multiple saved scenarios.
+- **Data Sources:** Pre-survey (income, balances, financial situation), Tool 1/2/3 psychological modifiers, client priority selection
+- **Output:** Personalized M/E/F/J allocation percentages, scenario comparison, PDF report with GPT narrative
+- **Key Files:** `tools/tool4/Tool4.js`, `Tool4GPTAnalysis.js`, `Tool4Constants.js`, `Tool4Fallbacks.js`, `tool4-styles.html`, `tool4.manifest.json` (9,336 lines total)
 
 #### Tool 5: Love & Connection Grounding
-- **Duration:** 25 minutes | 7 pages | 30 questions
-- **What It Does:** Explores Issues Showing Love and Issues Receiving Love patterns. How compulsive giving, self-sacrifice, emotional disconnection, and difficulty accepting help shape financial behavior.
-- **Subdomains:** Compulsive Giving, Self-Sacrifice, Martyrdom (Showing) | Dependence, Difficulty Accepting, Emotional Walls (Receiving)
-- **Output:** Subdomain quotient scores, GPT narratives, domain synthesis
-- **Key Files:** `tools/tool5/Tool5.js`, `Tool5Report.js`
+- **Status:** Production-complete
+- **Duration:** 25 minutes | 7 pages | 30 questions (6 subdomains × 4 dimensions × 1-2 questions each)
+- **What It Does:** Explores Issues Showing Love (ISL) and Issues Receiving Love (IRL) patterns — how compulsive giving, self-sacrifice, emotional disconnection, and difficulty accepting help shape financial behavior.
+- **Subdomains:** "I Must Give to Be Loved", "Their Needs > My Needs", "I Can't Accept Help" (ISL) | "I Can't Make It Alone", "I Owe Them Everything", "I Stay in Debt" (IRL)
+- **Output:** Subdomain quotient scores (Disconnection from Others Quotient), GPT narratives per subdomain, domain synthesis
+- **Key Files:** `tools/tool5/Tool5.js`, `Tool5Report.js`, `tool5.manifest.json` (664 lines total)
 
 #### Tool 6: Retirement Blueprint Calculator
-- **Duration:** 25 minutes | Single-page calculator
+- **Status:** Production-complete — largest file in the codebase
+- **Duration:** 25 minutes | Single-page calculator with pre-survey
 - **What It Does:** Classifies clients into one of 9 investor profiles, computes an Ambition Quotient, and allocates retirement savings across tax-advantaged vehicles (401k, IRA, Roth, HSA, Solo 401k, ROBS, etc.) using a waterfall algorithm with IRS limit enforcement. Includes future value projections and employer match calculations.
 - **Profiles:** ROBS-In-Use Strategist, ROBS-Curious Candidate, Business Owner with Employees, Solo 401(k) Optimizer, Bracket Strategist, Catch-Up Contributor, Foundation Builder, Roth Maximizer, Late-Stage Growth
-- **Output:** Vehicle allocation breakdown, projections, scenario comparison, PDF report
-- **Key Files:** `tools/tool6/Tool6.js` (9,271 lines -- largest file), `Tool6Report.js`, `Tool6GPTAnalysis.js`, `Tool6Constants.js`
+- **Output:** Vehicle allocation breakdown, projections, scenario comparison, PDF report with GPT narrative
+- **Key Files:** `tools/tool6/Tool6.js`, `Tool6Report.js`, `Tool6GPTAnalysis.js`, `Tool6Constants.js`, `Tool6Fallbacks.js`, `Tool6Tests.js`, `tool6-styles.html`, `tool6.manifest.json` (20,886 lines total)
 
 #### Tool 7: Security & Control Grounding
-- **Duration:** 25 minutes | 7 pages | 30 questions
-- **What It Does:** Final grounding tool exploring Control Leading to Isolation and Fear Leading to Isolation. How security-seeking behaviors (hoarding, micromanaging, refusing delegation) and fear responses (paralysis, worst-case thinking, avoidance) drive financial choices.
-- **Subdomains:** Undercharging, Hoarding, Refusing Delegation (Control) | Lack of Protection, Self-Sabotage, Trusting Wrong People (Fear)
-- **Output:** Subdomain quotient scores, GPT narratives, domain synthesis
-- **Key Files:** `tools/tool7/Tool7.js`, `Tool7Report.js`
+- **Status:** Production-complete
+- **Duration:** 25 minutes | 7 pages | 30 questions (6 subdomains × 4 dimensions × 1-2 questions each)
+- **What It Does:** Final grounding tool exploring Control Leading to Isolation (CLI) and Fear Leading to Isolation (FLI) — how security-seeking behaviors and fear responses drive financial choices.
+- **Subdomains:** "I Undercharge and Give Away", "I Have Money But Will Not Use It", "Only I Can Do It Right" (CLI) | "I Do Not Protect Myself", "I Sabotage Success", "I Trust the Wrong People" (FLI)
+- **Output:** Subdomain quotient scores (Disconnection from All That's Greater Quotient), GPT narratives per subdomain, domain synthesis
+- **Key Files:** `tools/tool7/Tool7.js`, `Tool7Report.js`, `tool7.manifest.json` (663 lines total)
 
 #### Tool 8: Investment Planning Tool
+- **Status:** Production-complete
 - **Duration:** 20 minutes | Single-page calculator
-- **What It Does:** Three calculation modes for retirement investment analysis. Pre-populates from all upstream tools (1-7), especially Tool 6 scenarios. Supports scenario comparison, risk-return mapping, and includes trauma-informed "action barriers" that prevent impulsive financial decisions.
-- **Output:** Scenario reports, comparison analysis, PDF reports with GPT narratives
-- **Key Files:** `tools/tool8/Tool8.js`, `Tool8Report.js`, `Tool8GPTAnalysis.js`, `Tool8Constants.js`, `Tool8Fallbacks.js`
+- **What It Does:** Three calculation modes for retirement investment analysis — Required Contribution (what to save monthly to hit a target), Required Return (what return rate achieves the goal), and Required Time (how long to reach target). Pre-populates from all upstream tools (1-7), especially Tool 6 scenarios. Supports scenario comparison and risk-return mapping.
+- **Output:** Mode-specific projections, scenario reports, PDF reports with GPT narratives
+- **Key Files:** `tools/tool8/Tool8.js`, `Tool8Report.js`, `Tool8GPTAnalysis.js`, `Tool8Constants.js`, `Tool8Fallbacks.js`, `Tool8Tests.js`, `tool8-styles.html`, `tool8.manifest.json` (6,342 lines total)
 
 ---
 
