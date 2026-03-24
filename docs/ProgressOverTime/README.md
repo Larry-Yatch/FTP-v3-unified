@@ -1,8 +1,11 @@
 # Progress Over Time Feature
 
+> **Status:** Implemented but currently disabled (dashboard button shows "coming soon"). The data infrastructure, UI, and coach view are built. Pending UX review before re-enabling.
+> **Type:** Reference document — describes the feature architecture and implementation decisions.
+
 ## What This Is
 
-A new page in Financial TruPath v3 that shows students (and coaches) how their assessment results have changed across multiple completions of the same tool over time.
+A page in Financial TruPath v3 that shows students (and coaches) how their assessment results have changed across multiple completions of the same tool over time.
 
 ## Scope
 

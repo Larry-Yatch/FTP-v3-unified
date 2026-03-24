@@ -1,6 +1,6 @@
 # FTP-v3 Lessons Learned
 
-**Last Updated:** 2025-12-01
+**Last Updated:** 2026-03-24
 **Purpose:** Capture design decisions, bugs, and patterns discovered during development
 
 ---
@@ -302,6 +302,41 @@ TIER 3: Score-aware fallback → Always succeeds
 
 ---
 
+## Data Persistence Deep Dives
+
+### DRAFT Rows Must Save on Every Page
+Multi-page form tools (1, 3, 5, 7) must call `DataService.saveDraft()` on **every** page transition, not just page 1. Otherwise the RESPONSES sheet DRAFT row only has page 1 data, and the dashboard shows stale/incomplete information.
+
+### Edit Mode Data Merge Priority
+When loading edit mode, data must merge in this exact order (last wins):
+```javascript
+const data = { ...completedData, ...editDraftData, ...propertiesData };
+// 1. Original COMPLETED response (fallback)
+// 2. EDIT_DRAFT from RESPONSES sheet (if session was interrupted)
+// 3. PropertiesService (most up-to-date from current session)
+```
+
+### Edit Mode Cleanup: DELETE, Don't Mark
+After submitting an edited response, **delete** the EDIT_DRAFT row entirely with `sheet.deleteRow()`. Marking it "not latest" causes infinite "draft in progress" loops because the system keeps finding the old EDIT_DRAFT row.
+
+### Duplicate EDIT_DRAFT Prevention
+`loadResponseForEditing()` should only be called **once** — from the edit button handler. Calling it again from `render()` creates duplicate EDIT_DRAFT rows.
+
+---
+
+## GAS-Specific Pitfalls
+
+### Never Use setTimeout() Before Navigation
+Chrome's iframe sandbox breaks user gesture chains when `setTimeout()` is placed between a user click and a form submission or navigation. Remove ALL `setTimeout()` wrappers — navigate or submit immediately.
+
+### Subdomain References Need Human Labels
+GPT prompts must map technical keys (e.g., `subdomain_2_2`) to human-readable labels (e.g., "What Will They Think?"). Without this mapping, GPT outputs confuse students with technical jargon in Tools 3/5/7 reports.
+
+### Threshold Checks Must Be Consistent
+All score threshold checks should use `>=` consistently, not a mix of `>` and `>=`. Mixed operators cause edge-case bugs where a score of exactly the threshold value behaves differently than expected.
+
+---
+
 ## Recurring Themes
 
 1. **Async is the enemy of certainty** - Navigation must be synchronous in GAS iframe
@@ -309,6 +344,9 @@ TIER 3: Score-aware fallback → Always succeeds
 3. **Use existing infrastructure** - Don't reinvent FormUtils, DataService, etc.
 4. **Version control must be automatic** - Manual Is_Latest management fails
 5. **Tests must use production code** - Duplicated logic drifts
+6. **Save drafts on every page** - Not just page 1
+7. **Delete, don't mark** - EDIT_DRAFT rows must be removed, not flagged
+8. **Map technical keys to labels** - GPT needs human-readable subdomain names
 
 ---
 

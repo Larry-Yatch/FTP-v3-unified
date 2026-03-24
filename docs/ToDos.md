@@ -1,37 +1,32 @@
 # Financial TruPath v3 - Active TODOs
 
+**Last Updated:** 2026-03-24
+
 ## Bugs
 
-- we have an issue with multiple drafts and completed lines on the responses sheet having TRUE - which creates a draft issue
-- Valeria - tool4 wrong profile suggested - stuck on get out of debt
-- add 8 to admin 
+- Multiple drafts and completed lines on RESPONSES sheet having TRUE for Is_Latest — creates draft display issues
+- Valeria - Tool 4 wrong profile suggested, stuck on "get out of debt"
+- Leslie (7567LS) - Tool 5 data does not seem to be loading correctly
 
+## Admin Enhancements
 
-- add "Attended by Watching" to admin panel - count toward participated
+- Add Tool 8 to admin panel
+- Add "Attended by Watching" to admin panel — count toward participated
 
-Tool 6:
-- can we make it so that the user can select what scenario they pull from , we should default to the latest one
+## Feature Ideas
 
+### Tool 6
+- Allow user to select which scenario they pull from (default to latest)
 
-Tool 8
+### Tool 8
+- Consider rebuilding as a universal investment calculator (not just retirement-focused)
+  - Ambition tool to guide through options for cashflow today vs retirement value
+  - Variables: short/long term, cash flow vs end-term value, taxes now/later, risk vs return, accredited/unaccredited
+- Integrate spousal account dynamically
 
-- there is a possiblity that we should rebuild this tool in the future to make it a more useful investment calculator.  Instead of having it just focused on retirement investing we could make it universal so that it could be used to build a full investment plan.
+### Progress Over Time
+- Re-enable after UX review (feature is built but disabled)
+- Add persistence and trends visualization
 
-Meaning it could use an ambition tool to guide someone through all of the options to build the right plan for cashflow today verses retirement value.
-
-As well as all the variables that change the plan such as: Foundational strategies for investing
-- short long term
-- cash flow - end term value
-- taxes - now later
-- risk vs return - types domains of investing
-- Accredited / unaccredited
-
-Future features:
-- add persistance over time and trends over time
-
-- integratae spousal account dynamically
-
-- DO we need to change tool to or maybe we do an onboarding one where we get actual financial situations. That way we can leverage that with our cross-tool analysis?
-
-Tool5
-- Leslie 7567LS her tool 5 data does not seem to be loading correctly.
+### Cross-Tool
+- Consider an onboarding tool to capture actual financial situations for cross-tool analysis

@@ -1,8 +1,11 @@
 # Progress Over Time — Implementation Plan
 
+> **Status:** Feature is built but disabled pending UX review. Dashboard button shows "coming soon" (commit 35ecdcb). All phases below are complete — this document is retained as a reference for the architecture and design decisions.
+> **Type:** Reference document
+
 ## Context
 
-Students retake psychological assessments (Tools 1, 2, 3, 5, 7) as they progress through the course — typically 3-4 times over a year. Currently, the app only shows the latest results. There is no way to see how scores have changed over time. This feature adds a "Progress Over Time" page that visualizes score trends across completions, accessible by both students and coaches.
+Students retake psychological assessments (Tools 1, 2, 3, 5, 7) as they progress through the course — typically 3-4 times over a year. This feature adds a "Progress Over Time" page that visualizes score trends across completions, accessible by both students and coaches.
 
 **Why dedicated history sheets?** The existing `ResponseManager._cleanupOldVersions()` keeps only the last 2 COMPLETED rows in RESPONSES per client/tool. Historical data gets actively deleted on edit-resubmit, so we need a separate store.
 
