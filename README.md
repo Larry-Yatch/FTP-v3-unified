@@ -60,13 +60,18 @@ FTP-v3/
 │   ├── PDFGenerator.js      # PDF report generation
 │   ├── styles.html          # Design tokens + base CSS
 │   └── ...
-└── docs/                    # Documentation
-    ├── SYSTEM-DESCRIPTION.md       # Complete technical overview
-    ├── TruPath_Master_System_Overview.md  # Business + system context
-    ├── LESSONS-LEARNED.md          # Hard-won patterns and pitfalls
-    ├── TOOL-DEVELOPMENT-GUIDE.md   # Building new tools
-    ├── Foundational Docs/          # Core IP + assessment content
-    └── Archive/                    # Historical build artifacts
+├── docs/                    # Documentation
+│   ├── SYSTEM-DESCRIPTION.md       # Complete technical overview
+│   ├── TruPath_Master_System_Overview.md  # Business + system context
+│   ├── LESSONS-LEARNED.md          # Hard-won patterns and pitfalls
+│   ├── TOOL-DEVELOPMENT-GUIDE.md   # Building new tools
+│   ├── Foundational Docs/          # Core IP + assessment content
+│   └── Archive/                    # Historical documentation artifacts
+└── archive/                 # Historical code artifacts
+    ├── tests/                      # Test suites, validation scripts
+    ├── apps/                       # Pre-v3 standalone GAS projects
+    ├── migration-scripts/          # One-time data migration utilities
+    └── tool4-legacy/               # Old Tool 4 implementation files
 ```
 
 ---

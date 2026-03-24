@@ -60,7 +60,7 @@ docs/
 │   ├── IMPLEMENTATION-PLAN-Middleware-AI.md   # Architecture roadmap
 │   └── middleware-mapping.md                 # Complete 8-tool I/O mapping
 │
-└── Archive/                           # Historical build artifacts (141 files)
+└── Archive/                           # Historical documentation artifacts
     ├── Animation/                     # Completed animation system docs
     ├── Dashboard/                     # Completed dashboard phase docs
     ├── Major-Refactor/                # Completed refactoring docs
@@ -68,6 +68,8 @@ docs/
     ├── Testing/                       # Completed test plans
     ├── Tool3/ ... Tool8/              # Tool build artifacts, session handoffs
     └── ...                            # Bug reports, GPT guides, admin setup, etc.
+
+Note: Code artifacts (test files, legacy apps, migration scripts) are in /archive/ at the project root.
 ```
 
 ---
