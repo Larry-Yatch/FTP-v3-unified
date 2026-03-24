@@ -1,164 +1,103 @@
-# Financial TruPath v3 - Modular Architecture
+# Financial TruPath v3
 
-**Version:** 3.2.6 (Deploy @34)
-**Status:** ✅ Production Ready - Tool 1 Complete + Optimized Auth
-**Architecture:** Plugin-based with configuration-driven insights
-**Last Updated:** November 4, 2024
-
-## 🎯 Project Goals
-
-This is a ground-up rewrite of Financial TruPath with:
-- **Modular tool system** - Add tools without touching core
-- **Configuration-driven insights** - Define cross-tool intelligence via spreadsheet
-- **Clean separation** - Core framework vs. tool implementations
-- **Admin panel** - Full student & tool management
-- **Linear progression** - Sequential tool access with admin overrides
-
-## 📁 Project Structure
-
-```
-Financial-TruPath-v3/
-├── core/                    # Core framework (don't touch after built)
-│   ├── ToolRegistry.js      # Dynamic tool registration
-│   ├── FrameworkCore.js     # Core framework logic
-│   ├── InsightsPipeline.js  # Configuration-driven insights
-│   ├── DataService.js       # Google Sheets integration
-│   ├── Router.js            # Dynamic routing
-│   └── ToolAccessControl.js # Access & permissions
-│
-├── tools/                   # Tool modules (completely independent)
-│   ├── tool1/               # Each tool is self-contained
-│   │   ├── tool.manifest.json
-│   │   ├── Tool1.js
-│   │   └── Tool1Insights.js
-│   └── tool2/
-│
-├── admin/                   # Admin interface
-│   ├── AdminDashboard.html
-│   └── StudentManager.js
-│
-├── shared/                  # Shared UI components
-│   ├── styles.html
-│   └── ui-components.html
-│
-├── Code.js                  # Main entry point
-└── Config.js                # System configuration
-```
-
-## 🚀 Quick Start
-
-```bash
-# Install dependencies
-npm install
-
-# Create new Google Apps Script project
-clasp create --type standalone --title "Financial TruPath v3"
-
-# Push to Google Apps Script
-npm run push
-
-# Deploy
-npm run deploy "Initial v3 deployment"
-
-# Watch for changes (monitoring)
-npm run watch
-```
-
-## 📊 Google Sheets Setup
-
-**Required Spreadsheet:** Create "FTP-v3-Mastersheet" with these tabs:
-- SESSIONS
-- RESPONSES
-- TOOL_STATUS
-- TOOL_ACCESS
-- CrossToolInsights (insights storage)
-- InsightMappings (configuration/schema)
-- ACTIVITY_LOG
-- ADMINS
-- CONFIG
-- Students
-
-Run initialization: `initializeAllSheets()` in Code.js
-
-## 🏗️ Architecture Principles
-
-### **1. Core Never Changes**
-Once built, core framework shouldn't need modification when adding tools.
-
-### **2. Tools are Plugins**
-Each tool is a self-contained module that implements `ToolInterface`.
-
-### **3. Configuration Over Code**
-Insights and adaptations defined in `InsightMappings` spreadsheet, not hardcoded.
-
-### **4. Registry-Based**
-Tools register themselves; framework discovers them dynamically.
-
-## 🔧 Adding a New Tool
-
-1. Create `tools/toolN/` directory
-2. Create `tool.manifest.json`
-3. Implement `ToolN.js` following `ToolInterface`
-4. Add insight mappings to `InsightMappings` sheet
-5. Tool automatically discovered and routed
-
-**No core code changes needed!**
-
-## 📖 Documentation
-
-- [Architecture Guide](docs/ARCHITECTURE.md)
-- [Migration Plan](docs/MIGRATION-PLAN.md)
-- [Tool Development Guide](docs/TOOL-DEVELOPMENT-GUIDE.md)
-
-## 🔄 Migration from v1
-
-See [MIGRATION-PLAN.md](docs/MIGRATION-PLAN.md) for detailed migration strategy.
-
-**Current Status:**
-- ✅ Core framework complete and production-ready
-- ✅ Tool 1 (Orientation Assessment) fully implemented and tested
-- ✅ Navigation system rock-solid (all iframe issues resolved)
-- ✅ FormUtils pattern proven and documented
-- 🚧 Tool 2 ready to develop (2-4 hours estimated)
-- ⏳ Tools 3-8 pending (templates ready)
-
-## 📝 Version History
-
-**v3.2.4** (November 4, 2024) - **Current Production**
-- ✅ All iframe navigation issues resolved
-- ✅ document.write() pattern for seamless navigation
-- ✅ Loading animations on all navigation points
-- ✅ Zero console errors or warnings
-- ✅ Tool 1 complete with PDF reports
-
-**v3.2.1** (November 4, 2024)
-- Comprehensive iframe navigation fixes
-- Standardized on document.write() pattern
-- Added getDashboardPage() server function
-
-**v3.1.0** (November 3, 2024)
-- Fixed Tool 1 navigation (all 5 pages)
-- Built reusable FormUtils framework
-- Created MultiPageToolTemplate
-
-**v3.0.1** (November 3, 2024)
-- TruPath brand identity applied
-- Complete UI styling system
-- Login and dashboard pages
-
-**v3.0.0** (November 3, 2024)
-- Initial foundation deployment
-- Core framework complete
-- Configuration-driven insights system
+**Status:** Production
+**Architecture:** Plugin-based Google Apps Script web app
+**Repository:** https://github.com/Larry-Yatch/FTP-v3-unified
 
 ---
 
-## 🔗 Quick Links
+## What This Is
 
-- **Production URL (v3.2.6 @34):** https://script.google.com/macros/s/AKfycbwRWkym_TzkbX5jULJJ0PKc0rqtuvdUjqM6rVhTdeL_0egXidur3LZZURnImiqYc6w/exec
-- **Session Handoff:** [docs/SESSION-HANDOFF.md](docs/SESSION-HANDOFF.md) - Start here for current status
-- **GitHub:** https://github.com/Larry-Yatch/FTP-v3-unified
+Financial TruPath v3 (FTP-v3) is a trauma-informed financial planning platform that guides clients through an 8-tool progressive assessment and planning sequence. It first uncovers the psychological patterns driving financial decisions, then uses those discoveries to personalize concrete financial tools — budgets, retirement blueprints, and investment plans.
+
+Built entirely on Google Apps Script with a Google Sheets data store and OpenAI GPT-4o integration for real-time narrative analysis.
+
+**Scale:** ~69,000 lines of production JavaScript across 89 files, plus 11,700 lines of HTML templates.
 
 ---
 
-*For v2 reference system, see: `/Users/Larry/code/FTP-v2/`*
+## The 8-Tool System
+
+```
+PSYCHOLOGICAL FOUNDATION          FINANCIAL APPLICATION
+========================          =====================
+Tool 1: Core Pattern Assessment → Tool 2: Financial Clarity
+Tool 3: Identity Grounding      → Tool 4: Budget Framework
+Tool 5: Love & Connection       → Tool 6: Retirement Blueprint
+Tool 7: Security & Control      → Tool 8: Investment Planning
+
+                    ↓
+            Capstone AI Integration
+```
+
+Tools enforce linear progression — each must be completed before the next unlocks.
+
+---
+
+## Project Structure
+
+```
+FTP-v3/
+├── Code.js                  # GAS entry point, tool registration
+├── Config.js                # System configuration
+├── core/                    # Framework (generic, tool-agnostic)
+│   ├── Router.js            # URL routing + dashboard rendering
+│   ├── ToolRegistry.js      # Plugin registration and discovery
+│   ├── FrameworkCore.js     # Tool lifecycle management
+│   ├── DataService.js       # Persistence layer
+│   ├── ResponseManager.js   # Version control (Is_Latest)
+│   ├── Authentication.js    # Client lookup + sessions
+│   ├── ToolAccessControl.js # Linear progression enforcement
+│   ├── InsightsPipeline.js  # Cross-tool intelligence
+│   ├── IntegrationGPT.js    # Capstone narrative generation
+│   ├── CapstoneGPT.js       # Financial story synthesis
+│   └── ...
+├── tools/                   # 8 self-contained tool plugins
+│   ├── tool1/ ... tool8/    # Each: ToolX.js, ToolXReport.js, manifest
+├── shared/                  # Reusable utilities + HTML templates
+│   ├── FormToolBase.js      # Base class for assessment tools
+│   ├── DraftService.js      # Draft auto-save via PropertiesService
+│   ├── PDFGenerator.js      # PDF report generation
+│   ├── styles.html          # Design tokens + base CSS
+│   └── ...
+└── docs/                    # Documentation
+    ├── SYSTEM-DESCRIPTION.md       # Complete technical overview
+    ├── TruPath_Master_System_Overview.md  # Business + system context
+    ├── LESSONS-LEARNED.md          # Hard-won patterns and pitfalls
+    ├── TOOL-DEVELOPMENT-GUIDE.md   # Building new tools
+    ├── Foundational Docs/          # Core IP + assessment content
+    └── Archive/                    # Historical build artifacts
+```
+
+---
+
+## Key Technical Patterns
+
+- **Navigation:** `document.write()` pattern (GAS iframe constraint — never use `window.location.reload()`)
+- **Data:** Google Sheets with `Is_Latest` column for version control via `DataService.saveToolResponse()`
+- **AI:** GPT-4o/4o-mini with universal 3-tier fallback (GPT → retry → deterministic templates)
+- **Tool architecture:** Three patterns — FormToolBase (assessments), GroundingToolBase (grounding tools), standalone calculators
+- **CSS:** Three-layer system — base design tokens → calculator overrides → tool-specific styles
+
+---
+
+## Documentation
+
+| Document | Purpose |
+|----------|---------|
+| [SYSTEM-DESCRIPTION.md](docs/SYSTEM-DESCRIPTION.md) | Complete technical overview of the entire system |
+| [TruPath_Master_System_Overview.md](docs/TruPath_Master_System_Overview.md) | Business context, core IP, behavioral engine |
+| [LESSONS-LEARNED.md](docs/LESSONS-LEARNED.md) | Critical patterns, pitfalls, and design decisions |
+| [TOOL-DEVELOPMENT-GUIDE.md](docs/TOOL-DEVELOPMENT-GUIDE.md) | Guide for building new tools |
+| [Navigation Rules](docs/Navigation/GAS-NAVIGATION-RULES.md) | GAS navigation constraints |
+| [Foundational Docs/](docs/Foundational%20Docs/) | Core IP — trauma framework and assessment content |
+
+---
+
+## Data Store
+
+Google Sheets with 14 tabs: STUDENTS, RESPONSES, TOOL_STATUS, TOOL_ACCESS, SESSIONS, ACTIVITY_LOG, INSIGHT_MAPPINGS, CROSS_TOOL_INSIGHTS, PROGRESS_HISTORY, CAPSTONE_GPT_CACHE, TOOL4_SCENARIOS, TOOL6_SCENARIOS, TOOL8_SCENARIOS, ADMINS.
+
+---
+
+*For the TruPath behavioral framework and company context, see [TruPath_Master_System_Overview.md](docs/TruPath_Master_System_Overview.md).*
