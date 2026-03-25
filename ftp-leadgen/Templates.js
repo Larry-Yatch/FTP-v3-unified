@@ -82,6 +82,8 @@ const Templates = {
       <p>We do this by attaching to untrue — usually negative — views of ourselves: <em>I am not worthy. I am flawed. I am not good enough.</em></p>
       <p>Another way this shows up is by assuming identities to create a buffer between ourselves and others for protection — being the entrepreneur, the provider, the tough one. The mask keeps us safe. It also keeps us isolated.</p>
 
+      <p style="background:rgba(179,144,98,0.07); border-left:3px solid #b39062; padding:14px 18px; border-radius:0 8px 8px 0; font-style:italic; line-height:1.75;">This pattern didn't start with money. It started much earlier — as a strategy your younger self developed to stay safe in a world that felt uncertain. That strategy made sense then. It's been running on autopilot ever since, quietly shaping every financial decision you've made as an adult.</p>
+
       <h3 style="margin-top:28px;">How this pattern shows up in your finances:</h3>
       <ul>
         <li>Undercharging for your work or accepting less than you're worth</li>
@@ -133,6 +135,8 @@ const Templates = {
 
       <p>The core strategy behind External Validation is the need to be accepted, valued, or recognized to feel safe.</p>
       <p>In this pattern, we give up ourselves — doing what we think others value, acting in ways we think others want. We often feel underappreciated, unseen, or like we don't belong.</p>
+
+      <p style="background:rgba(179,144,98,0.07); border-left:3px solid #b39062; padding:14px 18px; border-radius:0 8px 8px 0; font-style:italic; line-height:1.75;">This pattern didn't start with money. It started much earlier — as a strategy your younger self developed to stay safe in a world that felt uncertain. That strategy made sense then. It's been running on autopilot ever since, quietly shaping every financial decision you've made as an adult.</p>
 
       <h3 style="margin-top:28px;">How this pattern shows up in your finances:</h3>
       <ul>
@@ -186,6 +190,8 @@ const Templates = {
       <p>The core strategy behind Issues with Showing Love is to suffer or sacrifice when showing love or care for another.</p>
       <p>Often, we feel like it's up to us to serve everyone around us — and if it's hard or painful for us, that sacrifice makes it more valuable to those we serve. We know everyone around us deserves happiness, fulfillment, and love. But not us.</p>
 
+      <p style="background:rgba(179,144,98,0.07); border-left:3px solid #b39062; padding:14px 18px; border-radius:0 8px 8px 0; font-style:italic; line-height:1.75;">This pattern didn't start with money. It started much earlier — as a strategy your younger self developed to stay safe in a world that felt uncertain. That strategy made sense then. It's been running on autopilot ever since, quietly shaping every financial decision you've made as an adult.</p>
+
       <h3 style="margin-top:28px;">How this pattern shows up in your finances:</h3>
       <ul>
         <li>Giving money to others when you can't afford to — and feeling guilty when you don't</li>
@@ -237,6 +243,8 @@ const Templates = {
 
       <p>The core strategy with Issues Receiving Love is emotional disconnection — avoiding emotions, or surrounding ourselves with people who are unable (or unwilling) to show us love.</p>
       <p>The core driver is a deep-seated belief that love leads to pain, so it's safer to avoid it. We create distance to stay safe. That distance then confirms our felt isolation.</p>
+
+      <p style="background:rgba(179,144,98,0.07); border-left:3px solid #b39062; padding:14px 18px; border-radius:0 8px 8px 0; font-style:italic; line-height:1.75;">This pattern didn't start with money. It started much earlier — as a strategy your younger self developed to stay safe in a world that felt uncertain. That strategy made sense then. It's been running on autopilot ever since, quietly shaping every financial decision you've made as an adult.</p>
 
       <h3 style="margin-top:28px;">How this pattern shows up in your finances:</h3>
       <ul>
@@ -290,6 +298,8 @@ const Templates = {
       <p>The core strategy behind the need for Control is that we must maintain control of our environment to stay safe.</p>
       <p>The more we feel the need to control things, the more fear we live in — which reinforces the need for control. It's a self-tightening loop that always leads to isolation.</p>
 
+      <p style="background:rgba(179,144,98,0.07); border-left:3px solid #b39062; padding:14px 18px; border-radius:0 8px 8px 0; font-style:italic; line-height:1.75;">This pattern didn't start with money. It started much earlier — as a strategy your younger self developed to stay safe in a world that felt uncertain. That strategy made sense then. It's been running on autopilot ever since, quietly shaping every financial decision you've made as an adult.</p>
+
       <h3 style="margin-top:28px;">How this pattern shows up in your finances:</h3>
       <ul>
         <li>Hoarding money or resources — having it but refusing to deploy it</li>
@@ -341,6 +351,8 @@ const Templates = {
 
       <p>The core strategy behind Fear Leading to Isolation is the sense that we control nothing in our world — and in that, we are never safe.</p>
       <p>We love to think about and worry about worst-case scenarios. We find ourselves stuck in inaction or overanalysis. We create distance from others to stay safe, and that distance confirms our belief that we are not lovable.</p>
+
+      <p style="background:rgba(179,144,98,0.07); border-left:3px solid #b39062; padding:14px 18px; border-radius:0 8px 8px 0; font-style:italic; line-height:1.75;">This pattern didn't start with money. It started much earlier — as a strategy your younger self developed to stay safe in a world that felt uncertain. That strategy made sense then. It's been running on autopilot ever since, quietly shaping every financial decision you've made as an adult.</p>
 
       <h3 style="margin-top:28px;">How this pattern shows up in your finances:</h3>
       <ul>
