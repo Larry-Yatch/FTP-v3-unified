@@ -17,7 +17,7 @@ const CONFIG = {
   BRAND: 'TruPath',
   TAGLINE: 'Discover Your Financial Freedom Blueprint',
   LOGO_URL: 'https://lh3.googleusercontent.com/d/1fXEp_y6Wj8nlMUbEERCNIbW9si_3v0Uw',
-  DISCLAIMER: 'This assessment is for educational purposes only and is not financial advice.',
+  DISCLAIMER: 'Financial TruPath assessments are for educational and self-awareness purposes only. This is not financial advice. For personalized financial guidance, please consult a qualified financial professional.',
 
   // ── CTA ──────────────────────────────────────────────────────────────────────
 

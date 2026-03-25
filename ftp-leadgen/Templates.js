@@ -3,19 +3,14 @@
 /**
  * Templates.js — Pattern report content
  *
+ * Copy: Russel (CI CMO), finalized 2026-03-24
+ * Brand palette: #361852 purple / #b39062 gold
+ *
  * Structure per pattern:
- *   name     — display name
- *   teaser   — shown on teaser page before email gate
- *              ⚠️  AWAITING RUSSEL — each has a clearly-marked placeholder
- *   cta      — shown at bottom of full report and in the email
- *              ⚠️  AWAITING RUSSEL — each has a clearly-marked placeholder
- *   content  — full report body (already written)
- *
- * Brand palette update (Steve, 2026-03-24):
- *   --purple #361852  --gold #b39062
- *
- * To drop in Russel's copy: search for "RUSSEL_COPY" in this file.
- * There are 12 blocks total — 6 teasers + 6 CTAs, one per pattern.
+ *   name    — display name
+ *   teaser  — teaser page (shown before email gate)
+ *   cta     — CTA block (shown at bottom of report + in email)
+ *   content — full report body
  */
 
 const Templates = {
@@ -39,7 +34,7 @@ const Templates = {
     <p>We each weave all six of these strategies together in our unique way — yet we also have a primary driving strategy. Yours is identified below.</p>
   `,
 
-  // ── Shared footer (with disclaimer) ───────────────────────────────────────
+  // ── Shared footer (with full disclaimer per Russel's DELIVERABLE D) ────────
 
   commonFooter: `
     <div style="margin-top:48px; padding-top:24px; border-top:1px solid rgba(179,144,98,0.25); text-align:center;">
@@ -47,10 +42,10 @@ const Templates = {
         Questions? <a href="mailto:admin@trupathmastery.com" style="color:#b39062;">admin@trupathmastery.com</a>
       </p>
       <p style="color:#b0a0c0; font-size:13px; margin-top:8px;">
-        &copy; TruPath. All rights reserved.
+        &copy; TruPath Mastery. All rights reserved.
       </p>
-      <p style="color:#7a6a8a; font-size:12px; margin-top:10px; font-style:italic;">
-        This assessment is for educational purposes only and is not financial advice.
+      <p style="color:#7a6a8a; font-size:12px; margin-top:12px; font-style:italic; max-width:520px; margin-left:auto; margin-right:auto; line-height:1.6;">
+        Financial TruPath assessments are for educational and self-awareness purposes only. This is not financial advice. For personalized financial guidance, please consult a qualified financial professional.
       </p>
     </div>
   `,
@@ -60,30 +55,21 @@ const Templates = {
   FSV: {
     name: 'False Self-View',
 
-    // ════════════════════════════════════════════════════════════════════════
-    // RUSSEL_COPY — FSV TEASER
-    // Shown on the results page BEFORE the lead submits their email.
-    // 2-4 sentences. Hook them on the pattern reveal, create curiosity for
-    // the full report.
-    // ════════════════════════════════════════════════════════════════════════
     teaser: `
-      <p><em>[PLACEHOLDER — FSV teaser copy from Russel]</em></p>
-      <p style="color:#b0a0c0; font-size:14px;">Your dominant pattern is <strong style="color:#b39062;">False Self-View</strong>. Enter your details below to see exactly how this pattern is shaping your financial decisions — and what to do about it.</p>
+      <p style="font-weight:600; color:#f0eaf7; margin-bottom:10px;">Your dominant pattern: False Self-View</p>
+      <p style="font-size:16px; line-height:1.75; margin-bottom:10px;">You've built the income — and something keeps making sure it never quite feels secure. Your full report reveals why, and what to do about it.</p>
+      <p style="color:#b0a0c0; font-size:14px; font-style:italic;">Enter your email to receive your personalized Financial TruPath report.</p>
     `,
 
-    // ════════════════════════════════════════════════════════════════════════
-    // RUSSEL_COPY — FSV CTA BLOCK
-    // Shown at the bottom of the full report page and in the email.
-    // Deadline: April 1st. Include urgency.
-    // ════════════════════════════════════════════════════════════════════════
     cta: `
       <div style="text-align:center; padding:36px 32px; background:rgba(179,144,98,0.08); border:1px solid rgba(179,144,98,0.35); border-radius:14px; margin:40px 0;">
-        <p style="font-size:13px; color:#b0a0c0; letter-spacing:0.06em; text-transform:uppercase; margin-bottom:12px;">Ready to break the pattern?</p>
-        <h2 style="font-size:24px; color:#f0eaf7; margin-bottom:12px;">[PLACEHOLDER — FSV headline from Russel]</h2>
-        <p style="color:#b0a0c0; margin-bottom:8px;">[PLACEHOLDER — FSV 2-3 sentence sales copy from Russel]</p>
-        <p style="color:#b39062; font-weight:600; margin-bottom:24px;">⚡ Enrollment closes April 1st — spots are limited.</p>
+        <p style="font-size:13px; color:#b0a0c0; letter-spacing:0.06em; text-transform:uppercase; margin-bottom:20px;">Ready to break the pattern?</p>
+        <p style="color:#f0eaf7; font-size:16px; line-height:1.75; margin-bottom:14px; text-align:left;">You've spent years building your Financial IQ — the strategies, the plans, the knowledge. What this assessment just revealed is something different: a pattern underneath the knowledge that keeps quietly working against it.</p>
+        <p style="color:#f0eaf7; font-size:16px; line-height:1.75; margin-bottom:14px; text-align:left;">The stress you carry around money isn't about what you don't know. It's about a belief, running in the background, that turns clarity into confusion and resources into something that always feels just out of reach.</p>
+        <p style="color:#f0eaf7; font-size:16px; line-height:1.75; margin-bottom:28px; text-align:left;">Financial TruPath is the 12-week program built to close that gap — not with more strategy, but with the work that makes every strategy you already have finally stick.</p>
+        <p style="color:#b39062; font-weight:600; margin-bottom:24px;">⚡ The course starts April 1st — enrollment is open now.</p>
         <a href="{{CTA_URL}}" target="_blank"
-           style="display:inline-block; background:#b39062; color:#26103d; padding:16px 36px; border-radius:8px; text-decoration:none; font-family:'Rubik',sans-serif; font-size:17px; font-weight:700; max-width:420px; width:100%;">
+           style="display:inline-block; background:#b39062; color:#26103d; padding:16px 36px; border-radius:8px; text-decoration:none; font-family:'Rubik',Arial,sans-serif; font-size:17px; font-weight:700; max-width:420px; width:100%;">
           {{CTA_BUTTON_TEXT}}
         </a>
       </div>
@@ -122,25 +108,21 @@ const Templates = {
   ExVal: {
     name: 'External Validation',
 
-    // ════════════════════════════════════════════════════════════════════════
-    // RUSSEL_COPY — ExVal TEASER
-    // ════════════════════════════════════════════════════════════════════════
     teaser: `
-      <p><em>[PLACEHOLDER — External Validation teaser copy from Russel]</em></p>
-      <p style="color:#b0a0c0; font-size:14px;">Your dominant pattern is <strong style="color:#b39062;">External Validation</strong>. Enter your details below to see exactly how this pattern is shaping your financial decisions — and what to do about it.</p>
+      <p style="font-weight:600; color:#f0eaf7; margin-bottom:10px;">Your dominant pattern: External Validation</p>
+      <p style="font-size:16px; line-height:1.75; margin-bottom:10px;">Your financial decisions are being shaped by an audience that isn't in the room. Your full report reveals exactly how — and what financial freedom looks like when you stop performing for them.</p>
+      <p style="color:#b0a0c0; font-size:14px; font-style:italic;">Enter your email to receive your personalized Financial TruPath report.</p>
     `,
 
-    // ════════════════════════════════════════════════════════════════════════
-    // RUSSEL_COPY — ExVal CTA BLOCK
-    // ════════════════════════════════════════════════════════════════════════
     cta: `
       <div style="text-align:center; padding:36px 32px; background:rgba(179,144,98,0.08); border:1px solid rgba(179,144,98,0.35); border-radius:14px; margin:40px 0;">
-        <p style="font-size:13px; color:#b0a0c0; letter-spacing:0.06em; text-transform:uppercase; margin-bottom:12px;">Ready to break the pattern?</p>
-        <h2 style="font-size:24px; color:#f0eaf7; margin-bottom:12px;">[PLACEHOLDER — External Validation headline from Russel]</h2>
-        <p style="color:#b0a0c0; margin-bottom:8px;">[PLACEHOLDER — External Validation 2-3 sentence sales copy from Russel]</p>
-        <p style="color:#b39062; font-weight:600; margin-bottom:24px;">⚡ Enrollment closes April 1st — spots are limited.</p>
+        <p style="font-size:13px; color:#b0a0c0; letter-spacing:0.06em; text-transform:uppercase; margin-bottom:20px;">Ready to break the pattern?</p>
+        <p style="color:#f0eaf7; font-size:16px; line-height:1.75; margin-bottom:14px; text-align:left;">You understand how money works. What this assessment just surfaced is something the spreadsheets can't see: every financial decision you make passes through a filter of how it will land with others — and that filter is costing you more than you realize.</p>
+        <p style="color:#f0eaf7; font-size:16px; line-height:1.75; margin-bottom:14px; text-align:left;">Real financial freedom isn't just about building wealth. It's about building it for the right reasons — not as proof of anything, not for anyone's approval, but for yours.</p>
+        <p style="color:#f0eaf7; font-size:16px; line-height:1.75; margin-bottom:28px; text-align:left;">Financial TruPath is the 12-week program that bridges Financial IQ into Financial EQ — so the decisions you already know how to make start coming from a place that actually serves you.</p>
+        <p style="color:#b39062; font-weight:600; margin-bottom:24px;">⚡ The course starts April 1st — enrollment is open now.</p>
         <a href="{{CTA_URL}}" target="_blank"
-           style="display:inline-block; background:#b39062; color:#26103d; padding:16px 36px; border-radius:8px; text-decoration:none; font-family:'Rubik',sans-serif; font-size:17px; font-weight:700; max-width:420px; width:100%;">
+           style="display:inline-block; background:#b39062; color:#26103d; padding:16px 36px; border-radius:8px; text-decoration:none; font-family:'Rubik',Arial,sans-serif; font-size:17px; font-weight:700; max-width:420px; width:100%;">
           {{CTA_BUTTON_TEXT}}
         </a>
       </div>
@@ -178,25 +160,21 @@ const Templates = {
   Showing: {
     name: 'Issues Showing Love',
 
-    // ════════════════════════════════════════════════════════════════════════
-    // RUSSEL_COPY — Showing TEASER
-    // ════════════════════════════════════════════════════════════════════════
     teaser: `
-      <p><em>[PLACEHOLDER — Issues Showing Love teaser copy from Russel]</em></p>
-      <p style="color:#b0a0c0; font-size:14px;">Your dominant pattern is <strong style="color:#b39062;">Issues Showing Love</strong>. Enter your details below to see exactly how this pattern is shaping your financial decisions — and what to do about it.</p>
+      <p style="font-weight:600; color:#f0eaf7; margin-bottom:10px;">Your dominant pattern: Issues Showing Love</p>
+      <p style="font-size:16px; line-height:1.75; margin-bottom:10px;">Your generosity is real. So is the pattern underneath it that's been funding everyone's goals but yours. Your full report shows you where the line is — and how to stop paying for it.</p>
+      <p style="color:#b0a0c0; font-size:14px; font-style:italic;">Enter your email to receive your personalized Financial TruPath report.</p>
     `,
 
-    // ════════════════════════════════════════════════════════════════════════
-    // RUSSEL_COPY — Showing CTA BLOCK
-    // ════════════════════════════════════════════════════════════════════════
     cta: `
       <div style="text-align:center; padding:36px 32px; background:rgba(179,144,98,0.08); border:1px solid rgba(179,144,98,0.35); border-radius:14px; margin:40px 0;">
-        <p style="font-size:13px; color:#b0a0c0; letter-spacing:0.06em; text-transform:uppercase; margin-bottom:12px;">Ready to break the pattern?</p>
-        <h2 style="font-size:24px; color:#f0eaf7; margin-bottom:12px;">[PLACEHOLDER — Issues Showing Love headline from Russel]</h2>
-        <p style="color:#b0a0c0; margin-bottom:8px;">[PLACEHOLDER — Issues Showing Love 2-3 sentence sales copy from Russel]</p>
-        <p style="color:#b39062; font-weight:600; margin-bottom:24px;">⚡ Enrollment closes April 1st — spots are limited.</p>
+        <p style="font-size:13px; color:#b0a0c0; letter-spacing:0.06em; text-transform:uppercase; margin-bottom:20px;">Ready to break the pattern?</p>
+        <p style="color:#f0eaf7; font-size:16px; line-height:1.75; margin-bottom:14px; text-align:left;">You know how to create, keep, and multiply money. What this assessment just revealed is a pattern that keeps redirecting it — to obligations that weren't yours to carry, to people who needed rescuing, to a version of love that costs you your own financial security.</p>
+        <p style="color:#f0eaf7; font-size:16px; line-height:1.75; margin-bottom:14px; text-align:left;">The stress isn't about the giving. It's about what got wired underneath it: the belief that your sacrifice is what proves you care.</p>
+        <p style="color:#f0eaf7; font-size:16px; line-height:1.75; margin-bottom:28px; text-align:left;">Financial TruPath is the 12-week program that rewires that belief at the source — so you can be genuinely generous and genuinely financially free, without one costing you the other.</p>
+        <p style="color:#b39062; font-weight:600; margin-bottom:24px;">⚡ The course starts April 1st — enrollment is open now.</p>
         <a href="{{CTA_URL}}" target="_blank"
-           style="display:inline-block; background:#b39062; color:#26103d; padding:16px 36px; border-radius:8px; text-decoration:none; font-family:'Rubik',sans-serif; font-size:17px; font-weight:700; max-width:420px; width:100%;">
+           style="display:inline-block; background:#b39062; color:#26103d; padding:16px 36px; border-radius:8px; text-decoration:none; font-family:'Rubik',Arial,sans-serif; font-size:17px; font-weight:700; max-width:420px; width:100%;">
           {{CTA_BUTTON_TEXT}}
         </a>
       </div>
@@ -234,25 +212,21 @@ const Templates = {
   Receiving: {
     name: 'Issues Receiving Love',
 
-    // ════════════════════════════════════════════════════════════════════════
-    // RUSSEL_COPY — Receiving TEASER
-    // ════════════════════════════════════════════════════════════════════════
     teaser: `
-      <p><em>[PLACEHOLDER — Issues Receiving Love teaser copy from Russel]</em></p>
-      <p style="color:#b0a0c0; font-size:14px;">Your dominant pattern is <strong style="color:#b39062;">Issues Receiving Love</strong>. Enter your details below to see exactly how this pattern is shaping your financial decisions — and what to do about it.</p>
+      <p style="font-weight:600; color:#f0eaf7; margin-bottom:10px;">Your dominant pattern: Issues Receiving Love</p>
+      <p style="font-size:16px; line-height:1.75; margin-bottom:10px;">There's a quiet belief running underneath your finances that having money changes things in ways you don't want. Your full report names it clearly — and shows you what financial independence actually looks like on the other side of it.</p>
+      <p style="color:#b0a0c0; font-size:14px; font-style:italic;">Enter your email to receive your personalized Financial TruPath report.</p>
     `,
 
-    // ════════════════════════════════════════════════════════════════════════
-    // RUSSEL_COPY — Receiving CTA BLOCK
-    // ════════════════════════════════════════════════════════════════════════
     cta: `
       <div style="text-align:center; padding:36px 32px; background:rgba(179,144,98,0.08); border:1px solid rgba(179,144,98,0.35); border-radius:14px; margin:40px 0;">
-        <p style="font-size:13px; color:#b0a0c0; letter-spacing:0.06em; text-transform:uppercase; margin-bottom:12px;">Ready to break the pattern?</p>
-        <h2 style="font-size:24px; color:#f0eaf7; margin-bottom:12px;">[PLACEHOLDER — Issues Receiving Love headline from Russel]</h2>
-        <p style="color:#b0a0c0; margin-bottom:8px;">[PLACEHOLDER — Issues Receiving Love 2-3 sentence sales copy from Russel]</p>
-        <p style="color:#b39062; font-weight:600; margin-bottom:24px;">⚡ Enrollment closes April 1st — spots are limited.</p>
+        <p style="font-size:13px; color:#b0a0c0; letter-spacing:0.06em; text-transform:uppercase; margin-bottom:20px;">Ready to break the pattern?</p>
+        <p style="color:#f0eaf7; font-size:16px; line-height:1.75; margin-bottom:14px; text-align:left;">You understand money intellectually. What this assessment just uncovered is something quieter — a belief running underneath the surface that financial independence creates debt, obligation, or moral compromise.</p>
+        <p style="color:#f0eaf7; font-size:16px; line-height:1.75; margin-bottom:14px; text-align:left;">That belief doesn't announce itself. It just keeps making sure you stay more dependent than you need to be, more reliant on others' resources than your own, more disconnected from the freedom you've been working toward.</p>
+        <p style="color:#f0eaf7; font-size:16px; line-height:1.75; margin-bottom:28px; text-align:left;">Financial TruPath is the 12-week program built for exactly this: the gap between knowing how money works and actually allowing it to work for you.</p>
+        <p style="color:#b39062; font-weight:600; margin-bottom:24px;">⚡ The course starts April 1st — enrollment is open now.</p>
         <a href="{{CTA_URL}}" target="_blank"
-           style="display:inline-block; background:#b39062; color:#26103d; padding:16px 36px; border-radius:8px; text-decoration:none; font-family:'Rubik',sans-serif; font-size:17px; font-weight:700; max-width:420px; width:100%;">
+           style="display:inline-block; background:#b39062; color:#26103d; padding:16px 36px; border-radius:8px; text-decoration:none; font-family:'Rubik',Arial,sans-serif; font-size:17px; font-weight:700; max-width:420px; width:100%;">
           {{CTA_BUTTON_TEXT}}
         </a>
       </div>
@@ -290,25 +264,21 @@ const Templates = {
   Control: {
     name: 'Control Leading to Isolation',
 
-    // ════════════════════════════════════════════════════════════════════════
-    // RUSSEL_COPY — Control TEASER
-    // ════════════════════════════════════════════════════════════════════════
     teaser: `
-      <p><em>[PLACEHOLDER — Control Leading to Isolation teaser copy from Russel]</em></p>
-      <p style="color:#b0a0c0; font-size:14px;">Your dominant pattern is <strong style="color:#b39062;">Control Leading to Isolation</strong>. Enter your details below to see exactly how this pattern is shaping your financial decisions — and what to do about it.</p>
+      <p style="font-weight:600; color:#f0eaf7; margin-bottom:10px;">Your dominant pattern: Control Leading to Isolation</p>
+      <p style="font-size:16px; line-height:1.75; margin-bottom:10px;">Your discipline is real. So is the pattern that's been using it to keep you going without. Your full report reveals exactly how — and what it looks like to have control without the scarcity it's been buying.</p>
+      <p style="color:#b0a0c0; font-size:14px; font-style:italic;">Enter your email to receive your personalized Financial TruPath report.</p>
     `,
 
-    // ════════════════════════════════════════════════════════════════════════
-    // RUSSEL_COPY — Control CTA BLOCK
-    // ════════════════════════════════════════════════════════════════════════
     cta: `
       <div style="text-align:center; padding:36px 32px; background:rgba(179,144,98,0.08); border:1px solid rgba(179,144,98,0.35); border-radius:14px; margin:40px 0;">
-        <p style="font-size:13px; color:#b0a0c0; letter-spacing:0.06em; text-transform:uppercase; margin-bottom:12px;">Ready to break the pattern?</p>
-        <h2 style="font-size:24px; color:#f0eaf7; margin-bottom:12px;">[PLACEHOLDER — Control Leading to Isolation headline from Russel]</h2>
-        <p style="color:#b0a0c0; margin-bottom:8px;">[PLACEHOLDER — Control Leading to Isolation 2-3 sentence sales copy from Russel]</p>
-        <p style="color:#b39062; font-weight:600; margin-bottom:24px;">⚡ Enrollment closes April 1st — spots are limited.</p>
+        <p style="font-size:13px; color:#b0a0c0; letter-spacing:0.06em; text-transform:uppercase; margin-bottom:20px;">Ready to break the pattern?</p>
+        <p style="color:#f0eaf7; font-size:16px; line-height:1.75; margin-bottom:14px; text-align:left;">You're disciplined. You track, you plan, you know more than most people in the room about how money is supposed to work. What this assessment just revealed is where all of that discipline is turning against you.</p>
+        <p style="color:#f0eaf7; font-size:16px; line-height:1.75; margin-bottom:14px; text-align:left;">The stress you feel isn't from lack of control. It's from a pattern that channels your control into going without — undercharging, under-collecting, holding resources you won't use — because somewhere underneath it, scarcity feels safer than trust.</p>
+        <p style="color:#f0eaf7; font-size:16px; line-height:1.75; margin-bottom:28px; text-align:left;">Financial TruPath is the 12-week program that addresses the belief that's been making your financial intelligence work against your financial freedom.</p>
+        <p style="color:#b39062; font-weight:600; margin-bottom:24px;">⚡ The course starts April 1st — enrollment is open now.</p>
         <a href="{{CTA_URL}}" target="_blank"
-           style="display:inline-block; background:#b39062; color:#26103d; padding:16px 36px; border-radius:8px; text-decoration:none; font-family:'Rubik',sans-serif; font-size:17px; font-weight:700; max-width:420px; width:100%;">
+           style="display:inline-block; background:#b39062; color:#26103d; padding:16px 36px; border-radius:8px; text-decoration:none; font-family:'Rubik',Arial,sans-serif; font-size:17px; font-weight:700; max-width:420px; width:100%;">
           {{CTA_BUTTON_TEXT}}
         </a>
       </div>
@@ -346,25 +316,21 @@ const Templates = {
   Fear: {
     name: 'Fear Leading to Isolation',
 
-    // ════════════════════════════════════════════════════════════════════════
-    // RUSSEL_COPY — Fear TEASER
-    // ════════════════════════════════════════════════════════════════════════
     teaser: `
-      <p><em>[PLACEHOLDER — Fear Leading to Isolation teaser copy from Russel]</em></p>
-      <p style="color:#b0a0c0; font-size:14px;">Your dominant pattern is <strong style="color:#b39062;">Fear Leading to Isolation</strong>. Enter your details below to see exactly how this pattern is shaping your financial decisions — and what to do about it.</p>
+      <p style="font-weight:600; color:#f0eaf7; margin-bottom:10px;">Your dominant pattern: Fear Leading to Isolation</p>
+      <p style="font-size:16px; line-height:1.75; margin-bottom:10px;">You've been here before — close to a real breakthrough — and something intercepted it. Your full report names the pattern that's been doing that, and what it takes to finally stop it.</p>
+      <p style="color:#b0a0c0; font-size:14px; font-style:italic;">Enter your email to receive your personalized Financial TruPath report.</p>
     `,
 
-    // ════════════════════════════════════════════════════════════════════════
-    // RUSSEL_COPY — Fear CTA BLOCK
-    // ════════════════════════════════════════════════════════════════════════
     cta: `
       <div style="text-align:center; padding:36px 32px; background:rgba(179,144,98,0.08); border:1px solid rgba(179,144,98,0.35); border-radius:14px; margin:40px 0;">
-        <p style="font-size:13px; color:#b0a0c0; letter-spacing:0.06em; text-transform:uppercase; margin-bottom:12px;">Ready to break the pattern?</p>
-        <h2 style="font-size:24px; color:#f0eaf7; margin-bottom:12px;">[PLACEHOLDER — Fear Leading to Isolation headline from Russel]</h2>
-        <p style="color:#b0a0c0; margin-bottom:8px;">[PLACEHOLDER — Fear Leading to Isolation 2-3 sentence sales copy from Russel]</p>
-        <p style="color:#b39062; font-weight:600; margin-bottom:24px;">⚡ Enrollment closes April 1st — spots are limited.</p>
+        <p style="font-size:13px; color:#b0a0c0; letter-spacing:0.06em; text-transform:uppercase; margin-bottom:20px;">Ready to break the pattern?</p>
+        <p style="color:#f0eaf7; font-size:16px; line-height:1.75; margin-bottom:14px; text-align:left;">You can see the strategies. You know what to do. What this assessment just named is the pattern that keeps intercepting the execution — the wrong trust, the missing protection, the project that stops just before the breakthrough.</p>
+        <p style="color:#f0eaf7; font-size:16px; line-height:1.75; margin-bottom:14px; text-align:left;">From the outside it can look like bad luck. From the inside, you may already know it isn't.</p>
+        <p style="color:#f0eaf7; font-size:16px; line-height:1.75; margin-bottom:28px; text-align:left;">Financial TruPath is the 12-week program that goes to the source of that pattern — so the financial knowledge you've already built stops running into the same invisible wall, and real momentum becomes possible.</p>
+        <p style="color:#b39062; font-weight:600; margin-bottom:24px;">⚡ The course starts April 1st — enrollment is open now.</p>
         <a href="{{CTA_URL}}" target="_blank"
-           style="display:inline-block; background:#b39062; color:#26103d; padding:16px 36px; border-radius:8px; text-decoration:none; font-family:'Rubik',sans-serif; font-size:17px; font-weight:700; max-width:420px; width:100%;">
+           style="display:inline-block; background:#b39062; color:#26103d; padding:16px 36px; border-radius:8px; text-decoration:none; font-family:'Rubik',Arial,sans-serif; font-size:17px; font-weight:700; max-width:420px; width:100%;">
           {{CTA_BUTTON_TEXT}}
         </a>
       </div>
@@ -399,16 +365,10 @@ const Templates = {
     `,
   },
 
-  /**
-   * Get the template object for a given pattern key
-   */
   get(patternKey) {
     return this[patternKey] || null;
   },
 
-  /**
-   * Resolve the CTA block for a pattern — interpolates URL and button text
-   */
   getCtaHtml(patternKey) {
     const template = this.get(patternKey);
     if (!template || !template.cta) return '';

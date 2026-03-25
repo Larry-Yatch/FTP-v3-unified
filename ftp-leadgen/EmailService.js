@@ -105,8 +105,8 @@ const EmailService = {
       <p style="color:#6a5a7a; font-size:12px; margin:4px 0 0;">
         &copy; TruPath. All rights reserved.
       </p>
-      <p style="color:#5a4a6a; font-size:11px; margin:6px 0 0; font-style:italic;">
-        This assessment is for educational purposes only and is not financial advice.
+      <p style="color:#5a4a6a; font-size:11px; margin:6px 0 0; font-style:italic; line-height:1.5;">
+        Financial TruPath assessments are for educational and self-awareness purposes only. This is not financial advice. For personalized financial guidance, please consult a qualified financial professional.
       </p>
     </div>
 
