@@ -165,6 +165,7 @@ function renderAssessmentPage(token, page) {
   <div class="container">
     <div class="page-header">
       <img src="${CONFIG.LOGO_URL}" alt="${escapeHtml(CONFIG.BRAND)}" class="logo">
+      <p class="tagline">${escapeHtml(CONFIG.TAGLINE)}</p>
     </div>
 
     <div class="step-label">Step ${step} of ${totalSteps}</div>
@@ -219,15 +220,16 @@ function renderTeaserPage(token) {
   <div class="container">
     <div class="page-header">
       <img src="${CONFIG.LOGO_URL}" alt="${escapeHtml(CONFIG.BRAND)}" class="logo">
+      <p class="tagline">${escapeHtml(CONFIG.TAGLINE)}</p>
       <h1>Your Assessment is Complete</h1>
     </div>
 
     <div id="global-error" class="alert-error"></div>
 
-    <div class="card" style="text-align:center; border-color: rgba(173,145,104,0.5);">
+    <div class="card" style="text-align:center; border-color: rgba(179,144,98,0.5);">
       <p class="muted" style="font-size:13px; letter-spacing:0.06em; text-transform:uppercase; margin-bottom:10px;">Your dominant financial pattern</p>
-      <h2 style="color:#ad9168; font-size:30px; margin-bottom:16px;">${escapeHtml(patternName)}</h2>
-      <p style="font-size:16px; line-height:1.75;">${template.teaser}</p>
+      <h2 style="color:#b39062; font-size:30px; margin-bottom:16px;">${escapeHtml(patternName)}</h2>
+      <div style="font-size:16px; line-height:1.75;">${template.teaser}</div>
     </div>
 
     <div class="card">
@@ -277,9 +279,7 @@ function renderReportPage(token) {
   const template = Templates.get(winner);
   const patternName = CONFIG.PATTERN_NAMES[winner] || winner;
   const name = draft._name || 'there';
-  const ctaHtml = Templates.salesCta
-    .replace(/\{\{CTA_URL\}\}/g, CONFIG.CTA_URL)
-    .replace(/\{\{CTA_BUTTON_TEXT\}\}/g, CONFIG.CTA_BUTTON_TEXT);
+  const ctaHtml = Templates.getCtaHtml(winner);
 
   const scoreCards = Object.keys(CONFIG.PATTERN_NAMES).map(function(key) {
     const isWinner = key === winner;
@@ -308,19 +308,19 @@ function renderReportPage(token) {
     }
     .score-card {
       background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(173,145,104,0.25);
+      border: 1px solid rgba(179,144,98,0.25);
       border-radius: 12px;
       padding: 18px;
       text-align: center;
     }
     .score-card.winner {
-      background: rgba(173,145,104,0.12);
-      border-color: #ad9168;
-      box-shadow: 0 0 16px rgba(173,145,104,0.18);
+      background: rgba(179,144,98,0.12);
+      border-color: #b39062;
+      box-shadow: 0 0 16px rgba(179,144,98,0.2);
     }
-    .score-label { font-size: 13px; color:#94a3b8; margin-bottom:8px; }
-    .score-value { font-size: 34px; font-weight: 700; color:#ad9168; }
-    .score-card.winner .score-value { color:#c4a877; font-size:40px; }
+    .score-label { font-size: 13px; color:#b0a0c0; margin-bottom:8px; }
+    .score-value { font-size: 34px; font-weight: 700; color:#b39062; }
+    .score-card.winner .score-value { color:#c9a87a; font-size:40px; }
     @media (max-width: 480px) { .scores-grid { grid-template-columns:1fr 1fr; } }
   </style>
 </head>
@@ -338,9 +338,9 @@ function renderReportPage(token) {
       ${Templates.commonIntro}
     </div>
 
-    <div class="card" style="border-color: rgba(173,145,104,0.5);">
+    <div class="card" style="border-color: rgba(179,144,98,0.5);">
       <p class="muted" style="font-size:13px; letter-spacing:0.06em; text-transform:uppercase; margin-bottom:10px;">Your dominant financial pattern</p>
-      <h2 style="color:#ad9168; margin-bottom:20px;">${escapeHtml(patternName)}</h2>
+      <h2 style="color:#b39062; margin-bottom:20px;">${escapeHtml(patternName)}</h2>
       ${template.content}
     </div>
 
@@ -712,10 +712,10 @@ function renderErrorPage(message) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Error</title>
   <style>
-    body { background:#1e192b; color:#e2e8f0; font-family:Arial, sans-serif; display:flex; align-items:center; justify-content:center; min-height:100vh; padding:20px; }
-    .box { max-width:520px; padding:32px; background:rgba(255,255,255,0.04); border:1px solid rgba(173,145,104,0.25); border-radius:12px; text-align:center; }
+    body { background:#361852; color:#f0eaf7; font-family:Arial, sans-serif; display:flex; align-items:center; justify-content:center; min-height:100vh; padding:20px; }
+    .box { max-width:520px; padding:32px; background:rgba(255,255,255,0.04); border:1px solid rgba(179,144,98,0.25); border-radius:12px; text-align:center; }
     h2 { color:#ef4444; margin-bottom:12px; }
-    p { color:#94a3b8; }
+    p { color:#b0a0c0; }
   </style>
 </head>
 <body>

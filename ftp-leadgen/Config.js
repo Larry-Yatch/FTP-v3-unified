@@ -3,43 +3,47 @@
 /**
  * Config.js — Lead Gen Tool 1 Configuration
  *
- * All environment-specific values in one place.
- * The sheet ID is stored in Script Properties (not hardcoded) for portability.
- * Set via: File → Project Properties → Script Properties
+ * All environment-specific values live here.
+ * Sheet ID is also stored in Script Properties for portability:
  *   Key: LEADS_SHEET_ID
  *   Value: 1qZC8h-AHnmqSXCyGhfsMXRYpX6n4JbB37Qq48piAIpQ
  */
 
 const CONFIG = {
 
-  // ── Deployment ──────────────────────────────────────────────────────────────
+  // ── Brand ────────────────────────────────────────────────────────────────────
 
-  TITLE: 'Financial Pattern Assessment',
+  TITLE: 'Discover Your Financial Freedom Blueprint',
   BRAND: 'TruPath',
+  TAGLINE: 'Discover Your Financial Freedom Blueprint',
   LOGO_URL: 'https://lh3.googleusercontent.com/d/1fXEp_y6Wj8nlMUbEERCNIbW9si_3v0Uw',
+  DISCLAIMER: 'This assessment is for educational purposes only and is not financial advice.',
 
-  // ── CTA ─────────────────────────────────────────────────────────────────────
+  // ── CTA ──────────────────────────────────────────────────────────────────────
 
   CTA_URL: 'https://www.trupathmastery.com/trupath',
-  CTA_BUTTON_TEXT: 'Learn More About TruPath',
+  CTA_BUTTON_TEXT: 'Discover Your Financial Freedom Blueprint →',
 
-  // ── Email ───────────────────────────────────────────────────────────────────
+  // ── Course deadline (used for urgency copy) ───────────────────────────────
+
+  DEADLINE: 'April 1st',
+
+  // ── Email ────────────────────────────────────────────────────────────────────
 
   EMAIL_SENDER_NAME: 'TruPath',
   EMAIL_REPLY_TO: 'admin@trupathmastery.com',
-  EMAIL_SUBJECT: 'Your Financial Pattern Assessment Results',
+  EMAIL_SUBJECT: 'Your Financial Freedom Blueprint Assessment Results',
 
-  // ── Sheet ───────────────────────────────────────────────────────────────────
+  // ── Sheet ────────────────────────────────────────────────────────────────────
 
   get SHEET_ID() {
-    // Falls back to hardcoded ID if Script Property isn't set
     return PropertiesService.getScriptProperties().getProperty('LEADS_SHEET_ID')
       || '1qZC8h-AHnmqSXCyGhfsMXRYpX6n4JbB37Qq48piAIpQ';
   },
 
   SHEET_TAB: 'Leads',
 
-  // ── Scoring ─────────────────────────────────────────────────────────────────
+  // ── Scoring ──────────────────────────────────────────────────────────────────
 
   PATTERN_NAMES: {
     FSV:       'False Self-View',
@@ -50,11 +54,11 @@ const CONFIG = {
     Fear:      'Fear Leading to Isolation',
   },
 
-  // ── UI ──────────────────────────────────────────────────────────────────────
+  // ── Brand palette ────────────────────────────────────────────────────────────
 
-  ACCENT_COLOR: '#ad9168',
-  DARK_BG: '#1e192b',
-  FONT_HEADING: "'Radley', Georgia, serif",
-  FONT_BODY: "'Rubik', sans-serif",
+  COLOR_PURPLE: '#361852',
+  COLOR_GOLD:   '#b39062',
+  COLOR_BLACK:  '#000000',
+  COLOR_WHITE:  '#ffffff',
 
 };
