@@ -297,40 +297,16 @@ function renderReportPage(token) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Your ${escapeHtml(CONFIG.BRAND)} Report</title>
-  <style>
-    ${Styles.getBase()}
-    .scores-grid {
-      display:grid;
-      grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));
-      gap:16px;
-      margin:24px 0;
-    }
-    .score-card {
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(179,144,98,0.25);
-      border-radius: 12px;
-      padding: 18px;
-      text-align: center;
-    }
-    .score-card.winner {
-      background: rgba(179,144,98,0.12);
-      border-color: #b39062;
-      box-shadow: 0 0 16px rgba(179,144,98,0.2);
-    }
-    .score-label { font-size: 13px; color:#b0a0c0; margin-bottom:8px; }
-    .score-value { font-size: 34px; font-weight: 700; color:#b39062; }
-    .score-card.winner .score-value { color:#c9a87a; font-size:40px; }
-    @media (max-width: 480px) { .scores-grid { grid-template-columns:1fr 1fr; } }
-  </style>
+  <title>Your TruPath Report</title>
+  <style>${Styles.getBase()}</style>
 </head>
 <body>
   <div class="container">
-    <div class="page-header">
+    <div class="report-header">
       <img src="${CONFIG.LOGO_URL}" alt="${escapeHtml(CONFIG.BRAND)}" class="logo">
-      <h1>Core Trauma Strategy Assessment</h1>
-      <p class="muted" style="margin:0;">${escapeHtml(name)}</p>
-      <p class="muted" style="font-size:14px; margin:4px 0 0;">${escapeHtml(formatLongDate(new Date()))}</p>
+      <h1 class="main-title">Core Trauma Strategy Assessment</h1>
+      <p class="student-info">${escapeHtml(name)}</p>
+      <p class="date">${escapeHtml(formatLongDate(new Date()))}</p>
     </div>
 
     <div class="card">
@@ -415,7 +391,7 @@ function renderStatementSection(title, questions, draft) {
   let html = `
     <h2>${title}</h2>
     <p class="muted" style="margin-bottom:6px;">Rate each statement from <strong>-5</strong> (not relevant at all) to <strong>+5</strong> (very relevant).</p>
-    <div class="scale-hint" style="margin-bottom:20px;"><span>-5 Not relevant</span><span>+5 Very relevant</span></div>
+    <div style="display:flex; justify-content:space-between; font-size:12px; color:#94a3b8; margin-bottom:20px;"><span>-5 Not relevant</span><span>+5 Very relevant</span></div>
   `;
 
   questions.forEach(function(question) {
@@ -660,32 +636,56 @@ function getClientHelpersJs() {
 
 function getRankingValidationJs() {
   return `
+    /**
+     * updateGroupRankings — called on every change within a ranking group.
+     * Disables options that are already claimed by another select in the same group,
+     * so a user literally cannot pick the same rank twice.
+     *
+     * @param {string} groupClass — CSS class shared by all selects in the group
+     *                              ('thought-ranking' or 'feeling-ranking')
+     */
     function updateGroupRankings(groupClass) {
       var selects = Array.prototype.slice.call(document.querySelectorAll('.' + groupClass));
-      var selected = selects.map(function(select) { return select.value; }).filter(function(value) { return value !== ''; });
+
+      // Build set of currently claimed values (excluding the empty placeholder)
+      var claimed = {};
+      selects.forEach(function(select) {
+        if (select.value !== '') {
+          claimed[select.value] = true;
+        }
+      });
+
+      // For each select: disable options taken by others, re-enable own current value
       selects.forEach(function(select) {
         var current = select.value;
         Array.prototype.slice.call(select.options).forEach(function(option) {
-          if (!option.value) return;
-          option.disabled = option.value !== current && selected.indexOf(option.value) !== -1;
+          if (!option.value) return; // skip the placeholder
+          var isTakenByOther = claimed[option.value] && option.value !== current;
+          option.disabled = isTakenByOther;
+          // Visual feedback: dim taken options
+          option.style.color = isTakenByOther ? 'rgba(148,163,184,0.35)' : '';
         });
       });
     }
 
     function validateRankings() {
       var errorBox = document.getElementById('ranking-error');
-      var thoughtValues = Array.prototype.slice.call(document.querySelectorAll('.thought-ranking')).map(function(select) { return select.value; }).filter(Boolean);
-      var feelingValues = Array.prototype.slice.call(document.querySelectorAll('.feeling-ranking')).map(function(select) { return select.value; }).filter(Boolean);
 
-      if (new Set(thoughtValues).size !== 6 || thoughtValues.length !== 6) {
-        errorBox.textContent = 'Each thought must have a unique ranking from 1-10.';
+      var thoughtSelects = Array.prototype.slice.call(document.querySelectorAll('.thought-ranking'));
+      var feelingSelects = Array.prototype.slice.call(document.querySelectorAll('.feeling-ranking'));
+
+      var thoughtValues = thoughtSelects.map(function(s) { return s.value; }).filter(Boolean);
+      var feelingValues = feelingSelects.map(function(s) { return s.value; }).filter(Boolean);
+
+      if (thoughtValues.length !== 6 || new Set(thoughtValues).size !== 6) {
+        errorBox.textContent = 'Please give each thought a unique ranking (1–10). No duplicates allowed.';
         errorBox.classList.add('visible');
         errorBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
         return false;
       }
 
-      if (new Set(feelingValues).size !== 6 || feelingValues.length !== 6) {
-        errorBox.textContent = 'Each feeling must have a unique ranking from 1-10.';
+      if (feelingValues.length !== 6 || new Set(feelingValues).size !== 6) {
+        errorBox.textContent = 'Please give each feeling a unique ranking (1–10). No duplicates allowed.';
         errorBox.classList.add('visible');
         errorBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
         return false;
