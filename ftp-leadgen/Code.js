@@ -304,7 +304,7 @@ function renderReportPage(token) {
   <div class="container">
     <div class="report-header">
       <img src="${CONFIG.LOGO_URL}" alt="${escapeHtml(CONFIG.BRAND)}" class="logo">
-      <h1 class="main-title">Core Trauma Strategy Assessment</h1>
+      <h1 class="main-title">Financial Pattern Assessment</h1>
       <p class="student-info">${escapeHtml(name)}</p>
       <p class="date">${escapeHtml(formatLongDate(new Date()))}</p>
     </div>
