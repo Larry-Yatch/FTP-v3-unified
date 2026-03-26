@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * Code.js — TruPath standalone lead-gen version of Tool 1
+ * Code.js - TruPath standalone lead-gen version of Tool 1
  *
  * Required flow:
  *   assessment → teaser → name/email gate → full report
@@ -55,7 +55,7 @@ function leadGenSavePage(payload) {
 
     DataService.saveDraft(token, data);
 
-    if (page >= 5) {
+    if (page >= 6) {
       const draft = DataService.getDraft(token) || {};
       const scores = Scoring.calculateScores(draft);
       const winner = Scoring.determineWinner(scores, draft);
@@ -134,8 +134,8 @@ function leadGenSubmitLead(payload) {
 
 function renderAssessmentPage(token, page) {
   const draft = DataService.getDraft(token) || {};
-  const step = Math.max(1, Math.min(page, 5));
-  const totalSteps = 5;
+  const step = Math.max(1, Math.min(page, 6));
+  const totalSteps = 6;
   const progress = Math.round((step / totalSteps) * 100);
 
   const contentByPage = {
@@ -143,10 +143,11 @@ function renderAssessmentPage(token, page) {
     2: renderSectionOneContent(draft),
     3: renderSectionTwoContent(draft),
     4: renderSectionThreeContent(draft),
-    5: renderRankingContent(draft),
+    5: renderThoughtsContent(draft),
+    6: renderFeelingsContent(draft),
   };
 
-  const nextLabel = step === 5 ? 'See My Results →' : step === 1 ? 'Begin Assessment →' : 'Next →';
+  const nextLabel = step === 6 ? 'See My Results →' : step === 1 ? 'Begin Assessment →' : 'Next →';
   const backButton = step > 1
     ? `<button type="button" class="btn btn-secondary" onclick="loadLeadGenPage(${step - 1})">← Back</button>`
     : '';
@@ -189,11 +190,12 @@ function renderAssessmentPage(token, page) {
     const LEADGEN_TOKEN = ${JSON.stringify(token)};
     const CURRENT_PAGE = ${step};
     ${getClientHelpersJs()}
-    ${step === 5 ? getRankingValidationJs() : ''}
+    ${(step === 5 || step === 6) ? getRankingValidationJs() : ''}
 
     document.addEventListener('DOMContentLoaded', function() {
       saveTrackingOnce();
-      ${step === 5 ? "updateGroupRankings('thought-ranking'); updateGroupRankings('feeling-ranking');" : ''}
+      ${step === 5 ? "updateGroupRankings('thought-ranking');" : ''}
+      ${step === 6 ? "updateGroupRankings('feeling-ranking');" : ''}
     });
   </script>
 </body>
@@ -212,7 +214,7 @@ function renderTeaserPage(token) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Your Results — ${escapeHtml(CONFIG.BRAND)}</title>
+  <title>Your Results - ${escapeHtml(CONFIG.BRAND)}</title>
   <style>${Styles.getBase()}</style>
 </head>
 <body>
@@ -234,7 +236,7 @@ function renderTeaserPage(token) {
 
     <div class="card">
       <h3 style="margin-bottom:6px;">Get your full report</h3>
-      <p class="muted" style="margin-bottom:20px;">Enter your name and email to unlock the full analysis on screen. We’ll also send a copy to your inbox immediately.</p>
+      <p class="muted" style="margin-bottom:20px;">Enter your name and email to unlock the full analysis on screen. We'll also send a copy to your inbox immediately.</p>
 
       <form id="gate-form" onsubmit="return submitLeadGate();">
         <div class="form-group">
@@ -245,11 +247,11 @@ function renderTeaserPage(token) {
         <div class="form-group">
           <label class="form-label">Email Address *</label>
           <input type="email" name="email" id="lead-email" placeholder="you@example.com" required autocomplete="email">
-          <small>We’ll send your full report here. No spam. Life is already irritating enough.</small>
+          <small>We'll send your full report here. No spam. Life is already irritating enough.</small>
         </div>
 
         <div style="display:flex; gap:12px;">
-          <button type="button" class="btn btn-secondary" onclick="loadLeadGenPage(5)">← Back</button>
+          <button type="button" class="btn btn-secondary" onclick="loadLeadGenPage(6)">← Back</button>
           <button type="submit" class="btn btn-primary" id="primary-btn">See My Full Report →</button>
         </div>
       </form>
@@ -292,6 +294,16 @@ function renderReportPage(token) {
     `;
   }).join('');
 
+  const profileHooks = {
+    FSV:       { line1: "You\u2019re not living your life \u2014 a survival identity is living it for you.", line2: "That lens makes danger feel real when it isn\u2019t \u2014 and it\u2019s costing you decisions." },
+    ExVal:     { line1: "Your financial decisions aren\u2019t yours \u2014 they\u2019re built around what others expect from you.", line2: "The cost of managing other people\u2019s perception is showing up in your bank account." },
+    Showing:   { line1: "You give, provide, and support \u2014 but struggle to let money come back to you.", line2: "That one-way flow is bleeding wealth you could be building right now." },
+    Receiving: { line1: "Emotional disconnection is the pattern shaping how \u2014 and whether \u2014 money reaches you.", line2: "That block has a price tag, and right now you\u2019re paying it every single month." },
+    Control:   { line1: "You manage fear through financial control \u2014 and it\u2019s slowly cutting you off.", line2: "The wealth you\u2019re protecting with control is costing you the relationships that create more of it." },
+    Fear:      { line1: "Fear is the engine running your financial life \u2014 and it\u2019s been there a long time.", line2: "Every opportunity you didn\u2019t take, every risk you couldn\u2019t hold \u2014 fear sent you that bill." }
+  };
+  const hook = profileHooks[winner] || { line1: '', line2: '' };
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -304,14 +316,21 @@ function renderReportPage(token) {
   <div class="container">
     <div class="report-header">
       <img src="${CONFIG.LOGO_URL}" alt="${escapeHtml(CONFIG.BRAND)}" class="logo">
-      <h1 class="main-title">Financial Pattern Assessment</h1>
+      <h1 class="main-title">Financial Pattern RESULTS</h1>
       <p class="student-info">${escapeHtml(name)}</p>
       <p class="date">${escapeHtml(formatLongDate(new Date()))}</p>
     </div>
 
     <div class="card">
       <h2>Thank you for completing the assessment.</h2>
-      ${Templates.commonIntro}
+      <p>${hook.line1}</p>
+      <p>${hook.line2}</p>
+      <div style="text-align:center; margin-top:24px;">
+        <a href="${CONFIG.CTA_URL}" target="_blank"
+           style="display:inline-block; background:#b39062; color:#26103d; padding:14px 32px; border-radius:8px; text-decoration:none; font-family:'Rubik',Arial,sans-serif; font-size:16px; font-weight:700;">
+          Discover Your Financial Freedom Blueprint
+        </a>
+      </div>
     </div>
 
     <div class="card" style="border-color: rgba(179,144,98,0.5);">
@@ -320,14 +339,15 @@ function renderReportPage(token) {
       ${template.content}
     </div>
 
+    ${ctaHtml}
+
+    ${Templates.commonFooter}
+
     <div class="card">
       <h3>Raw Scores</h3>
       <p class="muted" style="font-size:14px; margin-bottom:8px;">Higher numbers indicate a stronger pattern. Range: -25 to +25.</p>
       <div class="scores-grid">${scoreCards}</div>
     </div>
-
-    ${ctaHtml}
-    ${Templates.commonFooter}
   </div>
 </body>
 </html>`;
@@ -336,15 +356,15 @@ function renderReportPage(token) {
 function renderIntroContent() {
   return `
     <h2>Financial Pattern Assessment</h2>
-    <p class="muted" style="margin-bottom:24px;">This 5-step assessment takes about 15–20 minutes. Answer honestly. There are no right answers, only familiar survival patterns.</p>
-    <p>You’ll discover the financial pattern your subconscious relies on most heavily — the one shaping decisions about earning, spending, receiving, control, fear, and worth.</p>
-    <p class="muted" style="font-size:14px; margin-top:18px;">Complete the assessment first. We’ll ask for your name and email only after your results are ready.</p>
+    <p class="muted" style="margin-bottom:24px;">This 6-step assessment takes about 10 minutes. Answer honestly. There are no right answers, only familiar survival patterns.</p>
+    <p>You'll discover the financial pattern your subconscious relies on most heavily - the one shaping decisions about earning, spending, receiving, control, fear, and worth.</p>
+    <p class="muted" style="font-size:14px; margin-top:18px;">Complete the assessment first. We'll ask for your name and email only after your results are ready.</p>
   `;
 }
 
 function renderSectionOneContent(draft) {
   return renderStatementSection(
-    'Section 1 — Statement Relevance',
+    'Section 1 - Statement Relevance',
     [
       { name: 'q3', text: 'I am destined to fail because I am not good enough.' },
       { name: 'q4', text: 'I need to take on big things to prove that I am good enough.' },
@@ -359,7 +379,7 @@ function renderSectionOneContent(draft) {
 
 function renderSectionTwoContent(draft) {
   return renderStatementSection(
-    'Section 2 — Statement Relevance',
+    'Section 2 - Statement Relevance',
     [
       { name: 'q10', text: 'I will sacrifice my happiness to serve others.' },
       { name: 'q11', text: 'It is ok for me to do things for others, but I am uncomfortable receiving from them.' },
@@ -374,7 +394,7 @@ function renderSectionTwoContent(draft) {
 
 function renderSectionThreeContent(draft) {
   return renderStatementSection(
-    'Section 3 — Statement Relevance',
+    'Section 3 - Statement Relevance',
     [
       { name: 'q17', text: 'If I do not control my world, I know I will suffer.' },
       { name: 'q18', text: 'To avoid emotions I do not like, I distract myself by staying busy.' },
@@ -408,7 +428,7 @@ function renderStatementSection(title, questions, draft) {
   return html;
 }
 
-function renderRankingContent(draft) {
+function renderThoughtsContent(draft) {
   const thoughts = [
     { name: 'thought_fsv', text: 'I have to do something / be someone better to be safe.' },
     { name: 'thought_exval', text: 'I need others to value me to be safe.' },
@@ -417,19 +437,10 @@ function renderRankingContent(draft) {
     { name: 'thought_control', text: 'I need to control my environment to be safe.' },
     { name: 'thought_fear', text: 'I need to protect myself to be safe.' }
   ];
-  const feelings = [
-    { name: 'feeling_fsv', text: 'I feel insufficient.' },
-    { name: 'feeling_exval', text: 'I feel like I am not good enough for them.' },
-    { name: 'feeling_showing', text: 'I feel the need to sacrifice for others.' },
-    { name: 'feeling_receiving', text: 'I feel like nobody loves me.' },
-    { name: 'feeling_control', text: 'I feel out of control of my world.' },
-    { name: 'feeling_fear', text: 'I feel like I am in danger.' }
-  ];
 
   let html = `
-    <h2>Ranking Thoughts &amp; Feelings</h2>
-    <p class="muted" style="margin-bottom:8px;">Rank each statement from <strong>1</strong> (least relevant) to <strong>10</strong> (most relevant). Rankings must be unique within each group.</p>
-    <h3 style="margin-top:24px; margin-bottom:8px;">Thoughts</h3>
+    <h2>Ranking Your Thoughts</h2>
+    <p class="muted" style="margin-bottom:8px;">Rank each statement from <strong>1</strong> (least relevant) to <strong>10</strong> (most relevant). Each rank must be unique.</p>
   `;
 
   thoughts.forEach(function(item) {
@@ -443,7 +454,24 @@ function renderRankingContent(draft) {
     `;
   });
 
-  html += `<h3 style="margin-top:28px; margin-bottom:8px;">Feelings</h3>`;
+  html += `<div id="ranking-error" class="alert-error"></div>`;
+  return html;
+}
+
+function renderFeelingsContent(draft) {
+  const feelings = [
+    { name: 'feeling_fsv', text: 'I feel insufficient.' },
+    { name: 'feeling_exval', text: 'I feel like I am not good enough for them.' },
+    { name: 'feeling_showing', text: 'I feel the need to sacrifice for others.' },
+    { name: 'feeling_receiving', text: 'I feel like nobody loves me.' },
+    { name: 'feeling_control', text: 'I feel out of control of my world.' },
+    { name: 'feeling_fear', text: 'I feel like I am in danger.' }
+  ];
+
+  let html = `
+    <h2>Ranking Your Feelings</h2>
+    <p class="muted" style="margin-bottom:8px;">Rank each statement from <strong>1</strong> (least relevant) to <strong>10</strong> (most relevant). Each rank must be unique.</p>
+  `;
 
   feelings.forEach(function(item) {
     html += `
@@ -594,10 +622,10 @@ function getClientHelpersJs() {
         form.reportValidity();
         return false;
       }
-      if (page === 5 && typeof validateRankings === 'function' && !validateRankings()) {
+      if ((page === 5 || page === 6) && typeof validateRankings === 'function' && !validateRankings()) {
         return false;
       }
-      showLoading(page === 5 ? 'Scoring your assessment…' : 'Saving your responses…');
+      showLoading(page === 6 ? 'Scoring your assessment…' : 'Saving your responses…');
       google.script.run
         .withSuccessHandler(function(result) {
           writeServerHtml(result, 'Failed to load the next step.');
@@ -637,11 +665,11 @@ function getClientHelpersJs() {
 function getRankingValidationJs() {
   return `
     /**
-     * updateGroupRankings — called on every change within a ranking group.
+     * updateGroupRankings - called on every change within a ranking group.
      * Disables options that are already claimed by another select in the same group,
      * so a user literally cannot pick the same rank twice.
      *
-     * @param {string} groupClass — CSS class shared by all selects in the group
+     * @param {string} groupClass - CSS class shared by all selects in the group
      *                              ('thought-ranking' or 'feeling-ranking')
      */
     function updateGroupRankings(groupClass) {
@@ -671,24 +699,26 @@ function getRankingValidationJs() {
     function validateRankings() {
       var errorBox = document.getElementById('ranking-error');
 
-      var thoughtSelects = Array.prototype.slice.call(document.querySelectorAll('.thought-ranking'));
-      var feelingSelects = Array.prototype.slice.call(document.querySelectorAll('.feeling-ranking'));
-
-      var thoughtValues = thoughtSelects.map(function(s) { return s.value; }).filter(Boolean);
-      var feelingValues = feelingSelects.map(function(s) { return s.value; }).filter(Boolean);
-
-      if (thoughtValues.length !== 6 || new Set(thoughtValues).size !== 6) {
-        errorBox.textContent = 'Please give each thought a unique ranking (1–10). No duplicates allowed.';
-        errorBox.classList.add('visible');
-        errorBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        return false;
+      if (CURRENT_PAGE === 5) {
+        var thoughtSelects = Array.prototype.slice.call(document.querySelectorAll('.thought-ranking'));
+        var thoughtValues = thoughtSelects.map(function(s) { return s.value; }).filter(Boolean);
+        if (thoughtValues.length !== 6 || new Set(thoughtValues).size !== 6) {
+          errorBox.textContent = 'Please give each thought a unique ranking (1–10). No duplicates allowed.';
+          errorBox.classList.add('visible');
+          errorBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          return false;
+        }
       }
 
-      if (feelingValues.length !== 6 || new Set(feelingValues).size !== 6) {
-        errorBox.textContent = 'Please give each feeling a unique ranking (1–10). No duplicates allowed.';
-        errorBox.classList.add('visible');
-        errorBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        return false;
+      if (CURRENT_PAGE === 6) {
+        var feelingSelects = Array.prototype.slice.call(document.querySelectorAll('.feeling-ranking'));
+        var feelingValues = feelingSelects.map(function(s) { return s.value; }).filter(Boolean);
+        if (feelingValues.length !== 6 || new Set(feelingValues).size !== 6) {
+          errorBox.textContent = 'Please give each feeling a unique ranking (1–10). No duplicates allowed.';
+          errorBox.classList.add('visible');
+          errorBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          return false;
+        }
       }
 
       errorBox.textContent = '';
