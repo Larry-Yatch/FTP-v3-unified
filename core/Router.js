@@ -224,10 +224,10 @@ const Router = {
               <div class="form-group">
                 <label class="form-label">Student ID</label>
                 <p class="muted" style="font-size: 13px; margin: 5px 0 10px; line-height: 1.5;">
-                  Your Student ID follows the pattern: <strong>Last 4 digits of your phone number</strong> + <strong>First 2 initials</strong><br>
-                  <span style="opacity: 0.8;">Example: 1111AB</span>
+                  Your Student ID is: <strong>Last 4 digits of your phone</strong> + <strong>your initials</strong><br>
+                  <span style="opacity: 0.8;">Example: if your phone ends in 4521 and your name is Jane Smith → <strong>4521JS</strong></span>
                 </p>
-                <input type="text" name="clientId" id="clientId" placeholder="e.g., 1111AB" required>
+                <input type="text" name="clientId" id="clientId" placeholder="e.g., 4521JS" required>
               </div>
               <button type="submit" class="btn-primary" id="loginBtn">
                 <span id="btnText">Sign In</span>
@@ -240,20 +240,25 @@ const Router = {
             <div style="text-align: center; margin: 20px 0;">
               <p class="muted" style="margin-bottom: 10px;">— OR —</p>
               <button type="button" class="btn-secondary" onclick="showBackupLogin()">
-                Can't Remember Your ID?
+                First time here or forgot your ID?
               </button>
             </div>
           </div>
 
-          <!-- Backup Login Form (hidden initially) -->
+          <!-- Backup Login / First-Time Lookup Form (hidden initially) -->
           <div id="backupLogin" style="display: none;">
             <button onclick="showPrimaryLogin()" class="btn-link" style="margin-bottom: 20px;">
               ← Back to Student ID login
             </button>
 
             <form id="backupForm">
-              <p class="muted" style="margin-bottom: 20px; font-size: 14px;">
-                Enter at least 2 of the following:
+              <p class="muted" style="margin-bottom: 8px; font-size: 14px; line-height: 1.6;">
+                <strong>First time here?</strong> Enter your name and email to look up your account.
+                You will then be prompted to create your Student ID.<br><br>
+                <strong>Forgot your ID?</strong> Same process — we will look you up and show you your ID.
+              </p>
+              <p class="muted" style="margin-bottom: 20px; font-size: 13px;">
+                Fill in at least 2 of the 3 fields below:
               </p>
 
               <div class="form-group">
@@ -280,7 +285,34 @@ const Router = {
             </form>
           </div>
 
-          <p class="muted mt-20">v3.2.5 | Two-Path Authentication</p>
+          <!-- First-Login ID Setup Form (shown for pending students) -->
+          <div id="idSetupForm" style="display: none;">
+            <p class="muted" style="margin-bottom: 8px; font-size: 15px;">
+              Welcome! Your account has been found. Now create your permanent Student ID.
+            </p>
+            <p class="muted" style="margin-bottom: 20px; font-size: 13px; line-height: 1.6;">
+              Your ID = <strong>last 4 digits of your phone</strong> + <strong>your initials</strong><br>
+              Example: phone ends in 4521, name is Jane Smith → <strong>4521JS</strong><br>
+              If you have a middle name, you can use 3 initials: <strong>4521JSM</strong>
+            </p>
+
+            <div class="form-group">
+              <label class="form-label">Choose Your Student ID</label>
+              <input type="text" id="chosenClientId" placeholder="e.g., 4521JS" maxlength="7"
+                style="text-transform: uppercase;"
+                oninput="this.value = this.value.toUpperCase()">
+            </div>
+            <div id="idSetupError" class="message error" style="display: none; margin-bottom: 16px;"></div>
+
+            <button type="button" class="btn-primary" id="setupBtn" onclick="submitIdSetup()">
+              <span id="setupBtnText">Set My Student ID</span>
+              <span id="setupBtnSpinner" style="display: none;">
+                <span class="loading-spinner"></span> Setting up...
+              </span>
+            </button>
+          </div>
+
+          <p class="muted mt-20">v3.3.0 | Two-Path Authentication</p>
         </div>
 
         <script>
@@ -296,17 +328,99 @@ const Router = {
             document.getElementById('alertBox').style.display = 'none';
           }
 
-          // Toggle between primary and backup login
+          // Toggle between login states
           function showPrimaryLogin() {
             document.getElementById('primaryLogin').style.display = 'block';
             document.getElementById('backupLogin').style.display = 'none';
+            document.getElementById('idSetupForm').style.display = 'none';
             hideAlert();
           }
 
           function showBackupLogin() {
             document.getElementById('primaryLogin').style.display = 'none';
             document.getElementById('backupLogin').style.display = 'block';
+            document.getElementById('idSetupForm').style.display = 'none';
             hideAlert();
+          }
+
+          function showIdSetup() {
+            document.getElementById('primaryLogin').style.display = 'none';
+            document.getElementById('backupLogin').style.display = 'none';
+            document.getElementById('idSetupForm').style.display = 'block';
+            hideAlert();
+          }
+
+          // Store verified name/email for the setup step
+          var _pendingName = '';
+          var _pendingEmail = '';
+
+          function submitIdSetup() {
+            const chosenId = document.getElementById('chosenClientId').value.trim().toUpperCase();
+            const errorEl = document.getElementById('idSetupError');
+            errorEl.style.display = 'none';
+
+            if (!chosenId) {
+              errorEl.textContent = 'Please enter your Student ID.';
+              errorEl.style.display = 'block';
+              return;
+            }
+
+            const idRegex = /^\\d{4}[A-Z]{2,3}$/;
+            if (!idRegex.test(chosenId)) {
+              errorEl.textContent = 'Invalid format. Use last 4 digits of your phone + 2 or 3 initials (e.g., 4521JS).';
+              errorEl.style.display = 'block';
+              return;
+            }
+
+            const btn = document.getElementById('setupBtn');
+            const btnText = document.getElementById('setupBtnText');
+            const btnSpinner = document.getElementById('setupBtnSpinner');
+
+            btn.disabled = true;
+            btnText.style.display = 'none';
+            btnSpinner.style.display = 'inline-flex';
+            btnSpinner.style.alignItems = 'center';
+            btnSpinner.style.gap = '8px';
+
+            showLoading('Setting up your account');
+
+            google.script.run
+              .withSuccessHandler(function(result) {
+                if (result && result.success) {
+                  try {
+                    sessionStorage.setItem('_ftpCurrentLocation', JSON.stringify({
+                      view: 'dashboard',
+                      toolId: null,
+                      page: null,
+                      clientId: result.clientId,
+                      timestamp: Date.now()
+                    }));
+                  } catch(e) {}
+                  document.open();
+                  document.write(result.dashboardHtml);
+                  document.close();
+                } else {
+                  hideLoading();
+                  btn.disabled = false;
+                  btnText.style.display = 'inline';
+                  btnSpinner.style.display = 'none';
+                  errorEl.textContent = result.error || 'Setup failed. Please try again.';
+                  errorEl.style.display = 'block';
+                  if (result.idTaken) {
+                    document.getElementById('chosenClientId').value = '';
+                    document.getElementById('chosenClientId').focus();
+                  }
+                }
+              })
+              .withFailureHandler(function(error) {
+                hideLoading();
+                btn.disabled = false;
+                btnText.style.display = 'inline';
+                btnSpinner.style.display = 'none';
+                errorEl.textContent = 'System error. Please try again.';
+                errorEl.style.display = 'block';
+              })
+              .setupAndGetDashboard(_pendingName, _pendingEmail, chosenId);
           }
 
           // Primary login (Student ID)
@@ -407,8 +521,18 @@ const Router = {
             // Lookup and get dashboard in ONE call (faster!)
             google.script.run
                 .withSuccessHandler(function(result) {
-                  if (result && result.success) {
-                    // Clear any stale location from previous session before loading dashboard
+                  hideLoading();
+                  btn.disabled = false;
+                  btnText.style.display = 'inline';
+                  btnSpinner.style.display = 'none';
+
+                  if (result && result.success && result.pendingSetup) {
+                    // First-time student — show ID setup form
+                    _pendingName = result.name;
+                    _pendingEmail = result.email;
+                    showIdSetup();
+                  } else if (result && result.success) {
+                    // Returning student — load dashboard
                     try {
                       sessionStorage.setItem('_ftpCurrentLocation', JSON.stringify({
                         view: 'dashboard',
@@ -418,15 +542,11 @@ const Router = {
                         timestamp: Date.now()
                       }));
                     } catch(e) {}
-                    // Got dashboard HTML - load it
+                    showLoading('Loading your dashboard');
                     document.open();
                     document.write(result.dashboardHtml);
                     document.close();
                   } else {
-                    hideLoading();
-                    btn.disabled = false;
-                    btnText.style.display = 'inline';
-                    btnSpinner.style.display = 'none';
                     showAlert(result.error || 'No matching account found', true);
                   }
                 })

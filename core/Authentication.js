@@ -178,9 +178,11 @@ function lookupClientByDetails(params) {
       }
 
       // Require at least 2 matches (matching the "at least 2 fields" requirement)
-      if (matchScore >= 2 && rowClientId) {
+      // Note: rowClientId may be empty for pending students — allow those through
+      if (matchScore >= 2) {
         matches.push({
-          clientId: rowClientId,
+          clientId: rowClientId,       // May be '' for pending students
+          pending: !rowClientId,       // True when student has no ID yet
           name: String(row[nameCol] || '').trim(),
           email: String(row[emailCol] || '').trim(),
           status: status || 'active',
@@ -201,25 +203,46 @@ function lookupClientByDetails(params) {
     }
 
     if (matches.length === 1) {
+      const m = matches[0];
+      // Pending student — needs to set their ID before accessing the platform
+      if (m.pending) {
+        return {
+          success: true,
+          pendingSetup: true,
+          name: m.name,
+          email: m.email,
+          matchedOn: m.matchedOn
+        };
+      }
       return {
         success: true,
-        clientId: matches[0].clientId,
-        name: matches[0].name,
-        email: matches[0].email,
-        status: matches[0].status,
-        matchedOn: matches[0].matchedOn
+        clientId: m.clientId,
+        name: m.name,
+        email: m.email,
+        status: m.status,
+        matchedOn: m.matchedOn
       };
     }
 
     // Multiple matches - return the best one if it's significantly better
     if (matches[0].matchScore > matches[1].matchScore) {
+      const m = matches[0];
+      if (m.pending) {
+        return {
+          success: true,
+          pendingSetup: true,
+          name: m.name,
+          email: m.email,
+          matchedOn: m.matchedOn
+        };
+      }
       return {
         success: true,
-        clientId: matches[0].clientId,
-        name: matches[0].name,
-        email: matches[0].email,
-        status: matches[0].status,
-        matchedOn: matches[0].matchedOn
+        clientId: m.clientId,
+        name: m.name,
+        email: m.email,
+        status: m.status,
+        matchedOn: m.matchedOn
       };
     }
 

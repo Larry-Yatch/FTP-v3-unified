@@ -711,6 +711,10 @@
         <span class="nav-icon">📋</span>
         <span>Attendance</span>
       </div>
+      <div class="nav-item" onclick="switchPage('cohorts')" data-page="cohorts">
+        <span class="nav-icon">🎓</span>
+        <span>Cohorts</span>
+      </div>
     </div>
 
     <!-- Main Content -->
@@ -777,19 +781,28 @@
           <div class="card-header">
             <div class="card-title">Add New Student</div>
           </div>
+          <p style="padding: 0 20px 12px; font-size: 13px; color: #666;">
+            Students will create their own Student ID on first login using their phone digits + initials.
+          </p>
           <form id="addStudentForm" onsubmit="handleAddStudent(event)">
             <div class="form-grid">
               <div class="form-group">
-                <label for="studentId">Student ID *</label>
-                <input type="text" id="studentId" required placeholder="e.g., STU001">
+                <label for="studentFirstName">First Name *</label>
+                <input type="text" id="studentFirstName" required placeholder="e.g., Jane">
               </div>
               <div class="form-group">
-                <label for="studentName">Full Name *</label>
-                <input type="text" id="studentName" required placeholder="e.g., John Doe">
+                <label for="studentLastName">Last Name *</label>
+                <input type="text" id="studentLastName" required placeholder="e.g., Smith">
               </div>
               <div class="form-group">
                 <label for="studentEmail">Email *</label>
-                <input type="email" id="studentEmail" required placeholder="e.g., john@example.com">
+                <input type="email" id="studentEmail" required placeholder="e.g., jane@example.com">
+              </div>
+              <div class="form-group">
+                <label for="studentCohort">Cohort *</label>
+                <select id="studentCohort" required>
+                  <option value="">-- Select cohort --</option>
+                </select>
               </div>
             </div>
             <button type="submit" class="btn btn-primary" id="addStudentBtn">
@@ -801,14 +814,50 @@
           </form>
         </div>
 
+        <!-- Batch Import -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Batch Import Students</div>
+          </div>
+          <p style="padding: 0 20px 12px; font-size: 13px; color: #666;">
+            Import from a Google Sheet with columns: <strong>First Name | Last Name | Email</strong> (header row required).
+            The sheet must be shared with "Anyone with the link" or owned by the same Google account running this system.
+          </p>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="importSheetUrl">Google Sheet URL *</label>
+              <input type="text" id="importSheetUrl" placeholder="https://docs.google.com/spreadsheets/d/...">
+            </div>
+            <div class="form-group">
+              <label for="importCohort">Cohort *</label>
+              <select id="importCohort">
+                <option value="">-- Select cohort --</option>
+              </select>
+            </div>
+          </div>
+          <div style="display: flex; gap: 8px; margin-top: 4px;">
+            <button class="btn btn-secondary" id="previewImportBtn" onclick="previewImport()">
+              <span class="btn-text">Preview Import</span>
+              <span class="btn-spinner" style="display:none;"><span class="spinner" style="width:14px;height:14px;border-width:2px;"></span> Previewing...</span>
+            </button>
+            <button class="btn btn-primary" id="confirmImportBtn" onclick="confirmImport()" style="display:none;">
+              Confirm &amp; Import
+            </button>
+          </div>
+          <div id="importPreviewContainer" style="margin-top: 20px; display: none;"></div>
+        </div>
+
         <div class="card">
           <div class="card-header">
             <div class="card-title">All Students</div>
             <button class="btn btn-secondary btn-small" onclick="refreshStudentList()">Refresh</button>
           </div>
-          <div class="form-group" style="margin-bottom: 20px;">
-            <input type="text" id="studentSearchInput" placeholder="🔍 Search by ID, name, or email..."
-                   onkeyup="filterStudents()" style="width: 100%; padding: 12px;">
+          <div style="display: flex; gap: 12px; margin-bottom: 16px; align-items: center;">
+            <input type="text" id="studentSearchInput" placeholder="🔍 Search by name, email, or ID..."
+                   onkeyup="filterStudents()" style="flex: 1; padding: 12px;">
+            <select id="studentCohortFilter" onchange="filterStudents()" style="padding: 11px; min-width: 160px; font-size: 14px;">
+              <option value="">All Cohorts</option>
+            </select>
           </div>
           <div id="students-table-container" class="loading">
             <div class="spinner"></div>
@@ -937,6 +986,20 @@
 
         <div class="card">
           <div class="card-header">
+            <div class="card-title">Filters</div>
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="analyticsCohortFilter">Cohort</label>
+              <select id="analyticsCohortFilter" onchange="loadAnalytics()" style="width: 100%; padding: 11px; font-size: 14px;">
+                <option value="">All Cohorts</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
             <div class="card-title">Date Range Filter</div>
           </div>
           <div class="form-grid">
@@ -995,6 +1058,17 @@
         <div class="section-header">
           <h2>Class Attendance</h2>
           <p>Track student attendance for each course call</p>
+        </div>
+
+        <div class="card" style="margin-bottom: 20px;">
+          <div class="card-header">
+            <div class="card-title">Cohort Filter</div>
+          </div>
+          <div class="form-group" style="margin: 0;">
+            <select id="attendanceCohortFilter" onchange="applyAttendanceCohortFilter()" style="width: 100%; padding: 11px; font-size: 14px;">
+              <option value="">All Cohorts</option>
+            </select>
+          </div>
         </div>
 
         <!-- View Mode Toggle -->
@@ -1081,6 +1155,60 @@
           </div>
         </div>
       </div>
+
+      <!-- Cohorts Page -->
+      <div class="page-section" id="cohorts-page">
+        <div class="section-header">
+          <h2>Cohort Management</h2>
+          <p>Create and manage class cohorts</p>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Create New Cohort</div>
+          </div>
+          <form id="createCohortForm" onsubmit="handleCreateCohort(event)">
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="cohortName">Cohort Name *</label>
+                <input type="text" id="cohortName" required placeholder="e.g., Cohort 2">
+              </div>
+              <div class="form-group">
+                <label for="cohortStartMonth">Start Month *</label>
+                <select id="cohortStartMonth" required style="width: 100%; padding: 11px; font-size: 14px;">
+                  <option value="">-- Month --</option>
+                  <option>January</option><option>February</option><option>March</option>
+                  <option>April</option><option>May</option><option>June</option>
+                  <option>July</option><option>August</option><option>September</option>
+                  <option>October</option><option>November</option><option>December</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="cohortStartYear">Start Year *</label>
+                <input type="number" id="cohortStartYear" required placeholder="e.g., 2026" min="2024" max="2040">
+              </div>
+            </div>
+            <button type="submit" class="btn btn-primary" id="createCohortBtn">
+              <span class="btn-text">Create Cohort</span>
+              <span class="btn-spinner" style="display:none;">
+                <span class="spinner" style="width:14px;height:14px;border-width:2px;"></span> Creating...
+              </span>
+            </button>
+          </form>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">All Cohorts</div>
+            <button class="btn btn-secondary btn-small" onclick="loadCohortsPage()">Refresh</button>
+          </div>
+          <div id="cohorts-table-container" class="loading">
+            <div class="spinner"></div>
+            <p>Loading cohorts...</p>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -1151,6 +1279,7 @@
         .withSuccessHandler((response) => {
           if (response.authenticated) {
             loadDashboardData();
+            loadCohortDropdowns();
           } else {
             window.location.href = '<?= getScriptUrl() ?>?route=admin';
           }
@@ -1224,6 +1353,7 @@
 
       // Load page-specific data
       if (pageName === 'students') {
+        loadCohortDropdowns();
         loadStudentList();
       } else if (pageName === 'access') {
         loadAccessPage();
@@ -1235,6 +1365,8 @@
         loadAnalytics();
       } else if (pageName === 'attendance') {
         loadAttendancePage();
+      } else if (pageName === 'cohorts') {
+        loadCohortsPage();
       }
     }
 
@@ -1339,23 +1471,25 @@
       }
 
       let html = '<table class="data-table">';
-      html += '<thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Status</th><th>Tools Completed</th><th>Actions</th></tr></thead>';
+      html += '<thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Cohort</th><th>Status</th><th>Tools</th><th>Actions</th></tr></thead>';
       html += '<tbody>';
 
       students.forEach(student => {
-        const statusClass = student.status === 'active' ? 'status-active' : 'status-inactive';
+        const isPending = student.status === 'pending';
+        const statusClass = student.status === 'active' ? 'status-active' : isPending ? '' : 'status-inactive';
+        const statusLabel = isPending ? '⏳ Pending setup' : student.status;
+        const idDisplay = student.clientId || '<span style="color:#999;font-style:italic;">Not set yet</span>';
         html += `
-          <tr>
-            <td><strong>${escapeHtml(student.clientId)}</strong></td>
+          <tr data-cohort="${escapeHtml(student.cohort || '')}">
+            <td><strong>${isPending ? idDisplay : escapeHtml(student.clientId)}</strong></td>
             <td>${escapeHtml(student.name)}</td>
             <td>${escapeHtml(student.email)}</td>
-            <td><span class="status-badge ${statusClass}">${escapeHtml(student.status)}</span></td>
-            <td>${student.toolsCompleted || 0} / 8</td>
+            <td>${escapeHtml(student.cohort || '-')}</td>
+            <td><span class="status-badge ${statusClass}">${statusLabel}</span></td>
+            <td>${isPending ? '-' : (student.toolsCompleted || 0) + ' / 8'}</td>
             <td class="action-buttons">
-              <button class="btn btn-secondary btn-small" onclick="viewStudentAccess('${escapeHtml(student.clientId)}')">View Access</button>
-              <button class="btn btn-secondary btn-small" onclick="toggleStudentStatus('${escapeHtml(student.clientId)}', '${escapeHtml(student.status)}')">
-                ${student.status === 'active' ? 'Deactivate' : 'Activate'}
-              </button>
+              ${!isPending ? `<button class="btn btn-secondary btn-small" onclick="viewStudentAccess('${escapeHtml(student.clientId)}')">View Access</button>` : ''}
+              ${!isPending ? `<button class="btn btn-secondary btn-small" onclick="toggleStudentStatus('${escapeHtml(student.clientId)}', '${escapeHtml(student.status)}')">${student.status === 'active' ? 'Deactivate' : 'Activate'}</button>` : ''}
             </td>
           </tr>
         `;
@@ -1377,10 +1511,12 @@
       btnText.style.display = 'none';
       btnSpinner.style.display = 'inline-block';
 
+      const firstName = document.getElementById('studentFirstName').value.trim();
+      const lastName = document.getElementById('studentLastName').value.trim();
       const studentData = {
-        clientId: document.getElementById('studentId').value.trim(),
-        name: document.getElementById('studentName').value.trim(),
-        email: document.getElementById('studentEmail').value.trim()
+        name: firstName + ' ' + lastName,
+        email: document.getElementById('studentEmail').value.trim(),
+        cohortId: document.getElementById('studentCohort').value
       };
 
       google.script.run
@@ -1412,9 +1548,200 @@
       loadStudentList();
     }
 
-    // Filter students table based on search input
+    // ========================================
+    // COHORT FUNCTIONS
+    // ========================================
+
+    var cohortsData = [];
+
+    function loadCohortsPage() {
+      document.getElementById('cohorts-table-container').innerHTML = '<div class="loading"><div class="spinner"></div><p>Loading cohorts...</p></div>';
+      google.script.run
+        .withSuccessHandler(renderCohortsTable)
+        .withFailureHandler(handleError)
+        .getCohorts();
+    }
+
+    function renderCohortsTable(response) {
+      const container = document.getElementById('cohorts-table-container');
+      if (!response.success) { container.innerHTML = '<div class="error">' + escapeHtml(response.error) + '</div>'; return; }
+
+      cohortsData = response.cohorts;
+      if (cohortsData.length === 0) {
+        container.innerHTML = '<div class="empty-state">No cohorts yet. Create your first cohort above.</div>';
+        return;
+      }
+
+      let html = '<table class="data-table"><thead><tr><th>ID</th><th>Name</th><th>Start</th><th>Status</th></tr></thead><tbody>';
+      cohortsData.forEach(c => {
+        html += '<tr><td>' + escapeHtml(c.cohortId) + '</td><td><strong>' + escapeHtml(c.name) + '</strong></td><td>' + escapeHtml(c.startMonth) + ' ' + escapeHtml(c.startYear) + '</td><td>' + escapeHtml(c.status) + '</td></tr>';
+      });
+      html += '</tbody></table>';
+      container.innerHTML = html;
+    }
+
+    function handleCreateCohort(event) {
+      event.preventDefault();
+      const btn = document.getElementById('createCohortBtn');
+      const btnText = btn.querySelector('.btn-text');
+      const btnSpinner = btn.querySelector('.btn-spinner');
+      btn.disabled = true; btnText.style.display = 'none'; btnSpinner.style.display = 'inline-block';
+
+      const cohortData = {
+        name: document.getElementById('cohortName').value.trim(),
+        startMonth: document.getElementById('cohortStartMonth').value,
+        startYear: document.getElementById('cohortStartYear').value
+      };
+
+      google.script.run
+        .withSuccessHandler(r => {
+          btn.disabled = false; btnText.style.display = 'inline'; btnSpinner.style.display = 'none';
+          if (r.success) {
+            showAlert('Cohort created: ' + r.cohortId, 'success');
+            document.getElementById('createCohortForm').reset();
+            loadCohortsPage();
+            loadCohortDropdowns();
+          } else { showAlert(r.error, 'error'); }
+        })
+        .withFailureHandler(e => {
+          btn.disabled = false; btnText.style.display = 'inline'; btnSpinner.style.display = 'none';
+          handleError(e);
+        })
+        .createCohort(cohortData);
+    }
+
+    // Populate all cohort dropdowns on the page
+    function loadCohortDropdowns() {
+      google.script.run
+        .withSuccessHandler(r => {
+          if (!r.success) return;
+          cohortsData = r.cohorts;
+          const dropdownIds = ['studentCohort', 'importCohort', 'studentCohortFilter', 'analyticsCohortFilter', 'attendanceCohortFilter'];
+          dropdownIds.forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            const isFilter = id.includes('Filter');
+            // Keep first option, replace rest
+            while (el.options.length > 1) el.remove(1);
+            r.cohorts.forEach(c => {
+              const opt = document.createElement('option');
+              opt.value = c.cohortId;
+              opt.textContent = c.name + ' — ' + c.startMonth + ' ' + c.startYear;
+              el.appendChild(opt);
+            });
+          });
+        })
+        .withFailureHandler(() => {})
+        .getCohorts();
+    }
+
+    // ========================================
+    // BATCH IMPORT FUNCTIONS
+    // ========================================
+
+    var _importPreviewData = null;
+
+    function previewImport() {
+      const sheetUrl = document.getElementById('importSheetUrl').value.trim();
+      const cohortId = document.getElementById('importCohort').value;
+      if (!sheetUrl) { showAlert('Please enter a Google Sheet URL', 'error'); return; }
+      if (!cohortId) { showAlert('Please select a cohort', 'error'); return; }
+
+      const btn = document.getElementById('previewImportBtn');
+      const btnText = btn.querySelector('.btn-text');
+      const btnSpinner = btn.querySelector('.btn-spinner');
+      btn.disabled = true; btnText.style.display = 'none'; btnSpinner.style.display = 'inline-block';
+      document.getElementById('confirmImportBtn').style.display = 'none';
+      document.getElementById('importPreviewContainer').style.display = 'none';
+
+      google.script.run
+        .withSuccessHandler(r => {
+          btn.disabled = false; btnText.style.display = 'inline'; btnSpinner.style.display = 'none';
+          if (!r.success) { showAlert(r.error, 'error'); return; }
+          _importPreviewData = { sheetUrl, cohortId, results: r.results };
+          renderImportPreview(r.results);
+        })
+        .withFailureHandler(e => {
+          btn.disabled = false; btnText.style.display = 'inline'; btnSpinner.style.display = 'none';
+          handleError(e);
+        })
+        .batchImportStudents(sheetUrl, cohortId, true);
+    }
+
+    function renderImportPreview(results) {
+      const container = document.getElementById('importPreviewContainer');
+      container.style.display = 'block';
+
+      let html = '<div style="padding: 16px; background: #f9f9f9; border-radius: 8px; border: 1px solid #ddd;">';
+      html += '<h4 style="margin-bottom: 12px;">Import Preview</h4>';
+      html += '<div style="display: flex; gap: 20px; margin-bottom: 16px;">';
+      html += '<span style="color: #2e7d32; font-weight: 600;">✅ ' + results.imported.length + ' will be imported</span>';
+      html += '<span style="color: #e65100; font-weight: 600;">⏭️ ' + results.skipped.length + ' skipped (duplicates)</span>';
+      html += '<span style="color: #c62828; font-weight: 600;">❌ ' + results.errors.length + ' errors</span>';
+      html += '</div>';
+
+      if (results.imported.length > 0) {
+        html += '<details open><summary style="cursor:pointer; font-weight:600; margin-bottom:8px;">Will import (' + results.imported.length + ')</summary>';
+        html += '<table class="data-table" style="margin-top:8px;"><thead><tr><th>Row</th><th>Name</th><th>Email</th></tr></thead><tbody>';
+        results.imported.forEach(s => {
+          html += '<tr><td>' + s.row + '</td><td>' + escapeHtml(s.name) + '</td><td>' + escapeHtml(s.email) + '</td></tr>';
+        });
+        html += '</tbody></table></details>';
+      }
+
+      if (results.skipped.length > 0) {
+        html += '<details style="margin-top:12px;"><summary style="cursor:pointer; font-weight:600; margin-bottom:8px;">Skipped (' + results.skipped.length + ')</summary>';
+        html += '<table class="data-table" style="margin-top:8px;"><thead><tr><th>Row</th><th>Name</th><th>Email</th><th>Reason</th></tr></thead><tbody>';
+        results.skipped.forEach(s => {
+          html += '<tr><td>' + s.row + '</td><td>' + escapeHtml(s.name) + '</td><td>' + escapeHtml(s.email) + '</td><td>' + escapeHtml(s.reason) + '</td></tr>';
+        });
+        html += '</tbody></table></details>';
+      }
+
+      if (results.errors.length > 0) {
+        html += '<details style="margin-top:12px;"><summary style="cursor:pointer; font-weight:600; margin-bottom:8px; color:#c62828;">Errors (' + results.errors.length + ')</summary>';
+        html += '<table class="data-table" style="margin-top:8px;"><thead><tr><th>Row</th><th>Email</th><th>Reason</th></tr></thead><tbody>';
+        results.errors.forEach(s => {
+          html += '<tr><td>' + (s.row || '-') + '</td><td>' + escapeHtml(s.email || '') + '</td><td>' + escapeHtml(s.reason) + '</td></tr>';
+        });
+        html += '</tbody></table></details>';
+      }
+
+      html += '</div>';
+      container.innerHTML = html;
+
+      if (results.imported.length > 0) {
+        document.getElementById('confirmImportBtn').style.display = 'inline-block';
+      }
+    }
+
+    function confirmImport() {
+      if (!_importPreviewData) return;
+      const btn = document.getElementById('confirmImportBtn');
+      btn.disabled = true; btn.textContent = 'Importing...';
+
+      google.script.run
+        .withSuccessHandler(r => {
+          btn.disabled = false; btn.textContent = 'Confirm & Import';
+          if (!r.success) { showAlert(r.error, 'error'); return; }
+          showAlert(r.created + ' students imported successfully!', 'success');
+          document.getElementById('importSheetUrl').value = '';
+          document.getElementById('importPreviewContainer').style.display = 'none';
+          document.getElementById('confirmImportBtn').style.display = 'none';
+          _importPreviewData = null;
+          loadStudentList();
+        })
+        .withFailureHandler(e => {
+          btn.disabled = false; btn.textContent = 'Confirm & Import';
+          handleError(e);
+        })
+        .batchImportStudents(_importPreviewData.sheetUrl, _importPreviewData.cohortId, false);
+    }
+
+    // Filter students table based on search + cohort filter
     function filterStudents() {
       const searchTerm = document.getElementById('studentSearchInput').value.toLowerCase();
+      const cohortFilter = document.getElementById('studentCohortFilter').value;
       const table = document.querySelector('#students-table-container table');
 
       if (!table) return;
@@ -1424,12 +1751,12 @@
         const clientId = row.cells[0]?.textContent.toLowerCase() || '';
         const name = row.cells[1]?.textContent.toLowerCase() || '';
         const email = row.cells[2]?.textContent.toLowerCase() || '';
+        const cohort = row.dataset.cohort || '';
 
-        if (clientId.includes(searchTerm) || name.includes(searchTerm) || email.includes(searchTerm)) {
-          row.style.display = '';
-        } else {
-          row.style.display = 'none';
-        }
+        const matchesSearch = !searchTerm || clientId.includes(searchTerm) || name.includes(searchTerm) || email.includes(searchTerm);
+        const matchesCohort = !cohortFilter || cohort === cohortFilter;
+
+        row.style.display = (matchesSearch && matchesCohort) ? '' : 'none';
       });
     }
 
@@ -2293,6 +2620,28 @@
         `✅ ${stats.attended} Attended | ❌ ${stats.absent} Absent | ⭕ ${stats.unmarked} Unmarked`;
 
       renderCallAttendanceList(callAttendanceData);
+    }
+
+    // Apply cohort filter to the currently displayed call attendance list
+    function applyAttendanceCohortFilter() {
+      if (callAttendanceData.length === 0) return; // no call loaded yet — nothing to filter
+
+      const cohortFilter = document.getElementById('attendanceCohortFilter').value;
+
+      if (!cohortFilter) {
+        renderCallAttendanceList(callAttendanceData);
+        return;
+      }
+
+      // Build a cohort lookup from studentsData (clientId → cohort)
+      const cohortLookup = {};
+      studentsData.forEach(s => { cohortLookup[s.clientId] = s.cohort || ''; });
+
+      const filtered = callAttendanceData.filter(student =>
+        (cohortLookup[student.clientId] || '') === cohortFilter
+      );
+
+      renderCallAttendanceList(filtered);
     }
 
     // Render call attendance list

@@ -1242,6 +1242,16 @@ function lookupAndGetDashboard(params) {
       return lookupResult; // Return error from lookup
     }
 
+    // Pending student — needs to complete first-login setup before accessing dashboard
+    if (lookupResult.pendingSetup) {
+      return {
+        success: true,
+        pendingSetup: true,
+        name: lookupResult.name,
+        email: lookupResult.email
+      };
+    }
+
     // Get dashboard HTML
     registerTools();
     const fakeRequest = {
@@ -1255,6 +1265,7 @@ function lookupAndGetDashboard(params) {
 
     return {
       success: true,
+      clientId: lookupResult.clientId,
       dashboardHtml: dashboardOutput.getContent()
     };
 
@@ -1519,6 +1530,69 @@ function getIntegrationAnalysis(clientId) {
  */
 function getToolCompletionAnalytics(startDate, endDate) {
   return handleGetToolCompletionAnalytics(startDate, endDate);
+}
+
+/**
+ * Get all cohorts
+ */
+function getCohorts() {
+  return handleGetCohortsRequest();
+}
+
+/**
+ * Create a new cohort
+ */
+function createCohort(cohortData) {
+  return handleCreateCohortRequest(cohortData);
+}
+
+/**
+ * Batch import students from a Google Sheet URL
+ */
+function batchImportStudents(sheetUrl, cohortId, dryRun) {
+  return handleBatchImportRequest(sheetUrl, cohortId, dryRun);
+}
+
+/**
+ * Complete pending student setup (first login — student sets their own ID)
+ */
+function completeStudentSetup(name, email, chosenClientId) {
+  return handleCompleteStudentSetupRequest(name, email, chosenClientId);
+}
+
+/**
+ * Complete pending student setup AND return dashboard HTML in one call
+ * Called from the login page ID setup form
+ */
+function setupAndGetDashboard(name, email, chosenClientId) {
+  try {
+    const setupResult = handleCompleteStudentSetupRequest(name, email, chosenClientId);
+
+    if (!setupResult.success) {
+      return setupResult;
+    }
+
+    // Get dashboard HTML
+    registerTools();
+    const fakeRequest = {
+      parameter: {
+        route: 'dashboard',
+        client: setupResult.clientId
+      }
+    };
+
+    const dashboardOutput = Router.route(fakeRequest);
+
+    return {
+      success: true,
+      clientId: setupResult.clientId,
+      dashboardHtml: dashboardOutput.getContent()
+    };
+
+  } catch (error) {
+    Logger.log('Error in setupAndGetDashboard: ' + error);
+    return { success: false, error: 'System error during setup. Please try again.' };
+  }
 }
 
 // ========================================

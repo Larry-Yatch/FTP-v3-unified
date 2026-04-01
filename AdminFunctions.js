@@ -40,17 +40,20 @@
  * - Student record in STUDENTS sheet
  * - Tool access records in TOOL_ACCESS sheet (Tool 1 unlocked, Tools 2-8 locked)
  *
- * @param {string} clientId - Unique student ID (e.g., 'STU001', 'JOHN_DOE')
+ * @param {string} clientId - Unique student ID (e.g., 'STU001'). Pass '' for pending (batch import).
  * @param {string} name - Student's full name
  * @param {string} email - Student's email address
+ * @param {string} cohortId - Cohort ID (e.g., 'cohort_1'). Defaults to 'cohort_1'.
  * @returns {Object} Result object with success status
  *
  * @example
- * addStudent('STU001', 'John Doe', 'john@example.com')
+ * addStudent('STU001', 'John Doe', 'john@example.com', 'cohort_1')
  */
-function addStudent(clientId, name, email) {
+function addStudent(clientId, name, email, cohortId) {
   try {
-    console.log(`Adding student: ${clientId} - ${name}`);
+    const isPending = !clientId;
+    const effectiveCohort = cohortId || 'cohort_1';
+    console.log(`Adding student: ${isPending ? '(pending)' : clientId} - ${name}`);
 
     const ss = SpreadsheetApp.openById(CONFIG.MASTER_SHEET_ID);
     const studentsSheet = ss.getSheetByName(CONFIG.SHEETS.STUDENTS);
@@ -59,56 +62,72 @@ function addStudent(clientId, name, email) {
       return { success: false, error: 'Students sheet not found' };
     }
 
-    // Check if student already exists
+    // Check for duplicate clientId (only when ID provided) or duplicate email
     const data = studentsSheet.getDataRange().getValues();
     for (let i = 1; i < data.length; i++) {
-      if (data[i][0] === clientId) {
-        console.log('⚠️ Student already exists');
-        return { success: false, error: 'Student already exists' };
+      if (clientId && data[i][0] === clientId) {
+        console.log('⚠️ Student ID already exists');
+        return { success: false, error: 'Student ID already exists' };
+      }
+      if (email && String(data[i][2] || '').trim().toLowerCase() === email.trim().toLowerCase()) {
+        console.log('⚠️ Email already enrolled');
+        return { success: false, error: 'A student with that email is already enrolled' };
       }
     }
 
+    const status = isPending ? 'pending' : 'active';
+
     // Add student to Students sheet
     studentsSheet.appendRow([
-      clientId,
+      clientId || '',     // Client_ID (blank for pending)
       name,
       email,
-      'active',           // Status
+      status,             // Status: 'active' or 'pending'
       new Date(),         // Enrolled_Date
       new Date(),         // Last_Activity
       0,                  // Tools_Completed
-      'tool1'             // Current_Tool
+      'tool1',            // Current_Tool
+      effectiveCohort     // Cohort
     ]);
 
     console.log('✅ Added to Students sheet');
 
-    // Initialize tool access (Tool 1 unlocked, rest locked)
-    const result = ToolAccessControl.initializeStudent(clientId);
+    // Only initialize tool access for active (non-pending) students
+    if (!isPending) {
+      const result = ToolAccessControl.initializeStudent(clientId);
 
-    if (result.success) {
-      console.log('✅ Initialized tool access');
+      if (result.success) {
+        console.log('✅ Initialized tool access');
+      } else {
+        return result;
+      }
+    }
 
-      // Log activity for student creation
-      DataService.logActivity(clientId, 'student_created', {
-        toolId: '',
-        details: `Student created: ${name} (${email})`
-      });
+    // Log activity for student creation
+    const logId = clientId || email;
+    DataService.logActivity(logId, 'student_created', {
+      toolId: '',
+      details: `Student created: ${name} (${email}) - status: ${status} - cohort: ${effectiveCohort}`
+    });
 
-      console.log(`✅ Student ${clientId} created successfully!`);
-      console.log(`   Name: ${name}`);
-      console.log(`   Email: ${email}`);
-      console.log(`   Status: Active`);
+    console.log(`✅ Student created successfully!`);
+    console.log(`   Name: ${name}`);
+    console.log(`   Email: ${email}`);
+    console.log(`   Status: ${status}`);
+    console.log(`   Cohort: ${effectiveCohort}`);
+    if (!isPending) {
       console.log(`   Tool 1: Unlocked`);
       console.log(`   Tools 2-8: Locked`);
-
-      return {
-        success: true,
-        clientId: clientId,
-        message: `Student ${clientId} created successfully`
-      };
-    } else {
-      return result;
     }
+
+    return {
+      success: true,
+      clientId: clientId || null,
+      pending: isPending,
+      message: isPending
+        ? `Pending student created for ${name} — will activate on first login`
+        : `Student ${clientId} created successfully`
+    };
 
   } catch (error) {
     console.error('❌ Error adding student:', error);
@@ -293,4 +312,105 @@ function unlockToolForStudent(clientId, toolId) {
  * DATA MIGRATION:
  * - Preview legacy Tool 1 migration: previewLegacyTool1Migration()
  * - Run legacy Tool 1 migration: runLegacyTool1Migration()
+ * - Assign all existing students to Cohort 1: migrateExistingStudentsToCohort1()
  */
+
+// ========================================
+// COHORT MIGRATION
+// ========================================
+
+/**
+ * One-time migration: assign all existing students to Cohort 1
+ *
+ * Run this ONCE after deploying the cohort feature to backfill
+ * the new Cohort column for students enrolled before cohorts existed.
+ *
+ * @example
+ * migrateExistingStudentsToCohort1()
+ */
+function migrateExistingStudentsToCohort1() {
+  try {
+    const ss = SpreadsheetApp.openById(CONFIG.MASTER_SHEET_ID);
+    const studentsSheet = ss.getSheetByName(CONFIG.SHEETS.STUDENTS);
+
+    if (!studentsSheet) {
+      console.log('❌ Students sheet not found');
+      return;
+    }
+
+    const data = studentsSheet.getDataRange().getValues();
+    if (data.length < 2) {
+      console.log('No students found.');
+      return;
+    }
+
+    // Ensure COHORTS sheet exists with Cohort 1
+    ensureCohort1Exists(ss);
+
+    // Ensure header row has 'Cohort' in column 9
+    const headerRow = data[0];
+    if (!headerRow[8] || String(headerRow[8]).trim() === '') {
+      studentsSheet.getRange(1, 9).setValue('Cohort');
+      console.log('✅ Added Cohort header to Students sheet');
+    }
+
+    let updated = 0;
+    let skipped = 0;
+
+    for (let i = 1; i < data.length; i++) {
+      const existingCohort = String(data[i][8] || '').trim();
+      if (!existingCohort) {
+        // Column I (index 8) — set to cohort_1
+        studentsSheet.getRange(i + 1, 9).setValue('cohort_1');
+        updated++;
+        console.log(`✅ Updated: ${data[i][0]} (${data[i][1]})`);
+      } else {
+        skipped++;
+        console.log(`⏭️ Skipped (already set): ${data[i][0]} — ${existingCohort}`);
+      }
+    }
+
+    SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.STUDENTS);
+
+    console.log(`\n=== Migration Complete ===`);
+    console.log(`Updated: ${updated} students → cohort_1`);
+    console.log(`Skipped: ${skipped} students (already had cohort)`);
+
+  } catch (error) {
+    console.error('❌ Migration error:', error);
+  }
+}
+
+/**
+ * Ensure the COHORTS sheet exists and contains Cohort 1
+ * @param {Spreadsheet} ss - Spreadsheet instance
+ */
+function ensureCohort1Exists(ss) {
+  try {
+    let cohortsSheet = ss.getSheetByName(CONFIG.SHEETS.COHORTS);
+
+    if (!cohortsSheet) {
+      cohortsSheet = ss.insertSheet(CONFIG.SHEETS.COHORTS);
+      cohortsSheet.getRange(1, 1, 1, 5).setValues([[
+        'Cohort_ID', 'Name', 'Start_Month', 'Start_Year', 'Status'
+      ]]);
+      console.log('✅ Created COHORTS sheet');
+    }
+
+    // Check if cohort_1 already exists
+    const data = cohortsSheet.getDataRange().getValues();
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === 'cohort_1') {
+        console.log('ℹ️ Cohort 1 already exists');
+        return;
+      }
+    }
+
+    // Add Cohort 1
+    cohortsSheet.appendRow(['cohort_1', 'Cohort 1', 'April', '2026', 'active']);
+    console.log('✅ Added Cohort 1 to COHORTS sheet');
+
+  } catch (error) {
+    console.error('❌ Error ensuring Cohort 1:', error);
+  }
+}

@@ -163,11 +163,11 @@ function handleAddStudentRequest(studentData) {
     return { success: false, error: 'Not authenticated' };
   }
 
-  const { clientId, name, email } = studentData;
+  const { clientId, name, email, cohortId } = studentData;
 
-  // Validate inputs
-  if (!clientId || !name || !email) {
-    return { success: false, error: 'Missing required fields' };
+  // name and email are always required; clientId is optional (pending students have none)
+  if (!name || !email) {
+    return { success: false, error: 'Name and email are required' };
   }
 
   // Validate email format
@@ -176,10 +176,12 @@ function handleAddStudentRequest(studentData) {
     return { success: false, error: 'Invalid email format' };
   }
 
-  // Validate clientId format (alphanumeric, underscores, hyphens only)
-  const clientIdRegex = /^[a-zA-Z0-9_-]+$/;
-  if (!clientIdRegex.test(clientId)) {
-    return { success: false, error: 'Client ID can only contain letters, numbers, underscores, and hyphens' };
+  // Validate clientId format only when provided
+  if (clientId) {
+    const clientIdRegex = /^[a-zA-Z0-9_-]+$/;
+    if (!clientIdRegex.test(clientId)) {
+      return { success: false, error: 'Client ID can only contain letters, numbers, underscores, and hyphens' };
+    }
   }
 
   // Sanitize name (trim whitespace, limit length)
@@ -188,8 +190,7 @@ function handleAddStudentRequest(studentData) {
     return { success: false, error: 'Name must be between 1 and 100 characters' };
   }
 
-  // Use existing addStudent function
-  return addStudent(clientId, sanitizedName, email.trim());
+  return addStudent(clientId || '', sanitizedName, email.trim(), cohortId || 'cohort_1');
 }
 
 /**
@@ -220,6 +221,7 @@ function handleGetStudentsRequest() {
     const students = [];
 
     // Skip header row
+    const cohortFilter = null; // filtering handled client-side for simplicity
     for (let i = 1; i < data.length; i++) {
       students.push({
         clientId: data[i][0],
@@ -229,7 +231,8 @@ function handleGetStudentsRequest() {
         enrolledDate: data[i][4] ? data[i][4].toString() : '',
         lastActivity: data[i][5] ? data[i][5].toString() : '',
         toolsCompleted: data[i][6] || 0,
-        currentTool: data[i][7] || 'tool1'
+        currentTool: data[i][7] || 'tool1',
+        cohort: data[i][8] || ''
       });
     }
 
@@ -1365,8 +1368,323 @@ function handleGetAttendanceAnalyticsRequest() {
 }
 
 // ========================================
+// COHORT MANAGEMENT
+// ========================================
+
+/**
+ * Get all cohorts
+ */
+function handleGetCohortsRequest() {
+  if (!isAdminAuthenticated()) {
+    return { success: false, error: 'Not authenticated' };
+  }
+
+  try {
+    const ss = SpreadsheetCache.getSpreadsheet();
+    let cohortsSheet = ss.getSheetByName(CONFIG.SHEETS.COHORTS);
+
+    if (!cohortsSheet) {
+      // Auto-create with Cohort 1 if missing
+      cohortsSheet = createCohortsSheet(ss);
+    }
+
+    const data = cohortsSheet.getDataRange().getValues();
+    const cohorts = [];
+
+    for (let i = 1; i < data.length; i++) {
+      if (!data[i][0]) continue;
+      cohorts.push({
+        cohortId: data[i][0],
+        name: data[i][1],
+        startMonth: data[i][2],
+        startYear: String(data[i][3]),
+        status: data[i][4] || 'active'
+      });
+    }
+
+    return { success: true, cohorts: cohorts };
+  } catch (error) {
+    console.error('[GET_COHORTS] Error:', error);
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Create a new cohort
+ */
+function handleCreateCohortRequest(cohortData) {
+  if (!isAdminAuthenticated()) {
+    return { success: false, error: 'Not authenticated' };
+  }
+
+  const { name, startMonth, startYear } = cohortData;
+
+  if (!name || !startMonth || !startYear) {
+    return { success: false, error: 'Name, start month, and start year are required' };
+  }
+
+  try {
+    const ss = SpreadsheetCache.getSpreadsheet();
+    let cohortsSheet = ss.getSheetByName(CONFIG.SHEETS.COHORTS);
+
+    if (!cohortsSheet) {
+      cohortsSheet = createCohortsSheet(ss);
+    }
+
+    // Generate next cohort ID
+    const data = cohortsSheet.getDataRange().getValues();
+    const existingCount = data.length - 1; // subtract header
+    const cohortNumber = existingCount + 1;
+    const cohortId = 'cohort_' + cohortNumber;
+
+    // Check name is unique
+    for (let i = 1; i < data.length; i++) {
+      if (String(data[i][1] || '').trim().toLowerCase() === name.trim().toLowerCase()) {
+        return { success: false, error: 'A cohort with that name already exists' };
+      }
+    }
+
+    cohortsSheet.appendRow([cohortId, name.trim(), startMonth, startYear, 'active']);
+    SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.COHORTS);
+
+    console.log('[CREATE_COHORT] Created:', cohortId, name);
+    return { success: true, cohortId: cohortId, message: cohortId + ' created successfully' };
+
+  } catch (error) {
+    console.error('[CREATE_COHORT] Error:', error);
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ========================================
+// BATCH IMPORT
+// ========================================
+
+/**
+ * Batch import students from a Google Sheet
+ * @param {string} sheetUrl - URL of the Google Sheet
+ * @param {string} cohortId - Cohort to assign all imported students to
+ * @param {boolean} dryRun - If true, preview only (no writes)
+ */
+function handleBatchImportRequest(sheetUrl, cohortId, dryRun) {
+  if (!isAdminAuthenticated()) {
+    return { success: false, error: 'Not authenticated' };
+  }
+
+  if (!sheetUrl || !cohortId) {
+    return { success: false, error: 'Sheet URL and cohort are required' };
+  }
+
+  try {
+    // Open the source sheet
+    let sourceSheet;
+    try {
+      const sourceSpreadsheet = SpreadsheetApp.openByUrl(sheetUrl);
+      sourceSheet = sourceSpreadsheet.getSheets()[0];
+    } catch (e) {
+      return {
+        success: false,
+        error: 'Cannot access that Google Sheet. Make sure it is shared with "Anyone with the link" or owned by the same Google account running this system.'
+      };
+    }
+
+    const sourceData = sourceSheet.getDataRange().getValues();
+    if (sourceData.length < 2) {
+      return { success: false, error: 'The sheet appears to be empty (no data rows found)' };
+    }
+
+    // Load existing students for duplicate checking
+    const ss = SpreadsheetCache.getSpreadsheet();
+    const studentsSheet = ss.getSheetByName(CONFIG.SHEETS.STUDENTS);
+    const existingData = studentsSheet ? studentsSheet.getDataRange().getValues() : [[]];
+    const existingEmails = new Set();
+    for (let i = 1; i < existingData.length; i++) {
+      const e = String(existingData[i][2] || '').trim().toLowerCase();
+      if (e) existingEmails.add(e);
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const results = { imported: [], skipped: [], errors: [] };
+
+    // Skip header row (row 0), process data rows
+    for (let i = 1; i < sourceData.length; i++) {
+      const row = sourceData[i];
+      const firstName = String(row[0] || '').trim();
+      const lastName = String(row[1] || '').trim();
+      const email = String(row[2] || '').trim().toLowerCase();
+
+      // Validation
+      if (!firstName && !lastName && !email) continue; // blank row — skip silently
+
+      if (!firstName || !lastName) {
+        results.errors.push({ row: i + 1, email: email || '(blank)', reason: 'Missing first or last name' });
+        continue;
+      }
+      if (!email || !emailRegex.test(email)) {
+        results.errors.push({ row: i + 1, email: email || '(blank)', reason: 'Invalid or missing email' });
+        continue;
+      }
+      if (existingEmails.has(email)) {
+        results.skipped.push({ row: i + 1, name: firstName + ' ' + lastName, email: email, reason: 'Already enrolled' });
+        continue;
+      }
+
+      const fullName = firstName + ' ' + lastName;
+      results.imported.push({ row: i + 1, name: fullName, email: email });
+      existingEmails.add(email); // prevent intra-batch duplicates
+    }
+
+    if (dryRun) {
+      // Preview only — return what would happen without writing
+      return { success: true, preview: true, results: results };
+    }
+
+    // Commit: create pending records for all valid rows
+    let created = 0;
+    const successfulImports = [];
+    for (const student of results.imported) {
+      const createResult = addStudent('', student.name, student.email, cohortId);
+      if (createResult.success) {
+        created++;
+        successfulImports.push(student);
+      } else {
+        results.errors.push({ name: student.name, email: student.email, reason: createResult.error });
+      }
+    }
+    results.imported = successfulImports; // replace with only successful records
+
+    SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.STUDENTS);
+
+    console.log('[BATCH_IMPORT] Created:', created, 'Skipped:', results.skipped.length, 'Errors:', results.errors.length);
+    return {
+      success: true,
+      preview: false,
+      created: created,
+      results: results
+    };
+
+  } catch (error) {
+    console.error('[BATCH_IMPORT] Error:', error);
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ========================================
+// FIRST-LOGIN STUDENT SETUP
+// ========================================
+
+/**
+ * Complete pending student setup — called when a pending student sets their ID for the first time
+ * @param {string} name - Student's full name (used to find their record)
+ * @param {string} email - Student's email (used to find their record)
+ * @param {string} chosenClientId - The ID the student has chosen (e.g., '4521JS')
+ */
+function handleCompleteStudentSetupRequest(name, email, chosenClientId) {
+  if (!name || !email || !chosenClientId) {
+    return { success: false, error: 'Name, email, and chosen Student ID are required' };
+  }
+
+  // Validate ID format: 4 digits + 2 uppercase letters (e.g., 4521JS)
+  const idRegex = /^\d{4}[A-Za-z]{2,3}$/;
+  if (!idRegex.test(chosenClientId)) {
+    return {
+      success: false,
+      error: 'Invalid ID format. Use your last 4 phone digits + your initials (e.g., 4521JS or 4521JSM).'
+    };
+  }
+
+  const normalizedId = chosenClientId.toUpperCase();
+
+  try {
+    const ss = SpreadsheetCache.getSpreadsheet();
+    const studentsSheet = ss.getSheetByName(CONFIG.SHEETS.STUDENTS);
+
+    if (!studentsSheet) {
+      return { success: false, error: 'Student roster not found' };
+    }
+
+    const data = studentsSheet.getDataRange().getValues();
+
+    // Check uniqueness — make sure no active student already has this ID
+    for (let i = 1; i < data.length; i++) {
+      const existingId = String(data[i][0] || '').trim().toUpperCase();
+      if (existingId && existingId === normalizedId) {
+        return {
+          success: false,
+          idTaken: true,
+          error: 'That Student ID is already taken. Try adding your middle initial (e.g., ' + normalizedId.slice(0, 4) + normalizedId.slice(4) + 'M) or use a different variation.'
+        };
+      }
+    }
+
+    // Find the pending record matching name + email
+    const normalizedName = name.trim().toLowerCase();
+    const normalizedEmail = email.trim().toLowerCase();
+    let targetRow = -1;
+
+    for (let i = 1; i < data.length; i++) {
+      const rowName = String(data[i][1] || '').trim().toLowerCase();
+      const rowEmail = String(data[i][2] || '').trim().toLowerCase();
+      const rowStatus = String(data[i][3] || '').trim().toLowerCase();
+      const rowClientId = String(data[i][0] || '').trim();
+
+      if (rowStatus === 'pending' && !rowClientId && rowEmail === normalizedEmail && rowName === normalizedName) {
+        targetRow = i;
+        break;
+      }
+    }
+
+    if (targetRow === -1) {
+      return { success: false, error: 'No pending account found matching your name and email. Please contact support.' };
+    }
+
+    // Update the record: set Client_ID and change status to active
+    studentsSheet.getRange(targetRow + 1, 1).setValue(normalizedId);  // Client_ID
+    studentsSheet.getRange(targetRow + 1, 4).setValue('active');       // Status
+    SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.STUDENTS);
+
+    // Initialize tool access now that we have a real ID
+    const initResult = ToolAccessControl.initializeStudent(normalizedId);
+    if (!initResult.success) {
+      return { success: false, error: 'Account activated but tool access setup failed: ' + initResult.error };
+    }
+
+    // Log activity
+    DataService.logActivity(normalizedId, 'student_setup_complete', {
+      toolId: '',
+      details: 'Student completed first-login setup and set their Student ID'
+    });
+
+    console.log('[SETUP_COMPLETE] Student activated:', normalizedId);
+    return {
+      success: true,
+      clientId: normalizedId,
+      message: 'Setup complete! Your Student ID is ' + normalizedId
+    };
+
+  } catch (error) {
+    console.error('[SETUP_COMPLETE] Error:', error);
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ========================================
 // HELPER FUNCTIONS
 // ========================================
+
+/**
+ * Create COHORTS sheet with Cohort 1 as default
+ */
+function createCohortsSheet(ss) {
+  const cohortsSheet = ss.insertSheet(CONFIG.SHEETS.COHORTS);
+  cohortsSheet.getRange(1, 1, 1, 5).setValues([[
+    'Cohort_ID', 'Name', 'Start_Month', 'Start_Year', 'Status'
+  ]]);
+  cohortsSheet.appendRow(['cohort_1', 'Cohort 1', 'April', '2026', 'active']);
+  SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.COHORTS);
+  console.log('✅ COHORTS sheet created');
+  return cohortsSheet;
+}
 
 /**
  * Create ADMINS sheet with default admin
