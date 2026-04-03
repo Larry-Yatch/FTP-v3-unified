@@ -10,14 +10,16 @@ const Tool1 = Object.assign({}, FormToolBase, {
     toolId: 'tool1',
     toolName: 'Core Trauma Strategy Assessment',
     pageTitle: 'Core Trauma Strategy Assessment',
-    totalPages: 5
+    totalPages: 6
   },
 
   /**
-   * Custom validation for page 5 (unique ranking requirement)
+   * Custom validation for pages 5 and 6 (unique ranking requirement)
    */
   getCustomValidation(page) {
-    return (page === 5) ? 'validateRankings' : null;
+    if (page === 5) return 'validateThoughtRankings';
+    if (page === 6) return 'validateFeelingRankings';
+    return null;
   },
 
   /**
@@ -31,6 +33,7 @@ const Tool1 = Object.assign({}, FormToolBase, {
       case 3: return this.renderPage3Content(existingData, clientId);
       case 4: return this.renderPage4Content(existingData, clientId);
       case 5: return this.renderPage5Content(existingData, clientId);
+      case 6: return this.renderPage6Content(existingData, clientId);
       default: return '<p class="error">Invalid page number</p>';
     }
   },
@@ -197,27 +200,18 @@ const Tool1 = Object.assign({}, FormToolBase, {
   },
 
   /**
-   * Page 5: Rankings (Questions 24 & 26)
+   * Page 5: Rank Your Thoughts
    */
   renderPage5Content(data, clientId) {
-    // DIAGNOSTIC: Log data structure (for debugging page 5 dropdown issue)
     LogUtils.debug(`=== Page 5 Data Structure ===`);
     LogUtils.debug(`Data keys: ${JSON.stringify(Object.keys(data || {}))}`);
-    LogUtils.debug(`Has formData? ${!!data?.formData}`);
-    LogUtils.debug(`Has scores? ${!!data?.scores}`);
-    LogUtils.debug(`Has winner? ${!!data?.winner}`);
     LogUtils.debug(`thought_fsv (direct): ${data?.thought_fsv}`);
     LogUtils.debug(`thought_fsv (nested): ${data?.formData?.thought_fsv}`);
-    LogUtils.debug(`feeling_fsv (direct): ${data?.feeling_fsv}`);
-    LogUtils.debug(`feeling_fsv (nested): ${data?.formData?.feeling_fsv}`);
 
     // DEFENSIVE: Extract formData if nested (EDIT_DRAFT compatibility)
-    // ResponseManager wraps data as {formData, scores, winner}
-    // We need just the form fields for rendering
     const formData = data?.formData || data || {};
 
     LogUtils.debug(`Using formData - thought_fsv: ${formData.thought_fsv}`);
-    LogUtils.debug(`Using formData - feeling_fsv: ${formData.feeling_fsv}`);
 
     const thoughts = [
       {name: 'thought_fsv', text: 'I have to do something / be someone better to be safe.'},
@@ -228,32 +222,25 @@ const Tool1 = Object.assign({}, FormToolBase, {
       {name: 'thought_fear', text: 'I need to protect myself to be safe.'}
     ];
 
-    const feelings = [
-      {name: 'feeling_fsv', text: 'I feel insufficient.'},
-      {name: 'feeling_exval', text: 'I feel like I am not good enough for them.'},
-      {name: 'feeling_showing', text: 'I feel the need to sacrifice for others.'},
-      {name: 'feeling_receiving', text: 'I feel like nobody loves me.'},
-      {name: 'feeling_control', text: 'I feel out of control of my world.'},
-      {name: 'feeling_fear', text: 'I feel like I am in danger.'}
-    ];
-
     let html = `
-      <h2>Ranking Thoughts and Feelings</h2>
+      <h2>Step 5: Rank Your Thoughts</h2>
       <p class="muted mb-20">
-        Rank each statement from 1-10 based on how much you agree with it and how often it shows up in your mind.<br>
-        <strong>Important:</strong> Each statement must have a unique ranking (no duplicates).
+        Below are six thought patterns. Read each one and ask yourself: <em>how often does this thought show up in my mind?</em>
       </p>
-
-      <h3 style="margin-top: 30px;">Ranking Thoughts</h3>
-      <p class="muted" style="font-size: 14px;">Rank from 1 (least relevant) to 10 (most relevant)</p>
+      <p class="muted mb-20">
+        Rank them from <strong>1</strong> (shows up least) to <strong>10</strong> (shows up most).
+      </p>
+      <p class="muted mb-20">
+        <strong>Rules:</strong><br>
+        &bull; <strong>Each number can only be used once</strong> &mdash; no two thoughts can share the same rank<br>
+        &bull; All six must be ranked before you can continue<br>
+        &bull; Go with your gut, not what you think sounds right
+      </p>
     `;
 
     thoughts.forEach(t => {
-      let selected = '';
-      if (formData && formData[t.name]) {
-        selected = String(formData[t.name]);
-        LogUtils.debug(`Setting ${t.name} selected = ${selected}`);
-      }
+      const selected = formData && formData[t.name] ? String(formData[t.name]) : '';
+      LogUtils.debug(`Setting ${t.name} selected = ${selected}`);
       html += `
         <div class="form-group">
           <label class="form-label">${t.text} *</label>
@@ -268,16 +255,97 @@ const Tool1 = Object.assign({}, FormToolBase, {
     });
 
     html += `
-        <h3 style="margin-top: 40px;">Ranking Feelings</h3>
-        <p class="muted" style="font-size: 14px;">Rank from 1 (least relevant) to 10 (most relevant)</p>
+      <div id="rankingError" class="error" style="display: none; margin: 20px 0; padding: 15px; background: #fee; border: 1px solid #fcc; border-radius: 8px;"></div>
+
+      <script>
+        function updateRankingOptions() {
+          const selects = document.querySelectorAll('.thought-ranking');
+          const selected = Array.from(selects).map(s => s.value).filter(v => v !== '');
+
+          selects.forEach(function(select) {
+            const currentValue = select.value;
+            Array.from(select.options).forEach(function(option) {
+              if (option.value && option.value !== currentValue) {
+                if (selected.includes(option.value)) {
+                  option.disabled = true;
+                  option.style.color = '#ccc';
+                  option.textContent = option.value + ' (taken)';
+                } else {
+                  option.disabled = false;
+                  option.style.color = '';
+                  option.textContent = option.value;
+                }
+              }
+            });
+          });
+        }
+
+        function validateThoughtRankings() {
+          const errorDiv = document.getElementById('rankingError');
+          const selects = document.querySelectorAll('.thought-ranking');
+          const ranks = Array.from(selects).map(function(s) { return s.value; });
+          const uniqueRanks = new Set(ranks.filter(function(v) { return v !== ''; }));
+
+          if (uniqueRanks.size !== 6) {
+            errorDiv.textContent = 'Each thought must have a unique ranking. Please make sure all six are ranked and no two share the same number.';
+            errorDiv.style.display = 'block';
+            errorDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return false;
+          }
+
+          errorDiv.style.display = 'none';
+          return true;
+        }
+
+        updateRankingOptions();
+      </script>
+    `;
+
+    return html;
+  },
+
+  /**
+   * Page 6: Rank Your Feelings
+   */
+  renderPage6Content(data, clientId) {
+    LogUtils.debug(`=== Page 6 Data Structure ===`);
+    LogUtils.debug(`Data keys: ${JSON.stringify(Object.keys(data || {}))}`);
+    LogUtils.debug(`feeling_fsv (direct): ${data?.feeling_fsv}`);
+    LogUtils.debug(`feeling_fsv (nested): ${data?.formData?.feeling_fsv}`);
+
+    // DEFENSIVE: Extract formData if nested (EDIT_DRAFT compatibility)
+    const formData = data?.formData || data || {};
+
+    LogUtils.debug(`Using formData - feeling_fsv: ${formData.feeling_fsv}`);
+
+    const feelings = [
+      {name: 'feeling_fsv', text: 'I feel insufficient.'},
+      {name: 'feeling_exval', text: 'I feel like I am not good enough for them.'},
+      {name: 'feeling_showing', text: 'I feel the need to sacrifice for others.'},
+      {name: 'feeling_receiving', text: 'I feel like nobody loves me.'},
+      {name: 'feeling_control', text: 'I feel out of control of my world.'},
+      {name: 'feeling_fear', text: 'I feel like I am in danger.'}
+    ];
+
+    let html = `
+      <h2>Step 6: Rank Your Feelings</h2>
+      <p class="muted mb-20">
+        Below are six feeling states. Read each one and ask yourself: <em>how familiar does this feeling feel to you?</em>
+      </p>
+      <p class="muted mb-20">
+        Rank them from <strong>1</strong> (least familiar) to <strong>10</strong> (most familiar).
+      </p>
+      <p class="muted mb-20">
+        <strong>Rules:</strong><br>
+        &bull; <strong>Each number can only be used once</strong> &mdash; no two feelings can share the same rank<br>
+        &bull; All six must be ranked before you can continue<br>
+        &bull; These are feelings, not thoughts &mdash; notice your physical response, not just your logic
+      </p>
     `;
 
     feelings.forEach(f => {
-      let selected = '';
-      if (formData && formData[f.name]) {
-        selected = String(formData[f.name]);
-        LogUtils.debug(`Setting ${f.name} selected = ${selected}`);
-      }
+      const selected = formData && formData[f.name] ? String(formData[f.name]) : '';
+      LogUtils.debug(`Setting ${f.name} selected = ${selected}`);
       html += `
         <div class="form-group">
           <label class="form-label">${f.text} *</label>
@@ -295,21 +363,13 @@ const Tool1 = Object.assign({}, FormToolBase, {
       <div id="rankingError" class="error" style="display: none; margin: 20px 0; padding: 15px; background: #fee; border: 1px solid #fcc; border-radius: 8px;"></div>
 
       <script>
-        // Update dropdown options to show which ranks are already selected
         function updateRankingOptions() {
-          updateGroupRankings('thought-ranking');
-          updateGroupRankings('feeling-ranking');
-        }
+          const selects = document.querySelectorAll('.feeling-ranking');
+          const selected = Array.from(selects).map(s => s.value).filter(v => v !== '');
 
-        function updateGroupRankings(groupClass) {
-          const selects = document.querySelectorAll('.' + groupClass);
-          const selected = Array.from(selects)
-            .map(s => s.value)
-            .filter(v => v !== '');
-
-          selects.forEach(select => {
+          selects.forEach(function(select) {
             const currentValue = select.value;
-            Array.from(select.options).forEach(option => {
+            Array.from(select.options).forEach(function(option) {
               if (option.value && option.value !== currentValue) {
                 if (selected.includes(option.value)) {
                   option.disabled = true;
@@ -325,29 +385,14 @@ const Tool1 = Object.assign({}, FormToolBase, {
           });
         }
 
-        // Validate rankings before submission
-        function validateRankings() {
+        function validateFeelingRankings() {
           const errorDiv = document.getElementById('rankingError');
+          const selects = document.querySelectorAll('.feeling-ranking');
+          const ranks = Array.from(selects).map(function(s) { return s.value; });
+          const uniqueRanks = new Set(ranks.filter(function(v) { return v !== ''; }));
 
-          // Validate thoughts
-          const thoughtSelects = document.querySelectorAll('.thought-ranking');
-          const thoughtRanks = Array.from(thoughtSelects).map(s => s.value);
-          const thoughtSet = new Set(thoughtRanks.filter(v => v !== ''));
-
-          if (thoughtSet.size !== 6) {
-            errorDiv.textContent = 'Each thought must have a unique ranking from 1-10. Please check for duplicates.';
-            errorDiv.style.display = 'block';
-            errorDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            return false;
-          }
-
-          // Validate feelings
-          const feelingSelects = document.querySelectorAll('.feeling-ranking');
-          const feelingRanks = Array.from(feelingSelects).map(s => s.value);
-          const feelingSet = new Set(feelingRanks.filter(v => v !== ''));
-
-          if (feelingSet.size !== 6) {
-            errorDiv.textContent = 'Each feeling must have a unique ranking from 1-10. Please check for duplicates.';
+          if (uniqueRanks.size !== 6) {
+            errorDiv.textContent = 'Each feeling must have a unique ranking. Please make sure all six are ranked and no two share the same number.';
             errorDiv.style.display = 'block';
             errorDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
             return false;
@@ -357,7 +402,6 @@ const Tool1 = Object.assign({}, FormToolBase, {
           return true;
         }
 
-        // Initialize on page load
         updateRankingOptions();
       </script>
     `;

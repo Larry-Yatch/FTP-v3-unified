@@ -28,9 +28,9 @@ const FormUtils = {
          * Submit a form page using google.script.run (avoids POST iframe sandbox)
          * @param {string} formId - Form element ID
          * @param {number} page - Current page number
-         * @param {string} nextRoute - Where to go next (optional, defaults to next page)
+         * @param {string} customValidation - Optional custom validation function name
          */
-        function submitToolPage(formId, page, nextRoute) {
+        function submitToolPage(formId, page, customValidation) {
           const form = document.getElementById(formId);
           if (!form) {
             alert('Form not found: ' + formId);
@@ -41,6 +41,13 @@ const FormUtils = {
           if (!form.checkValidity()) {
             form.reportValidity();
             return false;
+          }
+
+          // Custom validation if provided
+          if (customValidation && typeof window[customValidation] === 'function') {
+            if (!window[customValidation]()) {
+              return false;
+            }
           }
 
           // Get form data
@@ -381,7 +388,9 @@ const FormUtils = {
       ? (customValidation
           ? `return submitFinalPage('${formId}', '${customValidation}')`
           : `return submitFinalPage('${formId}')`)
-      : `return submitToolPage('${formId}', ${page})`;
+      : (customValidation
+          ? `return submitToolPage('${formId}', ${page}, '${customValidation}')`
+          : `return submitToolPage('${formId}', ${page})`);
 
     return `
       <!DOCTYPE html>
