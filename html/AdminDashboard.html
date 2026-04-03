@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- v3.4.0 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -1362,8 +1363,10 @@
       } else if (pageName === 'overview') {
         loadDashboardData();
       } else if (pageName === 'analytics') {
+        loadCohortDropdowns();
         loadAnalytics();
       } else if (pageName === 'attendance') {
+        loadCohortDropdowns();
         loadAttendancePage();
       } else if (pageName === 'cohorts') {
         loadCohortsPage();
@@ -2423,11 +2426,12 @@
 
       const startDate = document.getElementById('analyticsStartDate').value;
       const endDate = document.getElementById('analyticsEndDate').value;
+      const cohortId = document.getElementById('analyticsCohortFilter').value || null;
 
       google.script.run
         .withSuccessHandler(renderAnalytics)
         .withFailureHandler(handleError)
-        .getToolCompletionAnalytics(startDate, endDate);
+        .getToolCompletionAnalytics(startDate, endDate, cohortId);
     }
 
     // Render analytics data
@@ -2619,11 +2623,13 @@
       document.getElementById('callAttendanceStats').innerHTML =
         `✅ ${stats.attended} Attended | ❌ ${stats.absent} Absent | ⭕ ${stats.unmarked} Unmarked`;
 
-      renderCallAttendanceList(callAttendanceData);
+      // Render with any active cohort filter applied
+      applyAttendanceCohortFilter();
     }
 
-    // Apply cohort filter to the currently displayed call attendance list
+    // Apply cohort filter to call attendance list and reload analytics
     function applyAttendanceCohortFilter() {
+      loadAttendanceAnalytics();
       if (callAttendanceData.length === 0) return; // no call loaded yet — nothing to filter
 
       const cohortFilter = document.getElementById('attendanceCohortFilter').value;
@@ -3011,10 +3017,12 @@
       const container = document.getElementById('attendance-analytics-container');
       container.innerHTML = '<div class="loading"><div class="spinner"></div><p>Loading analytics...</p></div>';
 
+      const cohortId = document.getElementById('attendanceCohortFilter').value || null;
+
       google.script.run
         .withSuccessHandler(renderAttendanceAnalytics)
         .withFailureHandler(handleError)
-        .getAttendanceAnalytics();
+        .getAttendanceAnalytics(cohortId);
     }
 
     // Render attendance analytics

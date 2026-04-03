@@ -1528,8 +1528,8 @@ function getIntegrationAnalysis(clientId) {
 /**
  * Get tool completion analytics with date range
  */
-function getToolCompletionAnalytics(startDate, endDate) {
-  return handleGetToolCompletionAnalytics(startDate, endDate);
+function getToolCompletionAnalytics(startDate, endDate, cohortId) {
+  return handleGetToolCompletionAnalytics(startDate, endDate, cohortId);
 }
 
 /**
@@ -1630,8 +1630,8 @@ function updateAttendance(clientId, callId, status) {
 /**
  * Get attendance analytics
  */
-function getAttendanceAnalytics() {
-  return handleGetAttendanceAnalyticsRequest();
+function getAttendanceAnalytics(cohortId) {
+  return handleGetAttendanceAnalyticsRequest(cohortId);
 }
 
 // ========================================

@@ -21,6 +21,9 @@ GETTING-STARTED.md
 archive/**
 apps/**
 
+# ftp-leadgen is a separate GAS project with its own .clasp.json — exclude entirely to prevent name collisions
+ftp-leadgen/**
+
 # Debug/test scripts (not needed in production)
 check-columns.js
 debug-tool2-trauma.js

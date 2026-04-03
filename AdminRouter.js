@@ -862,8 +862,8 @@ function handleGetStudentProgressRequest(clientId) {
  * @param {string} endDate - Optional end date (YYYY-MM-DD)
  * @returns {Object} Analytics data
  */
-function handleGetToolCompletionAnalytics(startDate, endDate) {
-  console.log('[ANALYTICS] Request received, startDate:', startDate, 'endDate:', endDate);
+function handleGetToolCompletionAnalytics(startDate, endDate, cohortId) {
+  console.log('[ANALYTICS] Request received, startDate:', startDate, 'endDate:', endDate, 'cohort:', cohortId);
 
   if (!isAdminAuthenticated()) {
     console.log('[ANALYTICS] Not authenticated');
@@ -873,7 +873,7 @@ function handleGetToolCompletionAnalytics(startDate, endDate) {
   try {
     const ss = SpreadsheetCache.getSpreadsheet();
 
-    // Get active students
+    // Get active students (optionally filtered by cohort)
     const studentsSheet = ss.getSheetByName(CONFIG.SHEETS.STUDENTS);
     if (!studentsSheet) {
       return { success: false, error: 'Students sheet not found' };
@@ -884,6 +884,7 @@ function handleGetToolCompletionAnalytics(startDate, endDate) {
 
     for (let i = 1; i < studentsData.length; i++) {
       if (studentsData[i][3] === 'active') {
+        if (cohortId && studentsData[i][8] !== cohortId) continue;
         activeStudents.push(studentsData[i][0]); // clientId
       }
     }
@@ -1252,8 +1253,8 @@ function handleUpdateAttendanceRequest(clientId, callId, status) {
  * Get attendance analytics
  * @returns {Object} { success: boolean, data: Object }
  */
-function handleGetAttendanceAnalyticsRequest() {
-  console.log('[ATTENDANCE_ANALYTICS] Request received');
+function handleGetAttendanceAnalyticsRequest(cohortId) {
+  console.log('[ATTENDANCE_ANALYTICS] Request received, cohort:', cohortId);
 
   if (!isAdminAuthenticated()) {
     console.log('[ATTENDANCE_ANALYTICS] Not authenticated');
@@ -1263,7 +1264,7 @@ function handleGetAttendanceAnalyticsRequest() {
   try {
     const ss = SpreadsheetCache.getSpreadsheet();
 
-    // Get all active students
+    // Get all active students (optionally filtered by cohort)
     const studentsSheet = ss.getSheetByName(CONFIG.SHEETS.STUDENTS);
     if (!studentsSheet) {
       return { success: false, error: 'Students sheet not found' };
@@ -1274,12 +1275,15 @@ function handleGetAttendanceAnalyticsRequest() {
 
     for (let i = 1; i < studentsData.length; i++) {
       if (studentsData[i][3] === 'active') {
+        if (cohortId && studentsData[i][8] !== cohortId) continue;
         activeStudents.push({
           clientId: studentsData[i][0],
           name: studentsData[i][1]
         });
       }
     }
+
+    const cohortClientIds = new Set(activeStudents.map(s => s.clientId));
 
     // Get all attendance records
     const attendanceSheet = ss.getSheetByName(CONFIG.SHEETS.ATTENDANCE);
@@ -1296,10 +1300,10 @@ function handleGetAttendanceAnalyticsRequest() {
       }
     }
 
-    // Calculate per-call stats
+    // Calculate per-call stats (scoped to cohort when filtered)
     const calls = CONFIG.CALLS || [];
     const callStats = calls.map(call => {
-      const callRecords = attendanceRecords.filter(r => r.callId === call.id);
+      const callRecords = attendanceRecords.filter(r => r.callId === call.id && cohortClientIds.has(r.clientId));
       const attended = callRecords.filter(r => r.status === 'attended').length;
       const absent = callRecords.filter(r => r.status === 'absent').length;
       const marked = attended + absent;
@@ -1343,9 +1347,9 @@ function handleGetAttendanceAnalyticsRequest() {
       return b.rate - a.rate;
     });
 
-    // Overall stats
-    const totalAttended = attendanceRecords.filter(r => r.status === 'attended').length;
-    const totalAbsent = attendanceRecords.filter(r => r.status === 'absent').length;
+    // Overall stats (scoped to cohort when filtered)
+    const totalAttended = attendanceRecords.filter(r => r.status === 'attended' && cohortClientIds.has(r.clientId)).length;
+    const totalAbsent = attendanceRecords.filter(r => r.status === 'absent' && cohortClientIds.has(r.clientId)).length;
     const totalMarked = totalAttended + totalAbsent;
     const overallRate = totalMarked > 0 ? Math.round((totalAttended / totalMarked) * 100) : null;
 
