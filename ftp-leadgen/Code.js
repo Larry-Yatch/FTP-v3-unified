@@ -190,12 +190,10 @@ function renderAssessmentPage(token, page) {
     const LEADGEN_TOKEN = ${JSON.stringify(token)};
     const CURRENT_PAGE = ${step};
     ${getClientHelpersJs()}
-    ${(step === 5 || step === 6) ? getRankingValidationJs() : ''}
+    
 
     document.addEventListener('DOMContentLoaded', function() {
       saveTrackingOnce();
-      ${step === 5 ? "updateGroupRankings('thought-ranking');" : ''}
-      ${step === 6 ? "updateGroupRankings('feeling-ranking');" : ''}
     });
   </script>
 </body>
@@ -229,7 +227,7 @@ function renderTeaserPage(token) {
     <div id="global-error" class="alert-error"></div>
 
     <div class="card" style="text-align:center; border-color: rgba(179,144,98,0.5);">
-      <p class="muted" style="font-size:13px; letter-spacing:0.06em; text-transform:uppercase; margin-bottom:10px;">Your dominant financial pattern</p>
+      <p class="muted" style="font-size:13px; letter-spacing:0.06em; text-transform:uppercase; margin-bottom:10px;">Your dominant survival strategy</p>
       <h2 style="color:#b39062; font-size:30px; margin-bottom:16px;">${escapeHtml(patternName)}</h2>
       <div style="font-size:16px; line-height:1.75;">${template.teaser}</div>
     </div>
@@ -334,7 +332,7 @@ function renderReportPage(token) {
     </div>
 
     <div class="card" style="border-color: rgba(179,144,98,0.5);">
-      <p class="muted" style="font-size:13px; letter-spacing:0.06em; text-transform:uppercase; margin-bottom:10px;">Your dominant financial pattern</p>
+      <p class="muted" style="font-size:13px; letter-spacing:0.06em; text-transform:uppercase; margin-bottom:10px;">Your dominant survival strategy</p>
       <h2 style="color:#b39062; margin-bottom:20px;">${escapeHtml(patternName)}</h2>
       ${template.content}
     </div>
@@ -444,17 +442,38 @@ function renderThoughtsContent(draft) {
   `;
 
   thoughts.forEach(function(item) {
+    const selected = draft[item.name] ? String(draft[item.name]) : '';
     html += `
-      <div class="form-group">
+      <div class="form-group ranking-row">
         <label class="form-label">${item.text} *</label>
         <select name="${item.name}" class="thought-ranking" onchange="updateGroupRankings('thought-ranking')" required>
-          ${renderRankOptions(draft[item.name] || '')}
+          <option value="">Rank (1-10)</option>
+          ${[1,2,3,4,5,6,7,8,9,10].map(n => `<option value="${n}"${selected === String(n) ? ' selected' : ''}>${n}</option>`).join('')}
         </select>
       </div>
     `;
   });
 
-  html += `<div id="ranking-error" class="alert-error"></div>`;
+  html += `<div id="ranking-error" class="alert-error"></div>
+  <script>
+    function updateGroupRankings(groupClass) {
+      var selects = Array.prototype.slice.call(document.querySelectorAll('.' + groupClass));
+      if (!selects.length) return;
+      var claimed = {};
+      selects.forEach(function(sel) { if (sel.value) claimed[sel.value] = true; });
+      selects.forEach(function(sel) {
+        var own = sel.value;
+        Array.prototype.slice.call(sel.options).forEach(function(opt) {
+          if (!opt.value) return;
+          var taken = claimed[opt.value] && opt.value !== own;
+          opt.disabled = taken;
+          opt.style.color = taken ? '#aaa' : '';
+          opt.style.fontStyle = taken ? 'italic' : '';
+        });
+      });
+    }
+    (function(){ updateGroupRankings('thought-ranking'); })();
+  <\/script>`;
   return html;
 }
 
@@ -474,17 +493,38 @@ function renderFeelingsContent(draft) {
   `;
 
   feelings.forEach(function(item) {
+    const selected = draft[item.name] ? String(draft[item.name]) : '';
     html += `
-      <div class="form-group">
+      <div class="form-group ranking-row">
         <label class="form-label">${item.text} *</label>
         <select name="${item.name}" class="feeling-ranking" onchange="updateGroupRankings('feeling-ranking')" required>
-          ${renderRankOptions(draft[item.name] || '')}
+          <option value="">Rank (1-10)</option>
+          ${[1,2,3,4,5,6,7,8,9,10].map(n => `<option value="${n}"${selected === String(n) ? ' selected' : ''}>${n}</option>`).join('')}
         </select>
       </div>
     `;
   });
 
-  html += `<div id="ranking-error" class="alert-error"></div>`;
+  html += `<div id="ranking-error" class="alert-error"></div>
+  <script>
+    function updateGroupRankings(groupClass) {
+      var selects = Array.prototype.slice.call(document.querySelectorAll('.' + groupClass));
+      if (!selects.length) return;
+      var claimed = {};
+      selects.forEach(function(sel) { if (sel.value) claimed[sel.value] = true; });
+      selects.forEach(function(sel) {
+        var own = sel.value;
+        Array.prototype.slice.call(sel.options).forEach(function(opt) {
+          if (!opt.value) return;
+          var taken = claimed[opt.value] && opt.value !== own;
+          opt.disabled = taken;
+          opt.style.color = taken ? '#aaa' : '';
+          opt.style.fontStyle = taken ? 'italic' : '';
+        });
+      });
+    }
+    (function(){ updateGroupRankings('feeling-ranking'); })();
+  <\/script>`;
   return html;
 }
 
@@ -662,63 +702,41 @@ function getClientHelpersJs() {
   `;
 }
 
-function getRankingValidationJs() {
+function getRankingValidationJs(pageNum) {
+  var groupClass = pageNum === 5 ? 'thought-ranking' : 'feeling-ranking';
+  var label = pageNum === 5 ? 'thought' : 'feeling';
   return `
     /**
-     * updateGroupRankings - called on every change within a ranking group.
-     * Disables options that are already claimed by another select in the same group,
-     * so a user literally cannot pick the same rank twice.
-     *
-     * @param {string} groupClass - CSS class shared by all selects in the group
-     *                              ('thought-ranking' or 'feeling-ranking')
+     * validateRankings — called on form submit for steps 5 & 6.
+     * Checks that all 6 number inputs have unique values in range 1-10.
      */
-    function updateGroupRankings(groupClass) {
-      var selects = Array.prototype.slice.call(document.querySelectorAll('.' + groupClass));
-
-      // Build set of currently claimed values (excluding the empty placeholder)
-      var claimed = {};
-      selects.forEach(function(select) {
-        if (select.value !== '') {
-          claimed[select.value] = true;
-        }
-      });
-
-      // For each select: disable options taken by others, re-enable own current value
-      selects.forEach(function(select) {
-        var current = select.value;
-        Array.prototype.slice.call(select.options).forEach(function(option) {
-          if (!option.value) return; // skip the placeholder
-          var isTakenByOther = claimed[option.value] && option.value !== current;
-          option.disabled = isTakenByOther;
-          // Visual feedback: dim taken options
-          option.style.color = isTakenByOther ? 'rgba(148,163,184,0.35)' : '';
-        });
-      });
-    }
-
     function validateRankings() {
       var errorBox = document.getElementById('ranking-error');
+      var inputs = Array.prototype.slice.call(document.querySelectorAll('.${groupClass}'));
+      var values = inputs.map(function(i) { return i.value.trim(); }).filter(Boolean);
+      var label = '${label}';
 
-      if (CURRENT_PAGE === 5) {
-        var thoughtSelects = Array.prototype.slice.call(document.querySelectorAll('.thought-ranking'));
-        var thoughtValues = thoughtSelects.map(function(s) { return s.value; }).filter(Boolean);
-        if (thoughtValues.length !== 6 || new Set(thoughtValues).size !== 6) {
-          errorBox.textContent = 'Please give each thought a unique ranking (1–10). No duplicates allowed.';
-          errorBox.classList.add('visible');
-          errorBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          return false;
-        }
+      if (values.length !== 6) {
+        errorBox.textContent = 'Please rank all six ' + label + ' statements.';
+        errorBox.classList.add('visible');
+        errorBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return false;
       }
 
-      if (CURRENT_PAGE === 6) {
-        var feelingSelects = Array.prototype.slice.call(document.querySelectorAll('.feeling-ranking'));
-        var feelingValues = feelingSelects.map(function(s) { return s.value; }).filter(Boolean);
-        if (feelingValues.length !== 6 || new Set(feelingValues).size !== 6) {
-          errorBox.textContent = 'Please give each feeling a unique ranking (1–10). No duplicates allowed.';
-          errorBox.classList.add('visible');
-          errorBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          return false;
-        }
+      var nums = values.map(Number);
+      var allInRange = nums.every(function(v) { return v >= 1 && v <= 10; });
+      if (!allInRange) {
+        errorBox.textContent = 'Each ranking must be between 1 and 10.';
+        errorBox.classList.add('visible');
+        errorBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return false;
+      }
+
+      if ((new Set(values)).size !== 6) {
+        errorBox.textContent = 'Each ' + label + ' needs a unique ranking. No duplicates allowed.';
+        errorBox.classList.add('visible');
+        errorBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return false;
       }
 
       errorBox.textContent = '';
@@ -816,4 +834,76 @@ function buildSourceString(tracking) {
   if (t.referrer) parts.push('referrer=' + t.referrer);
   if (t.landing_url) parts.push('landing_url=' + t.landing_url);
   return parts.join(' | ');
+}
+
+// ── Follow-up email triggers ─────────────────────────────────────────────────
+//
+// HOW TO USE:
+//   1. Open the Apps Script editor for this project.
+//   2. Select "setupFollowUpTriggers" from the function dropdown.
+//   3. Click "Run" once. This installs the two time-based triggers.
+//   4. Verify in Triggers (⏰ icon) that both triggers appear.
+//
+// DO NOT deploy before Russel's copy is slotted into Config.FOLLOW_UP_EMAILS.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * setupFollowUpTriggers — run manually ONCE from the Apps Script editor.
+ *
+ * Installs:
+ *   • Friday  at 13:00 UTC (7:30 AM CST)  → sendFollowUpEmail2()
+ *   • Monday  at 12:00 UTC (6:45 AM CST)  → sendFollowUpEmail3()
+ *
+ * Re-running is safe: existing follow-up triggers are deleted first.
+ *
+ * Timing note: GAS time-based triggers use the project timezone.
+ * 9:00 AM CST = 15:00 UTC.  Update constants below if Russel specifies
+ * a different send time.
+ */
+function setupFollowUpTriggers() {
+  // ── Configurable constants — Russel confirmed send times (TASK-026) ────────
+  const FOLLOW_UP_2_DAY  = ScriptApp.WeekDay.FRIDAY;   // Email 2: Friday
+  const FOLLOW_UP_2_HOUR = 13;                          // 7:30 AM CST = 13:30 UTC → hour 13
+
+  const FOLLOW_UP_3_DAY  = ScriptApp.WeekDay.MONDAY;   // Email 3: Monday
+  const FOLLOW_UP_3_HOUR = 12;                          // 6:45 AM CST = 12:45 UTC → hour 12
+  // ───────────────────────────────────────────────────────────────────────────
+
+  // Delete any previously installed follow-up triggers to avoid duplicates
+  const existing = ScriptApp.getProjectTriggers();
+  existing.forEach(function(trigger) {
+    const handlerFn = trigger.getHandlerFunction();
+    if (handlerFn === 'sendFollowUpEmail2' || handlerFn === 'sendFollowUpEmail3') {
+      ScriptApp.deleteTrigger(trigger);
+      Logger.log('Deleted existing trigger: ' + handlerFn);
+    }
+  });
+
+  // Trigger: Friday → sendFollowUpEmail2
+  ScriptApp.newTrigger('sendFollowUpEmail2')
+    .timeBased()
+    .onWeekDay(FOLLOW_UP_2_DAY)
+    .atHour(FOLLOW_UP_2_HOUR)
+    .create();
+  Logger.log('Created trigger: sendFollowUpEmail2 — Friday at ' + FOLLOW_UP_2_HOUR + ':00 (script tz)');
+
+  // Trigger: Monday → sendFollowUpEmail3
+  ScriptApp.newTrigger('sendFollowUpEmail3')
+    .timeBased()
+    .onWeekDay(FOLLOW_UP_3_DAY)
+    .atHour(FOLLOW_UP_3_HOUR)
+    .create();
+  Logger.log('Created trigger: sendFollowUpEmail3 — Monday at ' + FOLLOW_UP_3_HOUR + ':00 (script tz)');
+
+  Logger.log('setupFollowUpTriggers complete. Two triggers installed.');
+}
+
+/** Called by the Friday trigger. Batch-sends Email 2 to all leads. */
+function sendFollowUpEmail2() {
+  FollowUpService.sendFollowUp(2);
+}
+
+/** Called by the Monday trigger. Batch-sends Email 3 to all leads. */
+function sendFollowUpEmail3() {
+  FollowUpService.sendFollowUp(3);
 }

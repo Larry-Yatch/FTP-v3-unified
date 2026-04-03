@@ -68,7 +68,7 @@ const EmailService = {
 
     <!-- Pattern callout -->
     <div style="background:rgba(179,144,98,0.1); border:1px solid rgba(179,144,98,0.35); border-radius:12px; padding:24px 28px; margin-bottom:28px; text-align:center;">
-      <p style="color:#b0a0c0; font-size:13px; letter-spacing:0.06em; text-transform:uppercase; margin:0 0 8px;">Your dominant pattern</p>
+      <p style="color:#b0a0c0; font-size:13px; letter-spacing:0.06em; text-transform:uppercase; margin:0 0 8px;">Your dominant survival strategy</p>
       <h2 style="color:#b39062; font-size:24px; margin:0; font-family:Georgia,serif;">${patternName}</h2>
     </div>
 

@@ -164,7 +164,8 @@ const Styles = {
 
       select,
       input[type="text"],
-      input[type="email"] {
+      input[type="email"],
+      input[type="number"] {
         width: 100%;
         padding: 12px 20px;
         border-radius: var(--radius-input);
@@ -191,6 +192,29 @@ const Styles = {
 
       /* Disabled option in ranking selects */
       select option:disabled { color: rgba(148, 163, 184, 0.4); }
+
+      /* Number ranking inputs — remove browser spinner, constrain width */
+      input[type="number"].ranking-input {
+        width: 100px;
+        text-align: center;
+        -moz-appearance: textfield;
+      }
+      input[type="number"].ranking-input::-webkit-inner-spin-button,
+      input[type="number"].ranking-input::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+
+      /* Ranking row — label left, input right */
+      .ranking-row {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+      .ranking-row .form-label {
+        flex: 1;
+        margin-bottom: 0;
+      }
 
       /* ── Buttons ── */
       .btn {

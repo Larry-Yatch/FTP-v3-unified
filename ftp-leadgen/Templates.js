@@ -56,7 +56,7 @@ const Templates = {
     name: 'False Self-View',
 
     teaser: `
-      <p style="font-weight:600; color:#f0eaf7; margin-bottom:10px;">Your dominant pattern: False Self-View</p>
+      <p style="font-weight:600; color:#f0eaf7; margin-bottom:10px;">Your dominant survival strategy: False Self-View</p>
       <p style="font-size:16px; line-height:1.75; margin-bottom:10px;">You've built the income — and something keeps making sure it never quite feels secure. Your full report reveals why, and what to do about it.</p>
       <p style="color:#b0a0c0; font-size:14px; font-style:italic;">Enter your email to receive your personalized Financial TruPath report.</p>
     `,
@@ -111,7 +111,7 @@ const Templates = {
     name: 'External Validation',
 
     teaser: `
-      <p style="font-weight:600; color:#f0eaf7; margin-bottom:10px;">Your dominant pattern: External Validation</p>
+      <p style="font-weight:600; color:#f0eaf7; margin-bottom:10px;">Your dominant survival strategy: External Validation</p>
       <p style="font-size:16px; line-height:1.75; margin-bottom:10px;">Your financial decisions are being shaped by an audience that isn't in the room. Your full report reveals exactly how — and what financial freedom looks like when you stop performing for them.</p>
       <p style="color:#b0a0c0; font-size:14px; font-style:italic;">Enter your email to receive your personalized Financial TruPath report.</p>
     `,
@@ -165,7 +165,7 @@ const Templates = {
     name: 'Issues Showing Love',
 
     teaser: `
-      <p style="font-weight:600; color:#f0eaf7; margin-bottom:10px;">Your dominant pattern: Issues Showing Love</p>
+      <p style="font-weight:600; color:#f0eaf7; margin-bottom:10px;">Your dominant survival strategy: Issues Showing Love</p>
       <p style="font-size:16px; line-height:1.75; margin-bottom:10px;">Your generosity is real. So is the pattern underneath it that's been funding everyone's goals but yours. Your full report shows you where the line is — and how to stop paying for it.</p>
       <p style="color:#b0a0c0; font-size:14px; font-style:italic;">Enter your email to receive your personalized Financial TruPath report.</p>
     `,
@@ -219,7 +219,7 @@ const Templates = {
     name: 'Issues Receiving Love',
 
     teaser: `
-      <p style="font-weight:600; color:#f0eaf7; margin-bottom:10px;">Your dominant pattern: Issues Receiving Love</p>
+      <p style="font-weight:600; color:#f0eaf7; margin-bottom:10px;">Your dominant survival strategy: Issues Receiving Love</p>
       <p style="font-size:16px; line-height:1.75; margin-bottom:10px;">There's a quiet belief running underneath your finances that having money changes things in ways you don't want. Your full report names it clearly — and shows you what financial independence actually looks like on the other side of it.</p>
       <p style="color:#b0a0c0; font-size:14px; font-style:italic;">Enter your email to receive your personalized Financial TruPath report.</p>
     `,
@@ -273,7 +273,7 @@ const Templates = {
     name: 'Control Leading to Isolation',
 
     teaser: `
-      <p style="font-weight:600; color:#f0eaf7; margin-bottom:10px;">Your dominant pattern: Control Leading to Isolation</p>
+      <p style="font-weight:600; color:#f0eaf7; margin-bottom:10px;">Your dominant survival strategy: Control Leading to Isolation</p>
       <p style="font-size:16px; line-height:1.75; margin-bottom:10px;">Your discipline is real. So is the pattern that's been using it to keep you going without. Your full report reveals exactly how — and what it looks like to have control without the scarcity it's been buying.</p>
       <p style="color:#b0a0c0; font-size:14px; font-style:italic;">Enter your email to receive your personalized Financial TruPath report.</p>
     `,
@@ -327,7 +327,7 @@ const Templates = {
     name: 'Fear Leading to Isolation',
 
     teaser: `
-      <p style="font-weight:600; color:#f0eaf7; margin-bottom:10px;">Your dominant pattern: Fear Leading to Isolation</p>
+      <p style="font-weight:600; color:#f0eaf7; margin-bottom:10px;">Your dominant survival strategy: Fear Leading to Isolation</p>
       <p style="font-size:16px; line-height:1.75; margin-bottom:10px;">You've been here before — close to a real breakthrough — and something intercepted it. Your full report names the pattern that's been doing that, and what it takes to finally stop it.</p>
       <p style="color:#b0a0c0; font-size:14px; font-style:italic;">Enter your email to receive your personalized Financial TruPath report.</p>
     `,
