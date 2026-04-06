@@ -35,6 +35,37 @@ const Tool2 = Object.assign({}, FormToolBase, {
   },
 
   /**
+   * Quick Check-In hook — called by FormToolBase when quickCheckIn param is set
+   * Seeds draft with previous completed response data in light mode
+   */
+  onQuickCheckIn(clientId) {
+    try {
+      var latestResponse = DataService.getLatestResponse(clientId, 'tool2');
+      if (latestResponse && latestResponse.data) {
+        var sourceData = latestResponse.data.data || latestResponse.data.formData || {};
+        // Force light mode and mark as quick check-in
+        sourceData.assessmentMode = 'light';
+        sourceData._quickCheckIn = true;
+        // Clear edit mode flags (this is a new submission, not an edit)
+        delete sourceData._editMode;
+        delete sourceData._originalTimestamp;
+        delete sourceData._originalResponseId;
+        delete sourceData._editStarted;
+        // Clear draft metadata
+        delete sourceData.lastPage;
+        delete sourceData.lastUpdate;
+        // Clear any existing drafts and EDIT_DRAFT rows (prevents stale data from overriding)
+        DataService.startFreshAttempt(clientId, 'tool2');
+        // Seed the draft with previous response data
+        DraftService.saveDraft('tool2', clientId, 1, sourceData);
+        LogUtils.debug('[Tool2] Quick Check-In seeded from previous response for ' + clientId);
+      }
+    } catch(e) {
+      LogUtils.error('[Tool2] Quick Check-In seed failed: ' + e.message);
+    }
+  },
+
+  /**
    * PAGE 1: Identity & Foundation
    * Both modes: name, email, studentId, age, employment, businessStage, assessmentMode, holisticScarcity, financialScarcity
    * Full only: marital, dependents, living, moneyRelationship
@@ -79,7 +110,10 @@ const Tool2 = Object.assign({}, FormToolBase, {
                                employment === 'full-time-with-business' ||
                                employment === 'part-time-with-business';
 
+    const isQuickCheckIn = data?._quickCheckIn === true;
+
     return `
+      ${isQuickCheckIn ? '<div style="padding: 12px 16px; background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.3); border-radius: 8px; margin-bottom: 20px; color: #93c5fd; font-size: 14px; line-height: 1.5;">Quick Check-In: Review your previous answers and update what has changed.</div>' : ''}
       <h2>Identity and Foundation</h2>
       <p class="muted mb-20">Help us understand your life stage and financial perspective</p>
 
@@ -1467,7 +1501,8 @@ const Tool2 = Object.assign({}, FormToolBase, {
         scarcityFlag: scarcityFlag,
         tool1Profile: tool1Profile,
         assessmentMode: mode,
-        newPriorityList: newPriorityList
+        newPriorityList: newPriorityList,
+        submissionType: allData._quickCheckIn ? 'quick-check-in' : 'full-assessment'
       };
 
       // ============================================================

@@ -54,6 +54,14 @@ const FormToolBase = {
       DataService.startFreshAttempt(clientId, toolId);
     }
 
+    const quickCheckIn = params.quickCheckIn === 'true' || params.quickCheckIn === true;
+    if (quickCheckIn && page === 1) {
+      if (typeof this.onQuickCheckIn === 'function') {
+        LogUtils.debug('[' + toolId + '] Quick Check-In triggered for ' + clientId);
+        this.onQuickCheckIn(clientId);
+      }
+    }
+
     try {
       // Get existing data if resuming
       var existingData = this.getExistingData(clientId);

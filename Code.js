@@ -910,6 +910,7 @@ function getToolPageHtml(toolId, clientId, page) {
  * @returns {string} Tool page HTML
  */
 function getToolPageWithOptions(toolId, clientId, page, options) {
+  Logger.log('[getToolPageWithOptions] toolId=' + toolId + ' clientId=' + clientId + ' page=' + page + ' options=' + JSON.stringify(options));
   return NavigationHelpers.getToolPageWithOptions(toolId, clientId, page, options);
 }
 
@@ -1664,6 +1665,99 @@ function triggerTool2BackgroundGPT(clientId) {
 // - unlockToolForStudent(clientId, toolId)
 //
 // ========================================
+
+/**
+ * TEMPORARY TEST: Quick Check-In Phase 1
+ */
+function testQuickCheckInPhase1() {
+  var results = [];
+  var testClient = '0000AI';
+  var oldClient = '5978RH';
+
+  // === onQuickCheckIn seeds draft correctly ===
+  try {
+    DraftService.clearDraft('tool2', testClient);
+    Tool2.onQuickCheckIn(testClient);
+    var draft = DraftService.getDraft('tool2', testClient);
+
+    results.push('Draft seeded: ' + (draft !== null ? 'PASS' : 'FAIL'));
+    results.push('Draft assessmentMode=light: ' + (draft && draft.assessmentMode === 'light' ? 'PASS' : 'FAIL (got ' + (draft ? draft.assessmentMode : 'null') + ')'));
+    results.push('Draft _quickCheckIn=true: ' + (draft && draft._quickCheckIn === true ? 'PASS' : 'FAIL'));
+    results.push('Draft has name: ' + (draft && draft.name ? 'PASS (' + draft.name + ')' : 'FAIL'));
+    results.push('Draft has grossAnnualIncome: ' + (draft && draft.grossAnnualIncome ? 'PASS (' + draft.grossAnnualIncome + ')' : 'FAIL'));
+    results.push('Draft no _editMode: ' + (draft && !draft._editMode ? 'PASS' : 'FAIL'));
+    results.push('Draft no _originalTimestamp: ' + (draft && !draft._originalTimestamp ? 'PASS' : 'FAIL'));
+
+    var lastResponse = DataService.getLatestResponse(testClient, 'tool2');
+    var lastData = lastResponse.data.data || {};
+    results.push('Draft monthlyTakeHome matches: ' + (draft && draft.monthlyTakeHome === lastData.monthlyTakeHome ? 'PASS' : 'FAIL'));
+    results.push('Draft totalDebtBalance matches: ' + (draft && draft.totalDebtBalance === lastData.totalDebtBalance ? 'PASS' : 'FAIL'));
+  } catch(e) {
+    results.push('onQuickCheckIn: FAIL - ' + e.message);
+  }
+
+  // === Page 1 renders with Quick Check-In banner ===
+  try {
+    var page1QC = Tool2.renderPageContent(1, { _quickCheckIn: true, assessmentMode: 'light' }, testClient);
+    var hasBanner = page1QC.indexOf('Quick Check-In: Review') > -1;
+    var isLight = page1QC.indexOf('value="light"') > -1;
+    results.push('Page 1 QC banner: ' + (hasBanner ? 'PASS' : 'FAIL'));
+    results.push('Page 1 light mode: ' + (isLight ? 'PASS' : 'FAIL'));
+  } catch(e) {
+    results.push('Page 1 QC render: FAIL - ' + e.message);
+  }
+
+  // === Page 1 renders WITHOUT banner for normal submission ===
+  try {
+    var page1Normal = Tool2.renderPageContent(1, { assessmentMode: 'full' }, testClient);
+    var noBanner = page1Normal.indexOf('Quick Check-In: Review') === -1;
+    results.push('Page 1 normal no banner: ' + (noBanner ? 'PASS' : 'FAIL'));
+  } catch(e) {
+    results.push('Page 1 normal render: FAIL - ' + e.message);
+  }
+
+  // === Dashboard card has Quick Check-In button (completed student) ===
+  try {
+    var lastResp = DataService.getLatestResponse(testClient, 'tool2');
+    var card = Router._buildTool2Card(testClient, ScriptApp.getService().getUrl(), lastResp, false, true, true);
+    var hasQCButton = card.indexOf('quickCheckInTool2') > -1;
+    var hasQCLabel = card.indexOf('Quick Check-In') > -1;
+    var hasNewTitle = card.indexOf('Financial Mirror') > -1;
+    results.push('Dashboard QC button: ' + (hasQCButton ? 'PASS' : 'FAIL'));
+    results.push('Dashboard QC label: ' + (hasQCLabel ? 'PASS' : 'FAIL'));
+    results.push('Dashboard title updated: ' + (hasNewTitle ? 'PASS' : 'FAIL'));
+  } catch(e) {
+    results.push('Dashboard card: FAIL - ' + e.message);
+  }
+
+  // === Dashboard card for non-completed student has NO QC button ===
+  try {
+    var noT2Card = Router._buildTool2Card(oldClient, ScriptApp.getService().getUrl(), null, false, false, true);
+    var noQC = noT2Card.indexOf('quickCheckInTool2') === -1;
+    results.push('Non-completed no QC button: ' + (noQC ? 'PASS' : 'FAIL'));
+  } catch(e) {
+    results.push('Non-completed card: FAIL - ' + e.message);
+  }
+
+  // === Full page rendering via getToolPageWithOptions ===
+  try {
+    var qcPage = NavigationHelpers.getToolPageWithOptions('tool2', testClient, 1, { quickCheckIn: true });
+    var pageHasBanner = qcPage.indexOf('Quick Check-In: Review') > -1;
+    results.push('Full QC page renders: ' + (qcPage.length > 5000 ? 'PASS (' + qcPage.length + ' chars)' : 'FAIL'));
+    results.push('Full QC page has banner: ' + (pageHasBanner ? 'PASS' : 'FAIL'));
+  } catch(e) {
+    results.push('Full QC page: FAIL - ' + e.message);
+  }
+
+  // Clean up
+  DraftService.clearDraft('tool2', testClient);
+
+  var passed = results.filter(function(r) { return r.indexOf('PASS') > -1; }).length;
+  var total = results.length;
+  Logger.log('=== Quick Check-In Phase 1 Test Results ===');
+  results.forEach(function(r) { Logger.log(r); });
+  Logger.log('=== Overall: ' + passed + '/' + total + (passed === total ? ' ALL PASSED' : ' SOME FAILED') + ' ===');
+}
 
 /**
  * TEMPORARY TEST: Verify Tool 2 Phase 1 form rendering and data saving

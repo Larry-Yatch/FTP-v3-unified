@@ -202,7 +202,7 @@ When `processFinalSubmission` runs and `allData._quickCheckIn === true`:
 
 | Phase | Title | Status |
 |-------|-------|--------|
-| 1 | Quick Check-In Dashboard Button | NOT STARTED |
+| 1 | Quick Check-In Dashboard Button | COMPLETE |
 | 2 | Quick Check-In Report | NOT STARTED |
 
 **Rule**: Do not begin Phase 2 until Phase 1 passes manual testing. The student needs to complete a Quick Check-In submission before the delta report can be tested.
