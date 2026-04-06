@@ -1371,4 +1371,30 @@ const results = {
 
 ---
 
-*Document version: 1.1 | Last updated: 2026-04-05 | Status: Design — ready for implementation*
+## 15. Future Features (Post-Phase 6)
+
+Features identified during Phase 1 implementation. To be designed and built after the core 6 phases are complete.
+
+### 15.1 Quick Check-In Dashboard Button
+- Add a second entry point on the tool dashboard for Tool 2: **"Quick Check-In (~15 min)"**
+- Clicking it loads Tool 2 with `assessmentMode=light` pre-set
+- Pre-fills all fields from the student's most recent completed Tool 2 response (the point is "has anything changed?" — starting blank defeats the purpose)
+- Student reviews and updates only what has changed, then submits
+
+### 15.2 Quick Check-In Report
+- Design a separate report template for quick check-in submissions (distinct from the full assessment report)
+- Focus on **deltas from last time** rather than the full narrative analysis
+- Include a callout encouraging the full assessment for deeper insights
+- Requires the progress comparison infrastructure built in Phase 3
+
+### 15.3 Progress Over Time View
+- A longitudinal view showing how a student's scores have changed across multiple Tool 2 submissions
+- Domain-by-domain trend lines (objective health, subjective clarity, gap index)
+- Scarcity flag changes over time
+- This is a broader app-level feature — progress tracking is not yet designed for the overall platform
+- **Dependency**: Requires multiple submissions using the new schema (`objectiveHealthScores` present) before meaningful comparison is possible
+- Capture as a separate design document when the app-wide progress tracking architecture is defined
+
+---
+
+*Document version: 1.2 | Last updated: 2026-04-06 | Status: Phase 1 complete, Phase 2 in progress*
