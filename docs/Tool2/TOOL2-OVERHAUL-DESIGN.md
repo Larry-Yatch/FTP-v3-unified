@@ -15,9 +15,10 @@
 
 ### After Completing Any Phase
 1. Run the test protocol listed in the phase.
-2. Report results to the human: what passed, what failed, what was unexpected.
-3. **Update the Phase Status table** in Section 13 — change the phase status to `✅ COMPLETE`.
-4. **Wait for human confirmation** before starting the next phase.
+2. If any test step fails, fix it and re-run the test protocol. Repeat until all steps pass. Do not move on with known failures.
+3. Report results to the human: what passed, what required iteration, what was unexpected.
+4. **Update the Phase Status table** in Section 13 — change the phase status to `✅ COMPLETE`.
+5. **Wait for human confirmation** before starting the next phase. The human will do their own manual check before giving the go-ahead.
 
 ### If You Hit a Problem Mid-Phase
 - Stop and report to the human immediately. Do not silently work around the design doc.
