@@ -196,6 +196,9 @@ const NavigationHelpers = {
       if (options.clearDraft) {
         fakeRequest.parameter.clearDraft = 'true';
       }
+      if (options.quickCheckIn) {
+        fakeRequest.parameter.quickCheckIn = 'true';
+      }
 
       // Get page HTML from router
       const pageOutput = Router.route(fakeRequest);

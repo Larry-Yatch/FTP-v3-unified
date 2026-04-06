@@ -7,8 +7,27 @@
  */
 const Tool2Constants = {
 
+  // =========================================================================
+  // LEGACY SCORING CONSTANTS (pre-overhaul submissions only)
+  //
+  // DOMAIN_QUESTIONS and MAX_SCORES reference field names from the OLD form
+  // (pre-Financial Mirror overhaul). The new form collects different fields
+  // (see FULL_MODE_FIELDS and LIGHT_MODE_FIELDS below).
+  //
+  // These constants are consumed by the legacy scoring pipeline in Tool2.js
+  // (processResults → calculateDomainScores → sumScaleQuestions → etc.)
+  // which still runs for backward compatibility. For NEW submissions, the
+  // legacy pipeline produces near-zero scores because the old field names
+  // are not present in the form data. This is expected — new submissions
+  // use the objectiveHealthScores/subjectiveScores/gapIndexes pipeline.
+  //
+  // DO NOT update these to reference new field names — that would break
+  // backward compatibility for old submissions. DO NOT rely on legacy
+  // domainScores/benchmarks/weightedScores for new submissions.
+  // =========================================================================
+
   /**
-   * Domain → question field mapping
+   * LEGACY — Domain → question field mapping (old form fields)
    * Each domain's score = sum of normalized scale values for its questions
    */
   DOMAIN_QUESTIONS: {
@@ -34,7 +53,7 @@ const Tool2Constants = {
   },
 
   /**
-   * Maximum possible points per domain
+   * LEGACY — Maximum possible points per domain (old form)
    * Each question normalizes to 0-10 scale, so max = questionCount * 10
    */
   MAX_SCORES: {

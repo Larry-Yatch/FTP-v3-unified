@@ -174,7 +174,8 @@ const Router = {
         page: page,
         // Pass through URL parameters for immediate navigation actions
         editMode: params.editMode,
-        clearDraft: params.clearDraft
+        clearDraft: params.clearDraft,
+        quickCheckIn: params.quickCheckIn
       };
 
       // Each tool implements its own render() method
@@ -1152,20 +1153,23 @@ const Router = {
       return `
         <div class="tool-card" style="margin-bottom: 15px; border: 2px solid #4CAF50;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-            <h3 style="margin: 0;">Tool 2: Financial Clarity & Values</h3>
-            <span class="badge" style="background: #4CAF50; color: white;">✓ Completed</span>
+            <h3 style="margin: 0;">Tool 2: Financial Mirror</h3>
+            <span class="badge" style="background: #4CAF50; color: white;">Completed</span>
           </div>
           <p class="muted" style="margin-bottom: 10px;">Completed on ${completedDate}</p>
 
           <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px;">
             <button class="btn-primary" onclick="viewTool2Report()">
-              📊 View Report
+              View Report
+            </button>
+            <button class="btn-secondary" onclick="quickCheckInTool2()">
+              Quick Check-In (~15 min)
             </button>
             <button class="btn-secondary" onclick="editTool2Response()">
-              ✏️ Edit Answers
+              Edit Answers
             </button>
             <button class="btn-secondary" onclick="retakeTool2()">
-              🔄 Start Fresh
+              Start Fresh
             </button>
           </div>
         </div>
@@ -1186,6 +1190,25 @@ const Router = {
                 alert('Error loading report: ' + error.message);
               })
               .getReportPage('${clientId}', 'tool2');
+          }
+
+          function quickCheckInTool2() {
+            if (!confirm('Start a Quick Check-In? Your previous answers will be pre-filled for review.')) return;
+            showLoading('Loading Quick Check-In...');
+            google.script.run
+              .withSuccessHandler(function(pageHtml) {
+                if (!pageHtml) { hideLoading(); alert('Error loading Quick Check-In.'); return; }
+                if (typeof saveLocationForRefresh === 'function') saveLocationForRefresh('tool', 'tool2', 1, '${clientId}');
+                document.open();
+                document.write(pageHtml);
+                document.close();
+                window.scrollTo(0, 0);
+              })
+              .withFailureHandler(function(error) {
+                hideLoading();
+                alert('Error loading Quick Check-In: ' + error.message);
+              })
+              .getToolPageWithOptions('tool2', '${clientId}', 1, { quickCheckIn: true });
           }
 
           function editTool2Response() {

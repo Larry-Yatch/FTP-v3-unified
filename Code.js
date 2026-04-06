@@ -910,6 +910,7 @@ function getToolPageHtml(toolId, clientId, page) {
  * @returns {string} Tool page HTML
  */
 function getToolPageWithOptions(toolId, clientId, page, options) {
+  Logger.log('[getToolPageWithOptions] toolId=' + toolId + ' clientId=' + clientId + ' page=' + page + ' options=' + JSON.stringify(options));
   return NavigationHelpers.getToolPageWithOptions(toolId, clientId, page, options);
 }
 
@@ -1664,6 +1665,251 @@ function triggerTool2BackgroundGPT(clientId) {
 // - unlockToolForStudent(clientId, toolId)
 //
 // ========================================
+
+function testTool2PDFBothModes() {
+  var results = [];
+
+  // Test full-mode PDF by temporarily rendering for a full-mode student
+  // We need a student whose latest Tool 2 is full mode
+  // Check if any of 0000AI's previous submissions are full mode
+  try {
+    var sheet = SpreadsheetApp.openById(CONFIG.MASTER_SHEET_ID).getSheetByName('RESPONSES');
+    var allData = sheet.getDataRange().getValues();
+    var headers = allData[0];
+    var toolIdCol = headers.indexOf('Tool_ID');
+    var clientCol = headers.indexOf('Client_ID');
+    var dataCol = headers.indexOf('Data');
+    var statusCol = headers.indexOf('Status');
+
+    // Find a student with full-mode new-schema Tool 2
+    var fullModeClient = null;
+    for (var i = allData.length - 1; i >= 1; i--) {
+      if (allData[i][toolIdCol] === 'tool2' && allData[i][statusCol] === 'COMPLETED') {
+        try {
+          var parsed = JSON.parse(allData[i][dataCol]);
+          if (parsed && parsed.results && parsed.results.objectiveHealthScores && parsed.results.assessmentMode === 'full') {
+            fullModeClient = allData[i][clientCol];
+            break;
+          }
+        } catch(e) {}
+      }
+    }
+
+    if (fullModeClient) {
+      results.push('Full-mode student found: PASS (' + fullModeClient + ')');
+    } else {
+      results.push('Full-mode student: SKIP (none found with new schema + full mode)');
+    }
+  } catch(e) {
+    results.push('Student search: FAIL - ' + e.message);
+  }
+
+  // Test light-mode PDF (0000AI latest is light)
+  try {
+    var lightPDF = PDFGenerator.generateTool2PDF('0000AI');
+    results.push('Light PDF generates: ' + (lightPDF.success ? 'PASS' : 'FAIL - ' + lightPDF.error));
+    if (lightPDF.success) {
+      results.push('Light PDF has blob: ' + (lightPDF.blob ? 'PASS' : 'FAIL'));
+    }
+  } catch(e) {
+    results.push('Light PDF: FAIL - ' + e.message);
+  }
+
+  // Test full-mode PDF directly by calling the internal method
+  try {
+    // Build mock data for full mode test
+    var testResults = Tool2Report.getResults('0000AI');
+    // Override to full mode for testing
+    var savedMode = testResults.results.assessmentMode;
+    testResults.results.assessmentMode = 'full';
+
+    var fullHeader = PDFGenerator.buildHeader('Financial Mirror Report', 'Test');
+    var fullBody = PDFGenerator._buildFullTool2PDF(fullHeader, '', '0000AI', testResults.results, testResults.formData, testResults.overallInsight);
+
+    var hasReality = fullBody.indexOf('Your Financial Reality') > -1;
+    var hasGap = fullBody.indexOf('The Gap Analysis') > -1;
+    var hasPattern = fullBody.indexOf('Pattern Synthesis') > -1;
+    var hasObjScores = fullBody.indexOf('/100') > -1;
+    var hasArchetype = fullBody.indexOf('archetype-name') > -1;
+    var hasInsights = fullBody.indexOf('Personalized Insights') > -1;
+    var noLegacyPercent = fullBody.indexOf('Financial Clarity Scores') === -1;
+
+    results.push('Full PDF has Financial Reality: ' + (hasReality ? 'PASS' : 'FAIL'));
+    results.push('Full PDF has Gap Analysis: ' + (hasGap ? 'PASS' : 'FAIL'));
+    results.push('Full PDF has Pattern Synthesis: ' + (hasPattern ? 'PASS' : 'FAIL'));
+    results.push('Full PDF has /100 scores: ' + (hasObjScores ? 'PASS' : 'FAIL'));
+    results.push('Full PDF has archetype: ' + (hasArchetype ? 'PASS' : 'FAIL'));
+    results.push('Full PDF has insights: ' + (hasInsights ? 'PASS' : 'FAIL'));
+    results.push('Full PDF no legacy percent: ' + (noLegacyPercent ? 'PASS' : 'FAIL'));
+
+    // Restore
+    testResults.results.assessmentMode = savedMode;
+  } catch(e) {
+    results.push('Full PDF content: FAIL - ' + e.message);
+  }
+
+  // Test legacy PDF (old schema student)
+  try {
+    var oldPDF = PDFGenerator.generateTool2PDF('5978RH');
+    if (oldPDF.success) {
+      results.push('Legacy PDF generates: PASS');
+    } else {
+      // Might fail if 5978RH has no Tool 2 - that is OK
+      results.push('Legacy PDF: SKIP (' + oldPDF.error + ')');
+    }
+  } catch(e) {
+    results.push('Legacy PDF: FAIL - ' + e.message);
+  }
+
+  var passed = results.filter(function(r) { return r.indexOf('PASS') > -1; }).length;
+  var total = results.filter(function(r) { return r.indexOf('SKIP') === -1; }).length;
+  Logger.log('=== Tool 2 PDF Both Modes Test Results ===');
+  results.forEach(function(r) { Logger.log(r); });
+  Logger.log('=== Overall: ' + passed + '/' + total + (passed === total ? ' ALL PASSED' : ' SOME FAILED') + ' ===');
+}
+
+function testQuickCheckInPhase2Report() {
+  var results = [];
+  var testClient = '0000AI';
+  var oldClient = '5978RH';
+
+  try {
+    var report = Tool2Report.getResults(testClient);
+    var mode = report.results.assessmentMode;
+    results.push('Latest mode: ' + (mode === 'light' ? 'PASS (light)' : 'INFO (' + mode + ')'));
+
+    var reportHtml = Tool2Report.render(testClient);
+    var content = reportHtml.getContent();
+    results.push('Report renders: ' + (content.length > 5000 ? 'PASS (' + content.length + ' chars)' : 'FAIL'));
+
+    var hasDeltaHero = content.indexOf('What Changed') > -1 || content.indexOf('Your Financial Snapshot') > -1;
+    results.push('Delta hero present: ' + (hasDeltaHero ? 'PASS' : 'FAIL'));
+    results.push('Delta cards: ' + (content.indexOf('delta-card') > -1 ? 'PASS' : 'FAIL'));
+    results.push('Full assessment callout: ' + (content.indexOf('Want Deeper Insights') > -1 ? 'PASS' : 'FAIL'));
+
+    results.push('Scarcity present: ' + (content.indexOf('Scarcity and Mindset') > -1 ? 'PASS' : 'FAIL'));
+    results.push('Reality present: ' + (content.indexOf('Your Financial Reality') > -1 ? 'PASS' : 'FAIL'));
+    results.push('Archetype present: ' + (content.indexOf('Your Growth Archetype') > -1 ? 'PASS' : 'FAIL'));
+
+    results.push('No Perception: ' + (content.indexOf('Your Financial Perception') === -1 ? 'PASS' : 'FAIL'));
+    results.push('No Gap Analysis: ' + (content.indexOf('The Gap Analysis') === -1 ? 'PASS' : 'FAIL'));
+    results.push('No Priority Map: ' + (content.indexOf('Priority Map') === -1 ? 'PASS' : 'FAIL'));
+    results.push('No Pattern Synthesis: ' + (content.indexOf('Pattern Synthesis') === -1 ? 'PASS' : 'FAIL'));
+
+    var objScores = report.results.objectiveHealthScores || {};
+    results.push('Delta has scores: ' + (content.indexOf('>' + objScores.moneyFlow + '<') > -1 ? 'PASS' : 'FAIL'));
+  } catch(e) {
+    results.push('Light-mode report: FAIL - ' + e.message);
+  }
+
+  try {
+    var oldReport = Tool2Report.render(oldClient);
+    var oldContent = oldReport.getContent();
+    results.push('Old schema renders: ' + (oldContent.length > 5000 ? 'PASS' : 'FAIL'));
+    results.push('Old schema no delta: ' + (oldContent.indexOf('delta-card') === -1 ? 'PASS' : 'FAIL'));
+  } catch(e) {
+    results.push('Old schema: FAIL - ' + e.message);
+  }
+
+  var passed = results.filter(function(r) { return r.indexOf('PASS') > -1; }).length;
+  var total = results.filter(function(r) { return r.indexOf('SKIP') === -1 && r.indexOf('INFO') === -1; }).length;
+  Logger.log('=== Quick Check-In Phase 2 Report Test Results ===');
+  results.forEach(function(r) { Logger.log(r); });
+  Logger.log('=== Overall: ' + passed + '/' + total + (passed === total ? ' ALL PASSED' : ' SOME FAILED') + ' ===');
+}
+
+/**
+ * TEMPORARY TEST: Quick Check-In Phase 1
+ */
+function testQuickCheckInPhase1() {
+  var results = [];
+  var testClient = '0000AI';
+  var oldClient = '5978RH';
+
+  // === onQuickCheckIn seeds draft correctly ===
+  try {
+    DraftService.clearDraft('tool2', testClient);
+    Tool2.onQuickCheckIn(testClient);
+    var draft = DraftService.getDraft('tool2', testClient);
+
+    results.push('Draft seeded: ' + (draft !== null ? 'PASS' : 'FAIL'));
+    results.push('Draft assessmentMode=light: ' + (draft && draft.assessmentMode === 'light' ? 'PASS' : 'FAIL (got ' + (draft ? draft.assessmentMode : 'null') + ')'));
+    results.push('Draft _quickCheckIn=true: ' + (draft && draft._quickCheckIn === true ? 'PASS' : 'FAIL'));
+    results.push('Draft has name: ' + (draft && draft.name ? 'PASS (' + draft.name + ')' : 'FAIL'));
+    results.push('Draft has grossAnnualIncome: ' + (draft && draft.grossAnnualIncome ? 'PASS (' + draft.grossAnnualIncome + ')' : 'FAIL'));
+    results.push('Draft no _editMode: ' + (draft && !draft._editMode ? 'PASS' : 'FAIL'));
+    results.push('Draft no _originalTimestamp: ' + (draft && !draft._originalTimestamp ? 'PASS' : 'FAIL'));
+
+    var lastResponse = DataService.getLatestResponse(testClient, 'tool2');
+    var lastData = lastResponse.data.data || {};
+    results.push('Draft monthlyTakeHome matches: ' + (draft && draft.monthlyTakeHome === lastData.monthlyTakeHome ? 'PASS' : 'FAIL'));
+    results.push('Draft totalDebtBalance matches: ' + (draft && draft.totalDebtBalance === lastData.totalDebtBalance ? 'PASS' : 'FAIL'));
+  } catch(e) {
+    results.push('onQuickCheckIn: FAIL - ' + e.message);
+  }
+
+  // === Page 1 renders with Quick Check-In banner ===
+  try {
+    var page1QC = Tool2.renderPageContent(1, { _quickCheckIn: true, assessmentMode: 'light' }, testClient);
+    var hasBanner = page1QC.indexOf('Quick Check-In: Review') > -1;
+    var isLight = page1QC.indexOf('value="light"') > -1;
+    results.push('Page 1 QC banner: ' + (hasBanner ? 'PASS' : 'FAIL'));
+    results.push('Page 1 light mode: ' + (isLight ? 'PASS' : 'FAIL'));
+  } catch(e) {
+    results.push('Page 1 QC render: FAIL - ' + e.message);
+  }
+
+  // === Page 1 renders WITHOUT banner for normal submission ===
+  try {
+    var page1Normal = Tool2.renderPageContent(1, { assessmentMode: 'full' }, testClient);
+    var noBanner = page1Normal.indexOf('Quick Check-In: Review') === -1;
+    results.push('Page 1 normal no banner: ' + (noBanner ? 'PASS' : 'FAIL'));
+  } catch(e) {
+    results.push('Page 1 normal render: FAIL - ' + e.message);
+  }
+
+  // === Dashboard card has Quick Check-In button (completed student) ===
+  try {
+    var lastResp = DataService.getLatestResponse(testClient, 'tool2');
+    var card = Router._buildTool2Card(testClient, ScriptApp.getService().getUrl(), lastResp, false, true, true);
+    var hasQCButton = card.indexOf('quickCheckInTool2') > -1;
+    var hasQCLabel = card.indexOf('Quick Check-In') > -1;
+    var hasNewTitle = card.indexOf('Financial Mirror') > -1;
+    results.push('Dashboard QC button: ' + (hasQCButton ? 'PASS' : 'FAIL'));
+    results.push('Dashboard QC label: ' + (hasQCLabel ? 'PASS' : 'FAIL'));
+    results.push('Dashboard title updated: ' + (hasNewTitle ? 'PASS' : 'FAIL'));
+  } catch(e) {
+    results.push('Dashboard card: FAIL - ' + e.message);
+  }
+
+  // === Dashboard card for non-completed student has NO QC button ===
+  try {
+    var noT2Card = Router._buildTool2Card(oldClient, ScriptApp.getService().getUrl(), null, false, false, true);
+    var noQC = noT2Card.indexOf('quickCheckInTool2') === -1;
+    results.push('Non-completed no QC button: ' + (noQC ? 'PASS' : 'FAIL'));
+  } catch(e) {
+    results.push('Non-completed card: FAIL - ' + e.message);
+  }
+
+  // === Full page rendering via getToolPageWithOptions ===
+  try {
+    var qcPage = NavigationHelpers.getToolPageWithOptions('tool2', testClient, 1, { quickCheckIn: true });
+    var pageHasBanner = qcPage.indexOf('Quick Check-In: Review') > -1;
+    results.push('Full QC page renders: ' + (qcPage.length > 5000 ? 'PASS (' + qcPage.length + ' chars)' : 'FAIL'));
+    results.push('Full QC page has banner: ' + (pageHasBanner ? 'PASS' : 'FAIL'));
+  } catch(e) {
+    results.push('Full QC page: FAIL - ' + e.message);
+  }
+
+  // Clean up
+  DraftService.clearDraft('tool2', testClient);
+
+  var passed = results.filter(function(r) { return r.indexOf('PASS') > -1; }).length;
+  var total = results.length;
+  Logger.log('=== Quick Check-In Phase 1 Test Results ===');
+  results.forEach(function(r) { Logger.log(r); });
+  Logger.log('=== Overall: ' + passed + '/' + total + (passed === total ? ' ALL PASSED' : ' SOME FAILED') + ' ===');
+}
 
 /**
  * TEMPORARY TEST: Verify Tool 2 Phase 1 form rendering and data saving
