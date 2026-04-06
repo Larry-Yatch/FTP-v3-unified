@@ -34,7 +34,7 @@ This guide provides **everything you need** to build a new tool in the v3 framew
 1. **ARCHITECTURE.md** - Understand the framework and shared utilities
 2. **REFACTORING_DOCUMENTATION.md** - Learn about the 7 new shared utilities
 3. **Tool 1 code** (`tools/tool1/Tool1.js`) - Pure algorithmic example
-4. **Tool 2 code** (`tools/tool2/Tool2.js`) - Hybrid (algo + GPT) example
+4. **Tool 2 code** (`tools/tool2/Tool2.js`) - Hybrid (algo + GPT) example (overhauled April 2026 as "Financial Mirror" — see `docs/Tool2/` for current design)
 
 ### **Reference During Development:**
 - **Shared Utilities** (`/shared/` directory) - Reusable components for all tools
@@ -477,7 +477,7 @@ getExistingData(clientId) {
 
 ### **Type 3: Multi-Page Form (Hybrid with GPT)**
 **Use when:** 30+ questions with free-text, need personalized insights
-**Example:** Tool 2 (57 questions, 5 pages, algo scoring + GPT insights)
+**Example:** Tool 2 Financial Mirror (43 questions full / 26 light, 5 pages, dual-track scoring + GPT insights)
 **Complexity:** High
 **Cost:** ~$0.01-0.05 per report
 
@@ -1571,11 +1571,11 @@ function testToolN() {
 
 ---
 
-### **Tool 2: Hybrid (Algo + GPT)**
+### **Tool 2: Financial Mirror — Hybrid (Algo + GPT)**
 **Location:** `tools/tool2/Tool2.js` (when implemented)
 
 **Pattern:**
-- 5 pages, 57 questions
+- 5 pages, 43 questions (full mode) / 26 questions (light mode)
 - Mix of scales, selects, numeric inputs, free-text
 - Pre-fills from Tool 1
 - Adaptive questions (2 shown based on Tool 1 trauma)
