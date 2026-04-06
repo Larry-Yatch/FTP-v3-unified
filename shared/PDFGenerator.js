@@ -133,74 +133,191 @@ const PDFGenerator = {
    */
   generateTool1PDF(clientId) {
     try {
-      // Get results
+      // Get results (includes backward-compatible profileType computation)
       const results = Tool1Report.getResults(clientId);
       if (!results) {
         return { success: false, error: 'No results found' };
       }
 
-      // Get template
       const template = Tool1Templates.getTemplate(results.winner);
       if (!template) {
         return { success: false, error: 'Template not found' };
       }
 
       const studentName = results.formData.name || 'Student';
+      const profile = results.profileType;
+      const scores = results.scores;
+      const winner = results.winner;
 
-      // Tool1-specific styles
+      // Pattern name mapping (mirrors Tool1Report.PATTERN_NAMES)
+      const NAMES = {
+        FSV: 'False Self-View',
+        ExVal: 'External Validation',
+        Showing: 'Issues Showing Love',
+        Receiving: 'Issues Receiving Love',
+        Control: 'Control Leading to Isolation',
+        Fear: 'Fear Leading to Isolation'
+      };
+
+      // Tool1-specific PDF styles
       const tool1Styles = this.getCommonStyles() + `
         .scores { margin: 30px 0; }
         .score-row { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #ddd; }
         .score-label { font-weight: 600; }
         .score-value { color: ${CONFIG.UI.PRIMARY_COLOR}; font-weight: 700; font-size: 18px; }
         .winner { background: #fff8e1; font-weight: 700; }
+        .profile-box { background: #f8f6f3; padding: 15px 20px; border-radius: 6px; margin: 20px 0; }
+        .profile-box-negative { background: #f5f5f7; }
+        .combination-box { background: #faf8f5; padding: 15px 20px; border: 1px solid #e8e0d4; border-radius: 6px; margin: 15px 0; }
+        .strength-box { background: #f0fdf4; padding: 15px 20px; border: 1px solid #bbf7d0; border-radius: 6px; margin: 10px 0; }
+        .strength-box h4 { color: #166534; margin: 0 0 5px 0; font-size: 14px; }
+        .polarity-box { background: #f5f3ff; padding: 15px 20px; border-left: 4px solid #8b5cf6; border-radius: 6px; margin: 15px 0; }
+        .scores-note { font-size: 12px; color: #666; margin-top: 10px; font-style: italic; }
       `;
 
-      // Build scores section
-      const scoresHTML = `
-        <div class="scores">
-          <h3>Raw Scores</h3>
-          <p>The higher numbers indicate stronger strategies used by your subconscious. The raw scores range from -25 to 25.</p>
+      // === SECTION 1: Header ===
+      let bodyContent = this.buildHeader('Core Trauma Strategy Assessment Report', studentName);
 
-          <div class="score-row ${results.winner === 'FSV' ? 'winner' : ''}">
-            <span class="score-label">False Self-View:</span>
-            <span class="score-value">${results.scores.FSV}</span>
-          </div>
-          <div class="score-row ${results.winner === 'ExVal' ? 'winner' : ''}">
-            <span class="score-label">External Validation:</span>
-            <span class="score-value">${results.scores.ExVal}</span>
-          </div>
-          <div class="score-row ${results.winner === 'Showing' ? 'winner' : ''}">
-            <span class="score-label">Issues Showing Love:</span>
-            <span class="score-value">${results.scores.Showing}</span>
-          </div>
-          <div class="score-row ${results.winner === 'Receiving' ? 'winner' : ''}">
-            <span class="score-label">Issues Receiving Love:</span>
-            <span class="score-value">${results.scores.Receiving}</span>
-          </div>
-          <div class="score-row ${results.winner === 'Control' ? 'winner' : ''}">
-            <span class="score-label">Control Leading to Isolation:</span>
-            <span class="score-value">${results.scores.Control}</span>
-          </div>
-          <div class="score-row ${results.winner === 'Fear' ? 'winner' : ''}">
-            <span class="score-label">Fear Leading to Isolation:</span>
-            <span class="score-value">${results.scores.Fear}</span>
-          </div>
-        </div>
-      `;
+      // === SECTION 2: Profile Type ===
+      if (profile) {
+        const winnerName = NAMES[winner] || winner;
 
-      // Build body content
-      const bodyContent =
-        this.buildHeader('Core Trauma Strategy Assessment Report', studentName) +
-        `<div class="intro">${Tool1Templates.commonIntro}</div>` +
-        `<div class="content">${template.content}</div>` +
-        scoresHTML +
-        `<div class="footer">${Tool1Templates.commonFooter}</div>`;
+        if (profile.type === 'STRONG_SINGLE') {
+          const sorted = Object.entries(scores).sort((a, b) => b[1] - a[1]);
+          const secondKey = sorted.find(e => e[0] !== winner)[0];
+          const secondName = NAMES[secondKey] || secondKey;
+          bodyContent += '<div class="profile-box">' +
+            '<h3>Your Profile Type</h3>' +
+            '<p>Based on your responses, the pattern we most commonly associate with these scores is <strong>' + winnerName + '</strong>. ' +
+            'Your score of ' + scores[winner] + ' is notably higher than your next-highest score ' +
+            '(' + secondName + ' at ' + scores[secondKey] + '). In our experience, this kind of gap often suggests this pattern may be worth exploring further.</p>' +
+          '</div>';
 
-      // Build complete HTML
+        } else if (profile.type === 'BORDERLINE_DUAL') {
+          const secondaryName = NAMES[profile.secondary] || profile.secondary;
+          bodyContent += '<div class="profile-box">' +
+            '<h3>Your Profile Type</h3>' +
+            '<p>Your responses point to two patterns with closely matched scores: <strong>' + winnerName + '</strong> (' + scores[winner] + ') ' +
+            'and <strong>' + secondaryName + '</strong> (' + scores[profile.secondary] + '). ' +
+            'When we see two patterns this close, it often suggests both may be playing a role. The interplay between them is described below \u2014 see if it resonates with your experience.</p>' +
+          '</div>';
+
+        } else if (profile.type === 'MODERATE_SINGLE') {
+          bodyContent += '<div class="profile-box">' +
+            '<h3>Your Profile Type</h3>' +
+            '<p>Your responses suggest <strong>' + winnerName + '</strong> as a primary pattern to explore. ' +
+            'The description below reflects what we commonly see with this pattern \u2014 consider which parts feel familiar and which do not.</p>' +
+          '</div>';
+
+        } else if (profile.type === 'NEGATIVE_DOMINANT') {
+          bodyContent += '<div class="profile-box profile-box-negative">' +
+            '<h3>Your Profile Type</h3>' +
+            Tool1Templates.NEGATIVE_DOMINANT_INTRO(winnerName, scores[winner]) +
+          '</div>';
+        }
+      }
+
+      // === SECTION 3: Psychological Patterns ===
+      if (profile && profile.type === 'NEGATIVE_DOMINANT') {
+        bodyContent += '<div class="content">' +
+          '<p><em>Note: The following reflects your relative tendency rather than a dominant pattern.</em></p>' +
+          template.content +
+        '</div>';
+      } else {
+        bodyContent += '<div class="intro">' + Tool1Templates.commonIntro + '</div>' +
+          '<div class="content">' + template.content + '</div>';
+
+        // Secondary pattern for BORDERLINE_DUAL
+        if (profile && profile.type === 'BORDERLINE_DUAL' && profile.secondary) {
+          const secondaryTemplate = Tool1Templates.getTemplate(profile.secondary);
+          if (secondaryTemplate) {
+            bodyContent += '<h2>Your Secondary Pattern</h2>' +
+              '<div class="content">' + secondaryTemplate.content + '</div>';
+          }
+        }
+      }
+
+      // === SECTION 4: Pattern Tensions & Combinations ===
+      if (profile) {
+        const narratives = [];
+        if (profile.type === 'BORDERLINE_DUAL' && profile.secondary) {
+          const key = [profile.winner, profile.secondary].sort().join('_');
+          if (Tool1Templates.COMBINATION_NARRATIVES[key]) {
+            narratives.push(Tool1Templates.COMBINATION_NARRATIVES[key]);
+          }
+        } else if (profile.highPatterns && profile.highPatterns.length >= 2) {
+          const highs = profile.highPatterns;
+          for (let i = 0; i < highs.length; i++) {
+            for (let j = i + 1; j < highs.length; j++) {
+              const key = [highs[i], highs[j]].sort().join('_');
+              if (Tool1Templates.COMBINATION_NARRATIVES[key]) {
+                narratives.push(Tool1Templates.COMBINATION_NARRATIVES[key]);
+              }
+            }
+          }
+        }
+
+        if (narratives.length > 0) {
+          bodyContent += '<h2>Pattern Tensions and Combinations</h2>';
+          for (let n = 0; n < narratives.length; n++) {
+            bodyContent += '<div class="combination-box"><p>' + narratives[n] + '</p></div>';
+          }
+        }
+      }
+
+      // === SECTION 5: Your Strengths ===
+      if (profile && profile.type !== 'NEGATIVE_DOMINANT' && profile.lowPatterns && profile.lowPatterns.length > 0) {
+        bodyContent += '<h2>Patterns You Do Not Show: Your Financial Strengths</h2>' +
+          '<p>Low scores on a pattern indicate that the associated behaviors are largely absent from your financial life. These are meaningful positive signals.</p>';
+
+        for (let i = 0; i < profile.lowPatterns.length; i++) {
+          const pattern = profile.lowPatterns[i];
+          const statement = Tool1Templates.STRENGTH_STATEMENTS[pattern];
+          if (statement) {
+            bodyContent += '<div class="strength-box">' +
+              '<h4>' + (NAMES[pattern] || pattern) + '</h4>' +
+              '<p>' + statement + '</p>' +
+            '</div>';
+          }
+        }
+      }
+
+      // === SECTION 6: Polarity Insight ===
+      if (profile) {
+        const insight = Tool1Templates.getPolarityInsight(profile);
+        if (insight) {
+          bodyContent += '<h2>Polarity Insight</h2>' +
+            '<div class="polarity-box"><p>' + insight + '</p></div>';
+        }
+      }
+
+      // === SECTION 7: All Pattern Scores ===
+      const patterns = ['FSV', 'ExVal', 'Showing', 'Receiving', 'Control', 'Fear'];
+      bodyContent += '<div class="scores"><h3>Raw Scores</h3>' +
+        '<p>The higher numbers indicate stronger strategies used by your subconscious. The raw scores range from -25 to 25.</p>';
+
+      for (let i = 0; i < patterns.length; i++) {
+        const p = patterns[i];
+        const isWinner = (winner === p);
+        let classification = '';
+        if (profile && profile.classified) {
+          classification = profile.classified[p] || '';
+        }
+        bodyContent += '<div class="score-row' + (isWinner ? ' winner' : '') + '">' +
+          '<span class="score-label">' + NAMES[p] + ':</span>' +
+          '<span class="score-value">' + scores[p] + (classification ? ' (' + classification + ')' : '') + '</span>' +
+        '</div>';
+      }
+
+      bodyContent += '<p class="scores-note">Scores classified as HIGH indicate strong pattern activation. ' +
+        'Scores classified as LOW indicate the pattern is largely absent \u2014 a positive signal.</p>' +
+        '</div>';
+
+      // === Footer ===
+      bodyContent += '<div class="footer">' + Tool1Templates.commonFooter + '</div>';
+
+      // Build complete HTML and generate PDF
       const htmlContent = this.buildHTMLDocument(tool1Styles, bodyContent);
-
-      // Generate PDF
       const fileName = this.generateFileName('CoreTraumaStrategy', studentName);
       return this.htmlToPDF(htmlContent, fileName);
 

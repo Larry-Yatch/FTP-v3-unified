@@ -430,12 +430,45 @@ Update this table as you complete each phase. Do not start the next phase until 
 
 | Phase | Title | Status |
 |-------|-------|--------|
-| 1 | Score Classification & Profile Detection | ⬜ NOT STARTED |
-| 2 | Report Structure Update | ⬜ NOT STARTED |
-| 3 | PDF Update | ⬜ NOT STARTED |
-| 4 | Backward Compatibility Audit | ⬜ NOT STARTED |
+| 1 | Score Classification & Profile Detection | ✅ COMPLETE |
+| 2 | Report Structure Update | ✅ COMPLETE |
+| 3 | PDF Update | ✅ COMPLETE |
+| 4 | Backward Compatibility Audit | ✅ COMPLETE |
 
 **Rule**: Do not begin a phase until the previous phase passes manual testing in the deployed GAS environment.
+
+### Implementation Notes (Updated 2026-04-05)
+
+**Phase 1 notes:**
+- `Tool1Constants.js` created as new file. V8 runtime auto-discovers it — no `appsscript.json` edit needed (design doc was wrong on this point).
+- `classifyPatternScore()` and `detectProfileType()` added to `Tool1.js`. `processFinalSubmission()` now saves `profileType` in the response data.
+- Verified via GAS test function (`testDetectProfileType` in Code.js, since removed). All 6 test students validated via Node.js: STRONG_SINGLE, 3x BORDERLINE_DUAL, 2x NEGATIVE_DOMINANT all PASS.
+- Test student `0000AI` used for live submission test — `profileType` saved correctly to RESPONSES sheet.
+
+**Phase 2 notes:**
+- `Tool1Templates.js` extended with `COMBINATION_NARRATIVES` (9 entries), `STRENGTH_STATEMENTS` (6), `POLARITY_INSIGHTS` (3), `getPolarityInsight()`, `NEGATIVE_DOMINANT_INTRO` (function).
+- `Tool1Report.js` fully rewritten with 8-section structure. Uses string concatenation (not template literals) for the HTML builder to avoid GAS double-escaping issues.
+- Backward compatibility confirmed: `getResults()` calls `Tool1.detectProfileType()` on-the-fly when `profileType` is absent from saved data. All 3 test students (5978RH, 1126AP, 5792RS) are old-schema and rendered correctly.
+- Design doc discrepancy: `5978RH` actual margin is 10 (FSV=20, Showing=10), not 27 as listed. Classifies as MODERATE_SINGLE, not STRONG_SINGLE. The classification logic is correct — the design doc test data was approximate.
+- One escaped apostrophe caught and fixed in `NEGATIVE_DOMINANT_INTRO` before deployment.
+
+**Phase 3 notes:**
+- `generateTool1PDF()` in `shared/PDFGenerator.js` fully rewritten to mirror the 8-section report structure (minus Section 8).
+- PDF now includes: profile type statement, combination narratives (BORDERLINE_DUAL/multiple HIGH), strengths section (LOW patterns), polarity insight, and threshold explanation in scores grid.
+- Backward compatibility confirmed: `Tool1Report.getResults()` computes `profileType` on-the-fly for old-schema students. All 3 test students (5978RH, 1126AP, 5792RS) passed GAS test function.
+- Section 8 ("What This Means for Your Finances") removed from both HTML report and PDF per user request — the Tool 2 link was broken (pointed to wrong deployment) and added an unnecessary `DataService.getLatestResponse()` call that slowed report loading.
+- Duplicate gold left-border on profile type box fixed — changed to rounded-corner background only.
+- **Language softening (cross-cutting):** All user-facing narrative text in `Tool1Templates.js`, `Tool1Report.js`, and `PDFGenerator.js` shifted from second-person declarative ("You are X", "Your strategy is Y") to observational framing ("Your responses suggest...", "When we see this pattern...", "In our experience..."). This applies to: 6 pattern template headings, 4 profile type descriptions, 9 combination narratives, 6 strength statements, 3 polarity insights, and the negative-dominant intro. The intent is to present patterns as observations worth exploring rather than diagnoses.
+
+**Phase 4 notes:**
+- Searched all callsites for `winner`, `scores`, `traumaScores`, `topTrauma`, `getTool1` across `tools/` and `core/`. Found 11 consumers across Tool2, Tool4, Tool6, Tool8, IntegrationGPT, and CollectiveResults. All read only `scores` and/or `winner` — the `profileType` field is purely additive.
+- GAS test function verified: `Tool2.getTool1TraumaData()` returns correct data (student 0018RW, topTrauma=Showing), `Tool1Report.getResults()` backward-compat profileType computation works for all 3 test students, `CollectiveResults.getStudentSummary()` reads Tool 1 data correctly (student 0061SH).
+- No code changes were needed. All existing consumers are unaffected by the schema addition.
+
+**Browser automation notes (for future sessions):**
+- GAS apps render inside a cross-origin iframe (`sandboxFrame`). Screenshot and button clicks work. Text input works via: navigate to direct URL → click inside iframe → Tab to field → type.
+- Native `<select>` dropdowns cannot be controlled via browser automation (cross-origin blocks keyboard events). Use GAS test functions for form submission testing.
+- `clasp push` must be run from the main repo root (`/Users/Larry/code/FTP-v3`), not the worktree. Copy changed files to main repo before pushing.
 
 ### Test Student Reference
 Use these specific student IDs to test each profile type — their scores are known:

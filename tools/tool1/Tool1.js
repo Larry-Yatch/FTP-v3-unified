@@ -441,11 +441,16 @@ const Tool1 = Object.assign({}, FormToolBase, {
       const winner = this.determineWinner(scores, allData);
       LogUtils.debug(`Determined winner: ${winner}`);
 
+      // Detect profile type (score classification + profile categorization)
+      const profileType = this.detectProfileType(scores, winner);
+      LogUtils.debug(`Detected profile type: ${JSON.stringify(profileType)}`);
+
       // Prepare data package
       const dataPackage = {
         formData: allData,
         scores: scores,
-        winner: winner
+        winner: winner,
+        profileType: profileType
       };
 
       LogUtils.debug(`dataPackage has winner? ${!!dataPackage.winner}, value: ${dataPackage.winner}`);
@@ -543,6 +548,98 @@ const Tool1 = Object.assign({}, FormToolBase, {
       Receiving: receivingScore,
       Control: controlScore,
       Fear: fearScore
+    };
+  },
+
+  /**
+   * Classify a single pattern score as HIGH, MODERATE, or LOW
+   * Uses data-driven thresholds from Tool1Constants.js
+   *
+   * @param {string} pattern - Pattern key (FSV, ExVal, Showing, Receiving, Control, Fear)
+   * @param {number} score - The raw score for this pattern
+   * @returns {string} 'HIGH' | 'MODERATE' | 'LOW'
+   */
+  classifyPatternScore(pattern, score) {
+    const t = TOOL1_PATTERN_THRESHOLDS[pattern];
+    if (!t) {
+      LogUtils.warn('classifyPatternScore: unknown pattern "' + pattern + '", defaulting to MODERATE');
+      return 'MODERATE';
+    }
+    if (score > t.high) return 'HIGH';
+    if (score < t.low)  return 'LOW';
+    return 'MODERATE';
+  },
+
+  /**
+   * Detect profile type from scores and winner
+   * Returns one of: STRONG_SINGLE, MODERATE_SINGLE, BORDERLINE_DUAL, NEGATIVE_DOMINANT
+   *
+   * @param {Object} scores - {FSV, ExVal, Showing, Receiving, Control, Fear}
+   * @param {string} winner - The winning pattern key
+   * @returns {Object} Profile type object with type, winner, and classification data
+   */
+  detectProfileType(scores, winner) {
+    const classified = {};
+    Object.keys(scores).forEach(function(p) {
+      classified[p] = Tool1.classifyPatternScore(p, scores[p]);
+    });
+
+    const highPatterns = Object.keys(classified).filter(function(p) { return classified[p] === 'HIGH'; });
+    const lowPatterns  = Object.keys(classified).filter(function(p) { return classified[p] === 'LOW'; });
+
+    // Negative-dominant: 4 or more patterns below their LOW threshold
+    if (lowPatterns.length >= 4) {
+      var sorted = Object.entries(scores).sort(function(a, b) { return b[1] - a[1]; });
+      return {
+        type: 'NEGATIVE_DOMINANT',
+        winner: sorted[0][0],
+        secondary: null,
+        margin: sorted[0][1] - sorted[1][1],
+        highPatterns: [],
+        lowPatterns: lowPatterns,
+        classified: classified,
+        note: 'Winner is least-negative, not a strong positive signal'
+      };
+    }
+
+    var sorted = Object.entries(scores).sort(function(a, b) { return b[1] - a[1]; });
+    var margin = sorted[0][1] - sorted[1][1];
+
+    // Borderline dual: top two within 5 points
+    if (margin <= 5) {
+      return {
+        type: 'BORDERLINE_DUAL',
+        winner: sorted[0][0],
+        secondary: sorted[1][0],
+        margin: margin,
+        highPatterns: highPatterns,
+        lowPatterns: lowPatterns,
+        classified: classified
+      };
+    }
+
+    // Strong single: margin > 10 and winner is HIGH classification
+    if (margin > 10 && classified[winner] === 'HIGH') {
+      return {
+        type: 'STRONG_SINGLE',
+        winner: winner,
+        secondary: null,
+        margin: margin,
+        highPatterns: highPatterns,
+        lowPatterns: lowPatterns,
+        classified: classified
+      };
+    }
+
+    // Default: moderate single
+    return {
+      type: 'MODERATE_SINGLE',
+      winner: winner,
+      secondary: null,
+      margin: margin,
+      highPatterns: highPatterns,
+      lowPatterns: lowPatterns,
+      classified: classified
     };
   },
 
