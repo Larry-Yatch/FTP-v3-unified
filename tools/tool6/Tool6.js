@@ -219,13 +219,16 @@ const Tool6 = {
       traumaPattern: t1Winner,
       traumaScores: t1Scores,
 
-      // From Tool 2: Demographics and employment (field names: age, marital, employment)
+      // From Tool 2: Demographics and employment
       age: t2.age || t2.currentAge || null,
-      grossIncome: t2.annualIncome || t2.grossIncome || t2.income || null,
+      grossIncome: t2.grossAnnualIncome || t2.annualIncome || t2.grossIncome || t2.income || null,
       employmentType: t2.employment || t2.employmentType || t2.workSituation || null,
       businessOwner: t2.businessOwner || t2.isBusinessOwner || false,
       filingStatus: filingStatus,
       hsaCoverageType: inferHSACoverageType(filingStatus),
+      // From Tool 2 (new schema): Retirement data for pre-population
+      tool2RetirementBalance: t2.totalRetirementBalance || null,
+      tool2RetirementContribution: t2.monthlyRetirementContribution || null,
 
       // From Tool 3: Identity subdomain scores (in scoring.subdomainQuotients per middleware-mapping.md)
       identitySubdomainScores: t3Scoring.subdomainQuotients || t3.subdomainScores || null,

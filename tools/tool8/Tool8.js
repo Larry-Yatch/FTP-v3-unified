@@ -2097,8 +2097,15 @@ const Tool8 = {
       }
 
       // Current investment balance:
-      //   Tool 6 pre-survey retirement balances (a12-a15) are the authoritative source
+      //   PRIMARY: Tool 6 pre-survey retirement balances (a12-a15) — detailed breakdown
+      //   FALLBACK: Tool 2 totalRetirementBalance — single aggregate (new schema only)
       var currentAssets = this.sumRetirementBalances(tool6PreSurvey);
+      if (currentAssets === null || currentAssets === 0) {
+        var t2Results = (tool2Data && tool2Data.data && tool2Data.data.results) ? tool2Data.data.results : {};
+        if (t2Results.objectiveHealthScores && t2.totalRetirementBalance) {
+          currentAssets = parseFloat(t2.totalRetirementBalance) || null;
+        }
+      }
 
       // ---------------------------------------------------------------
       // Risk tolerance (1-7 investmentScore → 0-10 dial):

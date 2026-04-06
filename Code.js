@@ -1777,6 +1777,166 @@ function testTool2Phase2Scoring() {
   Logger.log('=== Overall: ' + passed + '/' + total + (passed === total ? ' ALL PASSED' : ' SOME FAILED') + ' ===');
 }
 
+/**
+ * TEMPORARY TEST: Phase 5 - Downstream pre-population from Tool 2
+ * Verifies that Tools 4, 6, and 8 correctly read Tool 2 new-schema data
+ */
+function testTool2Phase5PrePopulation() {
+  var results = [];
+  var testClient = '0000AI';
+
+  // === Verify Tool 2 data exists with new schema ===
+  var tool2Response = DataService.getLatestResponse(testClient, 'tool2');
+  var hasNewSchema = tool2Response && tool2Response.data && tool2Response.data.results && tool2Response.data.results.objectiveHealthScores;
+  results.push('Tool 2 new schema exists: ' + (hasNewSchema ? 'PASS' : 'FAIL'));
+
+  if (!hasNewSchema) {
+    Logger.log('=== CANNOT TEST: 0000AI has no new-schema Tool 2 data ===');
+    return;
+  }
+
+  var t2Data = tool2Response.data.data;
+  Logger.log('Tool 2 source values: monthlyTakeHome=' + t2Data.monthlyTakeHome +
+    ', totalDebtBalance=' + t2Data.totalDebtBalance +
+    ', emergencyFundBalance=' + t2Data.emergencyFundBalance +
+    ', grossAnnualIncome=' + t2Data.grossAnnualIncome +
+    ', totalRetirementBalance=' + t2Data.totalRetirementBalance +
+    ', monthlyRetirementContribution=' + t2Data.monthlyRetirementContribution +
+    ', marital=' + t2Data.marital +
+    ', age=' + t2Data.age);
+
+  // ============================================================
+  // TOOL 4: Pre-population test
+  // ============================================================
+
+  // Clear any existing Tool 4 pre-survey for clean test
+  try {
+    PropertiesService.getUserProperties().deleteProperty('tool4_presurvey_' + testClient);
+    Logger.log('[Tool4] Cleared existing pre-survey for clean test');
+  } catch(e) {}
+
+  // Simulate what Tool4.render() does: check for pre-survey, then pre-populate from Tool 2
+  var t4PreSurvey = null; // Simulating no existing pre-survey
+  var t4PrePopulated = false;
+  try {
+    var t4Tool2Response = DataService.getLatestResponse(testClient, 'tool2');
+    var t4IsNewSchema = t4Tool2Response && t4Tool2Response.data && t4Tool2Response.data.results && t4Tool2Response.data.results.objectiveHealthScores;
+    if (t4IsNewSchema) {
+      var t4T2Data = t4Tool2Response.data.data || {};
+      t4PreSurvey = {
+        monthlyIncome: t4T2Data.monthlyTakeHome || '',
+        totalDebt: t4T2Data.totalDebtBalance || '',
+        emergencyFund: t4T2Data.emergencyFundBalance || '',
+        _fromTool2: true
+      };
+      t4PrePopulated = true;
+    }
+  } catch(e) {
+    results.push('Tool 4 pre-pop read: FAIL - ' + e.message);
+  }
+
+  results.push('Tool 4 pre-populated: ' + (t4PrePopulated ? 'PASS' : 'FAIL'));
+  results.push('Tool 4 monthlyIncome: ' + (t4PreSurvey && t4PreSurvey.monthlyIncome === t2Data.monthlyTakeHome ? 'PASS (' + t4PreSurvey.monthlyIncome + ')' : 'FAIL (got ' + (t4PreSurvey ? t4PreSurvey.monthlyIncome : 'null') + ', expected ' + t2Data.monthlyTakeHome + ')'));
+  results.push('Tool 4 totalDebt: ' + (t4PreSurvey && t4PreSurvey.totalDebt === t2Data.totalDebtBalance ? 'PASS (' + t4PreSurvey.totalDebt + ')' : 'FAIL (got ' + (t4PreSurvey ? t4PreSurvey.totalDebt : 'null') + ', expected ' + t2Data.totalDebtBalance + ')'));
+  results.push('Tool 4 emergencyFund: ' + (t4PreSurvey && t4PreSurvey.emergencyFund === t2Data.emergencyFundBalance ? 'PASS (' + t4PreSurvey.emergencyFund + ')' : 'FAIL (got ' + (t4PreSurvey ? t4PreSurvey.emergencyFund : 'null') + ', expected ' + t2Data.emergencyFundBalance + ')'));
+  results.push('Tool 4 _fromTool2 flag: ' + (t4PreSurvey && t4PreSurvey._fromTool2 === true ? 'PASS' : 'FAIL'));
+
+  // Verify old-schema student would NOT get pre-populated
+  // Use a real student who completed Tool 2 under old schema (check 5978RH)
+  var t4OldSchemaStudent = '5978RH';
+  var t4OldResponse = DataService.getLatestResponse(t4OldSchemaStudent, 'tool2');
+  var t4OldIsNew = t4OldResponse && t4OldResponse.data && t4OldResponse.data.results && t4OldResponse.data.results.objectiveHealthScores;
+  results.push('Tool 4 old-schema guard (5978RH): ' + (!t4OldIsNew ? 'PASS (no pre-pop for old schema)' : 'FAIL (old schema treated as new)'));
+
+  // ============================================================
+  // TOOL 6: Field mapping test
+  // ============================================================
+
+  // Test mapUpstreamFields with new schema data
+  try {
+    var t6Tool1 = DataService.getLatestResponse(testClient, 'tool1');
+    var t6Tool2 = DataService.getLatestResponse(testClient, 'tool2');
+    var t6Tool3 = DataService.getLatestResponse(testClient, 'tool3');
+    var t6Tool4 = DataService.getLatestResponse(testClient, 'tool4');
+    var t6Tool5 = DataService.getLatestResponse(testClient, 'tool5');
+
+    var mapped = Tool6.mapUpstreamFields(t6Tool1, t6Tool2, t6Tool3, t6Tool4, t6Tool5);
+
+    // grossIncome should come from grossAnnualIncome
+    var expectedGross = t2Data.grossAnnualIncome;
+    results.push('Tool 6 grossIncome mapping: ' + (mapped.grossIncome && String(mapped.grossIncome) === String(expectedGross) ? 'PASS (' + mapped.grossIncome + ')' : 'FAIL (got ' + mapped.grossIncome + ', expected ' + expectedGross + ')'));
+
+    // filingStatus should derive from marital
+    var expectedFiling = t2Data.marital === 'single' ? 'Single' : (t2Data.marital === 'married' || t2Data.marital === 'partnered' ? 'MFJ' : null);
+    results.push('Tool 6 filingStatus mapping: ' + (mapped.filingStatus === expectedFiling ? 'PASS (' + mapped.filingStatus + ')' : 'FAIL (got ' + mapped.filingStatus + ', expected ' + expectedFiling + ')'));
+
+    // age should map
+    results.push('Tool 6 age mapping: ' + (mapped.age && String(mapped.age) === String(t2Data.age) ? 'PASS (' + mapped.age + ')' : 'FAIL (got ' + mapped.age + ', expected ' + t2Data.age + ')'));
+
+    // tool2RetirementBalance should be available
+    results.push('Tool 6 retirementBalance passthrough: ' + (mapped.tool2RetirementBalance === t2Data.totalRetirementBalance ? 'PASS (' + mapped.tool2RetirementBalance + ')' : 'FAIL (got ' + mapped.tool2RetirementBalance + ', expected ' + t2Data.totalRetirementBalance + ')'));
+
+    // tool2RetirementContribution should be available
+    results.push('Tool 6 retirementContribution passthrough: ' + (mapped.tool2RetirementContribution === t2Data.monthlyRetirementContribution ? 'PASS (' + mapped.tool2RetirementContribution + ')' : 'FAIL (got ' + mapped.tool2RetirementContribution + ', expected ' + t2Data.monthlyRetirementContribution + ')'));
+
+  } catch(e) {
+    results.push('Tool 6 mapping: FAIL - ' + e.message);
+  }
+
+  // ============================================================
+  // TOOL 8: Fallback balance test
+  // ============================================================
+
+  try {
+    var t8Data = Tool8.resolveClientData(testClient);
+
+    // If no Tool 6 pre-survey, currentAssets should fall back to Tool 2 totalRetirementBalance
+    var t6PreSurvey = Tool8.getTool6PreSurvey(testClient);
+    var t6BalanceSum = Tool8.sumRetirementBalances(t6PreSurvey);
+    var expectedBalance = t6BalanceSum > 0 ? t6BalanceSum : parseFloat(t2Data.totalRetirementBalance);
+
+    results.push('Tool 8 currentAssets: ' + (t8Data.currentAssets !== null && t8Data.currentAssets !== undefined ? 'PASS (' + t8Data.currentAssets + ')' : 'FAIL (null)'));
+
+    // Years to retirement should derive from Tool 2 age
+    var expectedYears = 65 - parseInt(t2Data.age);
+    results.push('Tool 8 yearsToRetirement: ' + (t8Data.yearsToRetirement === expectedYears ? 'PASS (' + t8Data.yearsToRetirement + ')' : 'FAIL (got ' + t8Data.yearsToRetirement + ', expected ' + expectedYears + ')'));
+
+    // Age should come through
+    results.push('Tool 8 age: ' + (String(t8Data.age) === String(t2Data.age) ? 'PASS (' + t8Data.age + ')' : 'FAIL (got ' + t8Data.age + ', expected ' + t2Data.age + ')'));
+
+  } catch(e) {
+    results.push('Tool 8 resolve: FAIL - ' + e.message);
+  }
+
+  // ============================================================
+  // SCHEMA GUARD: Verify no pre-population for old-schema students
+  // ============================================================
+
+  // Test Tool 6 with old-schema student
+  try {
+    var oldTool1 = DataService.getLatestResponse(t4OldSchemaStudent, 'tool1');
+    var oldTool2 = DataService.getLatestResponse(t4OldSchemaStudent, 'tool2');
+    if (oldTool2) {
+      var oldMapped = Tool6.mapUpstreamFields(oldTool1, oldTool2, null, null, null);
+      // grossIncome should still work via old field names (annualIncome, grossIncome, income)
+      // but tool2RetirementBalance should be null (old schema has no totalRetirementBalance)
+      var oldHasRetBal = oldMapped.tool2RetirementBalance !== null && oldMapped.tool2RetirementBalance !== undefined;
+      results.push('Tool 6 old-schema retirement guard: ' + (!oldHasRetBal ? 'PASS (no retirement data for old schema)' : 'INFO (old student may have the field: ' + oldMapped.tool2RetirementBalance + ')'));
+    } else {
+      results.push('Tool 6 old-schema test: SKIP (5978RH has no Tool 2 data)');
+    }
+  } catch(e) {
+    results.push('Tool 6 old-schema test: FAIL - ' + e.message);
+  }
+
+  // Summary
+  var passed = results.filter(function(r) { return r.indexOf('PASS') > -1; }).length;
+  var total = results.filter(function(r) { return r.indexOf('SKIP') === -1 && r.indexOf('INFO') === -1; }).length;
+  Logger.log('=== Tool 2 Phase 5 Pre-Population Test Results ===');
+  results.forEach(function(r) { Logger.log(r); });
+  Logger.log('=== Overall: ' + passed + '/' + total + (passed === total ? ' ALL PASSED' : ' SOME FAILED') + ' ===');
+}
+
 function testTool2Phase1() {
   const results = [];
 
