@@ -433,7 +433,7 @@ Update this table as you complete each phase. Do not start the next phase until 
 | 1 | Score Classification & Profile Detection | ✅ COMPLETE |
 | 2 | Report Structure Update | ✅ COMPLETE |
 | 3 | PDF Update | ✅ COMPLETE |
-| 4 | Backward Compatibility Audit | ⬜ NOT STARTED |
+| 4 | Backward Compatibility Audit | ✅ COMPLETE |
 
 **Rule**: Do not begin a phase until the previous phase passes manual testing in the deployed GAS environment.
 
@@ -459,6 +459,11 @@ Update this table as you complete each phase. Do not start the next phase until 
 - Section 8 ("What This Means for Your Finances") removed from both HTML report and PDF per user request — the Tool 2 link was broken (pointed to wrong deployment) and added an unnecessary `DataService.getLatestResponse()` call that slowed report loading.
 - Duplicate gold left-border on profile type box fixed — changed to rounded-corner background only.
 - **Language softening (cross-cutting):** All user-facing narrative text in `Tool1Templates.js`, `Tool1Report.js`, and `PDFGenerator.js` shifted from second-person declarative ("You are X", "Your strategy is Y") to observational framing ("Your responses suggest...", "When we see this pattern...", "In our experience..."). This applies to: 6 pattern template headings, 4 profile type descriptions, 9 combination narratives, 6 strength statements, 3 polarity insights, and the negative-dominant intro. The intent is to present patterns as observations worth exploring rather than diagnoses.
+
+**Phase 4 notes:**
+- Searched all callsites for `winner`, `scores`, `traumaScores`, `topTrauma`, `getTool1` across `tools/` and `core/`. Found 11 consumers across Tool2, Tool4, Tool6, Tool8, IntegrationGPT, and CollectiveResults. All read only `scores` and/or `winner` — the `profileType` field is purely additive.
+- GAS test function verified: `Tool2.getTool1TraumaData()` returns correct data (student 0018RW, topTrauma=Showing), `Tool1Report.getResults()` backward-compat profileType computation works for all 3 test students, `CollectiveResults.getStudentSummary()` reads Tool 1 data correctly (student 0061SH).
+- No code changes were needed. All existing consumers are unaffected by the schema addition.
 
 **Browser automation notes (for future sessions):**
 - GAS apps render inside a cross-origin iframe (`sandboxFrame`). Screenshot and button clicks work. Text input works via: navigate to direct URL → click inside iframe → Tab to field → type.
