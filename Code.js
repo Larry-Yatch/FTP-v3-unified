@@ -2031,6 +2031,119 @@ function testTool2Phase5Rendering() {
   Logger.log('=== Overall: ' + passed + '/' + total + (passed === total ? ' ALL PASSED' : ' SOME FAILED') + ' ===');
 }
 
+/**
+ * TEMPORARY TEST: Phase 6 - CollectiveResults update
+ * Tests gap panel rendering, awareness gap enrichment, scarcity callout,
+ * and backward compatibility for old-schema students.
+ */
+function testTool2Phase6CollectiveResults() {
+  var results = [];
+  var newClient = '0000AI';
+  var oldClient = '5978RH';
+
+  // === NEW SCHEMA: Tool 2 card renders with gap panel ===
+  try {
+    var newSummary = CollectiveResults.getStudentSummary(newClient);
+    var t2Card = CollectiveResults._renderTool2Card(newSummary.tools.tool2, newClient, false);
+
+    var hasGapPanel = t2Card.indexOf('Financial Reality vs. Perception') > -1;
+    var hasBlueBar = t2Card.indexOf('#3b82f6') > -1; // Objective bar color
+    var hasGrayBar = t2Card.indexOf('#6b7280') > -1; // Subjective bar color
+    var hasGapLabel = t2Card.indexOf('Underestimating') > -1 || t2Card.indexOf('Aligned') > -1 || t2Card.indexOf('Overestimating') > -1;
+
+    results.push('New schema gap panel present: ' + (hasGapPanel ? 'PASS' : 'FAIL'));
+    results.push('New schema objective bars: ' + (hasBlueBar ? 'PASS' : 'FAIL'));
+    results.push('New schema subjective bars: ' + (hasGrayBar ? 'PASS' : 'FAIL'));
+    results.push('New schema gap labels: ' + (hasGapLabel ? 'PASS' : 'FAIL'));
+
+    // Verify actual score values appear
+    var tool2Results = newSummary.tools.tool2.data.results;
+    var objMF = tool2Results.objectiveHealthScores.moneyFlow;
+    var hasObjScore = t2Card.indexOf('>' + objMF + '<') > -1;
+    results.push('New schema objective score in HTML: ' + (hasObjScore ? 'PASS (' + objMF + ')' : 'FAIL'));
+  } catch(e) {
+    results.push('New schema Tool 2 card: FAIL - ' + e.message);
+  }
+
+  // === OLD SCHEMA: Tool 2 card renders WITHOUT gap panel ===
+  try {
+    var oldSummary = CollectiveResults.getStudentSummary(oldClient);
+    if (oldSummary.tools.tool2 && oldSummary.tools.tool2.status === 'completed') {
+      var oldT2Card = CollectiveResults._renderTool2Card(oldSummary.tools.tool2, oldClient, false);
+      var oldHasGap = oldT2Card.indexOf('Financial Reality vs. Perception') > -1;
+      results.push('Old schema no gap panel: ' + (!oldHasGap ? 'PASS' : 'FAIL (gap panel appeared for old schema)'));
+    } else {
+      results.push('Old schema Tool 2 card: SKIP (5978RH has no completed Tool 2)');
+    }
+  } catch(e) {
+    results.push('Old schema Tool 2 card: FAIL - ' + e.message);
+  }
+
+  // === AWARENESS GAP ENRICHMENT ===
+  try {
+    var gapResult = CollectiveResults._calculateAwarenessGap(newSummary);
+    if (gapResult) {
+      results.push('Awareness gap computed: PASS (score=' + gapResult.gapScore + ', severity=' + gapResult.severity + ')');
+      results.push('Awareness gap enrichment: ' + (gapResult.tool2GapEnrichment !== undefined ? 'PASS (enrichment=' + gapResult.tool2GapEnrichment + ')' : 'FAIL (no enrichment field)'));
+    } else {
+      results.push('Awareness gap: SKIP (requires grounding tools - 0000AI may not have them)');
+    }
+  } catch(e) {
+    results.push('Awareness gap: FAIL - ' + e.message);
+  }
+
+  // === SCARCITY FLAG IN SECTION 3 ===
+  try {
+    var section3 = CollectiveResults._renderSection3(newSummary, false);
+    var tool2Results2 = newSummary.tools.tool2.data.results;
+    var scFlag = tool2Results2.scarcityFlag;
+
+    if (scFlag === 'GLOBAL_SCARCITY') {
+      var hasScarcityCallout = section3.indexOf('Scarcity Pattern Detected') > -1;
+      results.push('Scarcity callout (GLOBAL_SCARCITY): ' + (hasScarcityCallout ? 'PASS' : 'FAIL'));
+    } else if (scFlag === 'GLOBAL_ABUNDANCE') {
+      var hasAbundanceNote = section3.indexOf('Protective Factor') > -1;
+      results.push('Abundance note (GLOBAL_ABUNDANCE): ' + (hasAbundanceNote ? 'PASS' : 'FAIL'));
+    } else if (scFlag === 'TARGETED_FINANCIAL_SCARCITY') {
+      // No callout expected for targeted — check no crash
+      results.push('Scarcity flag (' + scFlag + '): PASS (no callout expected, no crash)');
+    } else {
+      results.push('Scarcity flag (' + scFlag + '): PASS (no callout expected)');
+    }
+  } catch(e) {
+    results.push('Section 3 scarcity: FAIL - ' + e.message);
+  }
+
+  // === FULL PAGE RENDERING: New schema student ===
+  try {
+    var newPage = CollectiveResults.render(newClient);
+    var newContent = newPage.getContent();
+    results.push('Full page renders (new schema): ' + (newContent.length > 5000 ? 'PASS (' + newContent.length + ' chars)' : 'FAIL'));
+    var pageHasGap = newContent.indexOf('Financial Reality vs. Perception') > -1;
+    results.push('Full page has gap panel: ' + (pageHasGap ? 'PASS' : 'FAIL'));
+  } catch(e) {
+    results.push('Full page render (new schema): FAIL - ' + e.message);
+  }
+
+  // === FULL PAGE RENDERING: Old schema student ===
+  try {
+    var oldPage = CollectiveResults.render(oldClient);
+    var oldContent = oldPage.getContent();
+    results.push('Full page renders (old schema): ' + (oldContent.length > 5000 ? 'PASS (' + oldContent.length + ' chars)' : 'FAIL'));
+    var oldPageHasGap = oldContent.indexOf('Financial Reality vs. Perception') > -1;
+    results.push('Old schema full page no gap: ' + (!oldPageHasGap ? 'PASS' : 'FAIL'));
+  } catch(e) {
+    results.push('Full page render (old schema): FAIL - ' + e.message);
+  }
+
+  // Summary
+  var passed = results.filter(function(r) { return r.indexOf('PASS') > -1; }).length;
+  var total = results.filter(function(r) { return r.indexOf('SKIP') === -1; }).length;
+  Logger.log('=== Tool 2 Phase 6 CollectiveResults Test Results ===');
+  results.forEach(function(r) { Logger.log(r); });
+  Logger.log('=== Overall: ' + passed + '/' + total + (passed === total ? ' ALL PASSED' : ' SOME FAILED') + ' ===');
+}
+
 function testTool2Phase1() {
   const results = [];
 
