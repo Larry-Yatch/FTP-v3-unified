@@ -43,7 +43,7 @@
 - The app is deployed as public (anyone can access). Login is via student ID on the login screen — no Google account switching needed. Enter the test student ID directly.
 - Use browser DevTools console to check for JavaScript errors after each page load.
 
-**Test student reference:** Use a student who has completed Tool 1 (required for Tool 2 access). Ask the human for a test student ID at session start.
+**Test student for this implementation session:** `0000AI` (AI Test Student) — created fresh with tool1 unlocked, tools 2–8 locked, zero history. After Tool 1 implementation is complete and `0000AI` has completed Tool 1, tool2 will auto-unlock and this same student can be used for all Tool 2 testing.
 
 ---
 

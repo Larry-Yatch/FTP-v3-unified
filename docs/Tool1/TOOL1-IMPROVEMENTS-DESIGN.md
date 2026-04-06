@@ -43,7 +43,7 @@
 - The app is deployed as public (anyone can access). Login is via student ID on the login screen — no Google account switching needed. Enter the test student ID directly.
 - Use browser DevTools console to check for JavaScript errors after each page load.
 
-**Test student reference:** See Section 10 Phase Status table — known client IDs with verified score profiles are listed there.
+**Test student for this implementation session:** `0000AI` (AI Test Student) — created fresh with tool1 unlocked, tools 2–8 locked, zero history. Use this for all Tool 1 testing. Known profile-type test students (for verifying score classification logic) are listed in the Section 10 Phase Status table.
 
 ---
 
