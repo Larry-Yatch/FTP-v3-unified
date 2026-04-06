@@ -430,12 +430,32 @@ Update this table as you complete each phase. Do not start the next phase until 
 
 | Phase | Title | Status |
 |-------|-------|--------|
-| 1 | Score Classification & Profile Detection | ⬜ NOT STARTED |
-| 2 | Report Structure Update | ⬜ NOT STARTED |
+| 1 | Score Classification & Profile Detection | ✅ COMPLETE |
+| 2 | Report Structure Update | ✅ COMPLETE |
 | 3 | PDF Update | ⬜ NOT STARTED |
 | 4 | Backward Compatibility Audit | ⬜ NOT STARTED |
 
 **Rule**: Do not begin a phase until the previous phase passes manual testing in the deployed GAS environment.
+
+### Implementation Notes (Updated 2026-04-05)
+
+**Phase 1 notes:**
+- `Tool1Constants.js` created as new file. V8 runtime auto-discovers it — no `appsscript.json` edit needed (design doc was wrong on this point).
+- `classifyPatternScore()` and `detectProfileType()` added to `Tool1.js`. `processFinalSubmission()` now saves `profileType` in the response data.
+- Verified via GAS test function (`testDetectProfileType` in Code.js, since removed). All 6 test students validated via Node.js: STRONG_SINGLE, 3x BORDERLINE_DUAL, 2x NEGATIVE_DOMINANT all PASS.
+- Test student `0000AI` used for live submission test — `profileType` saved correctly to RESPONSES sheet.
+
+**Phase 2 notes:**
+- `Tool1Templates.js` extended with `COMBINATION_NARRATIVES` (9 entries), `STRENGTH_STATEMENTS` (6), `POLARITY_INSIGHTS` (3), `getPolarityInsight()`, `NEGATIVE_DOMINANT_INTRO` (function).
+- `Tool1Report.js` fully rewritten with 8-section structure. Uses string concatenation (not template literals) for the HTML builder to avoid GAS double-escaping issues.
+- Backward compatibility confirmed: `getResults()` calls `Tool1.detectProfileType()` on-the-fly when `profileType` is absent from saved data. All 3 test students (5978RH, 1126AP, 5792RS) are old-schema and rendered correctly.
+- Design doc discrepancy: `5978RH` actual margin is 10 (FSV=20, Showing=10), not 27 as listed. Classifies as MODERATE_SINGLE, not STRONG_SINGLE. The classification logic is correct — the design doc test data was approximate.
+- One escaped apostrophe caught and fixed in `NEGATIVE_DOMINANT_INTRO` before deployment.
+
+**Browser automation notes (for future sessions):**
+- GAS apps render inside a cross-origin iframe (`sandboxFrame`). Screenshot and button clicks work. Text input works via: navigate to direct URL → click inside iframe → Tab to field → type.
+- Native `<select>` dropdowns cannot be controlled via browser automation (cross-origin blocks keyboard events). Use GAS test functions for form submission testing.
+- `clasp push` must be run from the main repo root (`/Users/Larry/code/FTP-v3`), not the worktree. Copy changed files to main repo before pushing.
 
 ### Test Student Reference
 Use these specific student IDs to test each profile type — their scores are known:
