@@ -1937,6 +1937,100 @@ function testTool2Phase5PrePopulation() {
   Logger.log('=== Overall: ' + passed + '/' + total + (passed === total ? ' ALL PASSED' : ' SOME FAILED') + ' ===');
 }
 
+/**
+ * TEMPORARY TEST: Phase 5 - Rendering verification for Tools 4, 6, 8
+ * Tests that pages render without errors, pre-filled values appear in HTML,
+ * and old-schema students still get working pages.
+ */
+function testTool2Phase5Rendering() {
+  var results = [];
+  var testClient = '0000AI';
+  var oldSchemaClient = '5978RH';
+
+  // Clear Tool 4 pre-survey so we test fresh pre-population
+  try {
+    PropertiesService.getUserProperties().deleteProperty('tool4_presurvey_' + testClient);
+  } catch(e) {}
+
+  // === TOOL 4: New-schema student rendering ===
+  try {
+    var t4Html = Tool4.render({ clientId: testClient });
+    var t4Content = t4Html.getContent();
+
+    // Check pre-filled values appear in HTML
+    var has5000 = t4Content.indexOf('value="5000"') > -1;
+    var has15000 = t4Content.indexOf('value="15000"') > -1;
+    var has21000 = t4Content.indexOf('value="21000"') > -1;
+    var hasNote = t4Content.indexOf('Financial Mirror') > -1;
+    var noErrors = t4Content.indexOf('Error') === -1 || t4Content.indexOf('Error rendering') === -1;
+
+    results.push('Tool 4 renders without error: ' + (t4Content.length > 1000 ? 'PASS (' + t4Content.length + ' chars)' : 'FAIL (too short: ' + t4Content.length + ')'));
+    results.push('Tool 4 monthlyIncome in HTML: ' + (has5000 ? 'PASS' : 'FAIL'));
+    results.push('Tool 4 totalDebt in HTML: ' + (has15000 ? 'PASS' : 'FAIL'));
+    results.push('Tool 4 emergencyFund in HTML: ' + (has21000 ? 'PASS' : 'FAIL'));
+    results.push('Tool 4 Financial Mirror note: ' + (hasNote ? 'PASS' : 'FAIL'));
+  } catch(e) {
+    results.push('Tool 4 render (new schema): FAIL - ' + e.message);
+  }
+
+  // === TOOL 4: Old-schema student rendering (no pre-population, still renders) ===
+  try {
+    // Clear any pre-survey for old student too
+    PropertiesService.getUserProperties().deleteProperty('tool4_presurvey_' + oldSchemaClient);
+    var t4OldHtml = Tool4.render({ clientId: oldSchemaClient });
+    var t4OldContent = t4OldHtml.getContent();
+
+    var oldNoNote = t4OldContent.indexOf('Financial Mirror') === -1;
+    results.push('Tool 4 old-schema renders: ' + (t4OldContent.length > 1000 ? 'PASS' : 'FAIL'));
+    results.push('Tool 4 old-schema no Mirror note: ' + (oldNoNote ? 'PASS' : 'FAIL'));
+  } catch(e) {
+    results.push('Tool 4 render (old schema): FAIL - ' + e.message);
+  }
+
+  // === TOOL 6: New-schema student rendering ===
+  try {
+    var t6Html = Tool6.render({ clientId: testClient });
+    var t6Content = t6Html.getContent();
+    results.push('Tool 6 renders without error: ' + (t6Content.length > 1000 ? 'PASS (' + t6Content.length + ' chars)' : 'FAIL (too short: ' + t6Content.length + ')'));
+  } catch(e) {
+    results.push('Tool 6 render (new schema): FAIL - ' + e.message);
+  }
+
+  // === TOOL 6: Old-schema student rendering ===
+  try {
+    var t6OldHtml = Tool6.render({ clientId: oldSchemaClient });
+    var t6OldContent = t6OldHtml.getContent();
+    results.push('Tool 6 old-schema renders: ' + (t6OldContent.length > 1000 ? 'PASS' : 'FAIL'));
+  } catch(e) {
+    results.push('Tool 6 render (old schema): FAIL - ' + e.message);
+  }
+
+  // === TOOL 8: New-schema student rendering ===
+  try {
+    var t8Html = Tool8.render({ clientId: testClient });
+    var t8Content = t8Html.getContent();
+    results.push('Tool 8 renders without error: ' + (t8Content.length > 1000 ? 'PASS (' + t8Content.length + ' chars)' : 'FAIL (too short: ' + t8Content.length + ')'));
+  } catch(e) {
+    results.push('Tool 8 render (new schema): FAIL - ' + e.message);
+  }
+
+  // === TOOL 8: Old-schema student rendering ===
+  try {
+    var t8OldHtml = Tool8.render({ clientId: oldSchemaClient });
+    var t8OldContent = t8OldHtml.getContent();
+    results.push('Tool 8 old-schema renders: ' + (t8OldContent.length > 1000 ? 'PASS' : 'FAIL'));
+  } catch(e) {
+    results.push('Tool 8 render (old schema): FAIL - ' + e.message);
+  }
+
+  // Summary
+  var passed = results.filter(function(r) { return r.indexOf('PASS') > -1; }).length;
+  var total = results.length;
+  Logger.log('=== Tool 2 Phase 5 Rendering Test Results ===');
+  results.forEach(function(r) { Logger.log(r); });
+  Logger.log('=== Overall: ' + passed + '/' + total + (passed === total ? ' ALL PASSED' : ' SOME FAILED') + ' ===');
+}
+
 function testTool2Phase1() {
   const results = [];
 
