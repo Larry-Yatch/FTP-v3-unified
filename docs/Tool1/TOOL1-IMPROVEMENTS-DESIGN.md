@@ -8,10 +8,11 @@
 **You are an autonomous coding agent executing this plan. The human is present, watching, and will confirm before you move to the next phase.**
 
 ### Before Starting Any Phase
-1. **Read the current state** of every file listed in that phase's "Read before starting" block. Do not rely on memory or previous reads — files may have changed since this document was written.
-2. **Re-read the phase's full task list.**
-3. **Reassess**: Does anything in the current file state conflict with or require adjusting the plan? If yes, state the conflict clearly before writing any code. Do not silently adapt and proceed.
-4. **Confirm with the human** that you are ready to begin.
+1. **Verify clasp is authorized**: Run `clasp status` in the terminal. If it fails or returns an auth error, stop and ask the human to run `clasp login` before proceeding.
+2. **Read the current state** of every file listed in that phase's "Read before starting" block. Do not rely on memory or previous reads — files may have changed since this document was written.
+3. **Re-read the phase's full task list.**
+4. **Reassess**: Does anything in the current file state conflict with or require adjusting the plan? If yes, state the conflict clearly before writing any code. Do not silently adapt and proceed.
+5. **Confirm with the human** that you are ready to begin.
 
 ### After Completing Any Phase
 1. Run the test protocol listed in the phase.
@@ -27,9 +28,9 @@
 ### Testing Infrastructure (Desktop Claude Code)
 
 **Deploying code:**
-- Run `clasp push` from the terminal in the project root to deploy changes to GAS.
-- Get the live web app URL by running `clasp deployments` — use the most recent deployment's URL for browser testing.
-- If no deployment exists yet, run `clasp deploy` to create one.
+- Run `clasp push` from the terminal in the project root.
+- `clasp push` updates the HEAD deployment only. The stable versioned deployment that students use is unaffected — you can push and test freely without touching live student traffic.
+- Get the HEAD deployment URL by running `clasp deployments` — use the entry marked `@HEAD`.
 
 **Verifying response data (use MCP, not the browser):**
 - Master Sheet ID: found in `Config.js` as `CONFIG.MASTER_SHEET_ID`
@@ -38,7 +39,8 @@
 - Filter by `Client_ID` and `Tool_ID` = `tool1`, then parse the `Data` column as JSON to inspect saved fields.
 
 **Browser testing (web app):**
-- The app authenticates via the logged-in Google account. To test as a specific student, the browser must be logged in to that student's Google account, or the human will confirm the test access method at session start.
+- Navigate to the `@HEAD` deployment URL in the browser.
+- The app is deployed as public (anyone can access). Login is via student ID on the login screen — no Google account switching needed. Enter the test student ID directly.
 - Use browser DevTools console to check for JavaScript errors after each page load.
 
 **Test student reference:** See Section 10 Phase Status table — known client IDs with verified score profiles are listed there.
