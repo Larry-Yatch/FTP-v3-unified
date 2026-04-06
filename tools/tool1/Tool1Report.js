@@ -2,7 +2,7 @@
  * Tool1Report.js
  * Generates the assessment report page and PDF download
  *
- * Report structure (8 sections):
+ * Report structure (7 sections):
  *   1. Header (name, email, date)
  *   2. Your Profile Type (STRONG_SINGLE / BORDERLINE_DUAL / MODERATE_SINGLE / NEGATIVE_DOMINANT)
  *   3. Your Psychological Patterns (primary + secondary if dual)
@@ -10,7 +10,6 @@
  *   5. Your Strengths (LOW pattern callouts)
  *   6. Polarity Insight (conditional)
  *   7. All Pattern Scores (score cards grid)
- *   8. What This Means for Your Finances (Tool 2 teaser or link)
  */
 
 const Tool1Report = {
@@ -578,15 +577,6 @@ const Tool1Report = {
       .classification-low {
         background: rgba(34, 197, 94, 0.15);
         color: #4ade80;
-      }
-
-      /* Finance teaser */
-      .finance-teaser-section {
-        margin: 40px 0;
-        padding: 25px 30px;
-        background: rgba(173, 145, 104, 0.05);
-        border-radius: 12px;
-        border: 1px solid rgba(173, 145, 104, 0.15);
       }
 
       /* Scores section */
