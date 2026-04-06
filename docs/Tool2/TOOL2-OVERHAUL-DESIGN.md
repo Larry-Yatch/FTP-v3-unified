@@ -23,6 +23,25 @@
 - Stop and report to the human immediately. Do not silently work around the design doc.
 - If the design doc is wrong or outdated for the current codebase, flag it. The human will decide whether to update the doc or adjust the approach.
 
+### Testing Infrastructure (Desktop Claude Code)
+
+**Deploying code:**
+- Run `clasp push` from the terminal in the project root to deploy changes to GAS.
+- Get the live web app URL by running `clasp deployments` — use the most recent deployment's URL for browser testing.
+- If no deployment exists yet, run `clasp deploy` to create one.
+
+**Verifying response data (use MCP, not the browser):**
+- Master Sheet ID: found in `Config.js` as `CONFIG.MASTER_SHEET_ID`
+- Use the MCP Google Drive tools (`mcp__google-drive__getGoogleSheetContent`) to read the RESPONSES sheet directly — faster and more reliable than browser navigation.
+- RESPONSES sheet column order (zero-indexed): `Timestamp(0)`, `Client_ID(1)`, `Tool_ID(2)`, `Data(3)`, `Status(4)`, `Is_Latest(5)`
+- Filter by `Client_ID` and `Tool_ID` = `tool2`, then parse the `Data` column as JSON to inspect saved fields.
+
+**Browser testing (web app):**
+- The app authenticates via the logged-in Google account. To test as a specific student, the browser must be logged in to that student's Google account, or the human will confirm the test access method at session start.
+- Use browser DevTools console to check for JavaScript errors after each page load.
+
+**Test student reference:** Use a student account that has completed Tool 1 (required for Tool 2 access). The human will confirm which test student to use at session start.
+
 ---
 
 ## 0. Before You Start
