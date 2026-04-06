@@ -70,15 +70,54 @@ const Tool2Constants = {
 
   /**
    * Insight types required for final submission
-   * Missing insights trigger fallback GPT analysis
+   * Phase 4 consolidates to a single GPT call — only one key needed
    */
-  REQUIRED_INSIGHTS: [
-    'income_sources',
-    'major_expenses',
-    'wasteful_spending',
-    'debt_list',
-    'investments',
-    'emotions',
-    'adaptive_trauma'
-  ]
+  REQUIRED_INSIGHTS: ['consolidated_insight'],
+
+  /**
+   * Subjective scale fields per domain — Full mode
+   */
+  FULL_MODE_FIELDS: {
+    moneyFlow:   ['incomeClarity', 'spendingClarity', 'moneyFlowStress'],
+    obligations: ['debtClarity', 'debtTrending', 'obligationsStress'],
+    liquidity:   ['savingsClarity', 'savingsStress'],
+    growth:      ['investmentClarity', 'retirementConfidence', 'retirementFunding', 'growthStress'],
+    protection:  ['insuranceClarity', 'insuranceConfidence', 'protectionStress']
+  },
+
+  /**
+   * Subjective scale fields per domain — Light mode
+   */
+  LIGHT_MODE_FIELDS: {
+    moneyFlow:   ['incomeClarity'],
+    obligations: ['debtClarity'],
+    liquidity:   ['savingsClarity'],
+    growth:      ['investmentClarity'],
+    protection:  ['insuranceClarity']
+  },
+
+  /**
+   * Human-readable benchmark standards for report display
+   */
+  BENCHMARK_STANDARDS: {
+    moneyFlow:   'Financial planners recommend saving at least 20% of take-home income.',
+    obligations: 'Financial planners recommend a debt-to-income ratio below 36% and an emergency fund of 3-6 months of expenses.',
+    liquidity:   'Financial planners recommend 3+ months of expenses in liquid savings beyond your emergency fund.',
+    growth:      'Financial planners recommend saving 15% of income for retirement.',
+    protection:  'Adequate protection includes health, disability, and property coverage for all adults, plus life insurance for those with dependents.'
+  },
+
+  /**
+   * Pattern thresholds from cohort data (n=70)
+   * Same values as Tool1Constants.TOOL1_PATTERN_THRESHOLDS
+   * Duplicated here because GAS does not support imports
+   */
+  PATTERN_THRESHOLDS: {
+    FSV:       { low: -5,  high: 11 },
+    ExVal:     { low: -7,  high: 12 },
+    Showing:   { low: -4,  high: 16 },
+    Receiving: { low: -10, high: 3  },
+    Control:   { low: -5,  high: 12 },
+    Fear:      { low: -10, high: 14 }
+  }
 };

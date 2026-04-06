@@ -1651,4 +1651,117 @@ function getAttendanceAnalytics(cohortId) {
 //
 // ========================================
 
+/**
+ * TEMPORARY TEST: Verify Tool 2 Phase 1 form rendering and data saving
+ * Run from GAS editor. Remove after Phase 1 verification.
+ */
+function testTool2Phase1() {
+  const results = [];
 
+  // Test 1: Verify Tool2Constants has new properties
+  try {
+    const hasFullFields = Tool2Constants.FULL_MODE_FIELDS && Tool2Constants.FULL_MODE_FIELDS.moneyFlow;
+    const hasLightFields = Tool2Constants.LIGHT_MODE_FIELDS && Tool2Constants.LIGHT_MODE_FIELDS.moneyFlow;
+    const hasBenchmarks = Tool2Constants.BENCHMARK_STANDARDS && Tool2Constants.BENCHMARK_STANDARDS.moneyFlow;
+    const hasThresholds = Tool2Constants.PATTERN_THRESHOLDS && Tool2Constants.PATTERN_THRESHOLDS.FSV;
+    const hasConsolidated = Tool2Constants.REQUIRED_INSIGHTS[0] === 'consolidated_insight';
+    const hasStressWeights = Tool2Constants.STRESS_WEIGHTS && Tool2Constants.STRESS_WEIGHTS.moneyFlow === 5;
+
+    results.push('Constants: ' + (hasFullFields && hasLightFields && hasBenchmarks && hasThresholds && hasConsolidated && hasStressWeights ? 'PASS' : 'FAIL'));
+  } catch (e) {
+    results.push('Constants: FAIL - ' + e.message);
+  }
+
+  // Test 2: Verify page rendering for test student 5978RH
+  const testStudent = '5978RH';
+  try {
+    const page1 = Tool2.renderPageContent(1, {assessmentMode: 'full'}, testStudent);
+    const hasMode = page1.indexOf('assessmentMode') > -1;
+    const hasToggle = page1.indexOf('toggleAssessmentMode') > -1;
+    const noIncomeStreams = page1.indexOf('incomeStreams') === -1;
+    results.push('Page 1 (full): ' + (hasMode && hasToggle && noIncomeStreams ? 'PASS' : 'FAIL - mode:' + hasMode + ' toggle:' + hasToggle + ' noStreams:' + noIncomeStreams));
+  } catch (e) {
+    results.push('Page 1: FAIL - ' + e.message);
+  }
+
+  // Test 3: Page 2 has objective fields
+  try {
+    const page2 = Tool2.renderPageContent(2, {assessmentMode: 'full'}, testStudent);
+    const hasGross = page2.indexOf('grossAnnualIncome') > -1;
+    const hasTakeHome = page2.indexOf('monthlyTakeHome') > -1;
+    const hasSpending = page2.indexOf('monthlySpending') > -1;
+    const hasIncomeClarity = page2.indexOf('incomeClarity') > -1;
+    results.push('Page 2 (full): ' + (hasGross && hasTakeHome && hasSpending && hasIncomeClarity ? 'PASS' : 'FAIL'));
+  } catch (e) {
+    results.push('Page 2: FAIL - ' + e.message);
+  }
+
+  // Test 4: Page 3 has objective debt fields
+  try {
+    const page3 = Tool2.renderPageContent(3, {assessmentMode: 'full'}, testStudent);
+    const hasDebt = page3.indexOf('totalDebtBalance') > -1;
+    const hasPayments = page3.indexOf('monthlyDebtPayments') > -1;
+    const hasEF = page3.indexOf('emergencyFundBalance') > -1;
+    results.push('Page 3 (full): ' + (hasDebt && hasPayments && hasEF ? 'PASS' : 'FAIL'));
+  } catch (e) {
+    results.push('Page 3: FAIL - ' + e.message);
+  }
+
+  // Test 5: Page 4 has objective savings/retirement fields
+  try {
+    const page4 = Tool2.renderPageContent(4, {assessmentMode: 'full'}, testStudent);
+    const hasLiquid = page4.indexOf('liquidSavings') > -1;
+    const hasRetBal = page4.indexOf('totalRetirementBalance') > -1;
+    const hasRetContr = page4.indexOf('monthlyRetirementContribution') > -1;
+    results.push('Page 4 (full): ' + (hasLiquid && hasRetBal && hasRetContr ? 'PASS' : 'FAIL'));
+  } catch (e) {
+    results.push('Page 4: FAIL - ' + e.message);
+  }
+
+  // Test 6: Page 5 has insurance checkboxes
+  try {
+    const page5 = Tool2.renderPageContent(5, {assessmentMode: 'full'}, testStudent);
+    const hasHealth = page5.indexOf('hasHealthInsurance') > -1;
+    const hasLife = page5.indexOf('hasLifeInsurance') > -1;
+    const hasDisability = page5.indexOf('hasDisabilityInsurance') > -1;
+    const hasProperty = page5.indexOf('hasPropertyInsurance') > -1;
+    const hasEmotions = page5.indexOf('financialEmotionsNarrative') > -1;
+    results.push('Page 5 (full): ' + (hasHealth && hasLife && hasDisability && hasProperty && hasEmotions ? 'PASS' : 'FAIL'));
+  } catch (e) {
+    results.push('Page 5: FAIL - ' + e.message);
+  }
+
+  // Test 7: Light mode hides full-only fields
+  try {
+    const page2Light = Tool2.renderPageContent(2, {assessmentMode: 'light'}, testStudent);
+    const hasHiddenScales = page2Light.indexOf('display: none') > -1;
+    results.push('Page 2 (light): ' + (hasHiddenScales ? 'PASS' : 'FAIL - full-mode scales not hidden'));
+  } catch (e) {
+    results.push('Page 2 (light): FAIL - ' + e.message);
+  }
+
+  // Test 8: Page 1 light mode hides full-only demographics
+  try {
+    const page1Light = Tool2.renderPageContent(1, {assessmentMode: 'light'}, testStudent);
+    const hasHiddenDemo = page1Light.indexOf('id="fullModeDemo"') > -1 && page1Light.indexOf("display: none") > -1;
+    results.push('Page 1 (light): ' + (hasHiddenDemo ? 'PASS' : 'FAIL'));
+  } catch (e) {
+    results.push('Page 1 (light): FAIL - ' + e.message);
+  }
+
+  // Test 9: No escaped apostrophes in adaptive questions
+  try {
+    const page5Full = Tool2.renderPageContent(5, {assessmentMode: 'full'}, testStudent);
+    const hasEscaped = page5Full.indexOf("\\'") > -1;
+    results.push('No escaped apostrophes: ' + (!hasEscaped ? 'PASS' : 'FAIL'));
+  } catch (e) {
+    results.push('Apostrophe check: FAIL - ' + e.message);
+  }
+
+  // Summary
+  const passed = results.filter(r => r.indexOf('PASS') > -1).length;
+  const total = results.length;
+  Logger.log('=== Tool 2 Phase 1 Test Results ===');
+  results.forEach(r => Logger.log(r));
+  Logger.log('=== Overall: ' + passed + '/' + total + (passed === total ? ' ALL PASSED' : ' SOME FAILED') + ' ===');
+}
