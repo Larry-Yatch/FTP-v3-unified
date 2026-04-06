@@ -104,15 +104,6 @@ const Tool1Report = {
     var winner = results.winner;
     var self = this;
 
-    // Check if Tool 2 is completed for this student
-    var tool2Completed = false;
-    try {
-      var tool2Data = DataService.getLatestResponse(clientId, 'tool2');
-      tool2Completed = !!(tool2Data && tool2Data.data);
-    } catch (e) {
-      LogUtils.debug('Tool1Report: Could not check tool2 status: ' + e);
-    }
-
     return '<!DOCTYPE html>' +
       '<html>' +
       '<head>' +
@@ -147,9 +138,6 @@ const Tool1Report = {
 
             // === SECTION 7: All Pattern Scores ===
             this.buildScoresSection(scores, winner, profile) +
-
-            // === SECTION 8: What This Means for Your Finances ===
-            this.buildFinanceTeaserSection(profile, winner, tool2Completed, clientId) +
 
             // === Footer ===
             '<div class="footer-section">' +
@@ -214,25 +202,25 @@ const Tool1Report = {
       var secondName = this.PATTERN_NAMES[secondKey] || secondKey;
       html += '<h2>Your Profile Type</h2>' +
         '<div class="profile-callout profile-strong">' +
-          '<p>Your assessment shows a clear dominant pattern: <strong>' + winnerName + '</strong>. ' +
-          'Your score of ' + scores[winner] + ' is significantly higher than your next-highest score ' +
-          '(' + secondName + ' at ' + scores[secondKey] + '), indicating this strategy is strongly active in your life.</p>' +
+          '<p>Based on your responses, the pattern we most commonly associate with these scores is <strong>' + winnerName + '</strong>. ' +
+          'Your score of ' + scores[winner] + ' is notably higher than your next-highest score ' +
+          '(' + secondName + ' at ' + scores[secondKey] + '). In our experience, this kind of gap often suggests this pattern may be worth exploring further.</p>' +
         '</div>';
 
     } else if (profile.type === 'BORDERLINE_DUAL') {
       var secondaryName = this.PATTERN_NAMES[profile.secondary] || profile.secondary;
       html += '<h2>Your Profile Type</h2>' +
         '<div class="profile-callout profile-dual">' +
-          '<p>Your assessment shows two patterns that are closely matched: <strong>' + winnerName + '</strong> (' + scores[winner] + ') ' +
+          '<p>Your responses point to two patterns with closely matched scores: <strong>' + winnerName + '</strong> (' + scores[winner] + ') ' +
           'and <strong>' + secondaryName + '</strong> (' + scores[profile.secondary] + '). ' +
-          'This is common and meaningful \u2014 it suggests both strategies are active, and the tension between them shapes your financial behavior in specific ways. Both are described below.</p>' +
+          'When we see two patterns this close, it often suggests both may be playing a role. The interplay between them is described below \u2014 see if it resonates with your experience.</p>' +
         '</div>';
 
     } else if (profile.type === 'MODERATE_SINGLE') {
       html += '<h2>Your Profile Type</h2>' +
         '<div class="profile-callout profile-moderate">' +
-          '<p>Your assessment shows <strong>' + winnerName + '</strong> as your primary pattern, with moderate intensity. ' +
-          'The strategies described below are present in your life but may not dominate every financial decision.</p>' +
+          '<p>Your responses suggest <strong>' + winnerName + '</strong> as a primary pattern to explore. ' +
+          'The description below reflects what we commonly see with this pattern \u2014 consider which parts feel familiar and which do not.</p>' +
         '</div>';
 
     } else if (profile.type === 'NEGATIVE_DOMINANT') {
@@ -407,29 +395,6 @@ const Tool1Report = {
     // Threshold explanation note
     html += '<p class="scores-note">Scores classified as <strong>HIGH</strong> indicate strong pattern activation. ' +
       'Scores classified as <strong>LOW</strong> indicate the pattern is largely absent \u2014 a positive signal.</p>';
-
-    html += '</div>';
-    return html;
-  },
-
-  /** Section 8: What This Means for Your Finances */
-  buildFinanceTeaserSection(profile, winner, tool2Completed, clientId) {
-    if (!profile) return '';
-
-    var html = '<div class="finance-teaser-section">' +
-      '<h2>What This Means for Your Finances</h2>';
-
-    if (tool2Completed) {
-      html += '<p>You have completed your Financial Mirror assessment. ' +
-        '<a href="' + ScriptApp.getService().getUrl() + '?route=tool2_report&client=' + clientId + '" ' +
-        'style="color: #ad9168; text-decoration: underline;">View your Financial Mirror report</a> ' +
-        'to see how your trauma patterns show up in specific financial domains.</p>';
-    } else {
-      var winnerName = this.PATTERN_NAMES[winner] || winner;
-      html += '<p>In Tool 2 (Financial Mirror), you will see how your <strong>' + winnerName + '</strong> pattern ' +
-        'tends to show up in specific financial domains. Pay particular attention to the gap between your perceived ' +
-        'financial clarity and your actual financial picture.</p>';
-    }
 
     html += '</div>';
     return html;

@@ -35,7 +35,7 @@ const Tool1Templates = {
 
     <p>In the distillation of thousands of traumatic strategies, they all regressed to 3 types of disconnection with a passive and active manifestation of each.</p>
 
-    <div style="margin: 20px 0; padding: 15px; background: rgba(173, 145, 104, 0.1); border-left: 4px solid #ad9168;">
+    <div style="margin: 20px 0; padding: 15px; background: rgba(173, 145, 104, 0.1); border-radius: 8px;">
       <strong>Disconnection from Self</strong><br>
       False Self-View - Active<br>
       External Validation - Passive<br><br>
@@ -59,7 +59,7 @@ const Tool1Templates = {
     name: 'False Self-View',
     category: 'FSV',
     content: `
-      <h2>Your Core Trauma Strategy is False Self-View:</h2>
+      <h2>Your Responses Suggest False Self-View as a Primary Pattern:</h2>
 
       <p>The core strategy behind False Self-View is to use a "mask" to be safe.</p>
 
@@ -95,7 +95,7 @@ const Tool1Templates = {
     name: 'External Validation',
     category: 'ExVal',
     content: `
-      <h2>Your Core Trauma Strategy is External Validation:</h2>
+      <h2>Your Responses Suggest External Validation as a Primary Pattern:</h2>
 
       <p>The core strategy behind external validation is the need to be accepted, valued, or recognized to feel safe.</p>
 
@@ -135,7 +135,7 @@ const Tool1Templates = {
     name: 'Issues Showing Love',
     category: 'Showing',
     content: `
-      <h2>Your Core Trauma Strategy is Issues Showing Love:</h2>
+      <h2>Your Responses Suggest Issues Showing Love as a Primary Pattern:</h2>
 
       <p>The core strategy behind Issues with Showing Love is to suffer or sacrifice when showing love or care for another.</p>
 
@@ -175,7 +175,7 @@ const Tool1Templates = {
     name: 'Issues Receiving Love',
     category: 'Receiving',
     content: `
-      <h2>Your Core Trauma Strategy is Issues Receiving Love:</h2>
+      <h2>Your Responses Suggest Issues Receiving Love as a Primary Pattern:</h2>
 
       <p>The core strategy with issues receiving love is emotional disconnection, where we try to avoid experiencing our emotions or avoid emotional people.</p>
 
@@ -215,7 +215,7 @@ const Tool1Templates = {
     name: 'Control Leading to Isolation',
     category: 'Control',
     content: `
-      <h2>Your Core Trauma Strategy is Control Leading to Isolation:</h2>
+      <h2>Your Responses Suggest Control Leading to Isolation as a Primary Pattern:</h2>
 
       <p>The core strategy behind the need for Control is that we must maintain control of our environment if we are going to stay safe.</p>
 
@@ -255,7 +255,7 @@ const Tool1Templates = {
     name: 'Fear Leading to Isolation',
     category: 'Fear',
     content: `
-      <h2>Your Core Trauma Strategy is Fear Leading to Isolation:</h2>
+      <h2>Your Responses Suggest Fear Leading to Isolation as a Primary Pattern:</h2>
 
       <p>The core strategy behind fear leading to isolation is the sense that we control nothing in our worlds, and in that, we are never safe.</p>
 
@@ -311,23 +311,23 @@ const Tool1Templates = {
   // =========================================================================
 
   COMBINATION_NARRATIVES: {
-    'ExVal_FSV': "You score high in both False Self-View and External Validation. These two patterns operate in opposing directions from the same wound: FSV drives you to create genuine internal scarcity (financial confusion, hidden accounts, manufactured crises), while ExVal drives you to perform a different financial reality to the outside world. The result is a life where your inner financial experience and your presented financial identity are completely disconnected. You may not know your real financial situation \u2014 and others definitely do not. Financial situations driven by this combination tend to collapse suddenly and without warning, even though the warning signs were always there, hidden from yourself first.",
+    'ExVal_FSV': "Your responses show elevated scores in both False Self-View and External Validation. When we see these two patterns together, they often operate in opposing directions from the same wound: FSV can drive a person to create internal scarcity (financial confusion, hidden accounts, manufactured crises), while ExVal can drive them to perform a different financial reality to the outside world. In our experience, this combination can create a disconnect between inner financial experience and presented financial identity. People with this pattern may not fully know their real financial situation \u2014 and others around them may not either. Financial situations shaped by this combination can appear stable on the surface until they shift suddenly.",
 
-    'Receiving_Showing': "You score high in both Issues Showing Love and Issues Receiving Love. These patterns form a codependent loop: you give money, time, and financial support compulsively \u2014 while simultaneously staying financially dependent on others yourself. The two patterns often involve the same relationships. You may be the person who always picks up the check AND the person who periodically needs to be bailed out. Financial independence feels threatening from both directions: stopping giving would mean you do not love; accepting support would mean you are a burden. Building your own financial foundation requires untangling both sides of this loop simultaneously.",
+    'Receiving_Showing': "Your responses show elevated scores in both Issues Showing Love and Issues Receiving Love. When we see these two patterns together, they can form a codependent loop: giving money, time, and financial support freely \u2014 while simultaneously remaining financially dependent on others. These patterns often involve the same relationships. Someone with this combination might be the person who always picks up the check and also the person who periodically needs financial help. Financial independence can feel threatening from both directions. Building a solid financial foundation often requires looking at both sides of this dynamic.",
 
-    'Control_Fear': "You score high in both Control and Fear. These are the two safety-domain patterns, and together they create a specific destructive cycle: Control drives you to obsessively accumulate and manage \u2014 tracking every dollar, building reserves, maintaining systems. Fear drives you to unconsciously destroy or abandon financial progress once it reaches a certain threshold of visibility or success. You have likely experienced this cycle before: built something up, then made an unexplained decision that knocked it back. The Control side gives you the discipline to rebuild; the Fear side ensures you keep having to. True financial progress requires understanding why thriving feels dangerous.",
+    'Control_Fear': "Your responses show elevated scores in both Control and Fear. These are the two safety-domain patterns, and when they appear together, we often see a specific cycle: Control drives a person to accumulate and manage carefully \u2014 tracking every dollar, building reserves, maintaining systems. Fear can drive them to unconsciously pull back from financial progress once it reaches a certain threshold of visibility or success. People with this combination sometimes describe building something up and then making an unexpected decision that set it back. Understanding why financial growth might feel uncomfortable is often the key to breaking this cycle.",
 
-    'Control_FSV': "You score high in both False Self-View and Control. FSV creates a belief that you are not yet worthy of financial success \u2014 any current financial situation confirms this inadequacy. Control gives you a compulsion to manage every detail as compensation. The combination produces endless analysis, planning, and optimization without implementation. Your financial plan is perpetually being refined because committing to it would mean accepting your current situation as real, which feels like accepting your inadequacy as permanent. More information does not provide relief \u2014 because information was never the actual problem.",
+    'Control_FSV': "Your responses show elevated scores in both False Self-View and Control. When we see these together, FSV can create a belief of not being worthy of financial success, while Control provides a compulsion to manage every detail as compensation. In our experience, this combination can produce extensive analysis, planning, and optimization without implementation \u2014 the financial plan is always being refined. Committing to a plan can feel like accepting the current situation as permanent. If this resonates, it may be worth exploring whether more information is actually what is needed, or whether something else is at play.",
 
-    'Fear_FSV': "You score high in both False Self-View and Fear. This combination is one of the most consistent predictors of financial stagnation that does not respond to conventional coaching. FSV says \"I am not worthy of financial success.\" Fear says \"Thriving makes me a target \u2014 staying small is safer.\" Together, they produce the person who will charge less than their value, avoid visible opportunities, and remain perpetually preparing to start. Income stays below capability level regardless of skills or market. This is not a knowledge or skills problem. The underlying beliefs need to shift before financial behavior can change durably.",
+    'Fear_FSV': "Your responses show elevated scores in both False Self-View and Fear. In our experience, when these two patterns appear together, they can be one of the more persistent combinations. FSV can create a sense of not being worthy of financial success, while Fear can make visibility and growth feel unsafe. People with this combination sometimes charge less than their value, avoid visible opportunities, or feel perpetually in preparation mode. Income may stay below capability regardless of skills or market. This is often not a knowledge or skills issue \u2014 when this combination is present, shifting the underlying beliefs tends to be where lasting change begins.",
 
-    'ExVal_Showing': "You score high in both External Validation and Issues Showing Love. ExVal drives spending on image and status \u2014 the expensive item, the impressive lifestyle. Showing drives spending on others \u2014 always picking up the check, covering others' expenses, proving love financially. You overspend in both directions simultaneously. The resulting debt is typically hidden from both audiences: friends do not know about the credit cards; the image does not show the stress. High income is common with this combination; accumulated wealth is rare.",
+    'ExVal_Showing': "Your responses show elevated scores in both External Validation and Issues Showing Love. When we see these together, ExVal can drive spending on image and status, while Showing can drive spending on others \u2014 picking up the check, covering expenses, expressing love financially. People with this combination may find themselves extending financially in both directions simultaneously. The resulting strain is often hidden from everyone involved. In our experience, high income is common with this pattern; accumulated wealth is less so.",
 
-    'ExVal_Receiving': "You score high in both External Validation and Issues Receiving Love. Financial dependency has become part of your curated identity \u2014 \"I do not handle money; my partner does\" or \"I have never been good with finances.\" The ExVal pattern means this story is maintained partly for others' consumption. This is financial learned helplessness that has been socially legitimized. This combination is particularly resistant to change because shifting it threatens both the relationship structure AND the identity. Genuine financial engagement requires separating your worth from your financial dependency narrative.",
+    'ExVal_Receiving': "Your responses show elevated scores in both External Validation and Issues Receiving Love. When these patterns appear together, financial dependency can become part of a curated identity \u2014 narratives like \"I do not handle money\" or \"I have never been good with finances.\" The ExVal element means this story may be maintained partly for others. In our experience, this combination can be particularly resistant to change because shifting it may feel like it threatens both relationship structure and identity. Genuine financial engagement often begins with separating self-worth from the financial dependency narrative.",
 
-    'Control_Showing': "You score high in both Control and Issues Showing Love. You maintain strict, disciplined financial control in your personal life \u2014 tracking, planning, building reserves. But financial discipline breaks down entirely in the context of relationships. When someone you care about needs money, the controlled self disappears and you give freely, often from savings you have worked hard to build. The pattern repeats: build it up, give it away, rebuild. Your own financial security is being maintained for others rather than for yourself.",
+    'Control_Showing': "Your responses show elevated scores in both Control and Issues Showing Love. When we see these together, a person may maintain disciplined financial control in their personal life \u2014 tracking, planning, building reserves \u2014 but find that discipline breaks down in the context of relationships. When someone they care about needs money, the controlled self can disappear. In our experience, people with this combination sometimes describe a repeating cycle: build it up, give it away, rebuild. It may be worth exploring whether your financial security is being maintained for yourself or primarily for others.",
 
-    'Fear_Receiving': "You score high in both Fear and Issues Receiving Love. This is the most complete form of financial invisibility: Fear says thriving or being visible with money attracts danger, so staying small is safe. Receiving provides the structural mechanism for staying small \u2014 remaining financially dependent means you never have to be the one with money, never the visible target. The relationship provides cover; financial change requires both building your own capability AND tolerating the visibility that comes with it. This combination produces the lowest objective financial scores in the cohort and is the most likely to report low distress about those scores \u2014 the dependency has been normalized."
+    'Fear_Receiving': "Your responses show elevated scores in both Fear and Issues Receiving Love. When we see these patterns together, they can create a form of financial invisibility: Fear suggests that being visible with money attracts danger, so staying small feels safe. Receiving provides the structural mechanism \u2014 remaining financially dependent means never being the visible target. In our experience, people with this combination often report the lowest objective financial scores but may also report lower distress about those scores. If this resonates, it may be worth exploring whether financial dependency has become a form of protection."
   },
 
   // =========================================================================
@@ -336,17 +336,17 @@ const Tool1Templates = {
   // =========================================================================
 
   STRENGTH_STATEMENTS: {
-    FSV: "You show low activation of the False Self-View pattern. You do not tend to create financial confusion for yourself or manufacture scarcity as a form of unconscious self-punishment. Your financial decisions are more likely to reflect your actual situation rather than distorted self-perception.",
+    FSV: "Your responses suggest low activation of the False Self-View pattern. People with low scores here typically do not create financial confusion for themselves or manufacture scarcity. Their financial decisions tend to reflect their actual situation rather than distorted self-perception.",
 
-    ExVal: "You show low activation of the External Validation pattern. You make financial decisions based on your own values rather than others' perception of you. This independence from external judgment is a significant financial strength \u2014 your spending and saving choices are authentically yours.",
+    ExVal: "Your responses suggest low activation of the External Validation pattern. People with low scores here tend to make financial decisions based on their own values rather than the perception of others. This kind of independence from external judgment is often a significant financial strength.",
 
-    Showing: "You show low activation of the Issues Showing Love pattern. You maintain financial boundaries in relationships and do not habitually sacrifice your own financial stability to prove care for others. You can be generous from a place of choice rather than compulsion.",
+    Showing: "Your responses suggest low activation of the Issues Showing Love pattern. People with low scores here tend to maintain financial boundaries in relationships and do not habitually sacrifice their own financial stability to prove care for others. Generosity tends to come from choice rather than compulsion.",
 
-    Receiving: "You show low activation of the Issues Receiving Love pattern. You are able to accept financial help, advice, and collaboration when it genuinely serves you. This openness to support \u2014 financial coaching, investment partnerships, professional advice \u2014 is an accelerator for financial progress.",
+    Receiving: "Your responses suggest low activation of the Issues Receiving Love pattern. People with low scores here tend to be open to accepting financial help, advice, and collaboration when it genuinely serves them. This openness to support \u2014 financial coaching, investment partnerships, professional advice \u2014 can be an accelerator for financial progress.",
 
-    Control: "You show low activation of the Control pattern. You do not over-manage or hoard resources out of anxiety. You can delegate financial decisions, trust others with money management, and use resources rather than simply accumulating them. Financial flexibility is available to you.",
+    Control: "Your responses suggest low activation of the Control pattern. People with low scores here tend not to over-manage or hoard resources out of anxiety. They are often able to delegate financial decisions, trust others with money management, and use resources rather than simply accumulating them.",
 
-    Fear: "You show low activation of the Fear pattern. You do not habitually self-sabotage financial progress or shrink from financial visibility. You can pursue opportunities, accept recognition, and allow yourself to thrive financially without unconscious interference."
+    Fear: "Your responses suggest low activation of the Fear pattern. People with low scores here tend not to self-sabotage financial progress or shrink from financial visibility. They can typically pursue opportunities, accept recognition, and allow financial growth without unconscious interference."
   },
 
   // =========================================================================
@@ -355,11 +355,11 @@ const Tool1Templates = {
   // =========================================================================
 
   POLARITY_INSIGHTS: {
-    'Showing_high_Receiving_low': "Your profile shows one of the clearest polarities we see: you score high in giving financially but low in receiving. This means you have developed strong capacity to extend financial generosity and sacrifice for others, while simultaneously being highly resistant to accepting help, resources, or support for yourself. The strength of the Showing pattern is real \u2014 and so is the cost of the Receiving block. Both sides of this polarity are worth understanding.",
+    'Showing_high_Receiving_low': "Your responses show one of the clearest polarities we see in this assessment: elevated scores in giving financially alongside low scores in receiving. When we see this pattern, it often indicates a strong capacity for financial generosity and sacrifice for others, paired with resistance to accepting help, resources, or support in return. If this resonates, both sides of this polarity may be worth exploring.",
 
-    'Control_high_Receiving_low': "You score high in financial Control while scoring low in Receiving. You build strong financial structures and self-sufficiency, but have significant difficulty accepting outside help, advice, or financial support. This polarity often produces capable, independent individuals who are quietly struggling to access the external resources that would accelerate their progress \u2014 because receiving those resources conflicts with the Control pattern's need for self-sufficiency.",
+    'Control_high_Receiving_low': "Your responses show elevated financial Control alongside low Receiving scores. When we see this combination, it often reflects strong financial structures and self-sufficiency, alongside difficulty accepting outside help, advice, or financial support. In our experience, people with this polarity are often capable and independent, but may be missing external resources that could accelerate their progress \u2014 because receiving those resources can feel like it conflicts with self-sufficiency.",
 
-    'Showing_high_Fear_low': "You score high in financial giving (Showing) but low in Fear. This means you give generously and without significant self-sabotage anxiety \u2014 the motivation to give is genuine rather than fear-driven. This is a meaningful distinction: your generosity is not avoidance behavior."
+    'Showing_high_Fear_low': "Your responses show elevated scores in financial giving (Showing) alongside low Fear scores. When we see this pattern, it often suggests that generosity is genuine rather than driven by self-sabotage anxiety. This is a meaningful distinction \u2014 it may indicate that the motivation to give comes from a place of authentic care rather than avoidance."
   },
 
   /**
@@ -388,21 +388,19 @@ const Tool1Templates = {
    * @returns {string} Narrative HTML
    */
   NEGATIVE_DOMINANT_INTRO: function(winnerName, winnerScore) {
-    return '<p>Your assessment results show low activation across most financial trauma patterns. ' +
-      'Rather than a single dominant strategy driving your financial behavior, you appear to operate ' +
-      'with relatively low intensity across all six patterns.</p>' +
-      '<p>There are two interpretations of this result, and both may be partially true:</p>' +
-      '<p><strong>The strength interpretation:</strong> Low scores indicate that these defensive strategies are not strongly ' +
-      'active in your life \u2014 you do not habitually create financial confusion for yourself, ' +
-      "you do not make decisions based on others' judgment, and you do not chronically self-sabotage. " +
-      'This reflects genuine psychological flexibility.</p>' +
-      '<p><strong>The suppression interpretation:</strong> The patterns may be present but not consciously recognized, ' +
-      'or may express subtly in ways that the assessment questions did not fully capture for your specific situation.</p>' +
-      '<p>Your financial data \u2014 the objective numbers from your financial assessment \u2014 will be the most reliable signal ' +
-      'of where attention is needed. The domain scores in your Financial Mirror assessment carry more weight for your profile ' +
-      'than pattern-specific interpretation.</p>' +
+    return '<p>Your responses suggest low activation across most financial trauma patterns. ' +
+      'Rather than pointing to a single dominant strategy, your scores are relatively low across all six patterns.</p>' +
+      '<p>In our experience, there are two ways to interpret this kind of result, and both may be partially true:</p>' +
+      '<p><strong>The strength interpretation:</strong> Low scores can indicate that these defensive strategies are not strongly ' +
+      'active in your life \u2014 that you do not habitually create financial confusion, ' +
+      "do not make decisions based on others' judgment, and do not chronically self-sabotage. " +
+      'This can reflect genuine psychological flexibility.</p>' +
+      '<p><strong>The suppression interpretation:</strong> The patterns may be present but not yet consciously recognized, ' +
+      'or may express in subtle ways that this initial assessment did not fully capture for your specific situation.</p>' +
+      '<p>As you continue through the TruPath process, your financial data \u2014 the objective numbers from your financial assessment \u2014 ' +
+      'will provide a more complete picture of where attention may be most valuable.</p>' +
       '<p>Your highest-scoring pattern is <strong>' + winnerName + '</strong> (score: ' + winnerScore + '). ' +
-      'While this is your relative high point rather than a strong absolute signal, ' +
-      'a brief note on this pattern follows.</p>';
+      'While this is a relative high point rather than a strong signal, ' +
+      'a brief note on what we typically see with this pattern follows.</p>';
   }
 };

@@ -432,7 +432,7 @@ Update this table as you complete each phase. Do not start the next phase until 
 |-------|-------|--------|
 | 1 | Score Classification & Profile Detection | ✅ COMPLETE |
 | 2 | Report Structure Update | ✅ COMPLETE |
-| 3 | PDF Update | ⬜ NOT STARTED |
+| 3 | PDF Update | ✅ COMPLETE |
 | 4 | Backward Compatibility Audit | ⬜ NOT STARTED |
 
 **Rule**: Do not begin a phase until the previous phase passes manual testing in the deployed GAS environment.
@@ -451,6 +451,14 @@ Update this table as you complete each phase. Do not start the next phase until 
 - Backward compatibility confirmed: `getResults()` calls `Tool1.detectProfileType()` on-the-fly when `profileType` is absent from saved data. All 3 test students (5978RH, 1126AP, 5792RS) are old-schema and rendered correctly.
 - Design doc discrepancy: `5978RH` actual margin is 10 (FSV=20, Showing=10), not 27 as listed. Classifies as MODERATE_SINGLE, not STRONG_SINGLE. The classification logic is correct — the design doc test data was approximate.
 - One escaped apostrophe caught and fixed in `NEGATIVE_DOMINANT_INTRO` before deployment.
+
+**Phase 3 notes:**
+- `generateTool1PDF()` in `shared/PDFGenerator.js` fully rewritten to mirror the 8-section report structure (minus Section 8).
+- PDF now includes: profile type statement, combination narratives (BORDERLINE_DUAL/multiple HIGH), strengths section (LOW patterns), polarity insight, and threshold explanation in scores grid.
+- Backward compatibility confirmed: `Tool1Report.getResults()` computes `profileType` on-the-fly for old-schema students. All 3 test students (5978RH, 1126AP, 5792RS) passed GAS test function.
+- Section 8 ("What This Means for Your Finances") removed from both HTML report and PDF per user request — the Tool 2 link was broken (pointed to wrong deployment) and added an unnecessary `DataService.getLatestResponse()` call that slowed report loading.
+- Duplicate gold left-border on profile type box fixed — changed to rounded-corner background only.
+- **Language softening (cross-cutting):** All user-facing narrative text in `Tool1Templates.js`, `Tool1Report.js`, and `PDFGenerator.js` shifted from second-person declarative ("You are X", "Your strategy is Y") to observational framing ("Your responses suggest...", "When we see this pattern...", "In our experience..."). This applies to: 6 pattern template headings, 4 profile type descriptions, 9 combination narratives, 6 strength statements, 3 polarity insights, and the negative-dominant intro. The intent is to present patterns as observations worth exploring rather than diagnoses.
 
 **Browser automation notes (for future sessions):**
 - GAS apps render inside a cross-origin iframe (`sandboxFrame`). Screenshot and button clicks work. Text input works via: navigate to direct URL → click inside iframe → Tab to field → type.
