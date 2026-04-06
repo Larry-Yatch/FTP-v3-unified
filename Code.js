@@ -1655,6 +1655,114 @@ function getAttendanceAnalytics(cohortId) {
  * TEMPORARY TEST: Verify Tool 2 Phase 1 form rendering and data saving
  * Run from GAS editor. Remove after Phase 1 verification.
  */
+/**
+ * TEMPORARY TEST: Phase 2 scoring algorithm verification
+ */
+function testTool2Phase2Scoring() {
+  const results = [];
+
+  // === Test Fixture 1: Strong saver with good emergency fund ===
+  var fixture1 = {
+    monthlyTakeHome: '5000', monthlySpending: '3500', monthlyDebtPayments: '300',
+    emergencyFundBalance: '21000', liquidSavings: '10000', monthlyRetirementContribution: '750',
+    grossAnnualIncome: '72000', dependents: '2',
+    hasHealthInsurance: 'true', hasLifeInsurance: 'true', hasDisabilityInsurance: 'true', hasPropertyInsurance: 'true'
+  };
+  var f1mf = Tool2.computeObjectiveHealthScore('moneyFlow', fixture1);
+  var f1ob = Tool2.computeObjectiveHealthScore('obligations', fixture1);
+  var f1lq = Tool2.computeObjectiveHealthScore('liquidity', fixture1);
+  var f1gr = Tool2.computeObjectiveHealthScore('growth', fixture1);
+  var f1pr = Tool2.computeObjectiveHealthScore('protection', fixture1);
+  results.push('Fixture1 moneyFlow: ' + (f1mf === 85 ? 'PASS' : 'FAIL (got ' + f1mf + ', expected 85)'));
+  results.push('Fixture1 obligations: ' + (f1ob === 88 ? 'PASS' : 'FAIL (got ' + f1ob + ', expected 88)'));
+  results.push('Fixture1 liquidity: ' + (f1lq === 60 ? 'PASS' : 'FAIL (got ' + f1lq + ', expected 60)'));
+  results.push('Fixture1 growth: ' + (f1gr === 90 ? 'PASS' : 'FAIL (got ' + f1gr + ', expected 90)'));
+  results.push('Fixture1 protection: ' + (f1pr === 100 ? 'PASS' : 'FAIL (got ' + f1pr + ', expected 100)'));
+
+  // === Test Fixture 2: Deficit spender, no emergency fund ===
+  var fixture2 = {
+    monthlyTakeHome: '3000', monthlySpending: '3500', monthlyDebtPayments: '800',
+    emergencyFundBalance: '0', liquidSavings: '500', monthlyRetirementContribution: '0',
+    grossAnnualIncome: '48000', dependents: '0',
+    hasHealthInsurance: 'false', hasLifeInsurance: 'false', hasDisabilityInsurance: 'false', hasPropertyInsurance: 'false'
+  };
+  var f2mf = Tool2.computeObjectiveHealthScore('moneyFlow', fixture2);
+  var f2ob = Tool2.computeObjectiveHealthScore('obligations', fixture2);
+  var f2lq = Tool2.computeObjectiveHealthScore('liquidity', fixture2);
+  var f2gr = Tool2.computeObjectiveHealthScore('growth', fixture2);
+  var f2pr = Tool2.computeObjectiveHealthScore('protection', fixture2);
+  results.push('Fixture2 moneyFlow: ' + (f2mf === 10 ? 'PASS' : 'FAIL (got ' + f2mf + ', expected 10)'));
+  results.push('Fixture2 obligations: ' + (f2ob === 35 ? 'PASS' : 'FAIL (got ' + f2ob + ', expected 35)'));
+  results.push('Fixture2 liquidity: ' + (f2lq === 30 ? 'PASS' : 'FAIL (got ' + f2lq + ', expected 30)'));
+  results.push('Fixture2 growth: ' + (f2gr === 10 ? 'PASS' : 'FAIL (got ' + f2gr + ', expected 10)'));
+  results.push('Fixture2 protection: ' + (f2pr === 0 ? 'PASS' : 'FAIL (got ' + f2pr + ', expected 0)'));
+
+  // === Test Fixture 3: Zero income guard ===
+  var fixture3 = { monthlyTakeHome: '0', monthlySpending: '0', liquidSavings: '0' };
+  var f3mf = Tool2.computeObjectiveHealthScore('moneyFlow', fixture3);
+  var f3lq = Tool2.computeObjectiveHealthScore('liquidity', fixture3);
+  results.push('Fixture3 moneyFlow (zero guard): ' + (f3mf === 10 ? 'PASS' : 'FAIL (got ' + f3mf + ')'));
+  results.push('Fixture3 liquidity (zero guard): ' + (f3lq === 5 ? 'PASS' : 'FAIL (got ' + f3lq + ')'));
+
+  // === Subjective score test ===
+  var subData = { incomeClarity: '3', spendingClarity: '-2', moneyFlowStress: '1' };
+  var subScore = Tool2.computeSubjectiveScore('moneyFlow', subData, 'full');
+  // avg = (3 + -2 + 1) / 3 = 0.667, mapped = (0.667 + 5) / 10 * 100 = 56.67 -> 57
+  results.push('Subjective moneyFlow: ' + (subScore === 57 ? 'PASS' : 'FAIL (got ' + subScore + ', expected 57)'));
+
+  // === Gap index test ===
+  var gap1 = Tool2.computeGapIndex(85, 30);
+  results.push('Gap 85-30=55: ' + (gap1 === 55 ? 'PASS' : 'FAIL (got ' + gap1 + ')'));
+  results.push('Gap classify 55: ' + (Tool2.classifyGap(55) === 'UNDERESTIMATING' ? 'PASS' : 'FAIL'));
+  results.push('Gap classify 15: ' + (Tool2.classifyGap(15) === 'SLIGHTLY_UNDER' ? 'PASS' : 'FAIL'));
+  results.push('Gap classify 5: ' + (Tool2.classifyGap(5) === 'ALIGNED' ? 'PASS' : 'FAIL'));
+  results.push('Gap classify -15: ' + (Tool2.classifyGap(-15) === 'SLIGHTLY_OVER' ? 'PASS' : 'FAIL'));
+  results.push('Gap classify -25: ' + (Tool2.classifyGap(-25) === 'OVERESTIMATING' ? 'PASS' : 'FAIL'));
+  // Edge cases
+  results.push('Gap classify 20 (edge): ' + (Tool2.classifyGap(20) === 'SLIGHTLY_UNDER' ? 'PASS' : 'FAIL'));
+  results.push('Gap classify 10 (edge): ' + (Tool2.classifyGap(10) === 'ALIGNED' ? 'PASS' : 'FAIL'));
+  results.push('Gap classify -10 (edge): ' + (Tool2.classifyGap(-10) === 'ALIGNED' ? 'PASS' : 'FAIL'));
+  results.push('Gap classify -20 (edge): ' + (Tool2.classifyGap(-20) === 'SLIGHTLY_OVER' ? 'PASS' : 'FAIL'));
+
+  // === Scarcity flag test ===
+  results.push('Scarcity GLOBAL_SCARCITY: ' + (Tool2.computeScarcityFlag({holisticScarcity: '-4', financialScarcity: '-3'}) === 'GLOBAL_SCARCITY' ? 'PASS' : 'FAIL'));
+  results.push('Scarcity GLOBAL_ABUNDANCE: ' + (Tool2.computeScarcityFlag({holisticScarcity: '4', financialScarcity: '3'}) === 'GLOBAL_ABUNDANCE' ? 'PASS' : 'FAIL'));
+  results.push('Scarcity TARGETED: ' + (Tool2.computeScarcityFlag({holisticScarcity: '3', financialScarcity: '-3'}) === 'TARGETED_FINANCIAL_SCARCITY' ? 'PASS' : 'FAIL'));
+  results.push('Scarcity DISSOCIATED: ' + (Tool2.computeScarcityFlag({holisticScarcity: '-3', financialScarcity: '3'}) === 'DISSOCIATED_FINANCIAL' ? 'PASS' : 'FAIL'));
+  results.push('Scarcity MIXED: ' + (Tool2.computeScarcityFlag({holisticScarcity: '1', financialScarcity: '-1'}) === 'MIXED' ? 'PASS' : 'FAIL'));
+
+  // === Profile type detection using real student Tool 1 data ===
+  // 5978RH: STRONG_SINGLE FSV
+  var data5978 = Tool2.getTool1TraumaData('5978RH');
+  var prof5978 = Tool2.detectTool1ProfileType(data5978.traumaScores);
+  // 5978RH: margin=10, which is not > 10, so MODERATE_SINGLE is correct per strict > threshold
+  results.push('5978RH profile type: ' + (prof5978.type === 'MODERATE_SINGLE' ? 'PASS' : 'FAIL (got ' + prof5978.type + ')'));
+  results.push('5978RH winner: ' + (prof5978.winner === 'FSV' ? 'PASS' : 'FAIL (got ' + prof5978.winner + ')'));
+
+  // 1126AP: BORDERLINE_DUAL ExVal+Showing
+  var data1126 = Tool2.getTool1TraumaData('1126AP');
+  var prof1126 = Tool2.detectTool1ProfileType(data1126.traumaScores);
+  results.push('1126AP profile type: ' + (prof1126.type === 'BORDERLINE_DUAL' ? 'PASS' : 'FAIL (got ' + prof1126.type + ')'));
+
+  // 5792RS: NEGATIVE_DOMINANT
+  var data5792 = Tool2.getTool1TraumaData('5792RS');
+  var prof5792 = Tool2.detectTool1ProfileType(data5792.traumaScores);
+  results.push('5792RS profile type: ' + (prof5792.type === 'NEGATIVE_DOMINANT' ? 'PASS' : 'FAIL (got ' + prof5792.type + ')'));
+
+  // === 0000AI: Check their profile (Fear winner) ===
+  var data0000 = Tool2.getTool1TraumaData('0000AI');
+  var prof0000 = Tool2.detectTool1ProfileType(data0000.traumaScores);
+  results.push('0000AI winner: ' + (prof0000.winner === 'Fear' ? 'PASS' : 'FAIL (got ' + prof0000.winner + ')'));
+  results.push('0000AI profile: ' + prof0000.type + ' (info only)');
+
+  // Summary
+  var passed = results.filter(function(r) { return r.indexOf('PASS') > -1; }).length;
+  var total = results.filter(function(r) { return r.indexOf('info only') === -1; }).length;
+  Logger.log('=== Tool 2 Phase 2 Scoring Test Results ===');
+  results.forEach(function(r) { Logger.log(r); });
+  Logger.log('=== Overall: ' + passed + '/' + total + (passed === total ? ' ALL PASSED' : ' SOME FAILED') + ' ===');
+}
+
 function testTool2Phase1() {
   const results = [];
 

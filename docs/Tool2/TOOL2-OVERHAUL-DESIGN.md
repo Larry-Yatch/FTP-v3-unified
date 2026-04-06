@@ -1126,7 +1126,7 @@ Update this table as you complete each phase. Do not start the next phase until 
 | Phase | Title | Status |
 |-------|-------|--------|
 | 1 | Data Model & Form Restructure | ✅ COMPLETE |
-| 2 | Scoring Algorithm | ⬜ NOT STARTED |
+| 2 | Scoring Algorithm | ✅ COMPLETE |
 | 3 | Report Redesign | ⬜ NOT STARTED |
 | 4 | GPT Prompt Update | ⬜ NOT STARTED |
 | 5 | Downstream Pre-Population | ⬜ NOT STARTED |

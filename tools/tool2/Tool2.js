@@ -1338,6 +1338,229 @@ const Tool2 = Object.assign({}, FormToolBase, {
     }
   },
 
+  // ============================================================
+  // NEW SCORING FUNCTIONS (Phase 2)
+  // ============================================================
+
+  /**
+   * Compute objective health score (0-100) for a domain
+   * Based on financial planning benchmarks — see design doc Section 6.1
+   */
+  computeObjectiveHealthScore(domain, data) {
+    const takeHome = parseFloat(data.monthlyTakeHome) || 0;
+    const spending = parseFloat(data.monthlySpending) || 0;
+    const debtPay  = parseFloat(data.monthlyDebtPayments) || 0;
+    const efBal    = parseFloat(data.emergencyFundBalance) || 0;
+    const liquid   = parseFloat(data.liquidSavings) || 0;
+    const retContr = parseFloat(data.monthlyRetirementContribution) || 0;
+    const annualInc = parseFloat(data.grossAnnualIncome) || 0;
+    const deps     = parseInt(data.dependents) || 0;
+
+    switch (domain) {
+      case 'moneyFlow': {
+        if (takeHome <= 0) return 10;
+        const savingsRate = (takeHome - spending) / takeHome * 100;
+        if (savingsRate >= 20) return 85;
+        if (savingsRate >= 10) return 65;
+        if (savingsRate >= 1)  return 35;
+        return 10;
+      }
+      case 'obligations': {
+        const dtiScore = (function() {
+          if (takeHome <= 0) return 10;
+          const dti = debtPay / takeHome * 100;
+          if (dti <= 15) return 85;
+          if (dti <= 28) return 60;
+          if (dti <= 36) return 30;
+          return 10;
+        })();
+        const efScore = (function() {
+          if (spending <= 0) return efBal > 0 ? 65 : 10;
+          const months = efBal / spending;
+          if (months >= 6) return 90;
+          if (months >= 3) return 65;
+          if (months >= 1) return 35;
+          return 10;
+        })();
+        return Math.round((dtiScore + efScore) / 2);
+      }
+      case 'liquidity': {
+        if (spending <= 0) return liquid > 0 ? 60 : 5;
+        const months = liquid / spending;
+        if (months >= 3)   return 85;
+        if (months >= 1)   return 60;
+        if (months >= 0.1) return 30;
+        return 5;
+      }
+      case 'growth': {
+        const incomeBase = takeHome > 0 ? takeHome : (annualInc / 12);
+        if (incomeBase <= 0) return 10;
+        const rate = retContr / incomeBase * 100;
+        if (rate >= 15) return 90;
+        if (rate >= 10) return 65;
+        if (rate >= 5)  return 35;
+        return 10;
+      }
+      case 'protection': {
+        function _isTrue(v) { return v === true || v === 'true' || v === 'TRUE'; }
+        const applicable = [
+          _isTrue(data.hasHealthInsurance),
+          _isTrue(data.hasDisabilityInsurance),
+          _isTrue(data.hasPropertyInsurance),
+          deps > 0 ? _isTrue(data.hasLifeInsurance) : null
+        ].filter(function(v) { return v !== null; });
+        if (applicable.length === 0) return 50;
+        const coveredCount = applicable.filter(Boolean).length;
+        return Math.round(coveredCount / applicable.length * 100);
+      }
+      default:
+        return 50;
+    }
+  },
+
+  /**
+   * Compute subjective clarity score (0-100) for a domain
+   * Scale normalization: (value + 5) / 10 * 100 maps -5→0, +5→100
+   */
+  computeSubjectiveScore(domain, data, mode) {
+    const fieldMap = mode === 'full' ? Tool2Constants.FULL_MODE_FIELDS : Tool2Constants.LIGHT_MODE_FIELDS;
+    const fields = fieldMap[domain] || [];
+    const values = fields
+      .map(function(f) { return parseFloat(data[f]); })
+      .filter(function(v) { return !isNaN(v) && v !== 0; });
+    if (values.length === 0) return null;
+    const avg = values.reduce(function(a, b) { return a + b; }, 0) / values.length;
+    return Math.round((avg + 5) / 10 * 100);
+  },
+
+  /**
+   * Compute gap index: objective - subjective (-100 to +100)
+   */
+  computeGapIndex(objectiveScore, subjectiveScore) {
+    if (objectiveScore === null || subjectiveScore === null) return null;
+    return objectiveScore - subjectiveScore;
+  },
+
+  /**
+   * Classify gap direction and magnitude
+   * Edge values sit in the milder bucket (strict > at 10 and 20 boundaries)
+   */
+  classifyGap(gapIndex) {
+    if (gapIndex === null) return 'UNKNOWN';
+    if (gapIndex > 20)  return 'UNDERESTIMATING';
+    if (gapIndex > 10)  return 'SLIGHTLY_UNDER';
+    if (gapIndex >= -10) return 'ALIGNED';
+    if (gapIndex >= -20) return 'SLIGHTLY_OVER';
+    return 'OVERESTIMATING';
+  },
+
+  /**
+   * Compute priority score for a domain (higher = more urgent)
+   */
+  computePriorityScore(domain, objectiveScore) {
+    const weight = Tool2Constants.STRESS_WEIGHTS[domain] || 1;
+    const healthScore = objectiveScore !== null ? objectiveScore : 50;
+    return weight * (100 - healthScore);
+  },
+
+  /**
+   * Compute scarcity flag from holistic and financial scarcity scales
+   */
+  computeScarcityFlag(data) {
+    const holistic  = parseFloat(data.holisticScarcity);
+    const financial = parseFloat(data.financialScarcity);
+    if (isNaN(holistic) || isNaN(financial)) return 'UNKNOWN';
+
+    // Check targeted cases first (before averaging)
+    if (holistic >= 2 && financial <= -2) return 'TARGETED_FINANCIAL_SCARCITY';
+    if (holistic <= -2 && financial >= 2)  return 'DISSOCIATED_FINANCIAL';
+
+    const avg = (holistic + financial) / 2;
+    if (avg <= -2) return 'GLOBAL_SCARCITY';
+    if (avg >= 2)  return 'GLOBAL_ABUNDANCE';
+    return 'MIXED';
+  },
+
+  /**
+   * Detect Tool 1 profile type from trauma scores
+   * Returns { type, winner, secondary, margin, highPatterns, lowPatterns, classified }
+   */
+  detectTool1ProfileType(traumaScores) {
+    if (!traumaScores || Object.keys(traumaScores).length === 0) {
+      return { type: 'UNKNOWN', winner: null, secondary: null, margin: 0, highPatterns: [], lowPatterns: [], classified: {} };
+    }
+
+    const thresholds = Tool2Constants.PATTERN_THRESHOLDS;
+    const classified = {};
+    Object.keys(traumaScores).forEach(function(p) {
+      const t = thresholds[p];
+      if (!t) { classified[p] = 'MODERATE'; return; }
+      if (traumaScores[p] > t.high) { classified[p] = 'HIGH'; }
+      else if (traumaScores[p] < t.low) { classified[p] = 'LOW'; }
+      else { classified[p] = 'MODERATE'; }
+    });
+
+    const highPatterns = Object.keys(classified).filter(function(p) { return classified[p] === 'HIGH'; });
+    const lowPatterns  = Object.keys(classified).filter(function(p) { return classified[p] === 'LOW'; });
+    const sorted = Object.entries(traumaScores).sort(function(a, b) { return b[1] - a[1]; });
+    const margin = sorted.length >= 2 ? sorted[0][1] - sorted[1][1] : 25;
+    const topWinner = sorted[0][0];
+
+    // Negative-dominant: 4+ patterns below their LOW threshold
+    if (lowPatterns.length >= 4) {
+      return {
+        type: 'NEGATIVE_DOMINANT',
+        winner: topWinner,
+        secondary: null,
+        margin: margin,
+        highPatterns: [],
+        lowPatterns: lowPatterns,
+        classified: classified
+      };
+    }
+
+    // Borderline dual: top two within 5 points
+    if (margin <= 5) {
+      return {
+        type: 'BORDERLINE_DUAL',
+        winner: sorted[0][0],
+        secondary: sorted[1][0],
+        margin: margin,
+        highPatterns: highPatterns,
+        lowPatterns: lowPatterns,
+        classified: classified
+      };
+    }
+
+    // Strong single: margin > 10 and winner is HIGH
+    if (margin > 10 && classified[topWinner] === 'HIGH') {
+      return {
+        type: 'STRONG_SINGLE',
+        winner: topWinner,
+        secondary: sorted[1][0],
+        margin: margin,
+        highPatterns: highPatterns,
+        lowPatterns: lowPatterns,
+        classified: classified
+      };
+    }
+
+    // Moderate single: default
+    return {
+      type: 'MODERATE_SINGLE',
+      winner: topWinner,
+      secondary: sorted[1][0],
+      margin: margin,
+      highPatterns: highPatterns,
+      lowPatterns: lowPatterns,
+      classified: classified
+    };
+  },
+
+  // ============================================================
+  // END NEW SCORING FUNCTIONS
+  // ============================================================
+
   /**
    * REQUIRED: Process final submission
    * Must return {redirectUrl: '...'}
@@ -1356,11 +1579,55 @@ const Tool2 = Object.assign({}, FormToolBase, {
 
       LogUtils.debug(`Processing ${isEditMode ? 'edited' : 'new'} submission for ${clientId}`);
 
-      // Process data (calculate scores, analyze, etc.)
-      const results = this.processResults(allData);
+      // ============================================================
+      // LEGACY SCORING (preserved for backward compatibility)
+      // ============================================================
+      const legacyResults = this.processResults(allData);
 
       // ============================================================
-      // NEW: GPT INSIGHTS PROCESSING
+      // NEW SCORING PIPELINE (Phase 2)
+      // ============================================================
+      const traumaData = this.getTool1TraumaData(clientId);
+      const mode = allData.assessmentMode || 'full';
+
+      const domains = ['moneyFlow', 'obligations', 'liquidity', 'growth', 'protection'];
+      const objectiveHealthScores = {};
+      const subjectiveScores = {};
+      const gapIndexes = {};
+      const gapClassifications = {};
+      const priorityScores = {};
+
+      domains.forEach(d => {
+        objectiveHealthScores[d] = this.computeObjectiveHealthScore(d, allData);
+        subjectiveScores[d] = this.computeSubjectiveScore(d, allData, mode);
+        gapIndexes[d] = this.computeGapIndex(objectiveHealthScores[d], subjectiveScores[d]);
+        gapClassifications[d] = this.classifyGap(gapIndexes[d]);
+        priorityScores[d] = this.computePriorityScore(d, objectiveHealthScores[d]);
+      });
+
+      // Build new priority list (descending by priority score)
+      const newPriorityList = Object.keys(priorityScores)
+        .sort(function(a, b) { return priorityScores[b] - priorityScores[a]; })
+        .map(function(d) { return { domain: d, priorityScore: priorityScores[d] }; });
+
+      const tool1Profile = this.detectTool1ProfileType(traumaData.traumaScores);
+      const scarcityFlag = this.computeScarcityFlag(allData);
+
+      // Merge legacy + new results
+      const results = {
+        ...legacyResults,
+        objectiveHealthScores: objectiveHealthScores,
+        subjectiveScores: subjectiveScores,
+        gapIndexes: gapIndexes,
+        gapClassifications: gapClassifications,
+        scarcityFlag: scarcityFlag,
+        tool1Profile: tool1Profile,
+        assessmentMode: mode,
+        newPriorityList: newPriorityList
+      };
+
+      // ============================================================
+      // GPT INSIGHTS PROCESSING
       // ============================================================
 
       // Step 1: Retrieve pre-computed GPT insights
@@ -1373,10 +1640,7 @@ const Tool2 = Object.assign({}, FormToolBase, {
         !gptInsights[key] || gptInsights[`${key}_error`]
       );
 
-      // Step 3: Get Tool1 trauma data for enhanced personalization
-      const traumaData = this.getTool1TraumaData(clientId);
-
-      // Step 4: Run missing analyses synchronously (only if needed)
+      // Step 3: Run missing analyses synchronously (only if needed)
       if (missingInsights.length > 0) {
         LogUtils.debug(`Missing ${missingInsights.length} insights, running now...`);
 
@@ -1391,7 +1655,7 @@ const Tool2 = Object.assign({}, FormToolBase, {
               previousInsights: gptInsights,
               formData: allData,
               domainScores: results.domainScores,
-              traumaData  // NEW: Pass trauma data
+              traumaData: traumaData
             });
 
             gptInsights[key] = insight;
@@ -1399,12 +1663,12 @@ const Tool2 = Object.assign({}, FormToolBase, {
         });
       }
 
-      // Step 5: Run final synthesis (1 call, fast with pre-computed insights)
+      // Step 4: Run final synthesis
       const overallInsight = Tool2GPTAnalysis.synthesizeOverall(
         clientId,
         gptInsights,
         results.domainScores,
-        traumaData  // NEW: Pass trauma data to synthesis
+        traumaData
       );
 
       // ============================================================
@@ -1415,8 +1679,8 @@ const Tool2 = Object.assign({}, FormToolBase, {
       DataService.saveToolResponse(clientId, 'tool2', {
         data: allData,
         results: results,
-        gptInsights: gptInsights,           // NEW: Include GPT insights
-        overallInsight: overallInsight,     // NEW: Include synthesis
+        gptInsights: gptInsights,
+        overallInsight: overallInsight,
         timestamp: new Date().toISOString()
       });
 
