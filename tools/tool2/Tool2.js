@@ -1074,20 +1074,6 @@ const Tool2 = Object.assign({}, FormToolBase, {
   },
 
   /**
-   * Helper: Count questions in a section
-   */
-  countSectionQuestions(data, prefix) {
-    if (!data) return 0;
-    let count = 0;
-    for (const key in data) {
-      if (key.startsWith(prefix + '_q')) {
-        count++;
-      }
-    }
-    return count;
-  },
-
-  /**
    * REQUIRED: Save page data (called by saveToolPageData in Code.js)
    * Stores draft in PropertiesService for auto-resume
    */
@@ -1558,8 +1544,26 @@ const Tool2 = Object.assign({}, FormToolBase, {
     }
   },
 
+  // =========================================================================
+  // LEGACY SCORING PIPELINE (pre-overhaul submissions only)
+  //
+  // These functions (processResults, calculateDomainScores, sumScaleQuestions,
+  // applyBenchmarks, applyStressWeights, sortByPriority, determineArchetype)
+  // use field names from the OLD form (referenced in Tool2Constants.DOMAIN_QUESTIONS).
+  //
+  // For NEW submissions (post-Financial Mirror overhaul), these produce
+  // near-zero/empty results because the old fields are not collected.
+  // This is expected — the legacy output is preserved in saved data for
+  // backward compat, but new reports use objectiveHealthScores/subjectiveScores/
+  // gapIndexes from the new scoring pipeline above.
+  //
+  // DO NOT remove these functions — old submissions still need them.
+  // DO NOT rely on their output for new submissions.
+  // =========================================================================
+
   /**
-   * Process results - Calculate domain scores, benchmarks, priorities, archetype
+   * LEGACY — Process results using old form field names
+   * Produces valid output only for pre-overhaul submissions
    */
   processResults(data) {
     // Step 1: Calculate raw domain scores
