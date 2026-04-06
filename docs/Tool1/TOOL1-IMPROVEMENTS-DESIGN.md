@@ -453,7 +453,7 @@ Use these specific student IDs to test each profile type — their scores are kn
 
 ### Phase 1: Score Classification & Profile Detection
 
-**Read before starting**: `tools/tool1/Tool1.js` (specifically `processFinalSubmission()` and `determineWinner()`), `tools/tool1/Tool1Templates.js` (understand existing structure before adding to it), `appsscript.json` (to add Tool1Constants.js registration)
+**Read before starting**: `tools/tool1/Tool1.js` (specifically `processFinalSubmission()` and `determineWinner()`), `tools/tool1/Tool1Templates.js` (understand existing structure before adding to it)
 
 **Goal**: Compute and save `profileType` alongside existing data. No visible report changes yet.
 
@@ -473,15 +473,18 @@ Use these specific student IDs to test each profile type — their scores are kn
 3. Add `detectProfileType(scores, winner)` to `Tool1.js` — see Section 3 for exact implementation. **Critical**: all 4 return paths must include a `winner` field.
 4. Update `processFinalSubmission()` in `Tool1.js` to call `detectProfileType()` and save `profileType` in the response data object alongside existing `scores` and `winner`
 
-**Note on `Tool1Constants.js` registration**: GAS requires all `.js` files to be listed in `appsscript.json`. Add `Tool1Constants` to the file list there.
+**Note on `Tool1Constants.js` registration**: No action needed. GAS V8 runtime auto-discovers all `.js` files pushed via clasp — there is no file list in `appsscript.json`. Do not edit `appsscript.json` for this.
 
 **Test protocol**:
-1. Deploy to GAS
-2. Re-submit Tool 1 as student `5978RH` (or view their existing response if re-submission is not practical — but note: `profileType` only saves on new submissions)
-3. Open RESPONSES sheet → find the row → inspect Data JSON
-4. Verify `profileType` object is present with fields: `type`, `winner`, `secondary`, `margin`, `highPatterns`, `lowPatterns`
-5. Verify `5978RH` gets `type: "STRONG_SINGLE"`, `winner: "FSV"`
-6. If test submissions are not practical, add a temporary `Logger.log(JSON.stringify(detectProfileType(scores, winner)))` in `processFinalSubmission()` and trigger via GAS test runner
+1. Deploy to GAS (`clasp push`)
+2. Navigate to the `@HEAD` deployment URL and log in as `0000AI`
+3. Complete Tool 1 in full
+4. Use MCP Google Drive tools to read the RESPONSES sheet — find the `0000AI` / `tool1` row and parse the `Data` JSON
+5. Verify `profileType` is present with fields: `type`, `winner`, `secondary`, `margin`, `highPatterns`, `lowPatterns`
+6. To verify classification logic is correct, cross-check against known students using MCP — read their existing RESPONSES rows and verify `profileType` matches expected values from the Test Student Reference table above:
+   - `5978RH` → `type: "STRONG_SINGLE"`, `winner: "FSV"`
+   - `5792RS` → `type: "NEGATIVE_DOMINANT"`
+   - `1126AP` → `type: "BORDERLINE_DUAL"`, `winner: "ExVal"`
 
 ---
 
