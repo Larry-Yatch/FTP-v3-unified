@@ -1635,6 +1635,20 @@ function getAttendanceAnalytics(cohortId) {
 }
 
 // ========================================
+/**
+ * Trigger Tool 2 background GPT analysis
+ * Called from client-side after page 5 loads (non-blocking)
+ */
+function triggerTool2BackgroundGPT(clientId) {
+  try {
+    Tool2GPTAnalysis.startBackgroundAnalysis(clientId);
+    return { success: true };
+  } catch(e) {
+    LogUtils.debug('[Tool2] Background GPT failed: ' + e.message);
+    return { success: false, error: e.message };
+  }
+}
+
 // END OF CODE.JS
 // ========================================
 //
