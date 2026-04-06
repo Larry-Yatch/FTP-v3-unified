@@ -348,6 +348,9 @@ All score threshold checks should use `>=` consistently, not a mix of `>` and `>
 7. **Delete, don't mark** - EDIT_DRAFT rows must be removed, not flagged
 8. **Map technical keys to labels** - GPT needs human-readable subdomain names
 
+9. **PDF generator is a separate pipeline** - When redesigning a tool report (HTML), the PDF generator (`shared/PDFGenerator.js`) must also be updated. It has its own rendering logic and does not share code with the HTML report. Missed in Tool 2 overhaul design doc — caught during testing.
+10. **Router must pass new params through** - When adding new URL parameters (like `quickCheckIn`), the Router's `renderParams` object must explicitly include them. The Router does not auto-pass all request params to tools — only listed ones (`editMode`, `clearDraft`, `quickCheckIn`).
+
 ---
 
 ## Quick Reference: Common Mistakes

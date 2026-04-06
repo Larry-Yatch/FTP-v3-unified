@@ -167,12 +167,14 @@ Tools fall into three architectural patterns, each with a shared base class:
 - **Output:** Detailed report with strategy explanation, personalized narratives, cross-tool insights
 - **Key Files:** `tools/tool1/Tool1.js`, `Tool1Report.js`, `Tool1Templates.js`, `tool.manifest.json` (1,107 lines total)
 
-#### Tool 2: Financial Clarity & Values Assessment
-- **Status:** Production-complete
-- **Duration:** 20-30 minutes | 5 pages | ~30 questions
-- **What It Does:** Consolidates demographics, mindset, and financial picture. Pre-fills from Tool 1. Covers income, expenses, debt, investments, and emotional relationship to money. GPT-4o-mini analyzes free-text responses across multiple domains in background; GPT-4o synthesizes on submission.
-- **Output:** Financial clarity score, domain-level GPT insights, synthesis narrative, PDF report
-- **Key Files:** `tools/tool2/Tool2.js`, `Tool2Report.js`, `Tool2GPTAnalysis.js`, `Tool2Constants.js`, `Tool2Fallbacks.js`, `tool.manifest.json` (3,926 lines total)
+#### Tool 2: Financial Mirror
+- **Status:** Production-complete (overhauled April 2026)
+- **Duration:** 15-30 minutes | 5 pages | 43 questions (full) / 26 questions (quick check-in)
+- **What It Does:** Dual-track assessment capturing objective financial reality (income, debt, savings, retirement, insurance) and subjective emotional perception per domain. Surfaces the gap between reality and perception as the primary diagnostic insight. Full/light mode toggle. Quick Check-In pre-fills from previous submission for fast re-assessment.
+- **Scoring:** Objective health scores (0-100 per domain from financial benchmarks), subjective clarity scores (0-100 from scale normalization), gap index (-100 to +100), gap classification (UNDERESTIMATING/ALIGNED/OVERESTIMATING), scarcity flag, Tool 1 profile type detection
+- **Domains:** Money Flow, Obligations, Liquidity, Growth, Protection
+- **Output:** 9-section Financial Mirror report (full mode) or delta-focused check-in report (light mode) with gap analysis, pattern synthesis, GPT-powered personalized insights, PDF download. Pre-populates financial data into Tools 4, 6, and 8.
+- **Key Files:** `tools/tool2/Tool2.js`, `Tool2Report.js`, `Tool2GPTAnalysis.js`, `Tool2Constants.js`, `Tool2Fallbacks.js`, `tool.manifest.json`
 
 #### Tool 3: Identity & Validation Grounding
 - **Status:** Production-complete
