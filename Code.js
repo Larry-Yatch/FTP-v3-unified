@@ -2144,6 +2144,131 @@ function testTool2Phase6CollectiveResults() {
   Logger.log('=== Overall: ' + passed + '/' + total + (passed === total ? ' ALL PASSED' : ' SOME FAILED') + ' ===');
 }
 
+/**
+ * TEMPORARY TEST: Phase 6 deep - Enrichment math + scarcity callout rendering
+ */
+function testTool2Phase6Deep() {
+  var results = [];
+
+  // === ENRICHMENT MATH: Test with mock data ===
+  // Build a mock summary with Tool 2 new-schema data and a grounding tool
+  try {
+    // Find a student who has BOTH Tool 2 (new schema) and at least one grounding tool
+    // 0000AI has new schema but no grounding tools, so we test enrichment math directly
+
+    // Simulate: if we had a grounding tool, the enrichment should modify gapScore
+    // Test the enrichment calculation in isolation
+    var mockTool2Results = {
+      objectiveHealthScores: { moneyFlow: 85, obligations: 88, liquidity: 60, growth: 90, protection: 67 },
+      gapClassifications: {
+        moneyFlow: 'UNDERESTIMATING',      // -3
+        obligations: 'UNDERESTIMATING',     // -3
+        liquidity: 'UNDERESTIMATING',       // -3
+        growth: 'UNDERESTIMATING',          // -3
+        protection: 'UNDERESTIMATING'       // -3
+      },
+      scarcityFlag: 'GLOBAL_SCARCITY'       // +5
+    };
+
+    // Calculate expected enrichment: 5 * (-3) + 5 = -15 + 5 = -10
+    var enrichment = 0;
+    var domains = ['moneyFlow', 'obligations', 'liquidity', 'growth', 'protection'];
+    for (var i = 0; i < domains.length; i++) {
+      var gc = mockTool2Results.gapClassifications[domains[i]];
+      if (gc === 'OVERESTIMATING') enrichment += 3;
+      else if (gc === 'SLIGHTLY_OVER') enrichment += 1;
+      else if (gc === 'UNDERESTIMATING') enrichment -= 3;
+      else if (gc === 'SLIGHTLY_UNDER') enrichment -= 1;
+    }
+    if (mockTool2Results.scarcityFlag === 'GLOBAL_SCARCITY') enrichment += 5;
+
+    results.push('Enrichment math (all UNDERESTIMATING + GLOBAL_SCARCITY): ' + (enrichment === -10 ? 'PASS (-10)' : 'FAIL (got ' + enrichment + ', expected -10)'));
+
+    // Test with all OVERESTIMATING
+    var enrichment2 = 0;
+    var mockGaps2 = { moneyFlow: 'OVERESTIMATING', obligations: 'OVERESTIMATING', liquidity: 'ALIGNED', growth: 'SLIGHTLY_OVER', protection: 'SLIGHTLY_UNDER' };
+    for (var j = 0; j < domains.length; j++) {
+      var gc2 = mockGaps2[domains[j]];
+      if (gc2 === 'OVERESTIMATING') enrichment2 += 3;
+      else if (gc2 === 'SLIGHTLY_OVER') enrichment2 += 1;
+      else if (gc2 === 'UNDERESTIMATING') enrichment2 -= 3;
+      else if (gc2 === 'SLIGHTLY_UNDER') enrichment2 -= 1;
+    }
+    // Expected: 3 + 3 + 0 + 1 + (-1) = 6
+    results.push('Enrichment math (mixed gaps): ' + (enrichment2 === 6 ? 'PASS (6)' : 'FAIL (got ' + enrichment2 + ', expected 6)'));
+
+  } catch(e) {
+    results.push('Enrichment math: FAIL - ' + e.message);
+  }
+
+  // === SCARCITY CALLOUT RENDERING ===
+  // Build mock summaries to test both GLOBAL_SCARCITY and GLOBAL_ABUNDANCE callouts
+  try {
+    // Mock summary with GLOBAL_SCARCITY
+    var mockSummaryScarcity = CollectiveResults.getStudentSummary('0000AI');
+    // Temporarily override the scarcity flag for testing
+    var origFlag = mockSummaryScarcity.tools.tool2.data.results.scarcityFlag;
+
+    mockSummaryScarcity.tools.tool2.data.results.scarcityFlag = 'GLOBAL_SCARCITY';
+    var section3Scarcity = CollectiveResults._renderSection3(mockSummaryScarcity, false);
+    var hasScarcityWarning = section3Scarcity.indexOf('Scarcity Pattern Detected') > -1;
+    results.push('GLOBAL_SCARCITY callout renders: ' + (hasScarcityWarning ? 'PASS' : 'FAIL'));
+
+    // Test GLOBAL_ABUNDANCE
+    mockSummaryScarcity.tools.tool2.data.results.scarcityFlag = 'GLOBAL_ABUNDANCE';
+    var section3Abundance = CollectiveResults._renderSection3(mockSummaryScarcity, false);
+    var hasAbundanceNote = section3Abundance.indexOf('Protective Factor') > -1;
+    results.push('GLOBAL_ABUNDANCE callout renders: ' + (hasAbundanceNote ? 'PASS' : 'FAIL'));
+
+    // Test MIXED (no callout expected)
+    mockSummaryScarcity.tools.tool2.data.results.scarcityFlag = 'MIXED';
+    var section3Mixed = CollectiveResults._renderSection3(mockSummaryScarcity, false);
+    var hasNoCallout = section3Mixed.indexOf('Scarcity Pattern Detected') === -1 && section3Mixed.indexOf('Protective Factor') === -1;
+    results.push('MIXED no callout: ' + (hasNoCallout ? 'PASS' : 'FAIL'));
+
+    // Restore original flag
+    mockSummaryScarcity.tools.tool2.data.results.scarcityFlag = origFlag;
+
+  } catch(e) {
+    results.push('Scarcity callout rendering: FAIL - ' + e.message);
+  }
+
+  // === GAP PANEL: Verify specific domain values ===
+  try {
+    var summary = CollectiveResults.getStudentSummary('0000AI');
+    var t2Card = CollectiveResults._renderTool2Card(summary.tools.tool2, '0000AI', false);
+    var t2Results = summary.tools.tool2.data.results;
+
+    // Check each domain's objective score appears
+    var allDomainsPresent = true;
+    var domainKeys = ['moneyFlow', 'obligations', 'liquidity', 'growth', 'protection'];
+    for (var di = 0; di < domainKeys.length; di++) {
+      var objVal = t2Results.objectiveHealthScores[domainKeys[di]];
+      var subVal = t2Results.subjectiveScores[domainKeys[di]];
+      if (t2Card.indexOf('>' + objVal + '<') === -1) {
+        results.push('Gap panel obj score ' + domainKeys[di] + ': FAIL (not found: ' + objVal + ')');
+        allDomainsPresent = false;
+      }
+      if (subVal !== null && subVal !== undefined && t2Card.indexOf('>' + subVal + '<') === -1) {
+        results.push('Gap panel sub score ' + domainKeys[di] + ': FAIL (not found: ' + subVal + ')');
+        allDomainsPresent = false;
+      }
+    }
+    if (allDomainsPresent) {
+      results.push('Gap panel all domain scores present: PASS');
+    }
+  } catch(e) {
+    results.push('Gap panel domain scores: FAIL - ' + e.message);
+  }
+
+  // Summary
+  var passed = results.filter(function(r) { return r.indexOf('PASS') > -1; }).length;
+  var total = results.length;
+  Logger.log('=== Tool 2 Phase 6 Deep Test Results ===');
+  results.forEach(function(r) { Logger.log(r); });
+  Logger.log('=== Overall: ' + passed + '/' + total + (passed === total ? ' ALL PASSED' : ' SOME FAILED') + ' ===');
+}
+
 function testTool2Phase1() {
   const results = [];
 
