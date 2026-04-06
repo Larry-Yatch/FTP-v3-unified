@@ -685,6 +685,21 @@ const CollectiveResults = {
       '<p class="muted">Where your psychological patterns meet your financial world</p>' +
       '<div class="hr" style="margin: 15px 0;"></div>';
 
+    // Scarcity flag context (new schema only)
+    var tool2Data = summary.tools.tool2;
+    if (tool2Data && tool2Data.data && tool2Data.data.results && tool2Data.data.results.scarcityFlag) {
+      var scFlag = tool2Data.data.results.scarcityFlag;
+      if (scFlag === 'GLOBAL_SCARCITY') {
+        html += '<div style="padding: 14px 18px; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: 8px; margin-bottom: 16px; color: #fca5a5; font-size: 14px; line-height: 1.6;">' +
+          '<strong>Scarcity Pattern Detected:</strong> Your Financial Mirror indicates a global sense of scarcity that shapes your financial decision-making at a deep level. This amplifies the impact of any pattern-driven distortions identified below.' +
+        '</div>';
+      } else if (scFlag === 'GLOBAL_ABUNDANCE') {
+        html += '<div style="padding: 14px 18px; background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3); border-radius: 8px; margin-bottom: 16px; color: #6ee7b7; font-size: 14px; line-height: 1.6;">' +
+          '<strong>Protective Factor:</strong> Your Financial Mirror reflects a sense of abundance across life and finances. This serves as a buffer against pattern-driven financial distortions.' +
+        '</div>';
+      }
+    }
+
     // 3A: Profile Card
     html += this._renderProfileCard(engines.profile);
 
@@ -1812,6 +1827,26 @@ const CollectiveResults = {
     // Gap = psychological score minus stress awareness
     var gapScore = avgPsychScore - normalizedStress;
 
+    // Enrich with Tool 2 gap data (new schema only — signal enrichment)
+    var tool2Results = tool2.data.results || {};
+    var gapEnrichment = 0;
+    if (tool2Results.objectiveHealthScores && tool2Results.gapClassifications) {
+      var gapClass = tool2Results.gapClassifications;
+      var domains = ['moneyFlow', 'obligations', 'liquidity', 'growth', 'protection'];
+      for (var gi = 0; gi < domains.length; gi++) {
+        var gc = gapClass[domains[gi]];
+        if (gc === 'OVERESTIMATING') gapEnrichment += 3;     // Strengthen denial signal
+        else if (gc === 'SLIGHTLY_OVER') gapEnrichment += 1;
+        else if (gc === 'UNDERESTIMATING') gapEnrichment -= 3; // Strengthen self-worth gap
+        else if (gc === 'SLIGHTLY_UNDER') gapEnrichment -= 1;
+      }
+
+      // Scarcity flag amplification
+      var scarcityFlag = tool2Results.scarcityFlag;
+      if (scarcityFlag === 'GLOBAL_SCARCITY') gapEnrichment += 5;
+    }
+    gapScore += gapEnrichment;
+
     // Classify severity
     var severity;
     if (gapScore > 30) {
@@ -1828,7 +1863,8 @@ const CollectiveResults = {
       stressScore: Math.round(normalizedStress),
       rawStress: avgStress,
       severity: severity,
-      groundingToolsUsed: quotientCount
+      groundingToolsUsed: quotientCount,
+      tool2GapEnrichment: gapEnrichment
     };
   },
 
@@ -2526,6 +2562,61 @@ const CollectiveResults = {
       ' (' + Math.round(highScore) + '%) while ' + weakest + ' (' + Math.round(lowScore) +
       '%) needs the most attention.' + (topPriority ? ' Your top priority focus is ' + this.DOMAIN_LABELS[topPriority] + '.' : '');
 
+    // Build Reality vs Perception panel (new schema only)
+    var gapPanel = '';
+    var objScores = results.objectiveHealthScores;
+    if (objScores) {
+      var subScores = results.subjectiveScores || {};
+      var gapClass = results.gapClassifications || {};
+      var gapLabels = {
+        'UNDERESTIMATING': 'Underestimating',
+        'SLIGHTLY_UNDER': 'Slightly Under',
+        'ALIGNED': 'Aligned',
+        'SLIGHTLY_OVER': 'Slightly Over',
+        'OVERESTIMATING': 'Overestimating'
+      };
+      var gapColors = {
+        'UNDERESTIMATING': '#10b981',
+        'SLIGHTLY_UNDER': '#10b981',
+        'ALIGNED': '#94a3b8',
+        'SLIGHTLY_OVER': '#f59e0b',
+        'OVERESTIMATING': '#f59e0b'
+      };
+
+      gapPanel = '<div class="cr-gap-panel" style="margin-top: 16px; padding: 16px; background: rgba(255,255,255,0.03); border-radius: 10px; border: 1px solid rgba(173,145,104,0.15);">' +
+        '<div style="font-size: 14px; font-weight: 600; color: #ad9168; margin-bottom: 12px;">Financial Reality vs. Perception</div>';
+
+      for (var gi = 0; gi < domains.length; gi++) {
+        var gd = domains[gi];
+        var objVal = objScores[gd] || 0;
+        var subVal = subScores[gd] !== null && subScores[gd] !== undefined ? subScores[gd] : 0;
+        var gc = gapClass[gd] || 'UNKNOWN';
+        var gLabel = gapLabels[gc] || gc;
+        var gColor = gapColors[gc] || '#94a3b8';
+        var dLabel = this.DOMAIN_LABELS[gd] || gd;
+
+        gapPanel += '<div style="margin-bottom: 10px;">' +
+          '<div style="font-size: 12px; color: #e2e8f0; margin-bottom: 4px;">' + dLabel + '</div>' +
+          '<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 2px;">' +
+            '<span style="font-size: 11px; color: #94a3b8; width: 55px;">Reality</span>' +
+            '<div style="flex: 1; height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden;">' +
+              '<div style="width: ' + objVal + '%; height: 100%; background: #3b82f6; border-radius: 4px;"></div>' +
+            '</div>' +
+            '<span style="font-size: 11px; color: #e2e8f0; width: 28px; text-align: right;">' + objVal + '</span>' +
+          '</div>' +
+          '<div style="display: flex; align-items: center; gap: 8px;">' +
+            '<span style="font-size: 11px; color: #94a3b8; width: 55px;">Perception</span>' +
+            '<div style="flex: 1; height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden;">' +
+              '<div style="width: ' + subVal + '%; height: 100%; background: #6b7280; border-radius: 4px;"></div>' +
+            '</div>' +
+            '<span style="font-size: 11px; color: #e2e8f0; width: 28px; text-align: right;">' + subVal + '</span>' +
+          '</div>' +
+          '<div style="font-size: 11px; color: ' + gColor + '; margin-top: 2px;">' + gLabel + '</div>' +
+        '</div>';
+      }
+      gapPanel += '</div>';
+    }
+
     return `
       <div class="cr-tool-card cr-completed">
         <div class="cr-card-header">
@@ -2539,6 +2630,7 @@ const CollectiveResults = {
         <div class="cr-domain-bars" style="margin-top: 12px;">
           ${domainBars}
         </div>
+        ${gapPanel}
         <div class="cr-insight-strip">
           <div class="cr-insight-text">${insightOverview}</div>
         </div>

@@ -32,7 +32,28 @@ const Tool4 = {
       const toolStatus = this.checkToolCompletion(clientId);
 
       // Check if pre-survey completed
-      const preSurveyData = this.getPreSurvey(clientId);
+      let preSurveyData = this.getPreSurvey(clientId);
+
+      // Pre-populate financial fields from Tool 2 (new schema only)
+      // Only seed if no existing pre-survey — do not overwrite user edits
+      if (!preSurveyData) {
+        try {
+          const tool2Response = DataService.getLatestResponse(clientId, 'tool2');
+          const isNewSchema = tool2Response && tool2Response.data && tool2Response.data.results && tool2Response.data.results.objectiveHealthScores;
+          if (isNewSchema) {
+            const t2Data = tool2Response.data.data || {};
+            preSurveyData = {
+              monthlyIncome: t2Data.monthlyTakeHome || '',
+              totalDebt: t2Data.totalDebtBalance || '',
+              emergencyFund: t2Data.emergencyFundBalance || '',
+              _fromTool2: true
+            };
+            LogUtils.debug('[Tool4] Pre-populated financial fields from Tool 2 Financial Mirror');
+          }
+        } catch(e) {
+          LogUtils.debug('[Tool4] Could not pre-populate from Tool 2: ' + e.message);
+        }
+      }
 
       // Calculate V1 allocation if pre-survey exists
       let allocation = null;
@@ -458,6 +479,7 @@ buildUnifiedPage(clientId, toolStatus, preSurveyData, allocation) {
   const tool4Styles = HtmlService.createHtmlOutputFromFile('tools/tool4/tool4-styles').getContent();
   const historyManager = HtmlService.createHtmlOutputFromFile('shared/history-manager').getContent();
   const hasPreSurvey = !!preSurveyData;
+  const isFromTool2 = preSurveyData && preSurveyData._fromTool2 === true;
   const hasTool1 = toolStatus.hasTool1;
   const hasTool2 = toolStatus.hasTool2;
   const hasTool3 = toolStatus.hasTool3;
@@ -834,6 +856,7 @@ buildUnifiedPage(clientId, toolStatus, preSurveyData, allocation) {
           <div class="form-question">
             <label class="question-label">1. What is your average monthly take-home income?</label>
             <div class="question-help">After taxes, how much money hits your bank account each month? If it varies, estimate your average. Include all sources: salary, side income, benefits, etc.</div>
+            ${isFromTool2 && formValues.monthlyIncome ? '<div class="tool2-prefill-note">From your Financial Mirror — update if needed</div>' : ''}
             <input type="number" id="monthlyIncome" class="form-input" placeholder="e.g., 3500" min="0" step="1" value="${formValues.monthlyIncome !== '' ? formValues.monthlyIncome : ''}" required>
           </div>
 
@@ -848,6 +871,7 @@ buildUnifiedPage(clientId, toolStatus, preSurveyData, allocation) {
           <div class="form-question">
             <label class="question-label">3. What is your total debt (excluding mortgage)?</label>
             <div class="question-help">Add up all non-mortgage debt: credit cards, student loans, car loans, medical debt, personal loans. Enter 0 if you have no debt. Do not include your mortgage.</div>
+            ${isFromTool2 && formValues.totalDebt ? '<div class="tool2-prefill-note">From your Financial Mirror — update if needed</div>' : ''}
             <input type="number" id="totalDebt" class="form-input" placeholder="Enter 0 if none" min="0" step="1" value="${formValues.totalDebt !== '' ? formValues.totalDebt : ''}" required>
           </div>
 
@@ -855,6 +879,7 @@ buildUnifiedPage(clientId, toolStatus, preSurveyData, allocation) {
           <div class="form-question">
             <label class="question-label">4. How much money do you currently have in an emergency fund?</label>
             <div class="question-help">Money set aside specifically for emergencies - liquid savings you could access quickly but would not touch for normal expenses. Enter 0 if you do not have an emergency fund yet.</div>
+            ${isFromTool2 && formValues.emergencyFund ? '<div class="tool2-prefill-note">From your Financial Mirror — update if needed</div>' : ''}
             <input type="number" id="emergencyFund" class="form-input" placeholder="Enter 0 if none" min="0" step="1" value="${formValues.emergencyFund !== '' ? formValues.emergencyFund : ''}" required>
           </div>
 
