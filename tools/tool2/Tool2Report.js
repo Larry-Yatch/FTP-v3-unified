@@ -75,13 +75,23 @@ const Tool2Report = {
   // ============================================================
 
   buildNewReportHTML(clientId, results) {
-    const data = results.formData || {};
-    const r = results.results || {};
-    const studentName = data.name || 'Student';
-    const mode = r.assessmentMode || 'full';
-    const modeLabel = mode === 'full' ? 'Full Assessment' : 'Quick Check-In';
-    const profile = r.tool1Profile || {};
-    const winner = profile.winner || 'FSV';
+    var data = results.formData || {};
+    var r = results.results || {};
+    var studentName = data.name || 'Student';
+    var mode = r.assessmentMode || 'full';
+    var profile = r.tool1Profile || {};
+    var winner = profile.winner || 'FSV';
+
+    // Branch: light mode gets delta-focused layout, full mode gets 9-section report
+    var reportContent;
+    if (mode === 'light') {
+      reportContent = this.buildLightModeContent(clientId, data, r, results, profile, winner);
+    } else {
+      reportContent = this.buildFullModeContent(clientId, data, r, results, profile, winner);
+    }
+
+    var modeLabel = mode === 'full' ? 'Full Assessment' : 'Quick Check-In';
+    var headerLabel = mode === 'light' ? 'Check-In' : '';
 
     return '<!DOCTYPE html><html><head>' +
       '<title>TruPath - Financial Mirror Report</title>' +
@@ -91,59 +101,20 @@ const Tool2Report = {
       '</head><body>' +
       ReportStyles.getLoadingHTML() +
       '<div class="report-container">' +
-
-      // Section 1: Header
       this.buildSection1Header(studentName, modeLabel, clientId) +
-
       '<div class="report-content">' +
-
-      // Section 2: Scarcity & Mindset
-      this.buildSection2Scarcity(data, r.scarcityFlag) +
-
-      // Progress Comparison (conditional, after Section 3 area)
-      this.buildProgressComparison(clientId, r) +
-
-      // Section 3: Financial Reality (Objective)
-      this.buildSection3Objective(r.objectiveHealthScores, data) +
-
-      // Section 4: Financial Perception (Subjective)
-      this.buildSection4Subjective(r.subjectiveScores, mode) +
-
-      // Section 5: Gap Analysis
-      this.buildSection5GapAnalysis(r, winner) +
-
-      // Section 6: Priority Map
-      this.buildSection6PriorityMap(r.newPriorityList || [], r.objectiveHealthScores, winner) +
-
-      // Section 7: Pattern Synthesis
-      this.buildSection7PatternSynthesis(profile) +
-
-      // Section 8: GPT Insights
-      this.buildSection8GPTInsights(results.overallInsight) +
-
-      // Section 9: Growth Archetype
-      this.buildSection9Archetype(r.archetype) +
-
-      // Light mode callout
-      (mode === 'light' ? '<div class="light-callout"><p>This report is based on the Quick Check-In. Complete the full assessment for deeper narrative insights and more detailed gap analysis.</p></div>' : '') +
-
-      // Footer
+      reportContent +
       '<div class="footer-section">' +
         '<h3>Next Steps</h3>' +
         '<p>Use this Financial Mirror to guide conversations with your advisor and to set priorities for closing the gaps between your financial reality and your perception of it.</p>' +
       '</div>' +
-
-      '</div>' + // end report-content
-
-      // Action buttons
+      '</div>' +
       '<div class="action-buttons">' +
         '<button class="btn-primary" onclick="downloadPDF()">Download PDF Report</button>' +
         '<button class="btn-secondary" onclick="backToDashboard()">Back to Dashboard</button>' +
       '</div>' +
       '<p style="text-align: center; color: #999; font-size: 14px; margin-top: 10px;">To edit your responses, return to the dashboard and click "Edit Answers"</p>' +
-
-      '</div>' + // end report-container
-
+      '</div>' +
       '<script>(function() {' +
         'var clientId = "' + clientId + '";' +
         ReportClientJS.getLoadingFunctions() +
@@ -153,9 +124,239 @@ const Tool2Report = {
         'window.downloadPDF = downloadPDF;' +
         'window.backToDashboard = backToDashboard;' +
       '})();</script>' +
-
       FeedbackWidget.render(clientId, 'tool2', 'report') +
       '</body></html>';
+  },
+
+  // --- Full mode: 9-section report (unchanged) ---
+  buildFullModeContent(clientId, data, r, results, profile, winner) {
+    return this.buildSection2Scarcity(data, r.scarcityFlag) +
+      this.buildProgressComparison(clientId, r) +
+      this.buildSection3Objective(r.objectiveHealthScores, data) +
+      this.buildSection4Subjective(r.subjectiveScores, 'full') +
+      this.buildSection5GapAnalysis(r, winner) +
+      this.buildSection6PriorityMap(r.newPriorityList || [], r.objectiveHealthScores, winner) +
+      this.buildSection7PatternSynthesis(profile) +
+      this.buildSection8GPTInsights(results.overallInsight) +
+      this.buildSection9Archetype(r.archetype);
+  },
+
+  // --- Light mode: delta-focused layout ---
+  buildLightModeContent(clientId, data, r, results, profile, winner) {
+    return this.buildDeltaSummaryHero(clientId, r) +
+      this.buildSection2Scarcity(data, r.scarcityFlag) +
+      this.buildSection3Objective(r.objectiveHealthScores, data) +
+      this.buildSection9Archetype(r.archetype) +
+      this.buildSection8GPTInsights(results.overallInsight) +
+      this.buildFullAssessmentCallout();
+  },
+
+  // --- Delta Summary Hero (light mode primary section) ---
+  buildDeltaSummaryHero(clientId, currentResults) {
+    try {
+      var sheet = SpreadsheetApp.openById(CONFIG.MASTER_SHEET_ID).getSheetByName('RESPONSES');
+      var allData = sheet.getDataRange().getValues();
+      var headers = allData[0];
+      var toolIdCol = headers.indexOf('Tool_ID');
+      var clientCol = headers.indexOf('Client_ID');
+      var dataCol = headers.indexOf('Data');
+      var isLatestCol = headers.indexOf('Is_Latest');
+      var timestampCol = headers.indexOf('Timestamp');
+
+      var previousResponse = null;
+      var previousDate = null;
+      for (var i = allData.length - 1; i >= 1; i--) {
+        if (allData[i][toolIdCol] === 'tool2' && allData[i][clientCol] === clientId && allData[i][isLatestCol] !== true) {
+          try {
+            var parsed = JSON.parse(allData[i][dataCol]);
+            if (parsed && parsed.results && parsed.results.objectiveHealthScores) {
+              previousResponse = parsed.results;
+              previousDate = allData[i][timestampCol] ? new Date(allData[i][timestampCol]).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'previous assessment';
+              break;
+            }
+          } catch(e) { /* skip malformed */ }
+        }
+      }
+
+      if (!previousResponse) {
+        return '<div class="section-block delta-hero">' +
+          '<h2>Your Financial Snapshot</h2>' +
+          '<p class="section-intro">This is your first Financial Mirror submission. Complete another check-in in the future to see your progress over time.</p>' +
+        '</div>';
+      }
+
+      var html = '<div class="section-block delta-hero">' +
+        '<h2>What Changed</h2>' +
+        '<p class="section-intro">Since your last assessment on ' + previousDate + ':</p>' +
+        '<div class="delta-grid">';
+
+      var self = this;
+      var currentObj = currentResults.objectiveHealthScores || {};
+      var prevObj = previousResponse.objectiveHealthScores || {};
+
+      this.DOMAINS.forEach(function(d) {
+        var prev = prevObj[d.key] || 0;
+        var curr = currentObj[d.key] || 0;
+        var delta = curr - prev;
+        var deltaSign = delta > 0 ? '+' : '';
+        var deltaClass = delta > 0 ? 'delta-positive' : (delta < 0 ? 'delta-negative' : 'delta-neutral');
+        var arrow = delta > 0 ? '&#9650;' : (delta < 0 ? '&#9660;' : '&#9654;');
+        var changeLabel = delta > 0 ? 'improvement' : (delta < 0 ? 'decline' : 'no change');
+
+        var narrative = self.getDeltaNarrative(d.key, delta, currentResults.tool1Profile ? currentResults.tool1Profile.winner : null, curr);
+
+        html += '<div class="delta-card-full">' +
+          '<div class="delta-card-header">' +
+            '<div class="delta-domain">' + d.icon + ' ' + d.label + '</div>' +
+            '<div class="delta-scores">' +
+              '<span class="delta-prev">' + prev + '</span>' +
+              '<span class="delta-arrow">' + arrow + '</span>' +
+              '<span class="delta-curr">' + curr + '</span>' +
+            '</div>' +
+            '<div class="delta-value ' + deltaClass + '">' + deltaSign + delta + ' (' + changeLabel + ')</div>' +
+          '</div>' +
+          (narrative ? '<div class="delta-narrative">' + narrative + '</div>' : '') +
+        '</div>';
+      });
+
+      html += '</div></div>';
+      return html;
+    } catch(e) {
+      return '';
+    }
+  },
+
+  // --- Delta Narrative ---
+  getDeltaNarrative(domain, delta, pattern, currentScore) {
+    var tier;
+    if (delta >= 20) tier = 'large_up';
+    else if (delta >= 5) tier = 'moderate_up';
+    else if (delta > 0) tier = 'small_up';
+    else if (delta === 0) tier = 'no_change';
+    else if (delta > -5) tier = 'small_down';
+    else if (delta > -20) tier = 'moderate_down';
+    else tier = 'large_down';
+
+    // For no_change, pick sub-tier based on current score
+    if (tier === 'no_change') {
+      var score = currentScore || 0;
+      if (score >= 75) tier = 'no_change_strong';
+      else if (score >= 40) tier = 'no_change_moderate';
+      else tier = 'no_change_weak';
+    }
+
+    var narratives = {
+      moneyFlow: {
+        large_up: 'Significant improvement in your income and spending position. Your savings rate has strengthened meaningfully since your last assessment.',
+        moderate_up: 'Your money flow is trending in the right direction. The gap between income and spending is narrowing or your savings rate is growing.',
+        small_up: 'A slight improvement in your income and spending balance. Small shifts here compound over time.',
+        no_change_strong: 'Your money flow remains strong and stable. A healthy savings rate sustained over time is one of the most powerful financial positions you can hold.',
+        no_change_moderate: 'Your money flow is stable but has room to grow. Consider whether small adjustments to spending or income could move you into a stronger position.',
+        no_change_weak: 'Your money flow score remains low and unchanged. This means the gap between income and spending has not improved. Even a small reduction in spending or increase in income would begin shifting this score.',
+        small_down: 'A slight dip in your money flow score. Worth checking whether spending increased or income shifted.',
+        moderate_down: 'Your income and spending balance has weakened. Review whether new expenses emerged or income sources changed.',
+        large_down: 'A significant decline in your money flow position. This warrants immediate attention to understand what shifted in your income or spending.'
+      },
+      obligations: {
+        large_up: 'Major progress on your debt and emergency fund position. This kind of movement reflects real behavioral change.',
+        moderate_up: 'Your obligations picture is improving. Debt is decreasing or your emergency fund is growing — both strong signals.',
+        small_up: 'A small improvement in your debt and emergency fund position. Staying on this trajectory matters more than the size of the move.',
+        no_change_strong: 'Your obligations position is strong and stable. Low debt and a funded emergency reserve is an excellent foundation to maintain.',
+        no_change_moderate: 'Your obligations position is stable but not yet strong. Continuing to chip away at debt or build your emergency fund would improve your resilience.',
+        no_change_weak: 'Your obligations score remains low and unchanged. Debt levels or emergency fund gaps that were present last time are still present. Picking one — even the smallest debt — and targeting it can start building momentum.',
+        small_down: 'A slight weakening of your obligations position. Check whether new debt appeared or emergency fund was tapped.',
+        moderate_down: 'Your debt or emergency fund position has declined. Identify what drove the change before it compounds.',
+        large_down: 'A significant decline in your obligations health. New debt accumulation or emergency fund depletion needs immediate attention.'
+      },
+      liquidity: {
+        large_up: 'Your accessible savings have grown substantially. This buffer provides real flexibility and reduces financial stress.',
+        moderate_up: 'Your liquidity position is strengthening. More accessible savings means more options when opportunities or challenges arise.',
+        small_up: 'A modest increase in your liquid savings. Every increment of buffer matters.',
+        no_change_strong: 'Your liquidity position is strong and stable. Having accessible savings beyond your emergency fund gives you genuine financial flexibility.',
+        no_change_moderate: 'Your liquidity is stable but building additional buffer would give you more options. Consider automating a small monthly transfer to liquid savings.',
+        no_change_weak: 'Your liquid savings remain low and unchanged. Without accessible savings, you are one unexpected expense away from using debt. Even setting aside a small amount each month begins building this critical buffer.',
+        small_down: 'A slight decrease in accessible savings. Monitor whether this is a temporary dip or a trend.',
+        moderate_down: 'Your liquid savings have declined. Rebuilding this buffer should be a near-term priority.',
+        large_down: 'A significant drop in accessible savings. Your financial buffer has thinned considerably — understanding why is critical.'
+      },
+      growth: {
+        large_up: 'Major improvement in your retirement and investment trajectory. This level of change reflects meaningful commitment to long-term wealth building.',
+        moderate_up: 'Your growth position is strengthening. Increased retirement contributions or better investment returns are moving you forward.',
+        small_up: 'A small step forward in your long-term growth picture. Consistency matters more than speed here.',
+        no_change_strong: 'Your growth trajectory is strong and steady. Maintaining consistent retirement contributions at this level puts compound interest firmly in your favor.',
+        no_change_moderate: 'Your growth position is stable but not yet where it could be. Increasing retirement contributions even slightly would accelerate your trajectory meaningfully over time.',
+        no_change_weak: 'Your growth score remains low and unchanged. Time is the most valuable asset in retirement planning, and every month without contributions is a month of lost compounding. Starting with any amount — even small — is better than waiting.',
+        small_down: 'A slight decline in your growth score. Check whether retirement contributions decreased or market conditions shifted.',
+        moderate_down: 'Your retirement and investment position has weakened. Review whether contributions stopped or allocations changed.',
+        large_down: 'A significant decline in your growth trajectory. This could reflect reduced contributions, early withdrawals, or market impact — understanding the cause matters.'
+      },
+      protection: {
+        large_up: 'Major improvement in your insurance coverage. You have closed significant gaps in your financial protection.',
+        moderate_up: 'Your protection position has improved. Additional coverage provides meaningful peace of mind.',
+        small_up: 'A slight improvement in your insurance coverage. Every coverage gap you close reduces your exposure.',
+        no_change_strong: 'Your protection is comprehensive and stable. Full insurance coverage is a quiet strength — it protects everything else you are building.',
+        no_change_moderate: 'Your protection is stable but some coverage gaps remain. Review whether disability or life insurance should be added to round out your safety net.',
+        no_change_weak: 'Your protection score remains low and unchanged. Significant coverage gaps leave you exposed to events that could undo progress in every other domain. Getting even basic coverage in place is a high-impact step.',
+        small_down: 'A slight decrease in your protection score. Check whether any policies lapsed or coverage changed.',
+        moderate_down: 'Your insurance coverage has declined. Review what changed — lapsed policies create real vulnerability.',
+        large_down: 'A significant drop in your financial protection. Multiple coverage gaps have opened. This is a priority to address.'
+      }
+    };
+
+    var base = (narratives[domain] && narratives[domain][tier]) ? narratives[domain][tier] : '';
+    if (!base) return '';
+
+    // Pattern modifier
+    var patternNote = this.getDeltaPatternModifier(domain, tier, pattern);
+    return base + (patternNote ? ' ' + patternNote : '');
+  },
+
+  getDeltaPatternModifier(domain, tier, pattern) {
+    if (!pattern) return '';
+
+    var isDecline = tier.indexOf('down') > -1;
+    var isImprovement = tier.indexOf('up') > -1;
+
+    if (!isDecline && !isImprovement) return '';
+
+    var modifiers = {
+      FSV: {
+        up: 'With a False Self-View pattern, improvement here may reflect growing willingness to see your finances as they truly are.',
+        down: 'Your False Self-View pattern may be contributing to avoidance of this area. Check whether you are hiding from the numbers.'
+      },
+      ExVal: {
+        up: 'With an External Validation pattern, this improvement suggests you may be making decisions based on your own values rather than appearances.',
+        down: 'Your External Validation pattern may be driving spending or decisions aimed at how things look rather than how they are.'
+      },
+      Showing: {
+        up: 'With a Showing Love pattern, improvement here may mean you are finding better balance between caring for others and caring for your own finances.',
+        down: 'Your Showing Love pattern may be contributing to financial over-giving that depletes your own position.'
+      },
+      Receiving: {
+        up: 'With a Receiving Love pattern, this improvement may reflect greater openness to accepting financial support or resources.',
+        down: 'Your Receiving Love pattern may be keeping you from accessing resources or help that could improve this area.'
+      },
+      Control: {
+        up: 'With a Control pattern, this improvement may reflect productive use of your natural drive for structure and tracking.',
+        down: 'Your Control pattern may be creating rigidity or analysis paralysis that prevents action in this area.'
+      },
+      Fear: {
+        up: 'With a Fear pattern, this improvement suggests you may be overcoming financial paralysis and taking action despite uncertainty.',
+        down: 'Your Fear pattern may be driving avoidance or inaction that is allowing this area to deteriorate.'
+      }
+    };
+
+    var mod = modifiers[pattern];
+    if (!mod) return '';
+    return isImprovement ? mod.up : mod.down;
+  },
+
+  // --- Full Assessment Callout ---
+  buildFullAssessmentCallout() {
+    return '<div class="section-block full-assessment-callout">' +
+      '<h3>Want Deeper Insights?</h3>' +
+      '<p>Your Quick Check-In captures the essentials. Complete the full assessment to unlock detailed gap analysis, pattern synthesis, and personalized AI-powered insights across all five financial domains.</p>' +
+    '</div>';
   },
 
   // --- Section 1: Header ---
@@ -803,7 +1004,25 @@ const Tool2Report = {
       .progress-delta.positive { color: #10b981; }\
       .progress-delta.negative { color: #ef4444; }\
       .progress-delta.neutral { color: #94a3b8; }\
-      @media (max-width: 600px) { .scarcity-scores { flex-direction: column; align-items: center; } .gap-bar-label { width: 60px; font-size: 11px; } }\
+      .delta-hero { margin: 30px 0; }\
+      .delta-grid { display: grid; gap: 16px; margin-top: 16px; }\
+      .delta-card-full { background: rgba(255,255,255,0.05); border: 1px solid rgba(173,145,104,0.2); border-radius: 10px; padding: 16px; }\
+      .delta-card-header { display: flex; align-items: center; justify-content: space-between; }\
+      .delta-narrative { margin-top: 10px; padding: 10px 12px; background: rgba(173,145,104,0.08); border-radius: 6px; font-size: 13px; color: #cbd5e1; line-height: 1.6; }\
+      .delta-card { background: rgba(255,255,255,0.05); border: 1px solid rgba(173,145,104,0.2); border-radius: 10px; padding: 16px; display: flex; align-items: center; justify-content: space-between; }\
+      .delta-domain { font-size: 16px; font-weight: 600; color: #e2e8f0; min-width: 140px; }\
+      .delta-scores { display: flex; align-items: center; gap: 8px; font-size: 20px; }\
+      .delta-prev { color: #94a3b8; }\
+      .delta-arrow { color: #ad9168; font-size: 14px; }\
+      .delta-curr { color: #fff; font-weight: 700; }\
+      .delta-value { font-size: 14px; font-weight: 600; min-width: 120px; text-align: right; }\
+      .delta-positive { color: #10b981; }\
+      .delta-negative { color: #ef4444; }\
+      .delta-neutral { color: #94a3b8; }\
+      .full-assessment-callout { padding: 24px; background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.25); border-radius: 10px; margin: 30px 0; text-align: center; }\
+      .full-assessment-callout h3 { color: #93c5fd; margin-bottom: 10px; font-size: 18px; }\
+      .full-assessment-callout p { color: #cbd5e1; line-height: 1.6; max-width: 600px; margin: 0 auto; }\
+      @media (max-width: 600px) { .scarcity-scores { flex-direction: column; align-items: center; } .gap-bar-label { width: 60px; font-size: 11px; } .delta-card { flex-direction: column; gap: 8px; text-align: center; } .delta-card-header { flex-direction: column; gap: 8px; text-align: center; } .delta-value { text-align: center; } }\
     ';
   }
 };
