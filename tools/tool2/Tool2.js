@@ -95,6 +95,18 @@ const Tool2 = Object.assign({}, FormToolBase, {
     const employment = data?.employment || '';
     const businessStage = data?.businessStage || '';
 
+    // Parse employment types (multi-select: stored as JSON array or legacy single string)
+    var employmentTypes = [];
+    try {
+      if (typeof employment === 'string' && employment.charAt(0) === '[') {
+        employmentTypes = JSON.parse(employment);
+      } else if (typeof employment === 'string' && employment) {
+        employmentTypes = [employment];
+      } else if (Array.isArray(employment)) {
+        employmentTypes = employment;
+      }
+    } catch(e) { employmentTypes = employment ? [employment] : []; }
+
     // Mode
     const assessmentMode = data?.assessmentMode || 'full';
     const isFullMode = assessmentMode === 'full';
@@ -105,10 +117,8 @@ const Tool2 = Object.assign({}, FormToolBase, {
     const moneyRelationship = data?.moneyRelationship || '';
 
     // Show business stage conditionally
-    const showBusinessStage = employment === 'self-employed' ||
-                               employment === 'business-owner' ||
-                               employment === 'full-time-with-business' ||
-                               employment === 'part-time-with-business';
+    const showBusinessStage = employmentTypes.indexOf('self-employed') !== -1 ||
+                               employmentTypes.indexOf('business-owner') !== -1;
 
     const isQuickCheckIn = data?._quickCheckIn === true;
 
@@ -147,17 +157,32 @@ const Tool2 = Object.assign({}, FormToolBase, {
       </div>
 
       <div class="form-group">
-        <label class="form-label">Employment Type *</label>
-        <select name="employment" id="employmentSelect" required onchange="toggleBusinessStage()">
-          <option value="">Select status</option>
-          <option value="w2-employee" ${employment === 'w2-employee' ? 'selected' : ''}>W-2 Employee</option>
-          <option value="self-employed" ${employment === 'self-employed' ? 'selected' : ''}>Self-Employed</option>
-          <option value="business-owner" ${employment === 'business-owner' ? 'selected' : ''}>Business Owner</option>
-          <option value="full-time-with-business" ${employment === 'full-time-with-business' ? 'selected' : ''}>Full-time Employee with Business</option>
-          <option value="part-time-with-business" ${employment === 'part-time-with-business' ? 'selected' : ''}>Part-time Employee with Business</option>
-          <option value="retired" ${employment === 'retired' ? 'selected' : ''}>Retired</option>
-          <option value="other" ${employment === 'other' ? 'selected' : ''}>Other</option>
-        </select>
+        <label class="form-label">Employment Type (select all that apply) *</label>
+        <p class="muted" style="font-size: 13px; margin-bottom: 10px;">Check every source of income that applies to you.</p>
+        <input type="hidden" name="employment" id="employmentHidden" value="">
+        <div id="employmentCheckboxes" style="display: flex; flex-direction: column; gap: 10px;">
+          <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 8px 12px; background: rgba(255,255,255,0.05); border-radius: 8px; border: 1px solid rgba(173,145,104,0.2);">
+            <input type="checkbox" class="employment-cb" value="w2-employee" onchange="updateEmployment()" ${employmentTypes.indexOf('w2-employee') !== -1 ? 'checked' : ''}>
+            <span>W-2 Employee</span>
+          </label>
+          <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 8px 12px; background: rgba(255,255,255,0.05); border-radius: 8px; border: 1px solid rgba(173,145,104,0.2);">
+            <input type="checkbox" class="employment-cb" value="self-employed" onchange="updateEmployment()" ${employmentTypes.indexOf('self-employed') !== -1 ? 'checked' : ''}>
+            <span>Self-Employed / 1099 / Independent Contractor</span>
+          </label>
+          <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 8px 12px; background: rgba(255,255,255,0.05); border-radius: 8px; border: 1px solid rgba(173,145,104,0.2);">
+            <input type="checkbox" class="employment-cb" value="business-owner" onchange="updateEmployment()" ${employmentTypes.indexOf('business-owner') !== -1 ? 'checked' : ''}>
+            <span>Business Owner</span>
+          </label>
+          <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 8px 12px; background: rgba(255,255,255,0.05); border-radius: 8px; border: 1px solid rgba(173,145,104,0.2);">
+            <input type="checkbox" class="employment-cb" value="investor" onchange="updateEmployment()" ${employmentTypes.indexOf('investor') !== -1 ? 'checked' : ''}>
+            <span>Investor / Passive Income</span>
+          </label>
+          <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 8px 12px; background: rgba(255,255,255,0.05); border-radius: 8px; border: 1px solid rgba(173,145,104,0.2);">
+            <input type="checkbox" class="employment-cb" value="retired" onchange="updateEmployment()" ${employmentTypes.indexOf('retired') !== -1 ? 'checked' : ''}>
+            <span>Retired / Pension</span>
+          </label>
+        </div>
+        <div id="employmentError" style="display: none; color: #ef4444; font-size: 13px; margin-top: 8px;">Please select at least one employment type.</div>
       </div>
 
       <div class="form-group" id="businessStageGroup" style="display: ${showBusinessStage ? 'block' : 'none'};">
@@ -279,16 +304,41 @@ const Tool2 = Object.assign({}, FormToolBase, {
       </div>
 
       <script>
+        // Collect checked employment types into hidden field as JSON array
+        function updateEmployment() {
+          var checkboxes = document.querySelectorAll('.employment-cb');
+          var selected = [];
+          for (var i = 0; i < checkboxes.length; i++) {
+            if (checkboxes[i].checked) selected.push(checkboxes[i].value);
+          }
+          document.getElementById('employmentHidden').value = JSON.stringify(selected);
+
+          // Show/hide error
+          var errorDiv = document.getElementById('employmentError');
+          if (selected.length === 0) {
+            errorDiv.style.display = 'block';
+          } else {
+            errorDiv.style.display = 'none';
+          }
+
+          // Toggle business stage based on selection
+          toggleBusinessStage(selected);
+        }
+
         // Toggle business stage visibility based on employment selection
-        function toggleBusinessStage() {
-          var employment = document.getElementById('employmentSelect').value;
+        function toggleBusinessStage(selected) {
+          if (!selected) {
+            var checkboxes = document.querySelectorAll('.employment-cb');
+            selected = [];
+            for (var i = 0; i < checkboxes.length; i++) {
+              if (checkboxes[i].checked) selected.push(checkboxes[i].value);
+            }
+          }
           var businessStageGroup = document.getElementById('businessStageGroup');
           var businessStageSelect = document.getElementById('businessStageSelect');
 
-          var hasBusinessInvolvement = employment === 'self-employed' ||
-                                        employment === 'business-owner' ||
-                                        employment === 'full-time-with-business' ||
-                                        employment === 'part-time-with-business';
+          var hasBusinessInvolvement = selected.indexOf('self-employed') !== -1 ||
+                                        selected.indexOf('business-owner') !== -1;
 
           if (hasBusinessInvolvement) {
             businessStageGroup.style.display = 'block';
@@ -344,7 +394,7 @@ const Tool2 = Object.assign({}, FormToolBase, {
 
         // Run on page load to set initial state
         document.addEventListener('DOMContentLoaded', function() {
-          toggleBusinessStage();
+          updateEmployment();
         });
       </script>
     `;
@@ -1348,6 +1398,24 @@ const Tool2 = Object.assign({}, FormToolBase, {
     const weight = Tool2Constants.STRESS_WEIGHTS[domain] || 1;
     const healthScore = objectiveScore !== null ? objectiveScore : 50;
     return weight * (100 - healthScore);
+  },
+
+  /**
+   * Parse employment types from stored data (backward compatible)
+   * Handles: JSON array string, plain string (legacy), or array
+   * @param {Object} data - form data containing employment field
+   * @returns {Array} Array of employment type strings
+   */
+  getEmploymentTypes(data) {
+    var employment = data.employment || '';
+    if (Array.isArray(employment)) return employment;
+    if (typeof employment === 'string') {
+      if (employment.charAt(0) === '[') {
+        try { return JSON.parse(employment); } catch(e) {}
+      }
+      return employment ? [employment] : [];
+    }
+    return [];
   },
 
   /**

@@ -222,8 +222,8 @@ const Tool6 = {
       // From Tool 2: Demographics and employment
       age: t2.age || t2.currentAge || null,
       grossIncome: t2.grossAnnualIncome || t2.annualIncome || t2.grossIncome || t2.income || null,
-      employmentType: t2.employment || t2.employmentType || t2.workSituation || null,
-      businessOwner: t2.businessOwner || t2.isBusinessOwner || false,
+      employmentType: this._parseEmploymentType(t2.employment || t2.employmentType || t2.workSituation || null),
+      businessOwner: this._hasBusinessInvolvement(t2.employment || t2.employmentType || t2.workSituation || null),
       filingStatus: filingStatus,
       hsaCoverageType: inferHSACoverageType(filingStatus),
       // From Tool 2 (new schema): Retirement data for pre-population
@@ -297,8 +297,8 @@ const Tool6 = {
     // Infer HSA coverage type from filing status
     const hsaCoverageType = filingStatus === 'MFJ' ? 'Family' : 'Individual';
 
-    // Infer business owner from employment type
-    const businessOwner = employmentType === 'Business Owner';
+    // Infer business owner from employment type (handles multi-select arrays)
+    const businessOwner = this._hasBusinessInvolvement(employmentType);
 
     LogUtils.debug('Derived Tool 2 from backup: age=' + age + ', income=' + grossIncome + ', filing=' + filingStatus);
 
@@ -8396,6 +8396,43 @@ const Tool6 = {
     } catch (e) {
       return defaultVal;
     }
+  },
+
+  /**
+   * Parse employment type field (backward compatible with single string or JSON array)
+   * Returns the first value for contexts that need a single string
+   */
+  _parseEmploymentType(value) {
+    if (!value) return null;
+    if (Array.isArray(value)) return value[0] || null;
+    if (typeof value === 'string' && value.charAt(0) === '[') {
+      try {
+        var arr = JSON.parse(value);
+        return arr[0] || null;
+      } catch(e) {}
+    }
+    return value;
+  },
+
+  /**
+   * Check if employment type includes business involvement
+   * Handles both legacy single strings and new multi-select arrays
+   */
+  _hasBusinessInvolvement(value) {
+    if (!value) return false;
+    var types = [];
+    if (Array.isArray(value)) {
+      types = value;
+    } else if (typeof value === 'string' && value.charAt(0) === '[') {
+      try { types = JSON.parse(value); } catch(e) { types = [value]; }
+    } else {
+      types = [value];
+    }
+    for (var i = 0; i < types.length; i++) {
+      var t = types[i].toLowerCase();
+      if (t.indexOf('business') !== -1 || t.indexOf('self-employed') !== -1 || t === 'both') return true;
+    }
+    return false;
   },
 
   /**
