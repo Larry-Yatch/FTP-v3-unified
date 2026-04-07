@@ -100,7 +100,10 @@ const Tool2GPTAnalysis = {
 
     // Gather free-text responses
     var freeText = '';
-    if (allData.incomeAndSpendingNarrative) freeText += 'Income and Spending: ' + allData.incomeAndSpendingNarrative + '\n\n';
+    if (allData.incomeNarrative) freeText += 'Income Sources: ' + allData.incomeNarrative + '\n\n';
+    if (allData.spendingNarrative) freeText += 'Spending Areas: ' + allData.spendingNarrative + '\n\n';
+    // Backward compat: old combined field
+    if (!allData.incomeNarrative && allData.incomeAndSpendingNarrative) freeText += 'Income and Spending: ' + allData.incomeAndSpendingNarrative + '\n\n';
     if (allData.debtNarrative) freeText += 'Debt Situation: ' + allData.debtNarrative + '\n\n';
     if (allData.savingsGrowthNarrative) freeText += 'Savings and Growth: ' + allData.savingsGrowthNarrative + '\n\n';
     if (allData.financialEmotionsNarrative) freeText += 'Overall Financial Feelings: ' + allData.financialEmotionsNarrative + '\n\n';

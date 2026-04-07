@@ -219,6 +219,7 @@ const Tool2 = Object.assign({}, FormToolBase, {
 
       <!-- Mindset Baseline -->
       <h3 style="margin-top: 40px;">Scarcity and Mindset</h3>
+      <p class="muted" style="margin-bottom: 20px;">Answer honestly based on your current experience.</p>
 
       <div class="form-group">
         <label class="form-label">In general, my overall sense of life feels... *</label>
@@ -368,6 +369,8 @@ const Tool2 = Object.assign({}, FormToolBase, {
 
     // Free-text
     const incomeAndSpendingNarrative = data.incomeAndSpendingNarrative || '';
+    const incomeNarrative = data.incomeNarrative || incomeAndSpendingNarrative;
+    const spendingNarrative = data.spendingNarrative || '';
 
     return `
       <h2>Money Flow</h2>
@@ -386,7 +389,7 @@ const Tool2 = Object.assign({}, FormToolBase, {
 
       <div class="form-group">
         <label class="form-label">Monthly Take-Home Pay (after taxes) *</label>
-        <p class="muted" style="font-size: 13px; margin-bottom: 10px;">What actually hits your bank account each month after taxes and deductions.</p>
+        <p class="muted" style="font-size: 13px; margin-bottom: 10px;">What actually hits your personal bank account each month after taxes and deductions. If you are a business owner, include only personal accounts \u2014 money in your business accounts belongs to the business, not to you personally. If you keep personal funds in a business account, that pattern is something this assessment is designed to surface.</p>
         <input type="number" name="monthlyTakeHome" value="${monthlyTakeHome}" min="0" required placeholder="Enter dollar amount">
       </div>
 
@@ -401,7 +404,7 @@ const Tool2 = Object.assign({}, FormToolBase, {
 
       <div class="form-group">
         <label class="form-label">How clear are you on your total income picture? *</label>
-        <p class="muted" style="font-size: 13px; margin-bottom: 10px;">-5 = no idea, +5 = fully clear</p>
+        <p class="muted" style="font-size: 13px; margin-bottom: 10px;">This includes all sources: salary, side income, investment returns, rental income, and any other money coming in. -5 = no idea, +5 = fully clear</p>
         <select name="incomeClarity" required>
           <option value="">Select a response</option>
           <option value="-5" ${incomeClarity === '-5' ? 'selected' : ''}>-5: No idea what I earn</option>
@@ -431,7 +434,7 @@ const Tool2 = Object.assign({}, FormToolBase, {
             <option value="1" ${spendingClarity === '1' ? 'selected' : ''}>+1: Loose tracking</option>
             <option value="2" ${spendingClarity === '2' ? 'selected' : ''}>+2: Track by categories</option>
             <option value="3" ${spendingClarity === '3' ? 'selected' : ''}>+3: Detailed monthly review</option>
-            <option value="4" ${spendingClarity === '4' ? 'selected' : ''}>+4: Granular tracking</option>
+            <option value="4" ${spendingClarity === '4' ? 'selected' : ''}>+4: Specific and consistent tracking</option>
             <option value="5" ${spendingClarity === '5' ? 'selected' : ''}>+5: Complete visibility</option>
           </select>
         </div>
@@ -456,8 +459,14 @@ const Tool2 = Object.assign({}, FormToolBase, {
 
         <!-- Free-text (full only) -->
         <div class="form-group">
-          <label class="form-label">Describe your primary income sources. What do you consider your biggest or most wasteful spending areas? *</label>
-          <textarea name="incomeAndSpendingNarrative" id="incomeNarrativeField" rows="4" ${isFullMode ? 'required' : ''} placeholder="Share your thoughts...">${incomeAndSpendingNarrative}</textarea>
+          <label class="form-label">Describe your primary income sources. *</label>
+          <p class="muted" style="font-size: 13px; margin-bottom: 10px;">Include salary, business income, side income, investment returns, or any other sources.</p>
+          <textarea name="incomeNarrative" id="incomeNarrativeField" rows="3" ${isFullMode ? 'required' : ''} placeholder="Share your thoughts...">${incomeNarrative}</textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">What do you consider your biggest or most wasteful spending areas? *</label>
+          <textarea name="spendingNarrative" id="spendingNarrativeField" rows="3" ${isFullMode ? 'required' : ''} placeholder="Share your thoughts...">${spendingNarrative}</textarea>
         </div>
       </div>
     `;
@@ -506,7 +515,7 @@ const Tool2 = Object.assign({}, FormToolBase, {
 
       <div class="form-group">
         <label class="form-label">Emergency Fund Balance *</label>
-        <p class="muted" style="font-size: 13px; margin-bottom: 10px;">Money set aside specifically for emergencies. Enter 0 if none.</p>
+        <p class="muted" style="font-size: 13px; margin-bottom: 10px;">Money set aside specifically for unexpected expenses (car repair, medical bill, job loss) that you would replace immediately after spending. This is different from liquid savings on the next page, which can be used for anything. Enter 0 if none.</p>
         <input type="number" name="emergencyFundBalance" value="${emergencyFundBalance}" min="0" required placeholder="Enter dollar amount (0 if none)">
       </div>
 
