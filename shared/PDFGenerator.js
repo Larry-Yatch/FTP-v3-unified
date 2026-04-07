@@ -350,15 +350,34 @@ const PDFGenerator = {
         .domain-card { background: #f9f9f9; padding: 20px; margin: 15px 0; border-radius: 8px; border-left: 4px solid ' + CONFIG.UI.PRIMARY_COLOR + '; page-break-inside: avoid; }\
         .score-value { font-size: 28px; font-weight: 700; color: ' + CONFIG.UI.PRIMARY_COLOR + '; }\
         .score-label { font-size: 13px; color: #666; margin-top: 4px; }\
+        .level-badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; color: white; }\
+        .metric-line { font-size: 13px; color: #555; margin: 8px 0 0 0; }\
+        .benchmark-note { font-size: 12px; color: #888; font-style: italic; margin: 4px 0 0 0; }\
         .archetype-box { background: linear-gradient(135deg, ' + CONFIG.UI.DARK_BG + ' 0%, #4b4166 100%); color: white; padding: 25px; text-align: center; margin: 25px 0; border-radius: 10px; page-break-inside: avoid; }\
         .archetype-name { font-size: 22px; font-weight: 700; margin-bottom: 8px; }\
-        .gap-card { background: #f9f9f9; padding: 15px; margin: 10px 0; border-radius: 6px; page-break-inside: avoid; }\
+        .gap-card { background: #f9f9f9; padding: 15px 20px; margin: 12px 0; border-radius: 8px; page-break-inside: avoid; }\
         .gap-bar { height: 12px; border-radius: 6px; margin: 4px 0; }\
+        .gap-narrative { font-size: 13px; color: #555; font-style: italic; margin: 10px 0 0 0; line-height: 1.6; }\
+        .gap-classification { font-size: 13px; font-weight: 600; margin: 6px 0; }\
         .delta-row { display: flex; justify-content: space-between; padding: 10px 15px; margin: 6px 0; background: #f9f9f9; border-radius: 6px; }\
-        .callout { padding: 15px 20px; border-radius: 8px; margin: 20px 0; }\
+        .callout { padding: 15px 20px; border-radius: 8px; margin: 20px 0; page-break-inside: avoid; }\
         .callout-scarcity { background: #fff3f3; border-left: 4px solid #ef4444; }\
         .callout-abundance { background: #f0fdf4; border-left: 4px solid #10b981; }\
+        .callout-targeted { background: #fffbeb; border-left: 4px solid #f59e0b; }\
         .callout-info { background: #eff6ff; border-left: 4px solid #3b82f6; }\
+        .scarcity-row { display: flex; justify-content: space-around; margin: 15px 0; }\
+        .scarcity-item { text-align: center; padding: 10px 20px; }\
+        .scarcity-value { font-size: 28px; font-weight: 700; color: ' + CONFIG.UI.PRIMARY_COLOR + '; }\
+        .scarcity-label { font-size: 13px; color: #666; }\
+        .priority-item { background: #f9f9f9; padding: 15px 20px; margin: 10px 0; border-radius: 8px; border-left: 4px solid ' + CONFIG.UI.PRIMARY_COLOR + '; page-break-inside: avoid; }\
+        .priority-rank { font-size: 24px; font-weight: 700; color: ' + CONFIG.UI.PRIMARY_COLOR + '; float: left; margin-right: 15px; }\
+        .profile-box { background: #f9f9f9; padding: 20px; margin: 15px 0; border-radius: 8px; border-left: 4px solid ' + CONFIG.UI.PRIMARY_COLOR + '; page-break-inside: avoid; }\
+        .profile-box.neg-dom { border-left-color: #94a3b8; }\
+        .combination-box { background: #f5f3ff; padding: 15px 20px; margin: 12px 0; border-radius: 8px; border-left: 4px solid #8b5cf6; page-break-inside: avoid; }\
+        .strength-box { background: #f0fdf4; padding: 12px 18px; margin: 10px 0; border-radius: 8px; border-left: 4px solid #10b981; page-break-inside: avoid; }\
+        .strength-box h4 { color: #166534; margin: 0 0 4px 0; font-size: 14px; }\
+        .polarity-box { background: #f5f3ff; padding: 15px 20px; margin: 12px 0; border-radius: 8px; border-left: 4px solid #8b5cf6; page-break-inside: avoid; }\
+        .subjective-card { background: #f9f9f9; padding: 15px 20px; margin: 10px 0; border-radius: 8px; page-break-inside: avoid; }\
       ';
 
       var header = this.buildHeader('Financial Mirror Report', studentName);
@@ -390,65 +409,162 @@ const PDFGenerator = {
   },
 
   /**
-   * Full-mode PDF with new schema (objective scores, gap analysis, pattern synthesis)
+   * Full-mode PDF with new schema — mirrors Tool2Report 9-section structure
    */
   _buildFullTool2PDF(header, modeNote, clientId, r, data, overallInsight) {
     var objScores = r.objectiveHealthScores || {};
     var subScores = r.subjectiveScores || {};
     var gapClass = r.gapClassifications || {};
+    var gapIndexes = r.gapIndexes || {};
     var profile = r.tool1Profile || {};
     var archetype = r.archetype || 'Financial Clarity Seeker';
     var NAMES = { FSV: 'False Self-View', ExVal: 'External Validation', Showing: 'Issues Showing Love', Receiving: 'Issues Receiving Love', Control: 'Control Leading to Isolation', Fear: 'Fear Leading to Isolation' };
     var winnerName = NAMES[profile.winner] || profile.winner || '';
     var domains = [
-      { key: 'moneyFlow', label: 'Money Flow', icon: '💰' },
-      { key: 'obligations', label: 'Obligations', icon: '⚖️' },
-      { key: 'liquidity', label: 'Liquidity', icon: '💧' },
-      { key: 'growth', label: 'Growth', icon: '📈' },
-      { key: 'protection', label: 'Protection', icon: '🛡️' }
+      { key: 'moneyFlow', label: 'Money Flow', icon: '', desc: 'Income and Spending' },
+      { key: 'obligations', label: 'Obligations', icon: '', desc: 'Debt and Emergency Fund' },
+      { key: 'liquidity', label: 'Liquidity', icon: '', desc: 'Accessible Savings' },
+      { key: 'growth', label: 'Growth', icon: '', desc: 'Retirement and Investments' },
+      { key: 'protection', label: 'Protection', icon: '', desc: 'Insurance Coverage' }
     ];
 
     var html = header + modeNote;
 
-    // Scarcity callout
-    if (r.scarcityFlag === 'GLOBAL_SCARCITY') {
-      html += '<div class="callout callout-scarcity"><strong>Scarcity Pattern Detected:</strong> Your responses suggest a global sense of scarcity that shapes your financial decision-making at a deep level.</div>';
-    } else if (r.scarcityFlag === 'GLOBAL_ABUNDANCE') {
-      html += '<div class="callout callout-abundance"><strong>Protective Factor:</strong> Your responses reflect a sense of abundance across life and finances.</div>';
-    }
+    // === Section 2: Scarcity & Mindset ===
+    html += this._buildScarcitySection(data, r.scarcityFlag);
 
-    // Objective scores
-    html += '<h2>Your Financial Reality</h2>';
+    // === Section 3: Financial Reality (Objective) ===
+    html += '<h2>Your Financial Reality</h2>' +
+      '<p style="color: #666;">How your actual financial numbers compare to recommended benchmarks.</p>';
+
+    var takeHome = parseFloat(data.monthlyTakeHome) || 0;
+    var spending = parseFloat(data.monthlySpending) || 0;
+    var debtPay = parseFloat(data.monthlyDebtPayments) || 0;
+    var efBal = parseFloat(data.emergencyFundBalance) || 0;
+    var liquid = parseFloat(data.liquidSavings) || 0;
+    var retContr = parseFloat(data.monthlyRetirementContribution) || 0;
+    var annualInc = parseFloat(data.grossAnnualIncome) || 0;
+
     for (var i = 0; i < domains.length; i++) {
       var d = domains[i];
       var score = objScores[d.key] || 0;
+      var color = score >= 75 ? '#10b981' : (score >= 50 ? '#f59e0b' : (score >= 25 ? '#f97316' : '#ef4444'));
       var label = score >= 75 ? 'Strong' : (score >= 50 ? 'Moderate' : (score >= 25 ? 'Tight' : 'At Risk'));
-      html += '<div class="domain-card"><h3>' + d.icon + ' ' + d.label + '</h3><div class="score-value">' + score + '/100 <span style="font-size: 14px; color: #666;">(' + label + ')</span></div></div>';
+      var metric = this._getMetricLine(d.key, takeHome, spending, debtPay, efBal, liquid, retContr, annualInc);
+      var benchmark = Tool2Constants.BENCHMARK_STANDARDS[d.key] || '';
+
+      html += '<div class="domain-card">' +
+        '<h3>' + d.label + ' <span style="font-size: 13px; font-weight: 400; color: #666;">(' + d.desc + ')</span></h3>' +
+        '<div class="score-value">' + score + '<span style="font-size: 16px; color: #666;">/100</span> ' +
+          '<span class="level-badge" style="background: ' + color + ';">' + label + '</span>' +
+        '</div>' +
+        (metric ? '<p class="metric-line">' + metric + '</p>' : '') +
+        (benchmark ? '<p class="benchmark-note">' + benchmark + '</p>' : '') +
+      '</div>';
     }
 
-    // Gap analysis
-    html += '<div class="page-break"></div><h2>The Gap Analysis</h2><p>The gap between your financial reality and your perception of it.</p>';
-    var gapLabels = { UNDERESTIMATING: 'Underestimating', SLIGHTLY_UNDER: 'Slightly Under', ALIGNED: 'Aligned', SLIGHTLY_OVER: 'Slightly Over', OVERESTIMATING: 'Overestimating' };
+    // === Section 4: Financial Perception (Subjective) ===
+    html += '<div class="page-break"></div>' +
+      '<h2>Your Financial Perception</h2>' +
+      '<p style="color: #666;">How you perceive your financial situation in each domain.</p>';
+
+    for (var si = 0; si < domains.length; si++) {
+      var sd = domains[si];
+      var subScore = subScores[sd.key] || 0;
+      var subColor = subScore >= 75 ? '#10b981' : (subScore >= 50 ? '#f59e0b' : (subScore >= 25 ? '#f97316' : '#ef4444'));
+      var clarityLabel = subScore >= 70 ? 'High clarity' : (subScore >= 40 ? 'Moderate clarity' : 'Low clarity');
+
+      html += '<div class="subjective-card">' +
+        '<strong>' + sd.label + '</strong> <span style="color: #666;">(' + sd.desc + ')</span>' +
+        '<div style="margin: 8px 0;">' +
+          '<span class="score-value" style="font-size: 22px;">' + subScore + '<span style="font-size: 14px; color: #666;">/100</span></span> ' +
+          '<span style="color: ' + subColor + '; font-size: 13px; font-weight: 600;">' + clarityLabel + '</span>' +
+        '</div>' +
+        '<div style="background: #e5e7eb; height: 8px; border-radius: 4px;">' +
+          '<div style="width: ' + subScore + '%; height: 8px; border-radius: 4px; background: ' + subColor + ';"></div>' +
+        '</div>' +
+      '</div>';
+    }
+
+    // === Section 5: Gap Analysis ===
+    html += '<div class="page-break"></div>' +
+      '<h2>The Gap Analysis</h2>' +
+      '<p style="color: #666;">The gap between your financial reality and your perception of it.</p>';
+
+    var gapLabels = {
+      UNDERESTIMATING: 'Underestimating your financial health',
+      SLIGHTLY_UNDER: 'Slightly underestimating',
+      ALIGNED: 'Perception aligned with reality',
+      SLIGHTLY_OVER: 'Slightly overestimating',
+      OVERESTIMATING: 'Overestimating your financial health'
+    };
+    var gapColors = {
+      UNDERESTIMATING: '#10b981', SLIGHTLY_UNDER: '#10b981',
+      ALIGNED: '#94a3b8',
+      SLIGHTLY_OVER: '#f59e0b', OVERESTIMATING: '#f59e0b'
+    };
+
     for (var gi = 0; gi < domains.length; gi++) {
       var gd = domains[gi];
       var obj = objScores[gd.key] || 0;
       var sub = subScores[gd.key] || 0;
-      var gc = gapClass[gd.key] || 'UNKNOWN';
-      html += '<div class="gap-card"><strong>' + gd.icon + ' ' + gd.label + '</strong>' +
-        '<div style="margin: 8px 0;"><span style="color: #666; font-size: 12px;">Reality: ' + obj + '</span><div class="gap-bar" style="width: ' + obj + '%; background: #3b82f6;"></div></div>' +
-        '<div style="margin: 8px 0;"><span style="color: #666; font-size: 12px;">Perception: ' + sub + '</span><div class="gap-bar" style="width: ' + sub + '%; background: #9ca3af;"></div></div>' +
-        '<div style="font-size: 13px; color: #666;">' + (gapLabels[gc] || gc) + '</div></div>';
+      var gc = gapClass[gd.key] || 'ALIGNED';
+      var gapIdx = gapIndexes[gd.key] || 0;
+      var gapColor = gapColors[gc] || '#94a3b8';
+      var gapArrow = gapIdx > 10 ? '\u2191' : (gapIdx < -10 ? '\u2193' : '\u2192');
+
+      // Get narrative from Tool2Report
+      var narrative = '';
+      try {
+        narrative = Tool2Report.getGapNarrative(gd.key, gc, profile.winner || '', obj, sub) || '';
+      } catch(e) {}
+
+      html += '<div class="gap-card">' +
+        '<strong>' + gd.label + '</strong>' +
+        '<div style="margin: 8px 0;"><span style="color: #666; font-size: 12px;">Reality: ' + obj + '</span>' +
+          '<div class="gap-bar" style="width: ' + Math.max(obj, 2) + '%; background: #3b82f6;"></div></div>' +
+        '<div style="margin: 8px 0;"><span style="color: #666; font-size: 12px;">Perception: ' + sub + '</span>' +
+          '<div class="gap-bar" style="width: ' + Math.max(sub, 2) + '%; background: #9ca3af;"></div></div>' +
+        '<div class="gap-classification" style="color: ' + gapColor + ';">' + gapArrow + ' ' + (gapLabels[gc] || gc) + '</div>' +
+        (narrative ? '<div class="gap-narrative">' + narrative + '</div>' : '') +
+      '</div>';
     }
 
-    // Pattern synthesis
-    if (profile.winner) {
-      html += '<h2>Pattern Synthesis</h2><p>Primary pattern: <strong>' + winnerName + '</strong> (' + (profile.type || '') + ')</p>';
+    // === Section 6: Priority Map ===
+    var priorityList = r.newPriorityList || [];
+    if (priorityList.length > 0) {
+      html += '<h2>Priority Map</h2>' +
+        '<p style="color: #666;">Domains ranked by urgency, weighted by financial impact.</p>';
+
+      var topPriorities = priorityList.slice(0, 3);
+      for (var pi = 0; pi < topPriorities.length; pi++) {
+        var pDomain = topPriorities[pi].domain;
+        var pLabel = '';
+        for (var pli = 0; pli < domains.length; pli++) {
+          if (domains[pli].key === pDomain) { pLabel = domains[pli].label; break; }
+        }
+        var pScore = objScores[pDomain] || 0;
+        var pWeight = Tool2Constants.STRESS_WEIGHTS[pDomain] || 1;
+
+        html += '<div class="priority-item">' +
+          '<div class="priority-rank">' + (pi + 1) + '</div>' +
+          '<div>' +
+            '<strong>' + pLabel + '</strong>' +
+            '<p class="metric-line">Objective score: ' + pScore + '/100 | Stress weight: ' + pWeight + 'x</p>' +
+            (winnerName ? '<p style="font-size: 12px; color: #555; margin-top: 4px;">With your ' + winnerName + ' pattern, focus on building clarity and structure in this domain.</p>' : '') +
+          '</div>' +
+        '</div>';
+      }
     }
 
-    // Archetype
+    // === Section 7: Pattern Synthesis ===
+    html += '<div class="page-break"></div>';
+    html += this._buildPatternSynthesisSection(profile, NAMES);
+
+    // === Section 9: Archetype ===
     html += '<div class="archetype-box"><div class="archetype-name">' + archetype + '</div><p style="font-size: 14px;">' + Tool2Report.getArchetypeDescription(archetype) + '</p></div>';
 
-    // GPT insights
+    // === Section 8: GPT Insights ===
     html += this._buildNewTool2Insights(overallInsight);
 
     return html;
@@ -459,16 +575,21 @@ const PDFGenerator = {
    */
   _buildLightTool2PDF(header, modeNote, clientId, r, data, overallInsight) {
     var objScores = r.objectiveHealthScores || {};
+    var profile = r.tool1Profile || {};
     var archetype = r.archetype || 'Financial Clarity Seeker';
+    var NAMES = { FSV: 'False Self-View', ExVal: 'External Validation', Showing: 'Issues Showing Love', Receiving: 'Issues Receiving Love', Control: 'Control Leading to Isolation', Fear: 'Fear Leading to Isolation' };
     var domains = [
-      { key: 'moneyFlow', label: 'Money Flow', icon: '💰' },
-      { key: 'obligations', label: 'Obligations', icon: '⚖️' },
-      { key: 'liquidity', label: 'Liquidity', icon: '💧' },
-      { key: 'growth', label: 'Growth', icon: '📈' },
-      { key: 'protection', label: 'Protection', icon: '🛡️' }
+      { key: 'moneyFlow', label: 'Money Flow', icon: '' },
+      { key: 'obligations', label: 'Obligations', icon: '' },
+      { key: 'liquidity', label: 'Liquidity', icon: '' },
+      { key: 'growth', label: 'Growth', icon: '' },
+      { key: 'protection', label: 'Protection', icon: '' }
     ];
 
     var html = header + modeNote;
+
+    // Scarcity section
+    html += this._buildScarcitySection(data, r.scarcityFlag);
 
     // Fetch previous response for deltas
     try {
@@ -529,6 +650,9 @@ const PDFGenerator = {
       html += '<div class="domain-card"><h3>' + sd.icon + ' ' + sd.label + '</h3><div class="score-value">' + score + '/100 <span style="font-size: 14px; color: #666;">(' + slabel + ')</span></div></div>';
     }
 
+    // Pattern synthesis (condensed)
+    html += this._buildPatternSynthesisSection(profile, NAMES);
+
     // Archetype
     html += '<div class="archetype-box"><div class="archetype-name">' + archetype + '</div><p style="font-size: 14px;">' + Tool2Report.getArchetypeDescription(archetype) + '</p></div>';
 
@@ -536,7 +660,7 @@ const PDFGenerator = {
     html += this._buildNewTool2Insights(overallInsight);
 
     // Full assessment callout
-    html += '<div class="callout callout-info"><strong>Want Deeper Insights?</strong> Complete the full assessment to unlock detailed gap analysis, pattern synthesis, and personalized insights across all five financial domains.</div>';
+    html += '<div class="callout callout-info"><strong>Want Deeper Insights?</strong> Complete the full assessment to unlock detailed gap analysis, priority map, and personalized insights across all five financial domains.</div>';
 
     return html;
   },
@@ -598,6 +722,125 @@ const PDFGenerator = {
 
     html += '<p style="margin-top: 20px; font-style: italic; color: #666;">This assessment is part of your journey. Use these insights to guide conversations with your advisor.</p>';
     return html;
+  },
+
+  /**
+   * Build Scarcity & Mindset section for Tool 2 PDF
+   */
+  _buildScarcitySection(data, scarcityFlag) {
+    var holistic = parseFloat(data.holisticScarcity) || 0;
+    var financial = parseFloat(data.financialScarcity) || 0;
+
+    var html = '<h2>Scarcity and Mindset Foundation</h2>';
+
+    // Callout based on flag
+    if (scarcityFlag === 'GLOBAL_SCARCITY') {
+      html += '<div class="callout callout-scarcity"><strong>Scarcity Pattern Detected:</strong> Your responses suggest a global sense of scarcity across both life and finances that shapes your financial decision-making at a deep level.</div>';
+    } else if (scarcityFlag === 'TARGETED_FINANCIAL_SCARCITY') {
+      html += '<div class="callout callout-targeted"><strong>Financial-Specific Scarcity:</strong> You report a generally abundant life outlook but targeted financial scarcity. This split is meaningful and may indicate trauma patterns specific to money rather than a generalized mindset.</div>';
+    } else if (scarcityFlag === 'GLOBAL_ABUNDANCE') {
+      html += '<div class="callout callout-abundance"><strong>Protective Factor:</strong> Your responses reflect a sense of abundance across both life and finances. This is a meaningful foundation for financial growth.</div>';
+    }
+
+    // Show both scores
+    html += '<div class="scarcity-row">' +
+      '<div class="scarcity-item"><div class="scarcity-label">Life Outlook</div><div class="scarcity-value">' + (holistic > 0 ? '+' : '') + holistic + '</div><div class="scarcity-label">-5 scarce to +5 abundant</div></div>' +
+      '<div class="scarcity-item"><div class="scarcity-label">Financial Outlook</div><div class="scarcity-value">' + (financial > 0 ? '+' : '') + financial + '</div><div class="scarcity-label">-5 scarce to +5 abundant</div></div>' +
+    '</div>';
+
+    // Gap note
+    if (Math.abs(holistic - financial) > 3) {
+      html += '<p style="font-size: 13px; color: #666; text-align: center; font-style: italic;">Notable gap between your life outlook and financial outlook (' + Math.abs(holistic - financial) + ' points). This divergence is worth exploring.</p>';
+    }
+
+    return html;
+  },
+
+  /**
+   * Build Pattern Synthesis section for Tool 2 PDF
+   */
+  _buildPatternSynthesisSection(profile, NAMES) {
+    if (!profile || !profile.winner) return '';
+
+    var winnerName = NAMES[profile.winner] || profile.winner;
+    var html = '<h2>Pattern Synthesis</h2>';
+
+    // Profile type box
+    if (profile.type === 'NEGATIVE_DOMINANT') {
+      html += '<div class="profile-box neg-dom">' +
+        '<p>Your psychological assessment results show low activation across most financial trauma patterns. This can indicate genuine psychological flexibility, or it can reflect patterns that are present but not yet consciously recognized. Your financial data from this assessment is the most reliable signal of where attention is needed.</p>' +
+        '<p>Your highest relative pattern is <strong>' + winnerName + '</strong>.</p>' +
+      '</div>';
+    } else if (profile.type === 'BORDERLINE_DUAL') {
+      var secondaryName = NAMES[profile.secondary] || profile.secondary || '';
+      html += '<div class="profile-box">' +
+        '<p>Your responses point to two patterns with closely matched scores: <strong>' + winnerName + '</strong> and <strong>' + secondaryName + '</strong>. See if the descriptions below resonate with your experience.</p>' +
+      '</div>';
+
+      // Combination narrative
+      var comboKey = [profile.winner, profile.secondary].sort().join('_');
+      var combo = Tool1Templates.COMBINATION_NARRATIVES[comboKey];
+      if (combo) {
+        html += '<div class="combination-box"><p>' + combo + '</p></div>';
+      }
+    } else if (profile.type === 'STRONG_SINGLE') {
+      html += '<div class="profile-box">' +
+        '<p>Based on your responses, the pattern we most commonly associate with these scores is <strong>' + winnerName + '</strong>.</p>' +
+      '</div>';
+    } else {
+      html += '<div class="profile-box">' +
+        '<p>Your responses suggest <strong>' + winnerName + '</strong> as a primary pattern to explore. Consider which parts feel familiar and which do not.</p>' +
+      '</div>';
+    }
+
+    // Strengths (LOW patterns)
+    if (profile.lowPatterns && profile.lowPatterns.length > 0 && profile.type !== 'NEGATIVE_DOMINANT') {
+      html += '<h3>Your Strengths</h3>';
+      for (var si = 0; si < profile.lowPatterns.length; si++) {
+        var pat = profile.lowPatterns[si];
+        var statement = Tool1Templates.STRENGTH_STATEMENTS[pat];
+        if (statement) {
+          html += '<div class="strength-box"><h4>' + (NAMES[pat] || pat) + '</h4><p style="font-size: 13px; margin: 0;">' + statement + '</p></div>';
+        }
+      }
+    }
+
+    // Polarity insight
+    try {
+      var polarity = Tool1Templates.getPolarityInsight(profile);
+      if (polarity) {
+        html += '<div class="polarity-box"><h4>Polarity Insight</h4><p style="font-size: 13px; margin: 0;">' + polarity + '</p></div>';
+      }
+    } catch(e) {}
+
+    return html;
+  },
+
+  /**
+   * Get computed metric line for a domain
+   */
+  _getMetricLine(domain, takeHome, spending, debtPay, efBal, liquid, retContr, annualInc) {
+    if (domain === 'moneyFlow' && takeHome > 0) {
+      var savingsRate = Math.round((takeHome - spending) / takeHome * 100);
+      return 'Savings rate: ' + savingsRate + '% | Standard: 20%+';
+    }
+    if (domain === 'obligations' && takeHome > 0) {
+      var dti = Math.round(debtPay / takeHome * 100);
+      var efMonths = spending > 0 ? (efBal / spending).toFixed(1) : '0';
+      return 'DTI: ' + dti + '% | Emergency fund: ' + efMonths + ' months | Standard: DTI below 36%, EF 3-6 months';
+    }
+    if (domain === 'liquidity' && spending > 0) {
+      var liquidMonths = (liquid / spending).toFixed(1);
+      return 'Liquid buffer: ' + liquidMonths + ' months | Standard: 3+ months';
+    }
+    if (domain === 'growth') {
+      var monthlyInc = takeHome > 0 ? takeHome : (annualInc > 0 ? annualInc / 12 : 0);
+      if (monthlyInc > 0) {
+        var retRate = Math.round(retContr / monthlyInc * 100);
+        return 'Retirement savings rate: ' + retRate + '% | Standard: 15%+';
+      }
+    }
+    return '';
   },
 
   /**
