@@ -20,6 +20,7 @@ function _runAccessControlTests() {
     _testAdminLock(ctx, clientId);
     _testInitializeStudent(ctx, clientId);
     _testGetStudentAccess(ctx, clientId);
+    _testCanAccessToolBatch(ctx, clientId);
   } catch (e) {
     assert(ctx, false, 'ToolAccessControl suite error', e.toString());
   } finally {
@@ -147,6 +148,34 @@ function _testInitializeStudent(ctx, clientId) {
   } finally {
     cleanupTestData(initClientId);
   }
+}
+
+// ── Test: canAccessToolBatch returns access for all 8 tools ──
+
+function _testCanAccessToolBatch(ctx, clientId) {
+  SpreadsheetCache.clearCache();
+
+  // clientId has tool1 completed from earlier tests
+  var results = ToolAccessControl.canAccessToolBatch(clientId);
+
+  assertNotNull(ctx, results, 'canAccessToolBatch returns results object');
+  assertNotNull(ctx, results['tool1'], 'Batch results include tool1');
+  assertNotNull(ctx, results['tool8'], 'Batch results include tool8');
+
+  // Tool1 should be allowed (always accessible)
+  assertTruthy(ctx, results['tool1'].allowed, 'Batch: tool1 is allowed');
+
+  // Tool2 should be allowed (tool1 was completed earlier)
+  assertTruthy(ctx, results['tool2'].allowed, 'Batch: tool2 is allowed (tool1 completed)');
+
+  // Tool3 should be blocked (tool2 not completed)
+  assertEqual(ctx, results['tool3'].allowed, false, 'Batch: tool3 is blocked (tool2 not completed)');
+
+  // Results should match individual canAccessTool calls
+  SpreadsheetCache.clearCache();
+  var individual = ToolAccessControl.canAccessTool(clientId, 'tool2');
+  assertEqual(ctx, results['tool2'].allowed, individual.allowed,
+    'Batch result matches individual canAccessTool for tool2');
 }
 
 // ── Test: getStudentAccess returns all tool records ──
