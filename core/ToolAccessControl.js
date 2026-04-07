@@ -259,6 +259,7 @@ const ToolAccessControl = {
 
   /**
    * Auto-unlock tool (internal use)
+   * Uses cached data and batch writes for performance.
    * @private
    */
   _autoUnlockTool(clientId, toolId) {
@@ -267,18 +268,28 @@ const ToolAccessControl = {
 
       if (!sheet) return;
 
-      const data = sheet.getDataRange().getValues();
+      // Use cached data instead of direct getDataRange().getValues()
+      const data = SpreadsheetCache.getSheetData(CONFIG.SHEETS.TOOL_ACCESS);
 
-      // Find and update record
+      if (!data || data.length < 2) {
+        // No data — create record
+        this._createUnlockRecord(sheet, clientId, toolId);
+        return;
+      }
+
+      // Find existing record
       for (let i = 1; i < data.length; i++) {
         if (data[i][0] === clientId && data[i][1] === toolId) {
-          sheet.getRange(i + 1, 3).setValue('unlocked');
-          sheet.getRange(i + 1, 5).setValue(new Date());
-          sheet.getRange(i + 1, 6).setValue('system');
-          sheet.getRange(i + 1, 7).setValue('Auto-unlocked (prerequisites met)');
+          // Skip if already unlocked
+          if (data[i][2] === 'unlocked') return;
+
+          // Batch update: write all 4 values for the row
+          const row = i + 1;
+          const now = new Date();
+          const values = [['unlocked', '[]', now, 'system', 'Auto-unlocked (prerequisites met)']];
+          sheet.getRange(row, 3, 1, 5).setValues(values);
           SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.TOOL_ACCESS);
 
-          // Log auto-unlock
           DataService.logActivity(clientId, 'auto_unlock', {
             toolId: toolId,
             details: `Auto-unlocked ${toolId} (prerequisites met)`
@@ -288,27 +299,34 @@ const ToolAccessControl = {
         }
       }
 
-      // If not found, create record
-      sheet.appendRow([
-        clientId,
-        toolId,
-        'unlocked',
-        '[]',
-        new Date(),
-        'system',
-        'Auto-unlocked (prerequisites met)'
-      ]);
-      SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.TOOL_ACCESS);
-
-      // Log auto-unlock for new record
-      DataService.logActivity(clientId, 'auto_unlock', {
-        toolId: toolId,
-        details: `Auto-unlocked ${toolId} (prerequisites met)`
-      });
+      // Not found — create record
+      this._createUnlockRecord(sheet, clientId, toolId);
 
     } catch (error) {
       LogUtils.error('Error auto-unlocking tool: ' + error);
     }
+  },
+
+  /**
+   * Create a new unlock record (extracted to avoid duplication)
+   * @private
+   */
+  _createUnlockRecord(sheet, clientId, toolId) {
+    sheet.appendRow([
+      clientId,
+      toolId,
+      'unlocked',
+      '[]',
+      new Date(),
+      'system',
+      'Auto-unlocked (prerequisites met)'
+    ]);
+    SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.TOOL_ACCESS);
+
+    DataService.logActivity(clientId, 'auto_unlock', {
+      toolId: toolId,
+      details: `Auto-unlocked ${toolId} (prerequisites met)`
+    });
   },
 
   /**

@@ -361,11 +361,13 @@ const ResponseManager = {
 
       // CRITICAL: Delete the EDIT_DRAFT (not just mark as not latest)
       // This prevents the edit loop where user keeps seeing "draft in progress"
+      // Use fresh data since we are deleting rows (cached indices would be stale)
       const sheetData = sheet.getDataRange().getValues();
       const headers = sheetData[0];
       const clientIdCol = headers.indexOf('Client_ID');
       const toolIdCol = headers.indexOf('Tool_ID');
       const statusCol = headers.indexOf('Status');
+      const isLatestCol = headers.indexOf('Is_Latest');
 
       // Delete EDIT_DRAFT row
       for (let i = sheetData.length - 1; i >= 1; i--) {
@@ -379,7 +381,22 @@ const ResponseManager = {
       }
 
       // Mark all previous COMPLETED versions as not latest
-      this._markAsNotLatest(clientId, toolId);
+      // Re-read after deleteRow since row indices shifted, then batch update
+      if (isLatestCol !== -1) {
+        const freshData = sheet.getDataRange().getValues();
+        const rowsToUpdate = [];
+        for (let i = 1; i < freshData.length; i++) {
+          if (freshData[i][clientIdCol] === clientId &&
+              freshData[i][toolIdCol] === toolId &&
+              this._isTrue(freshData[i][isLatestCol])) {
+            rowsToUpdate.push(i + 1);
+          }
+        }
+        if (rowsToUpdate.length > 0) {
+          const rangeList = rowsToUpdate.map(row => sheet.getRange(row, isLatestCol + 1).getA1Notation());
+          sheet.getRangeList(rangeList).setValue('false');
+        }
+      }
 
       // Save new version as COMPLETED with Is_Latest = true
       const row = [
@@ -584,15 +601,17 @@ const ResponseManager = {
 
   /**
    * Mark all responses for client/tool as not latest
+   * Uses cached data and batch writes for performance.
    * @private
    */
   _markAsNotLatest(clientId, toolId) {
     try {
       const sheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.RESPONSES);
+      const data = SpreadsheetCache.getSheetData(CONFIG.SHEETS.RESPONSES);
 
-      const data = sheet.getDataRange().getValues();
+      if (!data || data.length < 2) return;
+
       const headers = data[0];
-
       const clientIdCol = headers.indexOf('Client_ID');
       const toolIdCol = headers.indexOf('Tool_ID');
       const isLatestCol = headers.indexOf('Is_Latest');
@@ -602,15 +621,22 @@ const ResponseManager = {
         return;
       }
 
+      // Collect all rows that need updating
+      const rowsToUpdate = [];
       for (let i = 1; i < data.length; i++) {
         if (data[i][clientIdCol] === clientId &&
             data[i][toolIdCol] === toolId &&
             this._isTrue(data[i][isLatestCol])) {
-          sheet.getRange(i + 1, isLatestCol + 1).setValue('false');
+          rowsToUpdate.push(i + 1); // 1-based sheet row
         }
       }
 
-      SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.RESPONSES);
+      // Batch update: use getRangeList for single-column batch setValue
+      if (rowsToUpdate.length > 0) {
+        const rangeList = rowsToUpdate.map(row => `${sheet.getRange(row, isLatestCol + 1).getA1Notation()}`);
+        sheet.getRangeList(rangeList).setValue('false');
+        SpreadsheetCache.markDirty(CONFIG.SHEETS.RESPONSES);
+      }
 
     } catch (error) {
       LogUtils.error(`Error marking as not latest: ${error}`);
@@ -707,12 +733,15 @@ const ResponseManager = {
       // Delete rows beyond keepCount
       const rowsToDelete = completedRows.slice(keepCount);
 
-      // Delete in reverse order to maintain row indices
-      rowsToDelete.reverse().forEach(row => {
-        sheet.deleteRow(row.rowIndex + 1);
-      });
-
       if (rowsToDelete.length > 0) {
+        // Sort by row index DESCENDING so we delete bottom-up.
+        // This prevents index shifting from invalidating subsequent deletes.
+        rowsToDelete.sort((a, b) => b.rowIndex - a.rowIndex);
+
+        rowsToDelete.forEach(row => {
+          sheet.deleteRow(row.rowIndex + 1);
+        });
+
         LogUtils.debug(`Cleaned up ${rowsToDelete.length} old versions for ${clientId}/${toolId}`);
         SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.RESPONSES);
       }

@@ -22,6 +22,7 @@ const SpreadsheetCache = {
   _cacheHits: 0,
   _cacheMisses: 0,
   _dataCache: {}, // Cache for sheet data to reduce getDataRange() calls
+  _dirtySheets: {}, // Sheets that have been written to but not yet invalidated
 
   /**
    * Get cached spreadsheet instance
@@ -83,6 +84,19 @@ const SpreadsheetCache = {
   },
 
   /**
+   * Preload multiple sheets into cache in one call.
+   * Use at the start of operations that need several sheets.
+   * @param {Array<string>} sheetNames - Array of sheet names to preload
+   */
+  batchPreload(sheetNames) {
+    sheetNames.forEach(name => {
+      if (!this._dataCache[name]) {
+        this.getSheetData(name);
+      }
+    });
+  },
+
+  /**
    * Invalidate data cache for a specific sheet (call after writes)
    * @param {string} sheetName - Name of the sheet
    */
@@ -92,12 +106,38 @@ const SpreadsheetCache = {
   },
 
   /**
+   * Mark a sheet as dirty (written to) without immediately invalidating the cache.
+   * The cached data becomes stale but remains usable for reads within the same
+   * operation. Call flushDirty() when the operation is complete.
+   * @param {string} sheetName - Name of the sheet
+   */
+  markDirty(sheetName) {
+    this._dirtySheets[sheetName] = true;
+  },
+
+  /**
+   * Invalidate all sheets that were marked dirty.
+   * Call this at the end of a multi-step write operation.
+   */
+  flushDirty() {
+    const dirtyNames = Object.keys(this._dirtySheets);
+    if (dirtyNames.length > 0) {
+      LogUtils.debug(`SpreadsheetCache: Flushing ${dirtyNames.length} dirty sheets: ${dirtyNames.join(', ')}`);
+      dirtyNames.forEach(name => {
+        delete this._dataCache[name];
+      });
+      this._dirtySheets = {};
+    }
+  },
+
+  /**
    * Clear cache (called automatically at end of request, or manually for testing)
    */
   clearCache() {
     LogUtils.debug(`SpreadsheetCache: Clearing cache (${this._cacheHits} hits, ${this._cacheMisses} misses)`);
     this._cache = null;
     this._dataCache = {};
+    this._dirtySheets = {};
     this._cacheHits = 0;
     this._cacheMisses = 0;
   },
@@ -111,7 +151,8 @@ const SpreadsheetCache = {
       hits: this._cacheHits,
       misses: this._cacheMisses,
       hitRate: this._cacheMisses === 0 ? 0 : (this._cacheHits / (this._cacheHits + this._cacheMisses) * 100).toFixed(1) + '%',
-      isCached: this._cache !== null
+      isCached: this._cache !== null,
+      dirtySheets: Object.keys(this._dirtySheets)
     };
   }
 };

@@ -114,7 +114,11 @@ const DataService = {
         return { success: false, error: 'RESPONSES sheet not found' };
       }
 
-      const sheetData = sheet.getDataRange().getValues();
+      const sheetData = SpreadsheetCache.getSheetData(CONFIG.SHEETS.RESPONSES);
+      if (!sheetData || sheetData.length < 2) {
+        LogUtils.debug(`DataService: No data in RESPONSES, creating new draft for ${clientId} / ${toolId}`);
+        return this.saveDraft(clientId, toolId, data);
+      }
       const headers = sheetData[0];
 
       const clientIdCol = headers.indexOf('Client_ID');
@@ -154,8 +158,9 @@ const DataService = {
         }
 
         // Update existing DRAFT/EDIT_DRAFT row
-        sheet.getRange(draftRowIndex + 1, dataCol + 1).setValue(JSON.stringify(dataToSave));
-        sheet.getRange(draftRowIndex + 1, timestampCol + 1).setValue(new Date());
+        const row = draftRowIndex + 1;
+        sheet.getRange(row, dataCol + 1).setValue(JSON.stringify(dataToSave));
+        sheet.getRange(row, timestampCol + 1).setValue(new Date());
         SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.RESPONSES);
         LogUtils.debug(`DataService: Updated existing ${sheetData[draftRowIndex][statusCol]} for ${clientId} / ${toolId}`);
         return { success: true, message: 'Draft updated successfully', action: 'updated' };
@@ -219,7 +224,7 @@ const DataService = {
         return { success: false, error: 'TOOL_STATUS sheet not found' };
       }
 
-      const data = sheet.getDataRange().getValues();
+      const data = SpreadsheetCache.getSheetData(CONFIG.SHEETS.TOOL_STATUS) || [];
 
       // Find row for this client
       let rowIndex = -1;
@@ -239,6 +244,7 @@ const DataService = {
         }
         newRow.push(new Date());  // Last_Updated
         sheet.appendRow(newRow);
+        SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.TOOL_STATUS);
         rowIndex = sheet.getLastRow() - 1;
       }
 
@@ -246,10 +252,13 @@ const DataService = {
       const toolNumber = parseInt(toolId.replace('tool', ''));
       const statusCol = 1 + (toolNumber - 1) * 2 + 1;  // Calculate column
       const dateCol = statusCol + 1;
+      const now = new Date();
+      const lastCol = sheet.getLastColumn();
 
+      // Batch: write status, date, and Last_Updated using getRangeList where possible
       sheet.getRange(rowIndex + 1, statusCol).setValue(status);
-      sheet.getRange(rowIndex + 1, dateCol).setValue(new Date());
-      sheet.getRange(rowIndex + 1, sheet.getLastColumn()).setValue(new Date());  // Last_Updated
+      sheet.getRange(rowIndex + 1, dateCol).setValue(now);
+      sheet.getRange(rowIndex + 1, lastCol).setValue(now);
       SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.TOOL_STATUS);
 
       return { success: true };
@@ -339,7 +348,7 @@ const DataService = {
         return { success: false, error: 'STUDENTS sheet not found' };
       }
 
-      const studentsData = studentsSheet.getDataRange().getValues();
+      const studentsData = SpreadsheetCache.getSheetData(CONFIG.SHEETS.STUDENTS) || [];
 
       // Find student row
       for (let i = 1; i < studentsData.length; i++) {

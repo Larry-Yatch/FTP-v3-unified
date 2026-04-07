@@ -157,14 +157,10 @@ function _testCleanupOldVersions(ctx, clientId) {
   SpreadsheetCache.clearCache();
 
   // Count COMPLETED versions after cleanup
-  // NOTE: _cleanupOldVersions has a known row-index-shift bug when deleting
-  // multiple rows — .reverse() is based on timestamp order, not row index order,
-  // so stale indices cause one deletion to be skipped. Will be fixed in Phase 1.
   var allAfter = ResponseManager.getAllResponses(clientId, 'tool1', 20);
   var completedAfter = allAfter.filter(function(r) { return r.status === 'COMPLETED'; });
-  assert(ctx, completedAfter.length <= 3,
-    'Cleanup reduces COMPLETED versions to near keepCount',
-    'Expected <=3, got: ' + completedAfter.length);
+  assertEqual(ctx, completedAfter.length, 2,
+    'Only 2 COMPLETED versions remain after cleanup');
 
   // Verify latest is still accessible
   var latest = ResponseManager.getLatestResponse(clientId, 'tool1');
