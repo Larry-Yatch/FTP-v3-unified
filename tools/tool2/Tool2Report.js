@@ -118,8 +118,8 @@ const Tool2Report = {
       '<script>(function() {' +
         'var clientId = "' + clientId + '";' +
         ReportClientJS.getLoadingFunctions() +
-        ReportClientJS.getNavigationFunction() +
-        ReportClientJS.getDownloadFunction('generateTool2PDF') +
+        ReportClientJS.getNavigationFunction(LOADING_MESSAGES.dashboard_return) +
+        ReportClientJS.getDownloadFunction('generateTool2PDF', LOADING_MESSAGES.tool2_pdf) +
         ReportClientJS.getBackToDashboard() +
         'window.downloadPDF = downloadPDF;' +
         'window.backToDashboard = backToDashboard;' +
@@ -822,8 +822,8 @@ const Tool2Report = {
       '<script>(function() {' +
         'var clientId = "' + clientId + '";' +
         ReportClientJS.getLoadingFunctions() +
-        ReportClientJS.getNavigationFunction() +
-        ReportClientJS.getDownloadFunction('generateTool2PDF') +
+        ReportClientJS.getNavigationFunction(LOADING_MESSAGES.dashboard_return) +
+        ReportClientJS.getDownloadFunction('generateTool2PDF', LOADING_MESSAGES.tool2_pdf) +
         ReportClientJS.getBackToDashboard() +
         'window.downloadPDF = downloadPDF;' +
         'window.backToDashboard = backToDashboard;' +
