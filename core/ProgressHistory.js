@@ -212,7 +212,9 @@ const ProgressHistory = {
         return;
       }
 
-      var versionNumber = this._getNextVersion(sheet, clientId, toolId);
+      // Read sheet data once for _getNextVersion (avoids double-read with _enforceVersionCap)
+      var sheetData = SpreadsheetCache.getSheetData(this.SHEET_NAME);
+      var versionNumber = this._getNextVersion(sheetData, clientId, toolId);
       var summary = this._generateSummary(toolId, scores);
 
       sheet.appendRow([
@@ -242,9 +244,9 @@ const ProgressHistory = {
 
   /**
    * Get the next version number for a client+tool pair
+   * @param {Array} data - Sheet data array (from SpreadsheetCache.getSheetData)
    */
-  _getNextVersion(sheet, clientId, toolId) {
-    var data = sheet.getDataRange().getValues();
+  _getNextVersion(data, clientId, toolId) {
     var maxVersion = 0;
 
     // Header indices
@@ -323,8 +325,8 @@ const ProgressHistory = {
       var sheet = this._getSheet();
       if (!sheet) return result;
 
-      var data = sheet.getDataRange().getValues();
-      if (data.length <= 1) return result; // Only headers
+      var data = SpreadsheetCache.getSheetData(this.SHEET_NAME);
+      if (!data || data.length <= 1) return result; // Only headers or no data
 
       for (var r = 1; r < data.length; r++) {
         var rowClientId = data[r][1]; // Client_ID
@@ -398,7 +400,7 @@ const ProgressHistory = {
       }
 
       // Check which client+tool pairs already have migration entries
-      var existingData = historySheet.getDataRange().getValues();
+      var existingData = SpreadsheetCache.getSheetData(this.SHEET_NAME) || [this.HEADERS];
       var migratedPairs = {};
       for (var check = 1; check < existingData.length; check++) {
         if (existingData[check][6] === 'migration') {
@@ -408,7 +410,7 @@ const ProgressHistory = {
       }
 
       // Read all COMPLETED responses for tracked tools
-      var responsesData = responsesSheet.getDataRange().getValues();
+      var responsesData = SpreadsheetCache.getSheetData(CONFIG.SHEETS.RESPONSES);
       var headers = responsesData[0];
 
       var clientIdCol = headers.indexOf('Client_ID');

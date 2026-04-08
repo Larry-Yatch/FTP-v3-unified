@@ -211,7 +211,8 @@ function runAllCoreTests() {
     { name: 'DataService', fn: _runDataServiceTests },
     { name: 'ResponseManager', fn: _runResponseManagerTests },
     { name: 'ToolAccessControl', fn: _runAccessControlTests },
-    { name: 'InsightsPipeline', fn: _runInsightsPipelineTests }
+    { name: 'InsightsPipeline', fn: _runInsightsPipelineTests },
+    { name: 'ProgressHistory', fn: _runProgressHistoryTests }
   ];
 
   suites.forEach(function(suite) {
@@ -273,6 +274,12 @@ function runAccessControlTests() {
 
 function runInsightsPipelineTests() {
   var ctx = _runInsightsPipelineTests();
+  printSummary(ctx);
+  return ctx;
+}
+
+function runProgressHistoryTests() {
+  var ctx = _runProgressHistoryTests();
   printSummary(ctx);
   return ctx;
 }

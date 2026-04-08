@@ -644,21 +644,6 @@ const ResponseManager = {
   },
 
   /**
-   * Restore most recent COMPLETED as latest (used after canceling edit)
-   * @private
-   */
-  _restoreLatestCompleted(clientId, toolId) {
-    try {
-      const sheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.RESPONSES);
-      const data = sheet.getDataRange().getValues();
-      const headers = data[0];
-      this._restoreLatestCompletedFromData(sheet, data, headers, clientId, toolId);
-    } catch (error) {
-      LogUtils.error(`Error restoring latest completed: ${error}`);
-    }
-  },
-
-  /**
    * Restore most recent COMPLETED as latest using already-fetched data
    * (Optimized version to avoid redundant getDataRange calls)
    * @private
