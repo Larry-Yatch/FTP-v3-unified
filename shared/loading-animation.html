@@ -39,7 +39,6 @@
     font-weight: 500;
     margin-top: 20px;
     text-align: center;
-    transition: opacity 0.3s ease;
   }
 
   /* Dots Animation */
@@ -142,21 +141,13 @@
 
     function scheduleNextTip() {
       if (!_tipActive) return;
-      // Step 1: Wait the display interval
       _tipTimer = setTimeout(function() {
         if (!_tipActive) return;
         var text = document.querySelector('#loadingOverlay .loading-text');
         if (!text) return;
         tipIndex = (tipIndex + 1) % messages.length;
-        // Step 2: Fade out
-        text.style.opacity = '0';
-        // Step 3: After fade completes, swap text, fade in, schedule next
-        _tipTimer = setTimeout(function() {
-          if (!_tipActive) return;
-          text.innerHTML = messages[tipIndex] + '<span class="loading-dots"></span>';
-          text.style.opacity = '1';
-          scheduleNextTip();
-        }, 350);
+        text.innerHTML = messages[tipIndex] + '<span class="loading-dots"></span>';
+        scheduleNextTip();
       }, intervalMs);
     }
 

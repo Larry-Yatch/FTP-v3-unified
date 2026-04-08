@@ -398,13 +398,8 @@ const GroundingReport = {
                   var text = document.querySelector('#loadingOverlay .loading-text');
                   if (!text) return;
                   tipIndex = (tipIndex + 1) % messages.length;
-                  text.style.opacity = '0';
-                  _tipTimer = setTimeout(function() {
-                    if (!_tipActive) return;
-                    text.innerHTML = messages[tipIndex] + '<span class="loading-dots"></span>';
-                    text.style.opacity = '1';
-                    scheduleNextTip();
-                  }, 350);
+                  text.innerHTML = messages[tipIndex] + '<span class="loading-dots"></span>';
+                  scheduleNextTip();
                 }, intervalMs);
               }
               scheduleNextTip();

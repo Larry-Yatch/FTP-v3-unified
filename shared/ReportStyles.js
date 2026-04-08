@@ -248,7 +248,6 @@ const ReportStyles = {
         font-weight: 500;
         margin-top: 20px;
         text-align: center;
-        transition: opacity 0.3s ease;
       }
 
       .loading-dots {
