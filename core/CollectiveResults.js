@@ -3865,38 +3865,12 @@ const CollectiveResults = {
             btn.textContent = 'Generating...';
             btn.disabled = true;
 
-            var tips = [
-              'Analyzing patterns across all your tools...',
-              'Connecting psychological strategies to financial decisions...',
-              'Identifying cross-tool contradictions and opportunities...',
-              'Building your personalized financial story...',
-              'Drawing conclusions from your complete assessment data...',
-              'Generating actionable insights...'
-            ];
-            var tipIndex = 0;
-            var tipInterval = null;
-
-            if (typeof showLoading === 'function') {
-              showLoading(tips[0]);
-              tipInterval = setInterval(function() {
-                tipIndex = (tipIndex + 1) % tips.length;
-                var overlay = document.getElementById('loadingOverlay');
-                if (overlay) {
-                  var text = overlay.querySelector('.loading-text');
-                  if (text) {
-                    text.innerHTML = tips[tipIndex] + '<span class="loading-dots"></span>';
-                  }
-                }
-              }, 3000);
-            }
-
-            function stopTips() {
-              if (tipInterval) { clearInterval(tipInterval); tipInterval = null; }
+            if (typeof showLoadingWithTips === 'function') {
+              showLoadingWithTips(${JSON.stringify(LOADING_MESSAGES.capstone_analysis)});
             }
 
             google.script.run
               .withSuccessHandler(function(result) {
-                stopTips();
                 if (typeof hideLoading === 'function') hideLoading();
                 btn.textContent = 'Regenerate Analysis';
                 btn.disabled = false;
@@ -3911,7 +3885,6 @@ const CollectiveResults = {
                 }
               })
               .withFailureHandler(function(err) {
-                stopTips();
                 if (typeof hideLoading === 'function') hideLoading();
                 btn.textContent = 'Generate Your Financial Story';
                 btn.disabled = false;
@@ -3980,45 +3953,12 @@ const CollectiveResults = {
             btn.textContent = 'Generating Report...';
             btn.disabled = true;
 
-            // Coaching tips that cycle while the report generates
-            var tips = [
-              'Analyzing your psychological patterns...',
-              'Did you know? Your dominant trauma strategy shapes how you budget, save, and invest.',
-              'Cross-referencing your financial behaviors with your beliefs...',
-              'Tip: Awareness of your patterns is the first step to changing them.',
-              'Building your personalized narrative...',
-              'Insight: The gap between what you believe and how you act reveals where growth happens.',
-              'Assembling your capstone report...',
-              'Tip: Share this report with your coach to get the most out of your next session.',
-              'Finalizing your PDF...'
-            ];
-            var tipIndex = 0;
-            var tipInterval = null;
-
-            if (typeof showLoading === 'function') {
-              showLoading(tips[0]);
-              tipInterval = setInterval(function() {
-                tipIndex = (tipIndex + 1) % tips.length;
-                var overlay = document.getElementById('loadingOverlay');
-                if (overlay) {
-                  var text = overlay.querySelector('.loading-text');
-                  if (text) {
-                    text.innerHTML = tips[tipIndex] + '<span class="loading-dots"></span>';
-                  }
-                }
-              }, 3000);
-            }
-
-            function stopTips() {
-              if (tipInterval) {
-                clearInterval(tipInterval);
-                tipInterval = null;
-              }
+            if (typeof showLoadingWithTips === 'function') {
+              showLoadingWithTips(${JSON.stringify(LOADING_MESSAGES.integration_pdf)});
             }
 
             google.script.run
               .withSuccessHandler(function(res) {
-                stopTips();
                 if (typeof hideLoading === 'function') hideLoading();
                 btn.textContent = 'Download Capstone Report';
                 btn.disabled = false;
@@ -4037,7 +3977,6 @@ const CollectiveResults = {
                 }
               })
               .withFailureHandler(function(err) {
-                stopTips();
                 if (typeof hideLoading === 'function') hideLoading();
                 btn.textContent = 'Download Capstone Report';
                 btn.disabled = false;
