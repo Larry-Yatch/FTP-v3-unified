@@ -22,8 +22,14 @@ const FormUtils = {
    * @returns {string} JavaScript code for form handling
    */
   getFormSubmissionScript(toolId, baseUrl) {
+    const submitTipsJson = JSON.stringify(LOADING_MESSAGES.get(toolId + '_submit', 'Saving your responses'));
+    const finalTipsJson = JSON.stringify(LOADING_MESSAGES.get(toolId + '_report', 'Processing your assessment'));
+
     return `
       <script>
+        var _submitTips = ${submitTipsJson};
+        var _finalTips = ${finalTipsJson};
+
         /**
          * Submit a form page using google.script.run (avoids POST iframe sandbox)
          * @param {string} formId - Form element ID
@@ -54,8 +60,12 @@ const FormUtils = {
           const formData = new FormData(form);
           const data = Object.fromEntries(formData.entries());
 
-          // Show loading
-          showLoading('Saving your responses');
+          // Show loading with cycling tips
+          if (_submitTips && _submitTips.length > 1) {
+            showLoadingWithTips(_submitTips);
+          } else {
+            showLoading(_submitTips[0] || 'Saving your responses');
+          }
 
           // Save and replace page content (no navigation needed!)
           google.script.run
@@ -210,7 +220,11 @@ const FormUtils = {
           const formData = new FormData(form);
           const data = Object.fromEntries(formData.entries());
 
-          showLoading('Processing your assessment');
+          if (_finalTips && _finalTips.length > 1) {
+            showLoadingWithTips(_finalTips);
+          } else {
+            showLoading(_finalTips[0] || 'Processing your assessment');
+          }
 
           google.script.run
             .withSuccessHandler(function(result) {

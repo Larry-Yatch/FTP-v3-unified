@@ -270,9 +270,8 @@ const DataService = {
       const now = new Date();
       const lastCol = sheet.getLastColumn();
 
-      // Batch: write status, date, and Last_Updated using getRangeList where possible
-      sheet.getRange(rowIndex + 1, statusCol).setValue(status);
-      sheet.getRange(rowIndex + 1, dateCol).setValue(now);
+      // Batch: status + date are adjacent columns, Last_Updated is at end
+      sheet.getRange(rowIndex + 1, statusCol, 1, 2).setValues([[status, now]]);
       sheet.getRange(rowIndex + 1, lastCol).setValue(now);
       SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.TOOL_STATUS);
 
@@ -442,7 +441,8 @@ const DataService = {
         return { valid: false, reason: 'Session storage unavailable' };
       }
 
-      const data = sheet.getDataRange().getValues();
+      const data = SpreadsheetCache.getSheetData(CONFIG.SHEETS.SESSIONS);
+      if (!data) return { valid: false, reason: 'Session data unavailable' };
 
       // Find session (search from bottom up for latest)
       for (let i = data.length - 1; i > 0; i--) {
@@ -453,6 +453,7 @@ const DataService = {
           if (expiresAt > now) {
             // Update last activity
             sheet.getRange(i + 1, 5).setValue(now);
+            SpreadsheetCache.markDirty(CONFIG.SHEETS.SESSIONS);
 
             return {
               valid: true,

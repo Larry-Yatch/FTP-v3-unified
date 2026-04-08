@@ -85,11 +85,10 @@ const ToolAccessControl = {
       const existingRecord = this._getAccessRecord(clientId, toolId);
 
       if (existingRecord) {
-        // Update existing record
-        sheet.getRange(existingRecord.rowIndex, 3).setValue('unlocked');
-        sheet.getRange(existingRecord.rowIndex, 5).setValue(new Date());
-        sheet.getRange(existingRecord.rowIndex, 6).setValue(adminEmail);
-        sheet.getRange(existingRecord.rowIndex, 7).setValue(reason || 'Manual admin unlock');
+        // Update existing record — batch adjacent columns 5-7
+        var row = existingRecord.rowIndex;
+        sheet.getRange(row, 3).setValue('unlocked');
+        sheet.getRange(row, 5, 1, 3).setValues([[new Date(), adminEmail, reason || 'Manual admin unlock']]);
       } else {
         // Create new record
         sheet.appendRow([
@@ -142,10 +141,10 @@ const ToolAccessControl = {
       const existingRecord = this._getAccessRecord(clientId, toolId);
 
       if (existingRecord) {
-        // Update existing record
-        sheet.getRange(existingRecord.rowIndex, 3).setValue('locked');
-        sheet.getRange(existingRecord.rowIndex, 6).setValue(adminEmail);
-        sheet.getRange(existingRecord.rowIndex, 7).setValue(reason || 'Manual admin lock');
+        // Update existing record — batch adjacent columns 6-7
+        var row = existingRecord.rowIndex;
+        sheet.getRange(row, 3).setValue('locked');
+        sheet.getRange(row, 6, 1, 2).setValues([[adminEmail, reason || 'Manual admin lock']]);
       } else {
         // Create new record
         sheet.appendRow([

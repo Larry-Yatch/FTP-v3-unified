@@ -110,15 +110,61 @@
     overlay.classList.add('active');
   }
 
-  // Hide loading overlay
+  // Hide loading overlay (also stops any cycling tips)
   function hideLoading() {
+    stopLoadingTips();
     const overlay = document.getElementById('loadingOverlay');
     overlay.classList.remove('active');
   }
 
-  // Show loading on form submit
+  // ─── Cycling Loading Tips ─────────────────────────────────────
+
+  var _tipTimer = null;
+  var _tipActive = false;
+
+  /**
+   * Show loading overlay with cycling messages that rotate automatically.
+   * Uses a single sequential setTimeout chain — only one timer is ever
+   * active at a time (wait → fade out → swap text → fade in → repeat).
+   * @param {Array<string>} messages - Array of messages to cycle through
+   * @param {number} [intervalMs=3500] - Milliseconds between message changes
+   */
+  function showLoadingWithTips(messages, intervalMs) {
+    if (!messages || messages.length === 0) return;
+    intervalMs = intervalMs || 3500;
+    stopLoadingTips();
+    showLoading(messages[0]);
+    if (messages.length <= 1) return;
+
+    var tipIndex = 0;
+    _tipActive = true;
+
+    function scheduleNextTip() {
+      if (!_tipActive) return;
+      _tipTimer = setTimeout(function() {
+        if (!_tipActive) return;
+        var text = document.querySelector('#loadingOverlay .loading-text');
+        if (!text) return;
+        tipIndex = (tipIndex + 1) % messages.length;
+        text.innerHTML = messages[tipIndex] + '<span class="loading-dots"></span>';
+        scheduleNextTip();
+      }, intervalMs);
+    }
+
+    scheduleNextTip();
+  }
+
+  function stopLoadingTips() {
+    _tipActive = false;
+    if (_tipTimer) {
+      clearTimeout(_tipTimer);
+      _tipTimer = null;
+    }
+  }
+
+  // Show loading on form submit (skip if cycling tips are already active)
   document.addEventListener('submit', function(e) {
-    // Don't show for logout or other quick actions
+    if (_tipActive) return;
     const form = e.target;
     if (form && !form.classList.contains('no-loading')) {
       showLoading('Submitting');
@@ -127,8 +173,12 @@
 
   // Navigate to dashboard using document.write() pattern (no iframe navigation!)
   // SAVES current form data first to prevent data loss
-  function navigateToDashboard(clientId, message) {
-    showLoading(message || 'Saving and returning to Dashboard');
+  function navigateToDashboard(clientId, messageOrTips) {
+    if (Array.isArray(messageOrTips)) {
+      showLoadingWithTips(messageOrTips);
+    } else {
+      showLoading(messageOrTips || 'Saving and returning to Dashboard');
+    }
 
     // Find the current form (search for any form with tool page pattern)
     const forms = document.querySelectorAll('form[id*="Page"]');

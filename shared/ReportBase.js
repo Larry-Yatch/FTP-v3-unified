@@ -20,7 +20,7 @@ const ReportBase = {
    * @returns {Object} Headers array and column indexes
    */
   getHeaders(responseSheet) {
-    const data = responseSheet.getDataRange().getValues();
+    const data = SpreadsheetCache.getSheetData(CONFIG.SHEETS.RESPONSES);
     const headers = data[0];
 
     return {

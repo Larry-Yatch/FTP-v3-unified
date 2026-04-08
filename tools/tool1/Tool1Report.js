@@ -161,8 +161,8 @@ const Tool1Report = {
           '(function() {' +
             'var clientId = "' + clientId + '";' +
             ReportClientJS.getLoadingFunctions() +
-            ReportClientJS.getNavigationFunction() +
-            ReportClientJS.getDownloadFunction('generateTool1PDF') +
+            ReportClientJS.getNavigationFunction(LOADING_MESSAGES.dashboard_return) +
+            ReportClientJS.getDownloadFunction('generateTool1PDF', LOADING_MESSAGES.tool1_pdf) +
             ReportClientJS.getBackToDashboard() +
             'window.downloadPDF = downloadPDF;' +
             'window.backToDashboard = backToDashboard;' +

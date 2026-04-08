@@ -376,19 +376,48 @@ const GroundingReport = {
               const overlay = document.getElementById('loadingOverlay');
               const text = overlay.querySelector('.loading-text');
               if (message) {
-                text.textContent = message;
+                text.innerHTML = message + '<span class="loading-dots"></span>';
               }
               overlay.classList.add('active');
             }
 
+            var _tipTimer = null;
+            var _tipActive = false;
+            function showLoadingWithTips(messages, intervalMs) {
+              if (!messages || messages.length === 0) return;
+              intervalMs = intervalMs || 3500;
+              stopLoadingTips();
+              showLoading(messages[0]);
+              if (messages.length <= 1) return;
+              var tipIndex = 0;
+              _tipActive = true;
+              function scheduleNextTip() {
+                if (!_tipActive) return;
+                _tipTimer = setTimeout(function() {
+                  if (!_tipActive) return;
+                  var text = document.querySelector('#loadingOverlay .loading-text');
+                  if (!text) return;
+                  tipIndex = (tipIndex + 1) % messages.length;
+                  text.innerHTML = messages[tipIndex] + '<span class="loading-dots"></span>';
+                  scheduleNextTip();
+                }, intervalMs);
+              }
+              scheduleNextTip();
+            }
+            function stopLoadingTips() { _tipActive = false; if (_tipTimer) { clearTimeout(_tipTimer); _tipTimer = null; } }
+
             function hideLoading() {
+              stopLoadingTips();
               const overlay = document.getElementById('loadingOverlay');
               overlay.classList.remove('active');
             }
 
+            var _dashTips = ${JSON.stringify(LOADING_MESSAGES.dashboard_return)};
+            var _pdfTips = ${JSON.stringify(LOADING_MESSAGES.get(toolId + '_pdf', 'Generating PDF...'))};
+
             // Navigate to dashboard using server-side routing
             function navigateToDashboard(clientId, message) {
-              showLoading(message || 'Loading Dashboard');
+              showLoadingWithTips(_dashTips);
 
               google.script.run
                 .withSuccessHandler(function(dashboardHtml) {
@@ -417,7 +446,7 @@ const GroundingReport = {
 
             // Download PDF report
             function downloadPDF() {
-              showLoading('Generating PDF...');
+              showLoadingWithTips(_pdfTips);
 
               // Determine which PDF function to call based on toolId
               const pdfFunctions = {
@@ -451,7 +480,7 @@ const GroundingReport = {
 
             // Alias for onclick handlers
             function backToDashboard() {
-              navigateToDashboard(clientId, 'Loading Dashboard');
+              navigateToDashboard(clientId);
             }
 
             // Make functions global for onclick handlers

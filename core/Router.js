@@ -317,6 +317,8 @@ const Router = {
         </div>
 
         <script>
+          var _loginTips = ${JSON.stringify(LOADING_MESSAGES.login)};
+
           // Show/hide alert messages
           function showAlert(message, isError) {
             const alertBox = document.getElementById('alertBox');
@@ -383,7 +385,7 @@ const Router = {
             btnSpinner.style.alignItems = 'center';
             btnSpinner.style.gap = '8px';
 
-            showLoading('Setting up your account');
+            showLoadingWithTips(_loginTips);
 
             google.script.run
               .withSuccessHandler(function(result) {
@@ -447,7 +449,7 @@ const Router = {
             btnSpinner.style.gap = '8px';
 
             // Show loading overlay
-            showLoading('Authenticating');
+            showLoadingWithTips(_loginTips);
 
             // Authenticate and get dashboard in ONE call (faster!)
             google.script.run
@@ -517,7 +519,7 @@ const Router = {
             btnSpinner.style.gap = '8px';
 
             // Show loading overlay
-            showLoading('Looking up your account');
+            showLoadingWithTips(_loginTips);
 
             // Lookup and get dashboard in ONE call (faster!)
             google.script.run
@@ -671,8 +673,10 @@ const Router = {
         </div>
 
         <script>
+          var _t4Launch = ${JSON.stringify(LOADING_MESSAGES.tool4_launch)};
+
           function viewTool4Calculator() {
-            showLoading('Loading Calculator');
+            showLoadingWithTips(_t4Launch);
             google.script.run
               .withSuccessHandler(function(pageHtml) {
                 document.open();
@@ -701,8 +705,10 @@ const Router = {
         </div>
 
         <script>
+          var _t4Launch = ${JSON.stringify(LOADING_MESSAGES.tool4_launch)};
+
           function openTool4() {
-            showLoading('Loading Calculator');
+            showLoadingWithTips(_t4Launch);
             google.script.run
               .withSuccessHandler(function(pageHtml) {
                 document.open();
@@ -926,6 +932,11 @@ const Router = {
             const baseUrl = '${baseUrl}';
             const clientId = '${clientId}';
 
+            // Cycling loading tips for each tool transition
+            var _t1Launch = ${JSON.stringify(LOADING_MESSAGES.tool1_launch)};
+            var _t1Report = ${JSON.stringify(LOADING_MESSAGES.tool1_report)};
+            var _dashReturn = ${JSON.stringify(LOADING_MESSAGES.dashboard_return)};
+
             // Make functions global so onclick handlers can access them
             window.viewReport = viewReport;
             window.editResponse = editResponse;
@@ -952,7 +963,7 @@ const Router = {
 
             // View report - navigate using document.write() pattern
             function viewReport() {
-              showLoading('Loading Report');
+              showLoadingWithTips(_t1Report);
 
               google.script.run
                 .withSuccessHandler(function(reportHtml) {
@@ -972,7 +983,7 @@ const Router = {
 
             // Edit response - navigate using document.write() pattern
             function editResponse() {
-              showLoading('Loading your responses...');
+              showLoadingWithTips(_t1Launch);
 
               google.script.run
                 .withSuccessHandler(function(pageHtml) {
@@ -993,7 +1004,7 @@ const Router = {
             // Retake tool - navigate using document.write() pattern
             function retakeTool() {
               if (confirm('Start a completely fresh assessment? This will clear any drafts but keep your previous completed response.')) {
-                showLoading('Preparing fresh assessment...');
+                showLoadingWithTips(_t1Launch);
 
                 google.script.run
                   .withSuccessHandler(function(pageHtml) {
@@ -1014,7 +1025,7 @@ const Router = {
 
             // Continue Tool 1 - navigate using document.write() pattern
             function continueTool1() {
-              showLoading('Loading Assessment');
+              showLoadingWithTips(_t1Launch);
 
               google.script.run
                 .withSuccessHandler(function(pageHtml) {
@@ -1035,7 +1046,7 @@ const Router = {
             // Discard Tool 1 Draft - navigate using document.write() pattern
             function discardTool1Draft() {
               if (confirm('Discard this draft? Your last completed submission will be preserved.')) {
-                showLoading('Discarding draft...');
+                showLoadingWithTips(_dashReturn);
 
                 google.script.run
                   .withSuccessHandler(function(dashboardHtml) {
@@ -1056,7 +1067,7 @@ const Router = {
 
             // Start Tool 1 - navigate using document.write() pattern
             function startTool1() {
-              showLoading('Loading Assessment');
+              showLoadingWithTips(_t1Launch);
 
               google.script.run
                 .withSuccessHandler(function(pageHtml) {
@@ -1188,8 +1199,12 @@ const Router = {
         </div>
 
         <script>
+          var _t2Launch = ${JSON.stringify(LOADING_MESSAGES.tool2_launch)};
+          var _t2Report = ${JSON.stringify(LOADING_MESSAGES.tool2_report)};
+          var _dashReturn = ${JSON.stringify(LOADING_MESSAGES.dashboard_return)};
+
           function viewTool2Report() {
-            showLoading('Loading Report');
+            showLoadingWithTips(_t2Report);
             google.script.run
               .withSuccessHandler(function(reportHtml) {
                 if (typeof saveLocationForRefresh === 'function') saveLocationForRefresh('report', 'tool2', null, '${clientId}');
@@ -1207,7 +1222,7 @@ const Router = {
 
           function quickCheckInTool2() {
             if (!confirm('Start a Quick Check-In? Your previous answers will be pre-filled for review.')) return;
-            showLoading('Loading Quick Check-In...');
+            showLoadingWithTips(_t2Launch);
             google.script.run
               .withSuccessHandler(function(pageHtml) {
                 if (!pageHtml) { hideLoading(); alert('Error loading Quick Check-In.'); return; }
@@ -1225,7 +1240,7 @@ const Router = {
           }
 
           function editTool2Response() {
-            showLoading('Loading your responses...');
+            showLoadingWithTips(_t2Launch);
             google.script.run
               .withSuccessHandler(function(pageHtml) {
                 if (typeof saveLocationForRefresh === 'function') saveLocationForRefresh('tool', 'tool2', 1, '${clientId}');
@@ -1243,7 +1258,7 @@ const Router = {
 
           function retakeTool2() {
             if (confirm('Start fresh? This will discard your current response.')) {
-              showLoading('Starting Fresh');
+              showLoadingWithTips(_t2Launch);
               google.script.run
                 .withSuccessHandler(function(pageHtml) {
                   if (typeof saveLocationForRefresh === 'function') saveLocationForRefresh('tool', 'tool2', 1, '${clientId}');
@@ -1284,8 +1299,11 @@ const Router = {
         </div>
 
         <script>
+          var _t2Launch = ${JSON.stringify(LOADING_MESSAGES.tool2_launch)};
+          var _dashReturn = ${JSON.stringify(LOADING_MESSAGES.dashboard_return)};
+
           function continueTool2() {
-            showLoading('Loading Assessment');
+            showLoadingWithTips(_t2Launch);
             google.script.run
               .withSuccessHandler(function(pageHtml) {
                 if (typeof saveLocationForRefresh === 'function') saveLocationForRefresh('tool', 'tool2', 1, '${clientId}');
@@ -1303,7 +1321,7 @@ const Router = {
 
           function discardTool2Draft() {
             if (confirm('Discard this draft? Your last completed submission will be preserved.')) {
-              showLoading('Discarding draft...');
+              showLoadingWithTips(_dashReturn);
               google.script.run
                 .withSuccessHandler(function(dashboardHtml) {
                   if (typeof saveLocationForRefresh === 'function') saveLocationForRefresh('dashboard', null, null, '${clientId}');
@@ -1335,8 +1353,10 @@ const Router = {
         </div>
 
         <script>
+          var _t2Launch = ${JSON.stringify(LOADING_MESSAGES.tool2_launch)};
+
           function startTool2() {
-            showLoading('Loading Assessment');
+            showLoadingWithTips(_t2Launch);
             google.script.run
               .withSuccessHandler(function(pageHtml) {
                 if (typeof saveLocationForRefresh === 'function') saveLocationForRefresh('tool', 'tool2', 1, '${clientId}');
@@ -1398,8 +1418,12 @@ const Router = {
         </div>
 
         <script>
+          var _t3Launch = ${JSON.stringify(LOADING_MESSAGES.tool3_launch)};
+          var _t3Report = ${JSON.stringify(LOADING_MESSAGES.tool3_report)};
+          var _dashReturn = ${JSON.stringify(LOADING_MESSAGES.dashboard_return)};
+
           function viewTool3Report() {
-            showLoading('Loading Report');
+            showLoadingWithTips(_t3Report);
             google.script.run
               .withSuccessHandler(function(reportHtml) {
                 if (typeof saveLocationForRefresh === 'function') saveLocationForRefresh('report', 'tool3', null, '${clientId}');
@@ -1416,7 +1440,7 @@ const Router = {
           }
 
           function editTool3Response() {
-            showLoading('Loading your responses...');
+            showLoadingWithTips(_t3Launch);
             google.script.run
               .withSuccessHandler(function(pageHtml) {
                 if (typeof saveLocationForRefresh === 'function') saveLocationForRefresh('tool', 'tool3', 1, '${clientId}');
@@ -1434,7 +1458,7 @@ const Router = {
 
           function retakeTool3() {
             if (confirm('Start a completely fresh assessment? This will clear any drafts but keep your previous completed response.')) {
-              showLoading('Preparing fresh assessment...');
+              showLoadingWithTips(_t3Launch);
               google.script.run
                 .withSuccessHandler(function(pageHtml) {
                   if (typeof saveLocationForRefresh === 'function') saveLocationForRefresh('tool', 'tool3', 1, '${clientId}');
@@ -1472,8 +1496,11 @@ const Router = {
         </div>
 
         <script>
+          var _t3Launch = ${JSON.stringify(LOADING_MESSAGES.tool3_launch)};
+          var _dashReturn = ${JSON.stringify(LOADING_MESSAGES.dashboard_return)};
+
           function continueTool3() {
-            showLoading('Loading Assessment');
+            showLoadingWithTips(_t3Launch);
             google.script.run
               .withSuccessHandler(function(pageHtml) {
                 if (typeof saveLocationForRefresh === 'function') saveLocationForRefresh('tool', 'tool3', 1, '${clientId}');
@@ -1491,7 +1518,7 @@ const Router = {
 
           function discardTool3Draft() {
             if (confirm('Discard this draft? Your last completed submission will be preserved.')) {
-              showLoading('Discarding draft...');
+              showLoadingWithTips(_dashReturn);
               google.script.run
                 .withSuccessHandler(function(dashboardHtml) {
                   if (typeof saveLocationForRefresh === 'function') saveLocationForRefresh('dashboard', null, null, '${clientId}');
@@ -1522,8 +1549,10 @@ const Router = {
         </div>
 
         <script>
+          var _t3Launch = ${JSON.stringify(LOADING_MESSAGES.tool3_launch)};
+
           function startTool3() {
-            showLoading('Loading Assessment');
+            showLoadingWithTips(_t3Launch);
             google.script.run
               .withSuccessHandler(function(pageHtml) {
                 if (typeof saveLocationForRefresh === 'function') saveLocationForRefresh('tool', 'tool3', 1, '${clientId}');
@@ -1584,8 +1613,12 @@ const Router = {
         </div>
 
         <script>
+          var _t5Launch = ${JSON.stringify(LOADING_MESSAGES.tool5_launch)};
+          var _t5Report = ${JSON.stringify(LOADING_MESSAGES.tool5_report)};
+          var _dashReturn = ${JSON.stringify(LOADING_MESSAGES.dashboard_return)};
+
           function viewTool5Report() {
-            showLoading('Loading Report');
+            showLoadingWithTips(_t5Report);
             google.script.run
               .withSuccessHandler(function(reportHtml) {
                 if (typeof saveLocationForRefresh === 'function') saveLocationForRefresh('report', 'tool5', null, '${clientId}');
@@ -1602,7 +1635,7 @@ const Router = {
           }
 
           function editTool5Response() {
-            showLoading('Loading your responses...');
+            showLoadingWithTips(_t5Launch);
             google.script.run
               .withSuccessHandler(function(pageHtml) {
                 if (typeof saveLocationForRefresh === 'function') saveLocationForRefresh('tool', 'tool5', 1, '${clientId}');
@@ -1620,7 +1653,7 @@ const Router = {
 
           function retakeTool5() {
             if (confirm('Start a completely fresh assessment? This will clear any drafts but keep your previous completed response.')) {
-              showLoading('Preparing fresh assessment...');
+              showLoadingWithTips(_t5Launch);
               google.script.run
                 .withSuccessHandler(function(pageHtml) {
                   if (typeof saveLocationForRefresh === 'function') saveLocationForRefresh('tool', 'tool5', 1, '${clientId}');
@@ -1658,8 +1691,11 @@ const Router = {
         </div>
 
         <script>
+          var _t5Launch = ${JSON.stringify(LOADING_MESSAGES.tool5_launch)};
+          var _dashReturn = ${JSON.stringify(LOADING_MESSAGES.dashboard_return)};
+
           function continueTool5() {
-            showLoading('Loading Assessment');
+            showLoadingWithTips(_t5Launch);
             google.script.run
               .withSuccessHandler(function(pageHtml) {
                 if (typeof saveLocationForRefresh === 'function') saveLocationForRefresh('tool', 'tool5', 1, '${clientId}');
@@ -1677,7 +1713,7 @@ const Router = {
 
           function discardTool5Draft() {
             if (confirm('Discard this draft? Your last completed submission will be preserved.')) {
-              showLoading('Discarding draft...');
+              showLoadingWithTips(_dashReturn);
               google.script.run
                 .withSuccessHandler(function(dashboardHtml) {
                   if (typeof saveLocationForRefresh === 'function') saveLocationForRefresh('dashboard', null, null, '${clientId}');
@@ -1708,8 +1744,10 @@ const Router = {
         </div>
 
         <script>
+          var _t5Launch = ${JSON.stringify(LOADING_MESSAGES.tool5_launch)};
+
           function startTool5() {
-            showLoading('Loading Assessment');
+            showLoadingWithTips(_t5Launch);
             google.script.run
               .withSuccessHandler(function(pageHtml) {
                 if (typeof saveLocationForRefresh === 'function') saveLocationForRefresh('tool', 'tool5', 1, '${clientId}');
@@ -1765,8 +1803,10 @@ const Router = {
         </div>
 
         <script>
+          var _t6Launch = ${JSON.stringify(LOADING_MESSAGES.tool6_launch)};
+
           function openTool6Calculator() {
-            showLoading('Loading Calculator');
+            showLoadingWithTips(_t6Launch);
             google.script.run.withSuccessHandler(function(h){document.open();document.write(h);document.close();window.scrollTo(0,0);}).withFailureHandler(function(e){hideLoading();alert('Error: '+e.message);}).getToolPageHtml('tool6','${clientId}',1);
           }
         </script>
@@ -1783,7 +1823,8 @@ const Router = {
           </button>
         </div>
         <script>
-          function startTool6(){showLoading('Loading Calculator');google.script.run.withSuccessHandler(function(h){document.open();document.write(h);document.close();window.scrollTo(0,0);}).withFailureHandler(function(e){hideLoading();alert('Error: '+e.message);}).getToolPageHtml('tool6','${clientId}',1);}
+          var _t6Launch = ${JSON.stringify(LOADING_MESSAGES.tool6_launch)};
+          function startTool6(){showLoadingWithTips(_t6Launch);google.script.run.withSuccessHandler(function(h){document.open();document.write(h);document.close();window.scrollTo(0,0);}).withFailureHandler(function(e){hideLoading();alert('Error: '+e.message);}).getToolPageHtml('tool6','${clientId}',1);}
         </script>
       `;
     } else {
@@ -1829,8 +1870,12 @@ const Router = {
           </div>
         </div>
         <script>
+          var _t7Launch = ${JSON.stringify(LOADING_MESSAGES.tool7_launch)};
+          var _t7Report = ${JSON.stringify(LOADING_MESSAGES.tool7_report)};
+          var _dashReturn = ${JSON.stringify(LOADING_MESSAGES.dashboard_return)};
+
           function viewTool7Report() {
-            showLoading('Loading Report');
+            showLoadingWithTips(_t7Report);
             google.script.run
               .withSuccessHandler(function(reportHtml) {
                 if (typeof saveLocationForRefresh === 'function') saveLocationForRefresh('report', 'tool7', null, '${clientId}');
@@ -1847,7 +1892,7 @@ const Router = {
           }
 
           function editTool7Response() {
-            showLoading('Loading Assessment');
+            showLoadingWithTips(_t7Launch);
             google.script.run
               .withSuccessHandler(function(pageHtml) {
                 if (typeof saveLocationForRefresh === 'function') saveLocationForRefresh('tool', 'tool7', 1, '${clientId}');
@@ -1865,7 +1910,7 @@ const Router = {
 
           function retakeTool7() {
             if (confirm('Start fresh? This will create a new assessment while preserving your previous results.')) {
-              showLoading('Starting Fresh Assessment');
+              showLoadingWithTips(_t7Launch);
               google.script.run
                 .withSuccessHandler(function(pageHtml) {
                   if (typeof saveLocationForRefresh === 'function') saveLocationForRefresh('tool', 'tool7', 1, '${clientId}');
@@ -1903,8 +1948,11 @@ const Router = {
         </div>
 
         <script>
+          var _t7Launch = ${JSON.stringify(LOADING_MESSAGES.tool7_launch)};
+          var _dashReturn = ${JSON.stringify(LOADING_MESSAGES.dashboard_return)};
+
           function continueTool7() {
-            showLoading('Loading Assessment');
+            showLoadingWithTips(_t7Launch);
             google.script.run
               .withSuccessHandler(function(pageHtml) {
                 if (typeof saveLocationForRefresh === 'function') saveLocationForRefresh('tool', 'tool7', 1, '${clientId}');
@@ -1922,7 +1970,7 @@ const Router = {
 
           function discardTool7Draft() {
             if (confirm('Discard this draft? Your last completed submission will be preserved.')) {
-              showLoading('Discarding draft...');
+              showLoadingWithTips(_dashReturn);
               google.script.run
                 .withSuccessHandler(function(dashboardHtml) {
                   if (typeof saveLocationForRefresh === 'function') saveLocationForRefresh('dashboard', null, null, '${clientId}');
@@ -1953,8 +2001,10 @@ const Router = {
         </div>
 
         <script>
+          var _t7Launch = ${JSON.stringify(LOADING_MESSAGES.tool7_launch)};
+
           function startTool7() {
-            showLoading('Loading Assessment');
+            showLoadingWithTips(_t7Launch);
             google.script.run
               .withSuccessHandler(function(pageHtml) {
                 if (typeof saveLocationForRefresh === 'function') saveLocationForRefresh('tool', 'tool7', 1, '${clientId}');
@@ -2010,8 +2060,10 @@ const Router = {
         </div>
 
         <script>
+          var _t8Launch = ${JSON.stringify(LOADING_MESSAGES.tool8_launch)};
+
           function openTool8Calculator() {
-            showLoading('Loading Calculator');
+            showLoadingWithTips(_t8Launch);
             google.script.run.withSuccessHandler(function(h){document.open();document.write(h);document.close();window.scrollTo(0,0);}).withFailureHandler(function(e){hideLoading();alert('Error: '+e.message);}).getToolPageHtml('tool8','${clientId}',1);
           }
         </script>
@@ -2028,8 +2080,10 @@ const Router = {
           </button>
         </div>
         <script>
+          var _t8Launch = ${JSON.stringify(LOADING_MESSAGES.tool8_launch)};
+
           function startTool8() {
-            showLoading('Loading Calculator');
+            showLoadingWithTips(_t8Launch);
             google.script.run
               .withSuccessHandler(function(pageHtml) {
                 if (typeof saveLocationForRefresh === 'function') saveLocationForRefresh('tool', 'tool8', 1, '${clientId}');

@@ -727,4 +727,216 @@
     .error-message.show {
       display: block;
     }
+
+    /* Summary grid for pre-survey collapsed view */
+    .presurvey-summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      font-size: 1rem;
+    }
+
+    .summary-label {
+      color: var(--color-text-secondary);
+    }
+
+    .summary-value {
+      color: var(--color-text-primary);
+    }
+
+    /* Section headers for backup questions */
+    .backup-section-divider {
+      margin-top: 30px;
+      margin-bottom: 15px;
+    }
+
+    .backup-section-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--color-text-primary);
+    }
+
+    .backup-section-desc {
+      font-size: 1rem;
+      color: var(--color-text-secondary);
+    }
+
+    /* Tool navigation buttons */
+    .tool-nav-btn {
+      width: auto;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .tool-nav-label {
+      font-weight: 700;
+      font-size: 1rem;
+    }
+
+    .tool-nav-sublabel {
+      font-size: 0.85rem;
+      opacity: 0.8;
+    }
+
+    /* Missing tools warning box */
+    .missing-tools-box {
+      background: rgba(251, 191, 36, 0.1);
+      border: 1px solid rgba(251, 191, 36, 0.3);
+      border-radius: 10px;
+      padding: 16px 20px;
+      margin-bottom: 20px;
+    }
+
+    .missing-tools-title {
+      color: var(--color-text-primary);
+      font-size: 1rem;
+      margin-bottom: 12px;
+    }
+
+    .missing-tools-desc {
+      color: var(--color-text-secondary);
+      font-size: 0.95rem;
+      margin-bottom: 15px;
+    }
+
+    .tool-nav-container {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    /* Comparison table */
+    .comparison-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+
+    .comparison-table-container {
+      background: rgba(255,255,255,0.05);
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+
+    .comparison-table thead tr {
+      background: rgba(79, 70, 229, 0.2);
+    }
+
+    .comparison-table th {
+      padding: 12px;
+      text-align: left;
+      color: var(--color-text-primary);
+    }
+
+    .comparison-table th:not(:first-child) {
+      text-align: center;
+    }
+
+    .comparison-table td {
+      padding: 12px;
+      color: var(--color-text-secondary);
+    }
+
+    .comparison-table td:not(:first-child) {
+      text-align: center;
+    }
+
+    .comparison-table tr + tr {
+      border-top: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .comparison-table .td-name {
+      color: var(--color-text-primary);
+    }
+
+    .dollar-highlight {
+      color: #ffc107;
+    }
+
+    /* Scenario profile card */
+    .scenario-profile-card {
+      background: rgba(255,255,255,0.03);
+      padding: 12px;
+      border-radius: 6px;
+    }
+
+    .scenario-profile-name {
+      font-weight: 600;
+      color: var(--color-text-primary);
+      margin-bottom: 8px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .scenario-profile-details {
+      color: var(--color-text-secondary);
+      line-height: 1.6;
+    }
+
+    /* Bottom line box */
+    .bottom-line-section {
+      background: rgba(79, 70, 229, 0.1);
+      border: 1px solid rgba(79, 70, 229, 0.3);
+      border-radius: 8px;
+      padding: 20px;
+      margin-top: 15px;
+    }
+
+    .bottom-line-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+
+    .bottom-line-footer {
+      margin-top: 15px;
+      padding-top: 15px;
+      border-top: 1px solid rgba(79, 70, 229, 0.2);
+      text-align: center;
+      color: var(--color-text-muted);
+      font-style: italic;
+    }
+
+    /* Helper card styles */
+    .helper-card-container {
+      margin-bottom: 12px;
+    }
+
+    .helper-card-title {
+      font-weight: 600;
+      color: var(--color-text-primary);
+      margin-bottom: 8px;
+    }
+
+    .helper-card-list {
+      margin: 0 0 10px 20px;
+      padding: 0;
+      color: var(--color-text-secondary);
+    }
+
+    .helper-card-list li {
+      margin-bottom: 4px;
+    }
+
+    .helper-card-tradeoff {
+      font-size: 0.95rem;
+      color: var(--color-text-muted);
+      font-style: italic;
+    }
+
+    /* Hint text */
+    .collapse-hint {
+      font-size: 12px;
+      color: var(--color-text-muted);
+    }
+
+    /* Debug error box */
+    .debug-error-box {
+      background: rgba(239, 68, 68, 0.1);
+      padding: 20px;
+      margin: 20px 0;
+      border-radius: 8px;
+    }
 </style>
