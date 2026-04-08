@@ -19,6 +19,16 @@ const FormatUtils = {
   },
 
   /**
+   * Format a number with thousands separators (no currency symbol)
+   * @param {number} value - The number to format
+   * @returns {string} e.g. "1,250" or "0"
+   */
+  number(value) {
+    if (typeof value !== 'number' || isNaN(value)) return '0';
+    return Math.round(value).toLocaleString();
+  },
+
+  /**
    * Format a number as a percentage string
    * @param {number} value - The value to format (e.g. 25 for 25%)
    * @param {number} [decimals=0] - Decimal places
