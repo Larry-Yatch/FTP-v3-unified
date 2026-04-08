@@ -18,6 +18,13 @@ const FrameworkCore = {
     try {
       LogUtils.debug(`FrameworkCore: Initializing ${toolId} for ${clientId}`);
 
+      // Pre-warm cache for sheets needed during tool initialization
+      SpreadsheetCache.batchPreload([
+        CONFIG.SHEETS.TOOL_ACCESS,
+        CONFIG.SHEETS.CROSS_TOOL_INSIGHTS,
+        CONFIG.SHEETS.TOOL_STATUS
+      ]);
+
       // Get tool from registry
       const toolReg = ToolRegistry.get(toolId);
       if (!toolReg) {

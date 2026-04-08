@@ -177,6 +177,22 @@
       -webkit-appearance: none;
     }
 
+    /* CRITICAL: Track styling required for slider drag functionality.
+       Without these rules, appearance:none makes the thumb visible but not draggable. */
+    .slider-input::-webkit-slider-runnable-track {
+      width: 100%;
+      height: 8px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+    }
+
+    .slider-input::-moz-range-track {
+      width: 100%;
+      height: 8px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+    }
+
     .slider-input::-webkit-slider-thumb {
       -webkit-appearance: none;
       appearance: none;
@@ -185,6 +201,7 @@
       background: var(--color-primary);
       border-radius: 50%;
       cursor: pointer;
+      margin-top: -6px;
     }
 
     .slider-input::-moz-range-thumb {
@@ -619,6 +636,21 @@
       opacity: 0.5;
     }
 
+    /* CRITICAL: Track styling required for bucket slider drag functionality. */
+    .bucket-range-input::-webkit-slider-runnable-track {
+      width: 100%;
+      height: 10px;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 5px;
+    }
+
+    .bucket-range-input::-moz-range-track {
+      width: 100%;
+      height: 10px;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 5px;
+    }
+
     .bucket-range-input::-webkit-slider-thumb {
       -webkit-appearance: none;
       appearance: none;
@@ -629,6 +661,7 @@
       border-radius: 50%;
       cursor: pointer;
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+      margin-top: -7px;
     }
 
     .bucket-range-input::-moz-range-thumb {

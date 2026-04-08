@@ -230,6 +230,160 @@ const ToolAccessControl = {
   },
 
   /**
+   * Check access for all 8 tools in one pass.
+   * Loads TOOL_ACCESS and TOOL_STATUS once, evaluates all tools,
+   * and batches any auto-unlock writes into a single operation.
+   * @param {string} clientId - Client/student ID
+   * @returns {Object} Map of toolId → {allowed, reason}
+   */
+  canAccessToolBatch(clientId) {
+    try {
+      // Pre-load all needed sheets once
+      SpreadsheetCache.batchPreload([
+        CONFIG.SHEETS.TOOL_ACCESS,
+        CONFIG.SHEETS.TOOL_STATUS
+      ]);
+
+      const accessData = SpreadsheetCache.getSheetData(CONFIG.SHEETS.TOOL_ACCESS) || [];
+
+      // Build access lookup: {toolId: {status, rowIndex, ...}}
+      const accessMap = {};
+      for (let i = 1; i < accessData.length; i++) {
+        if (accessData[i][0] === clientId) {
+          accessMap[accessData[i][1]] = {
+            status: accessData[i][2],
+            rowIndex: i + 1  // 1-based sheet row
+          };
+        }
+      }
+
+      // Evaluate each tool
+      const results = {};
+      const toolsToUnlock = []; // Collect tools needing auto-unlock
+
+      for (let toolNumber = 1; toolNumber <= 8; toolNumber++) {
+        const toolId = 'tool' + toolNumber;
+        const record = accessMap[toolId];
+
+        // Check explicit unlock
+        if (record && record.status === 'unlocked') {
+          results[toolId] = { allowed: true };
+          continue;
+        }
+
+        // Check explicit lock
+        if (record && record.status === 'locked') {
+          // Tool 1 locked by admin is still locked
+          if (toolNumber === 1) {
+            // Tool 1 is special — always accessible unless admin-locked
+            // But if record exists as 'locked' with a non-system locker, respect it
+            // Actually, per canAccessTool logic, tool1 always gets auto-unlocked
+            toolsToUnlock.push({ toolId: toolId, record: record });
+            results[toolId] = { allowed: true };
+            continue;
+          }
+          results[toolId] = {
+            allowed: false,
+            reason: record.lockReason || 'Tool is locked'
+          };
+          continue;
+        }
+
+        // No explicit record — check linear progression
+        if (toolNumber === 1) {
+          toolsToUnlock.push({ toolId: toolId, record: record });
+          results[toolId] = { allowed: true };
+          continue;
+        }
+
+        // Check if previous tool is completed
+        const previousTool = 'tool' + (toolNumber - 1);
+        const previousCompleted = DataService.isToolCompleted(clientId, previousTool);
+
+        if (previousCompleted) {
+          toolsToUnlock.push({ toolId: toolId, record: record });
+          results[toolId] = { allowed: true };
+        } else {
+          results[toolId] = {
+            allowed: false,
+            reason: `Please complete ${previousTool} first`
+          };
+        }
+      }
+
+      // Batch auto-unlock: single write operation for all tools that need it
+      if (toolsToUnlock.length > 0) {
+        this._batchAutoUnlock(clientId, toolsToUnlock, accessMap);
+      }
+
+      return results;
+
+    } catch (error) {
+      LogUtils.error('Error in canAccessToolBatch: ' + error);
+      // Fallback: return all locked
+      const fallback = {};
+      for (let i = 1; i <= 8; i++) {
+        fallback['tool' + i] = { allowed: false, reason: 'Error checking access' };
+      }
+      return fallback;
+    }
+  },
+
+  /**
+   * Batch auto-unlock multiple tools in one operation.
+   * @private
+   * @param {string} clientId
+   * @param {Array} toolsToUnlock - Array of {toolId, record}
+   * @param {Object} accessMap - Current access map for row lookups
+   */
+  _batchAutoUnlock(clientId, toolsToUnlock, accessMap) {
+    try {
+      const sheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.TOOL_ACCESS);
+      if (!sheet) return;
+
+      const now = new Date();
+      const toolIds = [];
+
+      toolsToUnlock.forEach(item => {
+        const existing = accessMap[item.toolId];
+
+        if (existing && existing.status === 'unlocked') {
+          // Already unlocked — skip
+          return;
+        }
+
+        if (existing) {
+          // Update existing row with batch setValues
+          const row = existing.rowIndex;
+          sheet.getRange(row, 3, 1, 5).setValues([
+            ['unlocked', '[]', now, 'system', 'Auto-unlocked (prerequisites met)']
+          ]);
+        } else {
+          // Create new row
+          sheet.appendRow([
+            clientId, item.toolId, 'unlocked', '[]', now,
+            'system', 'Auto-unlocked (prerequisites met)'
+          ]);
+        }
+        toolIds.push(item.toolId);
+      });
+
+      if (toolIds.length > 0) {
+        SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.TOOL_ACCESS);
+
+        // Single activity log entry for all unlocked tools
+        DataService.logActivity(clientId, 'auto_unlock', {
+          toolId: toolIds.join(','),
+          details: `Auto-unlocked ${toolIds.join(', ')} (prerequisites met)`
+        });
+      }
+
+    } catch (error) {
+      LogUtils.error('Error in batch auto-unlock: ' + error);
+    }
+  },
+
+  /**
    * Get access status for all tools for a student
    * @param {string} clientId - Client/student ID
    * @returns {Array<Object>} Tool access status
@@ -259,6 +413,7 @@ const ToolAccessControl = {
 
   /**
    * Auto-unlock tool (internal use)
+   * Uses cached data and batch writes for performance.
    * @private
    */
   _autoUnlockTool(clientId, toolId) {
@@ -267,18 +422,28 @@ const ToolAccessControl = {
 
       if (!sheet) return;
 
-      const data = sheet.getDataRange().getValues();
+      // Use cached data instead of direct getDataRange().getValues()
+      const data = SpreadsheetCache.getSheetData(CONFIG.SHEETS.TOOL_ACCESS);
 
-      // Find and update record
+      if (!data || data.length < 2) {
+        // No data — create record
+        this._createUnlockRecord(sheet, clientId, toolId);
+        return;
+      }
+
+      // Find existing record
       for (let i = 1; i < data.length; i++) {
         if (data[i][0] === clientId && data[i][1] === toolId) {
-          sheet.getRange(i + 1, 3).setValue('unlocked');
-          sheet.getRange(i + 1, 5).setValue(new Date());
-          sheet.getRange(i + 1, 6).setValue('system');
-          sheet.getRange(i + 1, 7).setValue('Auto-unlocked (prerequisites met)');
+          // Skip if already unlocked
+          if (data[i][2] === 'unlocked') return;
+
+          // Batch update: write all 4 values for the row
+          const row = i + 1;
+          const now = new Date();
+          const values = [['unlocked', '[]', now, 'system', 'Auto-unlocked (prerequisites met)']];
+          sheet.getRange(row, 3, 1, 5).setValues(values);
           SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.TOOL_ACCESS);
 
-          // Log auto-unlock
           DataService.logActivity(clientId, 'auto_unlock', {
             toolId: toolId,
             details: `Auto-unlocked ${toolId} (prerequisites met)`
@@ -288,27 +453,34 @@ const ToolAccessControl = {
         }
       }
 
-      // If not found, create record
-      sheet.appendRow([
-        clientId,
-        toolId,
-        'unlocked',
-        '[]',
-        new Date(),
-        'system',
-        'Auto-unlocked (prerequisites met)'
-      ]);
-      SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.TOOL_ACCESS);
-
-      // Log auto-unlock for new record
-      DataService.logActivity(clientId, 'auto_unlock', {
-        toolId: toolId,
-        details: `Auto-unlocked ${toolId} (prerequisites met)`
-      });
+      // Not found — create record
+      this._createUnlockRecord(sheet, clientId, toolId);
 
     } catch (error) {
       LogUtils.error('Error auto-unlocking tool: ' + error);
     }
+  },
+
+  /**
+   * Create a new unlock record (extracted to avoid duplication)
+   * @private
+   */
+  _createUnlockRecord(sheet, clientId, toolId) {
+    sheet.appendRow([
+      clientId,
+      toolId,
+      'unlocked',
+      '[]',
+      new Date(),
+      'system',
+      'Auto-unlocked (prerequisites met)'
+    ]);
+    SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.TOOL_ACCESS);
+
+    DataService.logActivity(clientId, 'auto_unlock', {
+      toolId: toolId,
+      details: `Auto-unlocked ${toolId} (prerequisites met)`
+    });
   },
 
   /**

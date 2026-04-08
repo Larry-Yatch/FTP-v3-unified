@@ -578,6 +578,15 @@ const Router = {
     const clientId = params.client || params.clientId;
     const baseUrl = ScriptApp.getService().getUrl();
 
+    // Pre-load all sheets needed for dashboard rendering in one pass.
+    // This ensures RESPONSES, TOOL_ACCESS, and TOOL_STATUS are cached
+    // before the 8 tool status checks and access control evaluations.
+    SpreadsheetCache.batchPreload([
+      CONFIG.SHEETS.RESPONSES,
+      CONFIG.SHEETS.TOOL_ACCESS,
+      CONFIG.SHEETS.TOOL_STATUS
+    ]);
+
     // Handle discardDraft parameter - delete draft BEFORE checking status
     if (params.discardDraft) {
       const toolId = params.discardDraft; // e.g., 'tool1' or 'tool2'
@@ -606,6 +615,10 @@ const Router = {
       return latestResponse;
     }
 
+    // Batch access check: one pass for all 8 tools instead of 7 individual calls.
+    // This reduces ~30 API calls (from per-tool auto-unlock) to ~3-4.
+    const allAccess = ToolAccessControl.canAccessToolBatch(clientId);
+
     // Check Tool 1 status
     let tool1Latest = DataService.getLatestResponse(clientId, 'tool1');
     tool1Latest = autoExpireStaleEdit(clientId, 'tool1', tool1Latest);
@@ -617,21 +630,21 @@ const Router = {
     tool2Latest = autoExpireStaleEdit(clientId, 'tool2', tool2Latest);
     const tool2HasDraft = tool2Latest && (tool2Latest.status === 'DRAFT' || tool2Latest.status === 'EDIT_DRAFT');
     const tool2Completed = tool2Latest && tool2Latest.status === 'COMPLETED';
-    const tool2Access = ToolAccessControl.canAccessTool(clientId, 'tool2');
+    const tool2Access = allAccess['tool2'];
 
     // Check Tool 3 status
     let tool3Latest = DataService.getLatestResponse(clientId, 'tool3');
     tool3Latest = autoExpireStaleEdit(clientId, 'tool3', tool3Latest);
     const tool3HasDraft = tool3Latest && (tool3Latest.status === 'DRAFT' || tool3Latest.status === 'EDIT_DRAFT');
     const tool3Completed = tool3Latest && tool3Latest.status === 'COMPLETED';
-    const tool3Access = ToolAccessControl.canAccessTool(clientId, 'tool3');
+    const tool3Access = allAccess['tool3'];
 
     // Check Tool 4 status
     let tool4Latest = DataService.getLatestResponse(clientId, 'tool4');
     tool4Latest = autoExpireStaleEdit(clientId, 'tool4', tool4Latest);
     const tool4HasDraft = tool4Latest && (tool4Latest.status === 'DRAFT' || tool4Latest.status === 'EDIT_DRAFT');
     const tool4Completed = tool4Latest && tool4Latest.status === 'COMPLETED';
-    const tool4Access = ToolAccessControl.canAccessTool(clientId, 'tool4');
+    const tool4Access = allAccess['tool4'];
 
     // Build Tool 4 card HTML based on status
     let tool4CardHTML = '';
@@ -723,27 +736,27 @@ const Router = {
     tool5Latest = autoExpireStaleEdit(clientId, 'tool5', tool5Latest);
     const tool5HasDraft = tool5Latest && (tool5Latest.status === 'DRAFT' || tool5Latest.status === 'EDIT_DRAFT');
     const tool5Completed = tool5Latest && tool5Latest.status === 'COMPLETED';
-    const tool5Access = ToolAccessControl.canAccessTool(clientId, 'tool5');
+    const tool5Access = allAccess['tool5'];
 
     // Check Tool 6 status
     let tool6Latest = DataService.getLatestResponse(clientId, 'tool6');
     tool6Latest = autoExpireStaleEdit(clientId, 'tool6', tool6Latest);
     const tool6HasDraft = tool6Latest && (tool6Latest.status === 'DRAFT' || tool6Latest.status === 'EDIT_DRAFT');
     const tool6Completed = tool6Latest && tool6Latest.status === 'COMPLETED';
-    const tool6Access = ToolAccessControl.canAccessTool(clientId, 'tool6');
+    const tool6Access = allAccess['tool6'];
 
     // Check Tool 7 status
     let tool7Latest = DataService.getLatestResponse(clientId, 'tool7');
     tool7Latest = autoExpireStaleEdit(clientId, 'tool7', tool7Latest);
     const tool7HasDraft = tool7Latest && (tool7Latest.status === 'DRAFT' || tool7Latest.status === 'EDIT_DRAFT');
     const tool7Completed = tool7Latest && tool7Latest.status === 'COMPLETED';
-    const tool7Access = ToolAccessControl.canAccessTool(clientId, 'tool7');
+    const tool7Access = allAccess['tool7'];
 
     // Check Tool 8 status
     let tool8Latest = DataService.getLatestResponse(clientId, 'tool8');
     tool8Latest = autoExpireStaleEdit(clientId, 'tool8', tool8Latest);
     const tool8Completed = tool8Latest && tool8Latest.status === 'COMPLETED';
-    const tool8Access = ToolAccessControl.canAccessTool(clientId, 'tool8');
+    const tool8Access = allAccess['tool8'];
 
     // Calculate completion count for summary card
     const completedToolCount = [tool1Completed, tool2Completed, tool3Completed, tool4Completed,

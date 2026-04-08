@@ -222,8 +222,8 @@ const Tool6 = {
       // From Tool 2: Demographics and employment
       age: t2.age || t2.currentAge || null,
       grossIncome: t2.grossAnnualIncome || t2.annualIncome || t2.grossIncome || t2.income || null,
-      employmentType: t2.employment || t2.employmentType || t2.workSituation || null,
-      businessOwner: t2.businessOwner || t2.isBusinessOwner || false,
+      employmentType: this._parseEmploymentType(t2.employment || t2.employmentType || t2.workSituation || null),
+      businessOwner: this._hasBusinessInvolvement(t2.employment || t2.employmentType || t2.workSituation || null),
       filingStatus: filingStatus,
       hsaCoverageType: inferHSACoverageType(filingStatus),
       // From Tool 2 (new schema): Retirement data for pre-population
@@ -297,8 +297,8 @@ const Tool6 = {
     // Infer HSA coverage type from filing status
     const hsaCoverageType = filingStatus === 'MFJ' ? 'Family' : 'Individual';
 
-    // Infer business owner from employment type
-    const businessOwner = employmentType === 'Business Owner';
+    // Infer business owner from employment type (handles multi-select arrays)
+    const businessOwner = this._hasBusinessInvolvement(employmentType);
 
     LogUtils.debug('Derived Tool 2 from backup: age=' + age + ', income=' + grossIncome + ', filing=' + filingStatus);
 
@@ -5361,18 +5361,21 @@ const Tool6 = {
     }
 
     // Sprint 5.5: Update single vehicle display
-    function updateSingleVehicleDisplay(vehicleId, value) {
+    // calledFromDrag: true when called from oninput (skip setting slider.value to avoid fighting drag)
+    function updateSingleVehicleDisplay(vehicleId, value, calledFromDrag) {
       var amountEl = document.getElementById('amount_' + vehicleId);
       var percentEl = document.getElementById('percent_' + vehicleId);
       var fillEl = document.getElementById('fill_' + vehicleId);
-      var sliderRow = document.querySelector('.vehicle-slider-row[data-vehicle-id="' + vehicleId + '"]');
       var slider = document.getElementById('slider_' + vehicleId);
 
       if (amountEl) {
         amountEl.textContent = '$' + Math.round(value).toLocaleString();
       }
 
-      if (slider) {
+      // Only set slider.value when called programmatically (not during user drag).
+      // Setting slider.value during oninput fights the browser's native drag
+      // handling and causes jerkiness.
+      if (slider && !calledFromDrag) {
         slider.value = value;
       }
 
@@ -5383,28 +5386,31 @@ const Tool6 = {
       }
       var percent = Math.round((value / maxVal) * 100);
 
-      // Update percent display (new Tool 4 style)
+      // Update percent display
       if (percentEl) {
         percentEl.textContent = '(' + percent + '%)';
       }
 
-      // Update fill bar (new Tool 4 style - simpler percentage-based fill)
+      // Update fill bar
       if (fillEl) {
         fillEl.style.width = Math.min(percent, 100) + '%';
       }
 
       // Fallback: Try old class-based selectors
-      if (sliderRow) {
-        if (!fillEl) {
-          var fill = sliderRow.querySelector('.slider-fill');
-          if (fill) {
-            fill.style.width = Math.min(percent, 100) + '%';
+      if (!fillEl || !percentEl) {
+        var sliderRow = document.querySelector('.vehicle-slider-row[data-vehicle-id="' + vehicleId + '"]');
+        if (sliderRow) {
+          if (!fillEl) {
+            var fill = sliderRow.querySelector('.slider-fill');
+            if (fill) {
+              fill.style.width = Math.min(percent, 100) + '%';
+            }
           }
-        }
-        if (!percentEl) {
-          var oldPercentEl = sliderRow.querySelector('.amount-percent');
-          if (oldPercentEl) {
-            oldPercentEl.textContent = percent + '%';
+          if (!percentEl) {
+            var oldPercentEl = sliderRow.querySelector('.amount-percent');
+            if (oldPercentEl) {
+              oldPercentEl.textContent = percent + '%';
+            }
           }
         }
       }
@@ -5628,7 +5634,7 @@ const Tool6 = {
     function updateVehicleDisplay(vehicleName, value) {
       // During drag, just update visual without coupling (for responsiveness)
       var vehicleId = vehicleName.replace(/[^a-zA-Z0-9]/g, '_');
-      updateSingleVehicleDisplay(vehicleId, parseFloat(value));
+      updateSingleVehicleDisplay(vehicleId, parseFloat(value), true);
     }
 
     // Sprint 5.5: Update vehicle allocation (on slider change complete)
@@ -8396,6 +8402,43 @@ const Tool6 = {
     } catch (e) {
       return defaultVal;
     }
+  },
+
+  /**
+   * Parse employment type field (backward compatible with single string or JSON array)
+   * Returns the first value for contexts that need a single string
+   */
+  _parseEmploymentType(value) {
+    if (!value) return null;
+    if (Array.isArray(value)) return value[0] || null;
+    if (typeof value === 'string' && value.charAt(0) === '[') {
+      try {
+        var arr = JSON.parse(value);
+        return arr[0] || null;
+      } catch(e) {}
+    }
+    return value;
+  },
+
+  /**
+   * Check if employment type includes business involvement
+   * Handles both legacy single strings and new multi-select arrays
+   */
+  _hasBusinessInvolvement(value) {
+    if (!value) return false;
+    var types = [];
+    if (Array.isArray(value)) {
+      types = value;
+    } else if (typeof value === 'string' && value.charAt(0) === '[') {
+      try { types = JSON.parse(value); } catch(e) { types = [value]; }
+    } else {
+      types = [value];
+    }
+    for (var i = 0; i < types.length; i++) {
+      var t = types[i].toLowerCase();
+      if (t.indexOf('business') !== -1 || t.indexOf('self-employed') !== -1 || t === 'both') return true;
+    }
+    return false;
   },
 
   /**
