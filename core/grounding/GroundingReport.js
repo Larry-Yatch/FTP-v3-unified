@@ -383,16 +383,24 @@ const GroundingReport = {
 
             var _tipInterval = null;
             function showLoadingWithTips(messages, intervalMs) {
+              if (!messages || messages.length === 0) return;
               intervalMs = intervalMs || 3500;
               stopLoadingTips();
               showLoading(messages[0]);
+              if (messages.length <= 1) return;
               var tipIndex = 0;
               _tipInterval = setInterval(function() {
                 tipIndex = (tipIndex + 1) % messages.length;
                 var overlay = document.getElementById('loadingOverlay');
                 if (overlay) {
                   var text = overlay.querySelector('.loading-text');
-                  if (text) { text.innerHTML = messages[tipIndex] + '<span class="loading-dots"></span>'; }
+                  if (text) {
+                    text.style.opacity = '0';
+                    setTimeout(function() {
+                      text.innerHTML = messages[tipIndex] + '<span class="loading-dots"></span>';
+                      text.style.opacity = '1';
+                    }, 300);
+                  }
                 }
               }, intervalMs);
             }

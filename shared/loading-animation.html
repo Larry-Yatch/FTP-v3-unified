@@ -39,6 +39,7 @@
     font-weight: 500;
     margin-top: 20px;
     text-align: center;
+    transition: opacity 0.3s ease;
   }
 
   /* Dots Animation */
@@ -127,9 +128,11 @@
    * @param {number} [intervalMs=3500] - Milliseconds between message changes
    */
   function showLoadingWithTips(messages, intervalMs) {
+    if (!messages || messages.length === 0) return;
     intervalMs = intervalMs || 3500;
     stopLoadingTips();
     showLoading(messages[0]);
+    if (messages.length <= 1) return;
     var tipIndex = 0;
     _tipInterval = setInterval(function() {
       tipIndex = (tipIndex + 1) % messages.length;
@@ -137,7 +140,12 @@
       if (overlay) {
         var text = overlay.querySelector('.loading-text');
         if (text) {
-          text.innerHTML = messages[tipIndex] + '<span class="loading-dots"></span>';
+          // Fade transition for smooth message changes
+          text.style.opacity = '0';
+          setTimeout(function() {
+            text.innerHTML = messages[tipIndex] + '<span class="loading-dots"></span>';
+            text.style.opacity = '1';
+          }, 300);
         }
       }
     }, intervalMs);
