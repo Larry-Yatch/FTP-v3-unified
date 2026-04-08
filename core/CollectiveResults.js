@@ -11,18 +11,19 @@ const CollectiveResults = {
 
   // ============================================================
   // CONSTANTS & METADATA (defined in CollectiveResultsMetadata.js)
+  // Uses getters for lazy evaluation — GAS may load this file first.
   // ============================================================
 
-  TOOL_META: CollectiveResultsMetadata.TOOL_META,
-  STRATEGY_LABELS: CollectiveResultsMetadata.STRATEGY_LABELS,
-  STRATEGY_INSIGHTS: CollectiveResultsMetadata.STRATEGY_INSIGHTS,
-  TOOL_PRIORITY: CollectiveResultsMetadata.TOOL_PRIORITY,
-  GROUNDING_CONFIG: CollectiveResultsMetadata.GROUNDING_CONFIG,
-  GAP_INTERPRETATIONS: CollectiveResultsMetadata.GAP_INTERPRETATIONS,
-  DOMAIN_LABELS: CollectiveResultsMetadata.DOMAIN_LABELS,
-  INTEGRATION_PROFILES: CollectiveResultsMetadata.INTEGRATION_PROFILES,
-  REPORT_TOOLS: CollectiveResultsMetadata.REPORT_TOOLS,
-  CALCULATOR_TOOLS: CollectiveResultsMetadata.CALCULATOR_TOOLS,
+  get TOOL_META() { return CollectiveResultsMetadata.TOOL_META; },
+  get STRATEGY_LABELS() { return CollectiveResultsMetadata.STRATEGY_LABELS; },
+  get STRATEGY_INSIGHTS() { return CollectiveResultsMetadata.STRATEGY_INSIGHTS; },
+  get TOOL_PRIORITY() { return CollectiveResultsMetadata.TOOL_PRIORITY; },
+  get GROUNDING_CONFIG() { return CollectiveResultsMetadata.GROUNDING_CONFIG; },
+  get GAP_INTERPRETATIONS() { return CollectiveResultsMetadata.GAP_INTERPRETATIONS; },
+  get DOMAIN_LABELS() { return CollectiveResultsMetadata.DOMAIN_LABELS; },
+  get INTEGRATION_PROFILES() { return CollectiveResultsMetadata.INTEGRATION_PROFILES; },
+  get REPORT_TOOLS() { return CollectiveResultsMetadata.REPORT_TOOLS; },
+  get CALCULATOR_TOOLS() { return CollectiveResultsMetadata.CALCULATOR_TOOLS; },
 
   // ============================================================
   // DATA AGGREGATION
