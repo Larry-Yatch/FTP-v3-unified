@@ -969,9 +969,9 @@ const Tool2 = Object.assign({}, FormToolBase, {
    */
   getTool1TraumaData(clientId) {
     try {
-      // Query Tool 1 responses for this client
-      const sheet = SpreadsheetApp.openById(CONFIG.MASTER_SHEET_ID).getSheetByName('RESPONSES');
-      const data = sheet.getDataRange().getValues();
+      // Query Tool 1 responses for this client (uses cache)
+      const data = SpreadsheetCache.getSheetData(CONFIG.SHEETS.RESPONSES);
+      if (!data) return null;
       const headers = data[0];
 
       // Find Tool 1 response for this client (most recent, Is_Latest = true)

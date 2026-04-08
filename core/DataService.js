@@ -442,7 +442,8 @@ const DataService = {
         return { valid: false, reason: 'Session storage unavailable' };
       }
 
-      const data = sheet.getDataRange().getValues();
+      const data = SpreadsheetCache.getSheetData(CONFIG.SHEETS.SESSIONS);
+      if (!data) return { valid: false, reason: 'Session data unavailable' };
 
       // Find session (search from bottom up for latest)
       for (let i = data.length - 1; i > 0; i--) {
@@ -453,6 +454,7 @@ const DataService = {
           if (expiresAt > now) {
             // Update last activity
             sheet.getRange(i + 1, 5).setValue(now);
+            SpreadsheetCache.markDirty(CONFIG.SHEETS.SESSIONS);
 
             return {
               valid: true,

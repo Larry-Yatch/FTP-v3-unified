@@ -813,14 +813,7 @@ const CapstoneGPT = {
    */
   getCachedResult(clientId, callType, summary) {
     try {
-      var ss = SpreadsheetApp.openById(
-        PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID') ||
-        SpreadsheetApp.getActiveSpreadsheet().getId()
-      );
-      var sheet = ss.getSheetByName(CONFIG.SHEETS.CAPSTONE_GPT_CACHE);
-      if (!sheet) return null;
-
-      var data = sheet.getDataRange().getValues();
+      var data = SpreadsheetCache.getSheetData(CONFIG.SHEETS.CAPSTONE_GPT_CACHE);
       if (data.length < 2) return null;
 
       var currentHash = this.computeToolsHash(summary);
@@ -853,20 +846,17 @@ const CapstoneGPT = {
    */
   cacheResult(clientId, callType, result, summary) {
     try {
-      var ss = SpreadsheetApp.openById(
-        PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID') ||
-        SpreadsheetApp.getActiveSpreadsheet().getId()
-      );
-      var sheet = ss.getSheetByName(CONFIG.SHEETS.CAPSTONE_GPT_CACHE);
+      var sheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.CAPSTONE_GPT_CACHE);
 
       // Auto-create sheet if missing
       if (!sheet) {
+        var ss = SpreadsheetCache.getSpreadsheet();
         sheet = ss.insertSheet(CONFIG.SHEETS.CAPSTONE_GPT_CACHE);
         sheet.appendRow(['Timestamp', 'Client_ID', 'Call_Type', 'Data', 'Source', 'Tools_Hash', 'Is_Latest']);
         sheet.setFrozenRows(1);
       }
 
-      var data = sheet.getDataRange().getValues();
+      var data = SpreadsheetCache.getSheetData(CONFIG.SHEETS.CAPSTONE_GPT_CACHE);
 
       // Mark previous entries for this client+callType as not latest
       for (var i = 1; i < data.length; i++) {
@@ -888,6 +878,8 @@ const CapstoneGPT = {
         hash,
         'TRUE'
       ]);
+
+      SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.CAPSTONE_GPT_CACHE);
 
     } catch (e) {
       Logger.log('[CapstoneGPT] Cache write error: ' + e.message);

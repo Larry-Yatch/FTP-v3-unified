@@ -154,8 +154,7 @@ const Tool2Report = {
   // --- Delta Summary Hero (light mode primary section) ---
   buildDeltaSummaryHero(clientId, currentResults) {
     try {
-      var sheet = SpreadsheetApp.openById(CONFIG.MASTER_SHEET_ID).getSheetByName('RESPONSES');
-      var allData = sheet.getDataRange().getValues();
+      var allData = SpreadsheetCache.getSheetData(CONFIG.SHEETS.RESPONSES);
       var headers = allData[0];
       var toolIdCol = headers.indexOf('Tool_ID');
       var clientCol = headers.indexOf('Client_ID');
@@ -403,8 +402,7 @@ const Tool2Report = {
   buildProgressComparison(clientId, currentResults) {
     try {
       // Find previous Tool 2 response (not the current one)
-      var sheet = SpreadsheetApp.openById(CONFIG.MASTER_SHEET_ID).getSheetByName('RESPONSES');
-      var allData = sheet.getDataRange().getValues();
+      var allData = SpreadsheetCache.getSheetData(CONFIG.SHEETS.RESPONSES);
       var headers = allData[0];
       var toolIdCol = headers.indexOf('Tool_ID');
       var clientCol = headers.indexOf('Client_ID');

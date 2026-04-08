@@ -593,8 +593,7 @@ const PDFGenerator = {
 
     // Fetch previous response for deltas
     try {
-      var sheet = SpreadsheetApp.openById(CONFIG.MASTER_SHEET_ID).getSheetByName('RESPONSES');
-      var allData = sheet.getDataRange().getValues();
+      var allData = SpreadsheetCache.getSheetData(CONFIG.SHEETS.RESPONSES);
       var headers = allData[0];
       var toolIdCol = headers.indexOf('Tool_ID');
       var clientCol = headers.indexOf('Client_ID');
