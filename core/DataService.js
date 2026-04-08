@@ -270,9 +270,8 @@ const DataService = {
       const now = new Date();
       const lastCol = sheet.getLastColumn();
 
-      // Batch: write status, date, and Last_Updated using getRangeList where possible
-      sheet.getRange(rowIndex + 1, statusCol).setValue(status);
-      sheet.getRange(rowIndex + 1, dateCol).setValue(now);
+      // Batch: status + date are adjacent columns, Last_Updated is at end
+      sheet.getRange(rowIndex + 1, statusCol, 1, 2).setValues([[status, now]]);
       sheet.getRange(rowIndex + 1, lastCol).setValue(now);
       SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.TOOL_STATUS);
 
