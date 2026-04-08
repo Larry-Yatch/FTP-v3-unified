@@ -40,7 +40,31 @@ const ReportClientJS = {
         overlay.classList.add('active');
       }
 
+      var _tipInterval = null;
+
+      function showLoadingWithTips(messages, intervalMs) {
+        intervalMs = intervalMs || 3500;
+        stopLoadingTips();
+        showLoading(messages[0]);
+        var tipIndex = 0;
+        _tipInterval = setInterval(function() {
+          tipIndex = (tipIndex + 1) % messages.length;
+          var overlay = document.getElementById('loadingOverlay');
+          if (overlay) {
+            var text = overlay.querySelector('.loading-text');
+            if (text) {
+              text.innerHTML = messages[tipIndex] + '<span class="loading-dots"></span>';
+            }
+          }
+        }, intervalMs);
+      }
+
+      function stopLoadingTips() {
+        if (_tipInterval) { clearInterval(_tipInterval); _tipInterval = null; }
+      }
+
       function hideLoading() {
+        stopLoadingTips();
         var overlay = document.getElementById('loadingOverlay');
         overlay.classList.remove('active');
       }
@@ -52,10 +76,16 @@ const ReportClientJS = {
    * Depends on: showLoading(), hideLoading(), getDashboardPage() server function.
    * @returns {string} Client-side JS for navigateToDashboard(clientId, message)
    */
-  getNavigationFunction() {
+  getNavigationFunction(tipMessages) {
+    const tipsJson = tipMessages ? JSON.stringify(tipMessages) : 'null';
     return `
+      var _dashTips = ${tipsJson};
       function navigateToDashboard(cId, message) {
-        showLoading(message || 'Loading Dashboard');
+        if (_dashTips) {
+          showLoadingWithTips(_dashTips);
+        } else {
+          showLoading(message || 'Loading Dashboard');
+        }
 
         google.script.run
           .withSuccessHandler(function(dashboardHtml) {
@@ -88,13 +118,19 @@ const ReportClientJS = {
    * @param {string} pdfFunctionName - GAS function name (e.g., 'generateTool1PDF')
    * @returns {string} Client-side JS for downloadPDF()
    */
-  getDownloadFunction(pdfFunctionName) {
+  getDownloadFunction(pdfFunctionName, tipMessages) {
+    const tipsJson = tipMessages ? JSON.stringify(tipMessages) : 'null';
     return `
+      var _pdfTips = ${tipsJson};
       function downloadPDF() {
         var btn = event.target;
         btn.disabled = true;
         btn.textContent = 'Generating PDF...';
-        showLoading('Generating PDF');
+        if (_pdfTips) {
+          showLoadingWithTips(_pdfTips);
+        } else {
+          showLoading('Generating PDF');
+        }
 
         google.script.run
           .withSuccessHandler(function(result) {
@@ -133,7 +169,7 @@ const ReportClientJS = {
   getBackToDashboard() {
     return `
       function backToDashboard() {
-        navigateToDashboard(clientId, 'Loading Dashboard');
+        navigateToDashboard(clientId);
       }
     `;
   }

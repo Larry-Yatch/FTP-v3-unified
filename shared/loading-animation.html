@@ -110,10 +110,44 @@
     overlay.classList.add('active');
   }
 
-  // Hide loading overlay
+  // Hide loading overlay (also stops any cycling tips)
   function hideLoading() {
+    stopLoadingTips();
     const overlay = document.getElementById('loadingOverlay');
     overlay.classList.remove('active');
+  }
+
+  // ─── Cycling Loading Tips ─────────────────────────────────────
+
+  var _tipInterval = null;
+
+  /**
+   * Show loading overlay with cycling messages that rotate automatically.
+   * @param {Array<string>} messages - Array of messages to cycle through
+   * @param {number} [intervalMs=3500] - Milliseconds between message changes
+   */
+  function showLoadingWithTips(messages, intervalMs) {
+    intervalMs = intervalMs || 3500;
+    stopLoadingTips();
+    showLoading(messages[0]);
+    var tipIndex = 0;
+    _tipInterval = setInterval(function() {
+      tipIndex = (tipIndex + 1) % messages.length;
+      var overlay = document.getElementById('loadingOverlay');
+      if (overlay) {
+        var text = overlay.querySelector('.loading-text');
+        if (text) {
+          text.innerHTML = messages[tipIndex] + '<span class="loading-dots"></span>';
+        }
+      }
+    }, intervalMs);
+  }
+
+  function stopLoadingTips() {
+    if (_tipInterval) {
+      clearInterval(_tipInterval);
+      _tipInterval = null;
+    }
   }
 
   // Show loading on form submit
@@ -127,8 +161,12 @@
 
   // Navigate to dashboard using document.write() pattern (no iframe navigation!)
   // SAVES current form data first to prevent data loss
-  function navigateToDashboard(clientId, message) {
-    showLoading(message || 'Saving and returning to Dashboard');
+  function navigateToDashboard(clientId, messageOrTips) {
+    if (Array.isArray(messageOrTips)) {
+      showLoadingWithTips(messageOrTips);
+    } else {
+      showLoading(messageOrTips || 'Saving and returning to Dashboard');
+    }
 
     // Find the current form (search for any form with tool page pattern)
     const forms = document.querySelectorAll('form[id*="Page"]');
