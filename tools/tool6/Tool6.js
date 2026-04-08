@@ -5361,18 +5361,21 @@ const Tool6 = {
     }
 
     // Sprint 5.5: Update single vehicle display
-    function updateSingleVehicleDisplay(vehicleId, value) {
+    // calledFromDrag: true when called from oninput (skip setting slider.value to avoid fighting drag)
+    function updateSingleVehicleDisplay(vehicleId, value, calledFromDrag) {
       var amountEl = document.getElementById('amount_' + vehicleId);
       var percentEl = document.getElementById('percent_' + vehicleId);
       var fillEl = document.getElementById('fill_' + vehicleId);
-      var sliderRow = document.querySelector('.vehicle-slider-row[data-vehicle-id="' + vehicleId + '"]');
       var slider = document.getElementById('slider_' + vehicleId);
 
       if (amountEl) {
         amountEl.textContent = '$' + Math.round(value).toLocaleString();
       }
 
-      if (slider) {
+      // Only set slider.value when called programmatically (not during user drag).
+      // Setting slider.value during oninput fights the browser's native drag
+      // handling and causes jerkiness.
+      if (slider && !calledFromDrag) {
         slider.value = value;
       }
 
@@ -5383,28 +5386,31 @@ const Tool6 = {
       }
       var percent = Math.round((value / maxVal) * 100);
 
-      // Update percent display (new Tool 4 style)
+      // Update percent display
       if (percentEl) {
         percentEl.textContent = '(' + percent + '%)';
       }
 
-      // Update fill bar (new Tool 4 style - simpler percentage-based fill)
+      // Update fill bar
       if (fillEl) {
         fillEl.style.width = Math.min(percent, 100) + '%';
       }
 
       // Fallback: Try old class-based selectors
-      if (sliderRow) {
-        if (!fillEl) {
-          var fill = sliderRow.querySelector('.slider-fill');
-          if (fill) {
-            fill.style.width = Math.min(percent, 100) + '%';
+      if (!fillEl || !percentEl) {
+        var sliderRow = document.querySelector('.vehicle-slider-row[data-vehicle-id="' + vehicleId + '"]');
+        if (sliderRow) {
+          if (!fillEl) {
+            var fill = sliderRow.querySelector('.slider-fill');
+            if (fill) {
+              fill.style.width = Math.min(percent, 100) + '%';
+            }
           }
-        }
-        if (!percentEl) {
-          var oldPercentEl = sliderRow.querySelector('.amount-percent');
-          if (oldPercentEl) {
-            oldPercentEl.textContent = percent + '%';
+          if (!percentEl) {
+            var oldPercentEl = sliderRow.querySelector('.amount-percent');
+            if (oldPercentEl) {
+              oldPercentEl.textContent = percent + '%';
+            }
           }
         }
       }
@@ -5628,7 +5634,7 @@ const Tool6 = {
     function updateVehicleDisplay(vehicleName, value) {
       // During drag, just update visual without coupling (for responsiveness)
       var vehicleId = vehicleName.replace(/[^a-zA-Z0-9]/g, '_');
-      updateSingleVehicleDisplay(vehicleId, parseFloat(value));
+      updateSingleVehicleDisplay(vehicleId, parseFloat(value), true);
     }
 
     // Sprint 5.5: Update vehicle allocation (on slider change complete)

@@ -891,6 +891,8 @@ textarea {
 }
 
 /* Range Inputs */
+/* CRITICAL: Track styling is required when using appearance:none.
+   Without explicit track rules, the thumb renders but cannot be dragged in Chrome. */
 input[type="range"] {
   -webkit-appearance: none;
   appearance: none;
@@ -901,6 +903,20 @@ input[type="range"] {
   outline: none;
 }
 
+input[type="range"]::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+input[type="range"]::-moz-range-track {
+  width: 100%;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
@@ -909,6 +925,7 @@ input[type="range"]::-webkit-slider-thumb {
   background: var(--gold, #ad9168);
   border-radius: 50%;
   cursor: pointer;
+  margin-top: -6px;
 }
 
 /* Form Validation */
