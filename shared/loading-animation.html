@@ -120,10 +120,13 @@
 
   // ─── Cycling Loading Tips ─────────────────────────────────────
 
-  var _tipInterval = null;
+  var _tipTimer = null;
+  var _tipActive = false;
 
   /**
    * Show loading overlay with cycling messages that rotate automatically.
+   * Uses setTimeout chain (not setInterval) to prevent stacking if
+   * document.write() does not fully clear the JS context.
    * @param {Array<string>} messages - Array of messages to cycle through
    * @param {number} [intervalMs=3500] - Milliseconds between message changes
    */
@@ -133,28 +136,38 @@
     stopLoadingTips();
     showLoading(messages[0]);
     if (messages.length <= 1) return;
+
     var tipIndex = 0;
-    _tipInterval = setInterval(function() {
+    _tipActive = true;
+
+    function nextTip() {
+      if (!_tipActive) return;
       tipIndex = (tipIndex + 1) % messages.length;
       var overlay = document.getElementById('loadingOverlay');
       if (overlay) {
         var text = overlay.querySelector('.loading-text');
         if (text) {
-          // Fade transition for smooth message changes
           text.style.opacity = '0';
           setTimeout(function() {
+            if (!_tipActive) return;
             text.innerHTML = messages[tipIndex] + '<span class="loading-dots"></span>';
             text.style.opacity = '1';
           }, 300);
         }
+        // Schedule next tip only if still active
+        _tipTimer = setTimeout(nextTip, intervalMs);
       }
-    }, intervalMs);
+      // If overlay is gone (document replaced), stop naturally
+    }
+
+    _tipTimer = setTimeout(nextTip, intervalMs);
   }
 
   function stopLoadingTips() {
-    if (_tipInterval) {
-      clearInterval(_tipInterval);
-      _tipInterval = null;
+    _tipActive = false;
+    if (_tipTimer) {
+      clearTimeout(_tipTimer);
+      _tipTimer = null;
     }
   }
 

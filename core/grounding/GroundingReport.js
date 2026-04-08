@@ -381,7 +381,8 @@ const GroundingReport = {
               overlay.classList.add('active');
             }
 
-            var _tipInterval = null;
+            var _tipTimer = null;
+            var _tipActive = false;
             function showLoadingWithTips(messages, intervalMs) {
               if (!messages || messages.length === 0) return;
               intervalMs = intervalMs || 3500;
@@ -389,7 +390,9 @@ const GroundingReport = {
               showLoading(messages[0]);
               if (messages.length <= 1) return;
               var tipIndex = 0;
-              _tipInterval = setInterval(function() {
+              _tipActive = true;
+              function nextTip() {
+                if (!_tipActive) return;
                 tipIndex = (tipIndex + 1) % messages.length;
                 var overlay = document.getElementById('loadingOverlay');
                 if (overlay) {
@@ -397,14 +400,17 @@ const GroundingReport = {
                   if (text) {
                     text.style.opacity = '0';
                     setTimeout(function() {
+                      if (!_tipActive) return;
                       text.innerHTML = messages[tipIndex] + '<span class="loading-dots"></span>';
                       text.style.opacity = '1';
                     }, 300);
                   }
+                  _tipTimer = setTimeout(nextTip, intervalMs);
                 }
-              }, intervalMs);
+              }
+              _tipTimer = setTimeout(nextTip, intervalMs);
             }
-            function stopLoadingTips() { if (_tipInterval) { clearInterval(_tipInterval); _tipInterval = null; } }
+            function stopLoadingTips() { _tipActive = false; if (_tipTimer) { clearTimeout(_tipTimer); _tipTimer = null; } }
 
             function hideLoading() {
               stopLoadingTips();
