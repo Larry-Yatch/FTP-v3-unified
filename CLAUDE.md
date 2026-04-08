@@ -183,3 +183,24 @@ grep -n "webkit-slider-runnable-track\|moz-range-track" tools/tool6/Tool6.js
 ```
 
 If this returns no results, the slider drag fix has been accidentally removed.
+
+---
+
+## 🚨 Slider CSS - ALL TOOLS
+
+**The slider track CSS fix applies globally.** `shared/styles.html` has base track styling for all `input[type="range"]` elements. Tool-specific stylesheets add overrides:
+
+- `shared/styles.html` — Global `::-webkit-slider-runnable-track` and `::-moz-range-track`
+- `tools/tool4/tool4-styles.html` — `.slider-input` and `.bucket-range-input` track styling
+- `tools/tool6/tool6-styles.html` — `.vehicle-slider` track styling
+
+### Pre-Commit Check (all tools):
+
+```bash
+# Verify global slider CSS exists
+grep -n "webkit-slider-runnable-track\|moz-range-track" shared/styles.html tools/tool4/tool4-styles.html tools/tool6/tool6-styles.html
+```
+
+### Tool 6 Slider Drag Responsiveness
+
+Tool 6 vehicle sliders use a `calledFromDrag` parameter in `updateSingleVehicleDisplay()` to avoid setting `slider.value` during `oninput`. Setting the value during drag fights the browser's native drag handling and causes jerkiness. Do not remove this parameter.

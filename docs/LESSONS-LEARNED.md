@@ -351,6 +351,16 @@ All score threshold checks should use `>=` consistently, not a mix of `>` and `>
 9. **PDF generator is a separate pipeline** - When redesigning a tool report (HTML), the PDF generator (`shared/PDFGenerator.js`) must also be updated. It has its own rendering logic and does not share code with the HTML report. Missed in Tool 2 overhaul design doc — caught during testing.
 10. **Router must pass new params through** - When adding new URL parameters (like `quickCheckIn`), the Router's `renderParams` object must explicitly include them. The Router does not auto-pass all request params to tools — only listed ones (`editMode`, `clearDraft`, `quickCheckIn`).
 
+11. **Batch sheet operations** - Individual `setValue()` calls are network round-trips. Use `getRangeList().setValue()` for same-value batch writes, `setValues()` for multi-cell writes, and `SpreadsheetCache.batchPreload()` to pre-warm cache before operations that need multiple sheets.
+
+12. **Delete rows by index descending** - When deleting multiple rows from a sheet, sort by row index descending before deleting. Deleting a row shifts all rows below it up by one, so ascending deletion uses stale indices. Bug found in `ResponseManager._cleanupOldVersions()`.
+
+13. **Never set slider.value during oninput** - In client-side slider handlers, setting `slider.value = x` during an `oninput` event fights the browser's native drag handling and causes jerkiness. Only set it programmatically (from other code), not from the slider's own input handler.
+
+14. **Slider CSS requires explicit track styling** - When using `appearance: none` on range inputs, browsers require `::-webkit-slider-runnable-track` and `::-moz-range-track` rules or the thumb will not be draggable. This applies globally in `shared/styles.html` and per-tool in `tool4-styles.html` and `tool6-styles.html`.
+
+15. **Run regression tests before committing** - Run `runAllCoreTests()` from the Apps Script Editor. 135 tests cover SpreadsheetCache, DataService, ResponseManager, ToolAccessControl, and InsightsPipeline. All tests use `TEST_RUNNER_` prefixed client IDs and clean up after themselves.
+
 ---
 
 ## Quick Reference: Common Mistakes
@@ -364,3 +374,8 @@ All score threshold checks should use `>=` consistently, not a mix of `>` and `>
 | Escaped apostrophes in template literals | Use full words or double quotes |
 | JSON.stringify in template | Base64 encode first |
 | Custom form handling | Use FormUtils.buildStandardPage() |
+| Multiple `setValue()` calls | Use `getRangeList().setValue()` or `setValues()` for batch |
+| `sheet.getDataRange().getValues()` in write path | Use `SpreadsheetCache.getSheetData()` |
+| Deleting rows in ascending order | Sort by row index descending, then delete |
+| Setting `slider.value` in `oninput` | Use `calledFromDrag` flag to skip during drag |
+| `appearance: none` without track CSS | Add `::-webkit-slider-runnable-track` and `::-moz-range-track` |

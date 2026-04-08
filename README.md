@@ -47,7 +47,8 @@ FTP-v3/
 │   ├── DataService.js       # Persistence layer
 │   ├── ResponseManager.js   # Version control (Is_Latest)
 │   ├── Authentication.js    # Client lookup + sessions
-│   ├── ToolAccessControl.js # Linear progression enforcement
+│   ├── ToolAccessControl.js # Linear progression + batch access checks
+│   ├── SpreadsheetCache.js  # Per-request caching with batch preload
 │   ├── InsightsPipeline.js  # Cross-tool intelligence
 │   ├── IntegrationGPT.js    # Capstone narrative generation
 │   ├── CapstoneGPT.js       # Financial story synthesis
@@ -60,6 +61,9 @@ FTP-v3/
 │   ├── PDFGenerator.js      # PDF report generation
 │   ├── styles.html          # Design tokens + base CSS
 │   └── ...
+├── tests/                   # GAS-native regression tests (135 tests)
+│   ├── TestRunner.js              # runAllCoreTests() entry point
+│   └── ...                        # SpreadsheetCache, DataService, ResponseManager, etc.
 ├── docs/                    # Documentation
 │   ├── SYSTEM-DESCRIPTION.md       # Complete technical overview
 │   ├── TruPath_Master_System_Overview.md  # Business + system context
@@ -68,7 +72,7 @@ FTP-v3/
 │   ├── Foundational Docs/          # Core IP + assessment content
 │   └── Archive/                    # Historical documentation artifacts
 └── archive/                 # Historical code artifacts
-    ├── tests/                      # Test suites, validation scripts
+    ├── tests/                      # Legacy test suites, validation scripts
     ├── apps/                       # Pre-v3 standalone GAS projects
     ├── migration-scripts/          # One-time data migration utilities
     └── tool4-legacy/               # Old Tool 4 implementation files

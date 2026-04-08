@@ -109,7 +109,7 @@ Code.js (Entry Point)
 | `core/ToolAccessControl.js` | Linear progression enforcement, admin lock/unlock overrides |
 | `core/InsightsPipeline.js` | Cross-tool intelligence: condition evaluation, insight generation, downstream adaptation |
 | `core/Authentication.js` | Client ID lookup with name/email fallback matching |
-| `core/SpreadsheetCache.js` | Per-request spreadsheet instance caching (prevents API throttling) |
+| `core/SpreadsheetCache.js` | Per-request caching with `batchPreload()`, `markDirty()`, `flushDirty()` for coordinated multi-sheet operations |
 
 ### Data Model (Google Sheets Tabs)
 
@@ -190,7 +190,7 @@ Tools fall into three architectural patterns, each with a shared base class:
 - **What It Does:** Discovers optimal budget allocation across four financial categories (Multiply/Essentials/Freedom/Enjoyment) based on a client pre-survey, 10 progressively unlocked financial priorities, and 29 trauma-informed modifiers drawn from Tools 1-3. Supports multiple saved scenarios.
 - **Data Sources:** Pre-survey (income, balances, financial situation), Tool 1/2/3 psychological modifiers, client priority selection
 - **Output:** Personalized M/E/F/J allocation percentages, scenario comparison, PDF report with GPT narrative
-- **Key Files:** `tools/tool4/Tool4.js`, `Tool4GPTAnalysis.js`, `Tool4Constants.js`, `Tool4Fallbacks.js`, `tool4-styles.html`, `tool4.manifest.json` (9,336 lines total)
+- **Key Files:** `tools/tool4/Tool4.js`, `Tool4Scoring.js`, `Tool4GPTAnalysis.js`, `Tool4Constants.js`, `Tool4Fallbacks.js`, `tool4-styles.html`, `tool4.manifest.json`
 
 #### Tool 5: Love & Connection Grounding
 - **Status:** Production-complete
@@ -431,7 +431,14 @@ FTP-v3/
 |-- html/                            # HTML templates
 |-- apps/                            # Legacy v2 tool code (reference only)
 |-- docs/                            # Documentation
-|-- tests/                           # Test suites
+|-- tests/                           # GAS-native regression test suite (135 tests)
+|   |-- TestRunner.js                # Test harness + runAllCoreTests() entry point
+|   |-- TestFixtures.js              # Mock data factories
+|   |-- SpreadsheetCacheTests.js     # Cache hit/miss, invalidation tests
+|   |-- DataServiceTests.js          # Save/retrieve, draft lifecycle tests
+|   |-- ResponseManagerTests.js      # Edit/cancel/version cleanup tests
+|   |-- ToolAccessControlTests.js    # Progression, unlock, batch access tests
+|   |-- InsightsPipelineTests.js     # Condition eval, archiving, priority tests
 ```
 
 ---
