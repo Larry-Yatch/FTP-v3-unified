@@ -809,8 +809,8 @@ buildUnifiedPage(clientId, toolStatus, preSurveyData, allocation) {
         <div class="presurvey-title">
           ${hasPreSurvey ? '📊 Your Allocation Profile' : '📊 Quick Allocation Profile Setup (10 questions, 2-3 minutes)'}
         </div>
-        <div style="display: flex; align-items: center; gap: 15px;">
-          <span style="font-size: 12px; color: var(--color-text-muted);">(Click to ${hasPreSurvey ? 'expand/collapse' : 'collapse'})</span>
+        <div class="presurvey-header" style="display:flex;align-items:center;gap:15px;">
+          <span class="collapse-hint">(Click to ${hasPreSurvey ? 'expand/collapse' : 'collapse'})</span>
           <div class="presurvey-toggle ${hasPreSurvey ? 'collapsed' : ''}" id="preSurveyToggle">▼</div>
         </div>
       </div>
@@ -818,18 +818,18 @@ buildUnifiedPage(clientId, toolStatus, preSurveyData, allocation) {
       <!-- Summary (shown when collapsed) -->
       ${hasPreSurvey ? `
       <div class="presurvey-summary show" id="preSurveySummary">
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; font-size: 1rem;">
-          <div style="color: var(--color-text-secondary);">
-            <strong style="color: var(--color-text-primary);">Income:</strong> $${formValues.monthlyIncome || 'Not set'}
+        <div class="presurvey-summary-grid">
+          <div class="summary-label">
+            <strong class="summary-value">Income:</strong> $${formValues.monthlyIncome || 'Not set'}
           </div>
-          <div style="color: var(--color-text-secondary);">
-            <strong style="color: var(--color-text-primary);">Essentials:</strong> $${formValues.monthlyEssentials || 'Not set'}
+          <div class="summary-label">
+            <strong class="summary-value">Essentials:</strong> $${formValues.monthlyEssentials || 'Not set'}
           </div>
-          <div style="color: var(--color-text-secondary);">
-            <strong style="color: var(--color-text-primary);">Satisfaction:</strong> ${formValues.satisfaction || 5}/10
+          <div class="summary-label">
+            <strong class="summary-value">Satisfaction:</strong> ${formValues.satisfaction || 5}/10
           </div>
-          <div style="color: var(--color-text-primary);">
-            <strong style="color: var(--color-text-primary);">Discipline:</strong> ${formValues.discipline || 5}/10
+          <div class="summary-value">
+            <strong class="summary-value">Discipline:</strong> ${formValues.discipline || 5}/10
           </div>
         </div>
       </div>
@@ -963,41 +963,41 @@ buildUnifiedPage(clientId, toolStatus, preSurveyData, allocation) {
 
           ${!hasTool1 || !hasTool2 || !hasTool3 ? `
           <!-- Backup Questions Section - Only shown when Tool 1, 2, or 3 data is missing -->
-          <div class="backup-questions-section" style="margin-top: 30px; padding-top: 30px; border-top: 2px solid rgba(255,255,255,0.1);">
+          <div class="backup-questions-section backup-section-divider" style="padding-top: 30px; border-top: 2px solid rgba(255,255,255,0.1);">
             <div class="intro-section" style="margin-bottom: 25px;">
               <div class="intro-title" style="font-size: 1.2rem; margin-bottom: 10px;">A Few More Questions</div>
 
               <!-- Explanation about missing tools -->
-              <div style="background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.3); border-radius: 10px; padding: 16px 20px; margin-bottom: 20px;">
-                <div style="color: var(--color-text-primary); font-size: 1rem; margin-bottom: 12px;">
+              <div class="missing-tools-box">
+                <div class="missing-tools-title">
                   Because you have not completed ${this.getMissingToolsText(hasTool1, hasTool2, hasTool3)}, we need to gather a bit more information from you.
                 </div>
-                <div style="color: var(--color-text-secondary); font-size: 0.95rem; margin-bottom: 15px;">
+                <div class="missing-tools-desc">
                   For deeper insights and more personalized recommendations, we recommend going back to complete ${(!hasTool1 && !hasTool2) || (!hasTool1 && !hasTool3) || (!hasTool2 && !hasTool3) ? 'those tools' : 'that tool'} first.
                 </div>
-                <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                <div class="tool-nav-container">
                   ${!hasTool1 ? `
-                  <button type="button" class="btn-primary" onclick="navigateToTool('tool1')" style="width: auto; display: flex; align-items: center; gap: 8px;">
-                    <span style="font-weight: 700; font-size: 1rem;">Go to Tool 1</span>
-                    <span style="font-size: 0.85rem; opacity: 0.8;">Financial Trauma Patterns</span>
+                  <button type="button" class="btn-primary tool-nav-btn" onclick="navigateToTool('tool1')">
+                    <span class="tool-nav-label">Go to Tool 1</span>
+                    <span class="tool-nav-sublabel">Financial Trauma Patterns</span>
                   </button>
                   ` : ''}
                   ${!hasTool2 ? `
-                  <button type="button" class="btn-primary" onclick="navigateToTool('tool2')" style="width: auto; display: flex; align-items: center; gap: 8px;">
-                    <span style="font-weight: 700; font-size: 1rem;">Go to Tool 2</span>
-                    <span style="font-size: 0.85rem; opacity: 0.8;">Financial Clarity</span>
+                  <button type="button" class="btn-primary tool-nav-btn" onclick="navigateToTool('tool2')">
+                    <span class="tool-nav-label">Go to Tool 2</span>
+                    <span class="tool-nav-sublabel">Financial Clarity</span>
                   </button>
                   ` : ''}
                   ${!hasTool3 ? `
-                  <button type="button" class="btn-primary" onclick="navigateToTool('tool3')" style="width: auto; display: flex; align-items: center; gap: 8px;">
-                    <span style="font-weight: 700; font-size: 1rem;">Go to Tool 3</span>
-                    <span style="font-size: 0.85rem; opacity: 0.8;">Identity & Grounding</span>
+                  <button type="button" class="btn-primary tool-nav-btn" onclick="navigateToTool('tool3')">
+                    <span class="tool-nav-label">Go to Tool 3</span>
+                    <span class="tool-nav-sublabel">Identity & Grounding</span>
                   </button>
                   ` : ''}
                 </div>
               </div>
 
-              <div class="intro-text" style="font-size: 1rem;">
+              <div class="intro-text">
                 Or, answer the questions below and we will use your responses to personalize your recommendations.
               </div>
             </div>
@@ -1106,9 +1106,9 @@ buildUnifiedPage(clientId, toolStatus, preSurveyData, allocation) {
             <!-- Tool 3 Backup Questions (6 sliders for FSV and ExVal domains) -->
 
             <!-- FSV Domain Proxies (3 questions) -->
-            <div style="margin-top: 20px; margin-bottom: 15px;">
-              <div style="font-size: 1.1rem; font-weight: 600; color: var(--color-text-primary);">Self-Worth and Money</div>
-              <div style="font-size: 1rem; color: var(--color-text-secondary);">These questions explore your inner relationship with money and self-worth.</div>
+            <div class="backup-section-divider" style="margin-top: 20px;">
+              <div class="backup-section-title">Self-Worth and Money</div>
+              <div class="backup-section-desc">These questions explore your inner relationship with money and self-worth.</div>
             </div>
 
             <!-- Backup Q: Worthiness -->
@@ -1151,9 +1151,9 @@ buildUnifiedPage(clientId, toolStatus, preSurveyData, allocation) {
             </div>
 
             <!-- ExVal Domain Proxies (3 questions) -->
-            <div style="margin-top: 30px; margin-bottom: 15px;">
-              <div style="font-size: 1.1rem; font-weight: 600; color: var(--color-text-primary);">Money and Others</div>
-              <div style="font-size: 1rem; color: var(--color-text-secondary);">These questions explore how others influence your relationship with money.</div>
+            <div class="backup-section-divider">
+              <div class="backup-section-title">Money and Others</div>
+              <div class="backup-section-desc">These questions explore how others influence your relationship with money.</div>
             </div>
 
             <!-- Backup Q: Worth = Money -->
@@ -1200,9 +1200,9 @@ buildUnifiedPage(clientId, toolStatus, preSurveyData, allocation) {
             <!-- Tool 2 Backup Questions (5 questions for financial clarity data) -->
 
             <!-- Financial Growth & Stability Section Header -->
-            <div style="margin-top: 30px; margin-bottom: 15px;">
-              <div style="font-size: 1.1rem; font-weight: 600; color: var(--color-text-primary);">Financial Priorities & Life Context</div>
-              <div style="font-size: 1rem; color: var(--color-text-secondary);">These questions help us understand your financial focus and life situation.</div>
+            <div class="backup-section-divider">
+              <div class="backup-section-title">Financial Priorities & Life Context</div>
+              <div class="backup-section-desc">These questions help us understand your financial focus and life situation.</div>
             </div>
 
             <!-- Backup Q: Growth Orientation -->
@@ -1317,9 +1317,9 @@ buildUnifiedPage(clientId, toolStatus, preSurveyData, allocation) {
       !allocation  // Expanded if no allocation yet, collapsed if allocation exists
     ) : hasPreSurvey ? `
       <!-- Debug: Priority recommendations failed or empty -->
-      <div style="background: rgba(239, 68, 68, 0.1); padding: 20px; margin: 20px 0; border-radius: 8px;">
-        <p style="color: var(--color-text-primary);">Debug: Priority calculation issue</p>
-        <p style="color: var(--color-text-secondary); font-size: 1rem;">
+      <div class="debug-error-box" style="margin: 20px 0;">
+        <p class="summary-value">Debug: Priority calculation issue</p>
+        <p class="summary-label">
           Recommendations calculated: ${priorityRecommendations ? priorityRecommendations.length : 'null'}
         </p>
       </div>
@@ -5301,8 +5301,8 @@ buildUnifiedPage(clientId, toolStatus, preSurveyData, allocation) {
       <div class="priority-picker-section ${isCollapsed ? 'collapsed' : ''}">
         <div class="priority-picker-header" onclick="togglePriorityPicker()">
           <div class="presurvey-title">🎯 Choose Your Financial Priority</div>
-          <div style="display: flex; align-items: center; gap: 15px;">
-            <span style="font-size: 12px; color: var(--color-text-muted); font-weight: normal;">(Click to expand/collapse)</span>
+          <div class="presurvey-header" style="display:flex;align-items:center;gap:15px;">
+            <span class="collapse-hint" style="font-weight: normal;">(Click to expand/collapse)</span>
             <span class="toggle-icon">${isCollapsed ? '▼' : '▲'}</span>
           </div>
         </div>
