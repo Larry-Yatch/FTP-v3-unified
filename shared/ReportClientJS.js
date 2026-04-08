@@ -51,24 +51,23 @@ const ReportClientJS = {
         if (messages.length <= 1) return;
         var tipIndex = 0;
         _tipActive = true;
-        function nextTip() {
+        function scheduleNextTip() {
           if (!_tipActive) return;
-          tipIndex = (tipIndex + 1) % messages.length;
-          var overlay = document.getElementById('loadingOverlay');
-          if (overlay) {
-            var text = overlay.querySelector('.loading-text');
-            if (text) {
-              text.style.opacity = '0';
-              setTimeout(function() {
-                if (!_tipActive) return;
-                text.innerHTML = messages[tipIndex] + '<span class="loading-dots"></span>';
-                text.style.opacity = '1';
-              }, 300);
-            }
-            _tipTimer = setTimeout(nextTip, intervalMs);
-          }
+          _tipTimer = setTimeout(function() {
+            if (!_tipActive) return;
+            var text = document.querySelector('#loadingOverlay .loading-text');
+            if (!text) return;
+            tipIndex = (tipIndex + 1) % messages.length;
+            text.style.opacity = '0';
+            _tipTimer = setTimeout(function() {
+              if (!_tipActive) return;
+              text.innerHTML = messages[tipIndex] + '<span class="loading-dots"></span>';
+              text.style.opacity = '1';
+              scheduleNextTip();
+            }, 350);
+          }, intervalMs);
         }
-        _tipTimer = setTimeout(nextTip, intervalMs);
+        scheduleNextTip();
       }
 
       function stopLoadingTips() {
