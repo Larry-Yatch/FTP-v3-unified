@@ -220,7 +220,8 @@ const InsightsPipeline = {
   },
 
   /**
-   * Save insights to CrossToolInsights sheet
+   * Save insights to CrossToolInsights sheet.
+   * Uses batch setValues instead of N individual appendRow calls.
    * @param {string} clientId - Client/student ID
    * @param {string} toolId - Source tool ID
    * @param {Array<Object>} insights - Insights to save
@@ -234,19 +235,23 @@ const InsightsPipeline = {
         return;
       }
 
-      insights.forEach(insight => {
-        sheet.appendRow([
-          insight.timestamp,
-          insight.clientId,
-          insight.sourceTool,
-          insight.insightType,
-          insight.priority,
-          insight.content,
-          JSON.stringify(insight.targetTools),
-          JSON.stringify(insight.conditionData),
-          insight.status
-        ]);
-      });
+      if (insights.length === 0) return;
+
+      // Build all rows at once, then write in a single setValues call
+      const rows = insights.map(insight => [
+        insight.timestamp,
+        insight.clientId,
+        insight.sourceTool,
+        insight.insightType,
+        insight.priority,
+        insight.content,
+        JSON.stringify(insight.targetTools),
+        JSON.stringify(insight.conditionData),
+        insight.status
+      ]);
+
+      const lastRow = sheet.getLastRow();
+      sheet.getRange(lastRow + 1, 1, rows.length, 9).setValues(rows);
 
       SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.CROSS_TOOL_INSIGHTS);
       LogUtils.debug(`Saved ${insights.length} insights to CrossToolInsights`);
@@ -314,17 +319,23 @@ const InsightsPipeline = {
 
       if (!sheet) return;
 
-      const data = sheet.getDataRange().getValues();
+      const data = SpreadsheetCache.getSheetData(CONFIG.SHEETS.CROSS_TOOL_INSIGHTS);
+      if (!data || data.length < 2) return;
 
-      // Find and archive old insights from this tool for this client
+      // Collect all rows that need archiving
+      const rowsToArchive = [];
       for (let i = 1; i < data.length; i++) {
         if (data[i][1] === clientId && data[i][2] === toolId && data[i][8] === 'active') {
-          sheet.getRange(i + 1, 9).setValue('archived');  // Column 9 is Status
+          rowsToArchive.push(sheet.getRange(i + 1, 9).getA1Notation());
         }
       }
 
-      SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.CROSS_TOOL_INSIGHTS);
-      LogUtils.debug(`Archived old insights for ${clientId} / ${toolId}`);
+      // Batch update: single getRangeList setValue instead of N individual calls
+      if (rowsToArchive.length > 0) {
+        sheet.getRangeList(rowsToArchive).setValue('archived');
+        SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.CROSS_TOOL_INSIGHTS);
+        LogUtils.debug(`Archived ${rowsToArchive.length} old insights for ${clientId} / ${toolId}`);
+      }
 
     } catch (error) {
       LogUtils.error('Error archiving insights: ' + error);

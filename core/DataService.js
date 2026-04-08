@@ -21,6 +21,17 @@ const DataService = {
     try {
       LogUtils.debug(`DataService: Saving response for ${clientId} / ${toolId} with status ${status}`);
 
+      // Pre-load all sheets that will be needed during the save cascade.
+      // For COMPLETED: RESPONSES, TOOL_STATUS, STUDENTS, PROGRESS_HISTORY
+      // For DRAFT/EDIT_DRAFT: just RESPONSES (already loaded by getSheet)
+      if (status === 'COMPLETED') {
+        SpreadsheetCache.batchPreload([
+          CONFIG.SHEETS.RESPONSES,
+          CONFIG.SHEETS.TOOL_STATUS,
+          CONFIG.SHEETS.STUDENTS
+        ]);
+      }
+
       const sheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.RESPONSES);
 
       if (!sheet) {
@@ -60,6 +71,10 @@ const DataService = {
           toolId: toolId,
           details: `Completed ${toolId}`
         });
+
+        // Single flush at end of the save cascade instead of implicit flushes
+        SpreadsheetApp.flush();
+
       } else if (status === 'DRAFT') {
         // Log draft save
         this.logActivity(clientId, 'draft_saved', {
