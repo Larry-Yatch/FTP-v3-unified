@@ -663,9 +663,26 @@ const GroundingFormBuilder = {
    * This eliminates race conditions where page navigation would cancel GPT calls
    */
   getBackgroundGPTScript(toolId, subdomainKey, subdomainIndex) {
-    // Return empty string - no longer needed on client side
-    // GPT triggering now happens in Tool3.savePageData() and Tool5.savePageData()
-    return '';
+    // When a subdomain page loads, fire a background GPT call for the PREVIOUS
+    // subdomain (whose data was just saved). This runs asynchronously while the
+    // student fills out the current page, so it does not block navigation.
+    // Page 2 (subdomainIndex 0) has no previous subdomain to analyze.
+    if (subdomainIndex <= 0) return '';
+
+    var prevIndex = subdomainIndex - 1;
+    return '<script>'
+      + '(function() {'
+      + '  try {'
+      + '    var formEl = document.querySelector("form");'
+      + '    var clientId = formEl ? formEl.querySelector("[name=client]").value : "";'
+      + '    if (!clientId) return;'
+      + '    google.script.run'
+      + '      .withSuccessHandler(function(r) { console.log("Background GPT done: " + (r && r.success)); })'
+      + '      .withFailureHandler(function(e) { console.log("Background GPT error (non-blocking): " + e.message); })'
+      + '      .analyzeGroundingSubdomainBackground("' + toolId + '", clientId, ' + prevIndex + ');'
+      + '  } catch(e) { console.log("Background GPT init error: " + e); }'
+      + '})();'
+      + '</script>';
   },
 
   /**

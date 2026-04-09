@@ -727,6 +727,84 @@ function triggerGroundingGPTAnalysis(toolId, clientId, subdomainKey, subdomainIn
 }
 
 /**
+ * Background GPT analysis for a grounding subdomain.
+ * Called fire-and-forget from client after next page renders.
+ * Reads draft data from DraftService, analyzes one subdomain, caches result.
+ *
+ * @param {string} toolId - Tool identifier
+ * @param {string} clientId - Client identifier
+ * @param {number} subdomainIndex - Index of subdomain to analyze (0-5)
+ * @returns {Object} { success, source }
+ */
+function analyzeGroundingSubdomainBackground(toolId, clientId, subdomainIndex) {
+  try {
+    registerTools();
+
+    var toolReg = ToolRegistry.get(toolId);
+    if (!toolReg) return { success: false, error: 'Tool not found' };
+
+    var tool = toolReg.module;
+    var subdomain = tool.config.subdomains[subdomainIndex];
+    if (!subdomain) return { success: false, error: 'Subdomain not found' };
+
+    // Check cache first
+    var existing = GroundingGPT.getCachedInsight(toolId, clientId, subdomain.key);
+    if (existing) {
+      return { success: true, cached: true, source: existing.source };
+    }
+
+    // Read draft data
+    var draftData = DraftService.getDraft(toolId, clientId);
+    if (!draftData) return { success: false, error: 'No draft data' };
+
+    // Extract responses and scores for this subdomain
+    var openResponseKey = subdomain.key + '_open_response';
+    var openResponse = draftData[openResponseKey];
+    if (!openResponse || openResponse.trim().length < 10) {
+      return { success: true, skipped: true, reason: 'insufficient_open_response' };
+    }
+
+    var aspects = ['belief', 'behavior', 'feeling', 'consequence'];
+    var responses = {};
+    var aspectScores = {};
+    for (var a = 0; a < aspects.length; a++) {
+      var fieldName = subdomain.key + '_' + aspects[a];
+      var score = parseInt(draftData[fieldName]) || 0;
+      responses[fieldName] = score;
+      responses[fieldName + '_label'] = draftData[fieldName + '_label'] || '';
+      aspectScores[aspects[a]] = score;
+    }
+    responses[openResponseKey] = openResponse;
+
+    // Get previous insights for context
+    var previousInsights = {};
+    for (var i = 0; i < subdomainIndex; i++) {
+      var prev = tool.config.subdomains[i];
+      var cached = GroundingGPT.getCachedInsight(toolId, clientId, prev.key);
+      if (cached) previousInsights[prev.key] = cached;
+    }
+
+    // Run analysis
+    var insight = GroundingGPT.analyzeSubdomain({
+      toolId: toolId,
+      clientId: clientId,
+      subdomainKey: subdomain.key,
+      subdomainConfig: subdomain,
+      responses: responses,
+      aspectScores: aspectScores,
+      previousInsights: previousInsights
+    });
+
+    Logger.log('[BG-GPT] ' + subdomain.key + ' done (source: ' + insight.source + ')');
+    return { success: true, source: insight.source };
+
+  } catch (error) {
+    Logger.log('[BG-GPT] Error: ' + error.message);
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
  * GENERIC: Complete tool submission (final page)
  * Works for ANY tool that implements processFinalSubmission()
  *
