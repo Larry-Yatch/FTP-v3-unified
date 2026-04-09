@@ -897,9 +897,9 @@ const Router = {
               <div style="height: 100%; width: ${completionPct}%; background: var(--gold, #ad9168); border-radius: 3px; transition: width 0.6s ease;"></div>
             </div>
             ${completedToolCount > 0
-              ? '<div style="display: flex; gap: 10px; margin-top: 8px; flex-wrap: wrap;">'
-                + '<button class="btn-primary" onclick="viewResultsSummary()">View Collective Results</button>'
-                + '<button class="btn-secondary" onclick="viewProgress()" style="border: 1px solid rgba(173, 145, 104, 0.3); background: rgba(173, 145, 104, 0.1); color: #ad9168;">Progress Over Time</button>'
+              ? '<div style="display: flex; gap: 12px; margin-top: 8px;">'
+                + '<button class="btn-primary" onclick="viewResultsSummary()" style="flex: 1; min-width: 0;">View Collective Results</button>'
+                + '<button class="btn-primary" onclick="viewProgress()" style="flex: 1; min-width: 0;">Progress Over Time</button>'
                 + '</div>'
               : '<p class="muted" style="margin-top: 8px; font-size: 0.9rem;">Complete your first tool to see results here.</p>'}
           </div>
