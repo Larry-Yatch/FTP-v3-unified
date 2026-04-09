@@ -2747,8 +2747,8 @@
       document.getElementById('callAttendanceStats').innerHTML =
         `✅ ${stats.attended} Attended | ❌ ${stats.absent} Absent | ⭕ ${stats.unmarked} Unmarked`;
 
-      // Render with any active cohort filter applied
-      applyAttendanceCohortFilter();
+      // Render the attendance list with current data
+      renderCallAttendanceList(callAttendanceData);
     }
 
     // Apply cohort filter to call attendance list and reload analytics
