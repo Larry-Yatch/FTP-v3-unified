@@ -2361,7 +2361,7 @@
         html += '<tr class="progress-row" data-name="' + (s.name || '').toLowerCase() + '" style="border-bottom:1px solid #f0f0f0;">';
         html += '<td style="padding:10px 8px;"><strong>' + s.name + '</strong><br><span style="color:#999;font-size:12px;">' + s.clientId + '</span></td>';
         html += '<td style="padding:10px 8px;">' + s.toolCount + ' / ' + d.totalTools + '</td>';
-        html += '<td style="padding:10px 8px;">' + s.callsAttended + ' / ' + s.callsMarked + (s.callsMarked > 0 ? ' (' + s.attendanceRate + '%)' : '') + '</td>';
+        html += '<td style="padding:10px 8px;">' + s.callsAttended + ' / ' + d.totalCalls + ' (' + s.attendanceRate + '%)</td>';
         html += '<td style="padding:10px 8px;">';
         html += '<div style="display:flex;align-items:center;gap:8px;">';
         html += '<div style="flex:1;height:8px;background:#f0f0f0;border-radius:4px;overflow:hidden;">';

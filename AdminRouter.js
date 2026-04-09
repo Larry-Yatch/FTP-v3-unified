@@ -1132,10 +1132,10 @@ function handleGetStudentAttendanceRequest(clientId, cohortId) {
       attendanceRate: 0
     };
 
-    // Calculate attendance rate (attended / (attended + absent))
-    const markedCalls = stats.attended + stats.absent;
-    if (markedCalls > 0) {
-      stats.attendanceRate = Math.round((stats.attended / markedCalls) * 100);
+    // Calculate attendance rate (attended / total calls)
+    const totalCalls = attendance.length;
+    if (totalCalls > 0) {
+      stats.attendanceRate = Math.round((stats.attended / totalCalls) * 100);
     }
 
     console.log('[GET_STUDENT_ATTENDANCE] Returning', attendance.length, 'calls, stats:', stats);
@@ -1324,7 +1324,7 @@ function handleGetAttendanceAnalyticsRequest(cohortId) {
       const attended = studentRecords.filter(r => r.status === 'attended').length;
       const absent = studentRecords.filter(r => r.status === 'absent').length;
       const marked = attended + absent;
-      const rate = marked > 0 ? Math.round((attended / marked) * 100) : null;
+      const rate = calls.length > 0 ? Math.round((attended / calls.length) * 100) : null;
 
       return {
         clientId: student.clientId,
@@ -1345,10 +1345,10 @@ function handleGetAttendanceAnalyticsRequest(cohortId) {
     });
 
     // Overall stats (scoped to cohort when filtered)
+    // Rate = total attended / (students × calls) — true participation rate
     const totalAttended = attendanceRecords.filter(r => r.status === 'attended' && cohortClientIds.has(r.clientId)).length;
-    const totalAbsent = attendanceRecords.filter(r => r.status === 'absent' && cohortClientIds.has(r.clientId)).length;
-    const totalMarked = totalAttended + totalAbsent;
-    const overallRate = totalMarked > 0 ? Math.round((totalAttended / totalMarked) * 100) : null;
+    const totalPossible = activeStudents.length * calls.length;
+    const overallRate = totalPossible > 0 ? Math.round((totalAttended / totalPossible) * 100) : null;
 
     console.log('[ATTENDANCE_ANALYTICS] Returning analytics');
     return {
@@ -1453,7 +1453,7 @@ function handleGetCohortProgressRequest(cohortId) {
       var att = attendanceMap[st.clientId] || { attended: 0, marked: 0 };
       var toolCount = tools.size;
       var toolRate = Math.round((toolCount / totalTools) * 100);
-      var attendanceRate = att.marked > 0 ? Math.round((att.attended / att.marked) * 100) : 0;
+      var attendanceRate = totalCalls > 0 ? Math.round((att.attended / totalCalls) * 100) : 0;
       var progressScore = Math.round((toolRate + attendanceRate) / 2);
 
       sumToolRate += toolRate;

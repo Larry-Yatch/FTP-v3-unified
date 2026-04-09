@@ -435,7 +435,7 @@ function ensureCohort1Exists(ss) {
  * Idempotent — safe to run multiple times.
  */
 function migrateToMultiCohortModel() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ss = SpreadsheetCache.getSpreadsheet();
   var results = { studentsProcessed: 0, attendanceProcessed: 0, skipped: [] };
 
   // --- Step 1: Create STUDENT_COHORTS sheet and populate from STUDENTS ---
