@@ -348,10 +348,11 @@ const Tool1 = Object.assign({}, FormToolBase, {
           var rect = item.getBoundingClientRect();
           offsetY = e.clientY - rect.top;
 
+          // Float first, then insert placeholder (avoids layout shift changing the offset)
+          floatItem(dragItem, rect);
+          dragItem.style.top = rect.top + "px";
           placeholder = createPlaceholder(rect);
           list.insertBefore(placeholder, dragItem);
-          floatItem(dragItem, rect);
-          dragItem.style.top = (e.clientY - offsetY) + "px";
 
           function onMouseMove(e) {
             if (!dragItem) return;
@@ -378,10 +379,10 @@ const Tool1 = Object.assign({}, FormToolBase, {
           var rect = item.getBoundingClientRect();
           offsetY = touch.clientY - rect.top;
 
+          floatItem(dragItem, rect);
+          dragItem.style.top = rect.top + "px";
           placeholder = createPlaceholder(rect);
           list.insertBefore(placeholder, dragItem);
-          floatItem(dragItem, rect);
-          dragItem.style.top = (touch.clientY - offsetY) + "px";
         }, {passive: true});
 
         list.addEventListener("touchmove", function(e) {
