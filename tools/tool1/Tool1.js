@@ -233,9 +233,10 @@ const Tool1 = Object.assign({}, FormToolBase, {
       }
       .ranking-item:active { cursor: grabbing; }
       .ranking-item.dragging {
-        opacity: 0.9; transform: scale(1.02);
-        box-shadow: 0 8px 24px rgba(0,0,0,0.15);
-        border-color: #ad9168; z-index: 100;
+        opacity: 0.95; transform: scale(1.03);
+        box-shadow: 0 12px 32px rgba(0,0,0,0.2);
+        border-color: #ad9168; background: #fff;
+        cursor: grabbing;
       }
       .ranking-item .rank-number {
         min-width: 32px; height: 32px;
@@ -267,9 +268,8 @@ const Tool1 = Object.assign({}, FormToolBase, {
       (function() {
         var list = document.getElementById("${listId}");
         var dragItem = null;
-        var touchStartY = 0;
-        var touchOffsetY = 0;
         var placeholder = null;
+        var offsetY = 0;
 
         function updateHiddenInputs() {
           var items = list.querySelectorAll(".ranking-item");
@@ -282,34 +282,85 @@ const Tool1 = Object.assign({}, FormToolBase, {
           }
         }
 
+        function createPlaceholder(rect) {
+          var ph = document.createElement("li");
+          ph.style.height = rect.height + "px";
+          ph.style.background = "rgba(173,145,104,0.1)";
+          ph.style.border = "2px dashed #ad9168";
+          ph.style.borderRadius = "10px";
+          ph.style.marginBottom = "8px";
+          ph.style.listStyle = "none";
+          ph.className = "ranking-placeholder";
+          return ph;
+        }
+
+        function floatItem(item, rect) {
+          item.classList.add("dragging");
+          item.style.position = "fixed";
+          item.style.left = rect.left + "px";
+          item.style.width = rect.width + "px";
+          item.style.zIndex = "1000";
+          item.style.pointerEvents = "none";
+        }
+
+        function unfloatItem(item) {
+          item.classList.remove("dragging");
+          item.style.position = "";
+          item.style.left = "";
+          item.style.top = "";
+          item.style.width = "";
+          item.style.zIndex = "";
+          item.style.pointerEvents = "";
+        }
+
+        function repositionPlaceholder(clientY) {
+          var siblings = Array.from(list.querySelectorAll(".ranking-item:not(.dragging)"));
+          var afterElement = null;
+          for (var i = 0; i < siblings.length; i++) {
+            var box = siblings[i].getBoundingClientRect();
+            if (clientY < box.top + box.height / 2) { afterElement = siblings[i]; break; }
+          }
+          if (afterElement) {
+            list.insertBefore(placeholder, afterElement);
+          } else {
+            list.appendChild(placeholder);
+          }
+        }
+
+        function finishDrag() {
+          if (!dragItem) return;
+          if (placeholder && placeholder.parentNode) {
+            list.insertBefore(dragItem, placeholder);
+            placeholder.parentNode.removeChild(placeholder);
+          }
+          unfloatItem(dragItem);
+          placeholder = null;
+          dragItem = null;
+          updateHiddenInputs();
+        }
+
         // --- Mouse drag ---
         list.addEventListener("mousedown", function(e) {
           var item = e.target.closest(".ranking-item");
           if (!item) return;
           e.preventDefault();
           dragItem = item;
-          dragItem.classList.add("dragging");
+          var rect = item.getBoundingClientRect();
+          offsetY = e.clientY - rect.top;
+
+          placeholder = createPlaceholder(rect);
+          list.insertBefore(placeholder, dragItem);
+          floatItem(dragItem, rect);
+          dragItem.style.top = (e.clientY - offsetY) + "px";
 
           function onMouseMove(e) {
             if (!dragItem) return;
-            var items = Array.from(list.querySelectorAll(".ranking-item:not(.dragging)"));
-            var afterElement = null;
-            for (var i = 0; i < items.length; i++) {
-              var box = items[i].getBoundingClientRect();
-              var offset = e.clientY - box.top - box.height / 2;
-              if (offset < 0) { afterElement = items[i]; break; }
-            }
-            if (afterElement) {
-              list.insertBefore(dragItem, afterElement);
-            } else {
-              list.appendChild(dragItem);
-            }
+            dragItem.style.top = (e.clientY - offsetY) + "px";
+            repositionPlaceholder(e.clientY);
           }
 
           function onMouseUp() {
-            if (dragItem) dragItem.classList.remove("dragging");
-            dragItem = null;
-            updateHiddenInputs();
+            finishDrag();
             document.removeEventListener("mousemove", onMouseMove);
             document.removeEventListener("mouseup", onMouseUp);
           }
@@ -325,64 +376,24 @@ const Tool1 = Object.assign({}, FormToolBase, {
           dragItem = item;
           var touch = e.touches[0];
           var rect = item.getBoundingClientRect();
-          touchOffsetY = touch.clientY - rect.top;
-          touchStartY = touch.clientY;
+          offsetY = touch.clientY - rect.top;
 
-          // Create placeholder
-          placeholder = document.createElement("li");
-          placeholder.style.height = rect.height + "px";
-          placeholder.style.background = "rgba(173,145,104,0.1)";
-          placeholder.style.border = "2px dashed #ad9168";
-          placeholder.style.borderRadius = "10px";
-          placeholder.style.marginBottom = "8px";
-          placeholder.style.listStyle = "none";
-
-          // Float the dragged item
-          dragItem.classList.add("dragging");
-          dragItem.style.position = "fixed";
-          dragItem.style.left = rect.left + "px";
-          dragItem.style.top = (touch.clientY - touchOffsetY) + "px";
-          dragItem.style.width = rect.width + "px";
-          dragItem.style.zIndex = "1000";
-
+          placeholder = createPlaceholder(rect);
           list.insertBefore(placeholder, dragItem);
+          floatItem(dragItem, rect);
+          dragItem.style.top = (touch.clientY - offsetY) + "px";
         }, {passive: true});
 
         list.addEventListener("touchmove", function(e) {
           if (!dragItem || !placeholder) return;
           e.preventDefault();
           var touch = e.touches[0];
-          dragItem.style.top = (touch.clientY - touchOffsetY) + "px";
-
-          var items = Array.from(list.querySelectorAll(".ranking-item:not(.dragging)"));
-          var afterElement = null;
-          for (var i = 0; i < items.length; i++) {
-            var box = items[i].getBoundingClientRect();
-            if (touch.clientY < box.top + box.height / 2) { afterElement = items[i]; break; }
-          }
-          if (afterElement) {
-            list.insertBefore(placeholder, afterElement);
-          } else {
-            list.appendChild(placeholder);
-          }
+          dragItem.style.top = (touch.clientY - offsetY) + "px";
+          repositionPlaceholder(touch.clientY);
         }, {passive: false});
 
-        list.addEventListener("touchend", function(e) {
-          if (!dragItem) return;
-          dragItem.classList.remove("dragging");
-          dragItem.style.position = "";
-          dragItem.style.left = "";
-          dragItem.style.top = "";
-          dragItem.style.width = "";
-          dragItem.style.zIndex = "";
-
-          if (placeholder && placeholder.parentNode) {
-            list.insertBefore(dragItem, placeholder);
-            placeholder.parentNode.removeChild(placeholder);
-          }
-          placeholder = null;
-          dragItem = null;
-          updateHiddenInputs();
+        list.addEventListener("touchend", function() {
+          finishDrag();
         });
 
         // Initialize rank numbers
