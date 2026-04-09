@@ -221,21 +221,20 @@ const Tool1 = Object.assign({}, FormToolBase, {
    */
   _getRankingStyles() {
     return `
-      .ranking-list { list-style: none; padding: 0; margin: 20px 0; }
+      .ranking-list { list-style: none; padding: 0; margin: 16px 0; }
       .ranking-item {
         display: flex; align-items: center; gap: 12px;
         padding: 14px 16px; margin-bottom: 8px;
         background: #fff; border: 2px solid #e0d6cc;
         border-radius: 10px; cursor: grab;
-        transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
         user-select: none; -webkit-user-select: none;
         touch-action: none;
       }
       .ranking-item:active { cursor: grabbing; }
       .ranking-item.dragging {
-        opacity: 0.95; transform: scale(1.03);
+        opacity: 0.95;
         box-shadow: 0 12px 32px rgba(0,0,0,0.2);
-        border-color: #ad9168; background: #fff;
+        border-color: #ad9168; background: #fffdf9;
         cursor: grabbing;
       }
       .ranking-item .rank-number {
@@ -249,17 +248,17 @@ const Tool1 = Object.assign({}, FormToolBase, {
         color: #bbb; font-size: 20px; flex-shrink: 0;
         display: flex; align-items: center;
       }
-      .ranking-label-row {
-        display: flex; justify-content: space-between;
-        padding: 0 16px; margin-bottom: 6px;
-        font-size: 12px; color: #999; font-weight: 600;
-        text-transform: uppercase; letter-spacing: 0.5px;
+      .ranking-labels {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 10px 16px; margin-bottom: 8px;
+        background: linear-gradient(90deg, rgba(220,53,69,0.08), rgba(255,255,255,0) 30%, rgba(255,255,255,0) 70%, rgba(40,167,69,0.08));
+        border-radius: 8px;
       }
-      .drop-indicator {
-        height: 4px; background: #ad9168; border-radius: 2px;
-        margin: -4px 0 4px 0; display: none;
+      .ranking-labels .label-end {
+        font-size: 14px; font-weight: 700; letter-spacing: 0.3px;
       }
-      .drop-indicator.visible { display: block; }
+      .ranking-labels .label-least { color: #999; }
+      .ranking-labels .label-most { color: #ad9168; }
     `;
   },
 
@@ -270,47 +269,31 @@ const Tool1 = Object.assign({}, FormToolBase, {
         var dragItem = null;
         var placeholder = null;
         var offsetY = 0;
+        var totalItems = list.querySelectorAll(".ranking-item").length;
 
+        // Numbering: 6 (top, least) down to 1 (bottom, most)
         function updateHiddenInputs() {
           var items = list.querySelectorAll(".ranking-item");
           for (var i = 0; i < items.length; i++) {
+            var rank = totalItems - i;
             var name = items[i].getAttribute("data-name");
             var input = document.querySelector("input[name=" + "'" + name + "'" + "]");
-            if (input) input.value = i + 1;
+            if (input) input.value = rank;
             var numEl = items[i].querySelector(".rank-number");
-            if (numEl) numEl.textContent = i + 1;
+            if (numEl) numEl.textContent = rank;
           }
         }
 
-        function createPlaceholder(rect) {
+        function createPlaceholder(h) {
           var ph = document.createElement("li");
-          ph.style.height = rect.height + "px";
-          ph.style.background = "rgba(173,145,104,0.1)";
+          ph.style.height = h + "px";
+          ph.style.background = "rgba(173,145,104,0.08)";
           ph.style.border = "2px dashed #ad9168";
           ph.style.borderRadius = "10px";
           ph.style.marginBottom = "8px";
           ph.style.listStyle = "none";
           ph.className = "ranking-placeholder";
           return ph;
-        }
-
-        function floatItem(item, rect) {
-          item.classList.add("dragging");
-          item.style.position = "fixed";
-          item.style.left = rect.left + "px";
-          item.style.width = rect.width + "px";
-          item.style.zIndex = "1000";
-          item.style.pointerEvents = "none";
-        }
-
-        function unfloatItem(item) {
-          item.classList.remove("dragging");
-          item.style.position = "";
-          item.style.left = "";
-          item.style.top = "";
-          item.style.width = "";
-          item.style.zIndex = "";
-          item.style.pointerEvents = "";
         }
 
         function repositionPlaceholder(clientY) {
@@ -327,13 +310,53 @@ const Tool1 = Object.assign({}, FormToolBase, {
           }
         }
 
+        function startDrag(item, clientY) {
+          dragItem = item;
+          var rect = item.getBoundingClientRect();
+          offsetY = clientY - rect.top;
+
+          // Make list a positioning context
+          list.style.position = "relative";
+
+          // Calculate item top relative to list
+          var listRect = list.getBoundingClientRect();
+          var relativeTop = rect.top - listRect.top;
+
+          // Float the item absolutely within the list
+          dragItem.classList.add("dragging");
+          dragItem.style.position = "absolute";
+          dragItem.style.top = relativeTop + "px";
+          dragItem.style.left = "0";
+          dragItem.style.right = "0";
+          dragItem.style.zIndex = "1000";
+          dragItem.style.margin = "0";
+
+          // Insert placeholder where item was
+          placeholder = createPlaceholder(rect.height);
+          list.insertBefore(placeholder, dragItem);
+        }
+
+        function moveDrag(clientY) {
+          if (!dragItem || !placeholder) return;
+          var listRect = list.getBoundingClientRect();
+          dragItem.style.top = (clientY - listRect.top - offsetY) + "px";
+          repositionPlaceholder(clientY);
+        }
+
         function finishDrag() {
           if (!dragItem) return;
           if (placeholder && placeholder.parentNode) {
             list.insertBefore(dragItem, placeholder);
             placeholder.parentNode.removeChild(placeholder);
           }
-          unfloatItem(dragItem);
+          dragItem.classList.remove("dragging");
+          dragItem.style.position = "";
+          dragItem.style.top = "";
+          dragItem.style.left = "";
+          dragItem.style.right = "";
+          dragItem.style.zIndex = "";
+          dragItem.style.margin = "";
+          list.style.position = "";
           placeholder = null;
           dragItem = null;
           updateHiddenInputs();
@@ -344,28 +367,16 @@ const Tool1 = Object.assign({}, FormToolBase, {
           var item = e.target.closest(".ranking-item");
           if (!item) return;
           e.preventDefault();
-          dragItem = item;
-          var rect = item.getBoundingClientRect();
-          offsetY = e.clientY - rect.top;
-
-          // Float first, then insert placeholder (avoids layout shift changing the offset)
-          floatItem(dragItem, rect);
-          dragItem.style.top = rect.top + "px";
-          placeholder = createPlaceholder(rect);
-          list.insertBefore(placeholder, dragItem);
+          startDrag(item, e.clientY);
 
           function onMouseMove(e) {
-            if (!dragItem) return;
-            dragItem.style.top = (e.clientY - offsetY) + "px";
-            repositionPlaceholder(e.clientY);
+            moveDrag(e.clientY);
           }
-
           function onMouseUp() {
             finishDrag();
             document.removeEventListener("mousemove", onMouseMove);
             document.removeEventListener("mouseup", onMouseUp);
           }
-
           document.addEventListener("mousemove", onMouseMove);
           document.addEventListener("mouseup", onMouseUp);
         });
@@ -374,23 +385,13 @@ const Tool1 = Object.assign({}, FormToolBase, {
         list.addEventListener("touchstart", function(e) {
           var item = e.target.closest(".ranking-item");
           if (!item) return;
-          dragItem = item;
-          var touch = e.touches[0];
-          var rect = item.getBoundingClientRect();
-          offsetY = touch.clientY - rect.top;
-
-          floatItem(dragItem, rect);
-          dragItem.style.top = rect.top + "px";
-          placeholder = createPlaceholder(rect);
-          list.insertBefore(placeholder, dragItem);
+          startDrag(item, e.touches[0].clientY);
         }, {passive: true});
 
         list.addEventListener("touchmove", function(e) {
-          if (!dragItem || !placeholder) return;
+          if (!dragItem) return;
           e.preventDefault();
-          var touch = e.touches[0];
-          dragItem.style.top = (touch.clientY - offsetY) + "px";
-          repositionPlaceholder(touch.clientY);
+          moveDrag(e.touches[0].clientY);
         }, {passive: false});
 
         list.addEventListener("touchend", function() {
@@ -409,6 +410,7 @@ const Tool1 = Object.assign({}, FormToolBase, {
    */
   _buildRankingList(items, formData, listId, fieldPrefix) {
     // Sort items by saved rank if available (for edit mode / back navigation)
+    // Higher rank = top of list (6=least at top, 1=most at bottom)
     var ordered = items.slice();
     var hasSavedData = false;
     for (var i = 0; i < items.length; i++) {
@@ -416,17 +418,19 @@ const Tool1 = Object.assign({}, FormToolBase, {
     }
     if (hasSavedData) {
       ordered.sort(function(a, b) {
-        var ra = parseInt(formData[a.name]) || 99;
-        var rb = parseInt(formData[b.name]) || 99;
-        return ra - rb;
+        var ra = parseInt(formData[a.name]) || 0;
+        var rb = parseInt(formData[b.name]) || 0;
+        return rb - ra;  // Higher rank first (6 at top, 1 at bottom)
       });
     }
 
+    var total = ordered.length;
     var html = '<ul id="' + listId + '" class="ranking-list">';
     for (var i = 0; i < ordered.length; i++) {
       var t = ordered[i];
+      var displayRank = total - i;  // 6, 5, 4, 3, 2, 1
       html += '<li class="ranking-item" data-name="' + t.name + '">' +
-        '<span class="rank-number">' + (i + 1) + '</span>' +
+        '<span class="rank-number">' + displayRank + '</span>' +
         '<span class="rank-text">' + t.text + '</span>' +
         '<span class="drag-handle">&#8661;</span>' +
       '</li>';
@@ -470,9 +474,9 @@ const Tool1 = Object.assign({}, FormToolBase, {
         Go with your gut, not what you think sounds right.
       </p>
       <style>${this._getRankingStyles()}</style>
-      <div class="ranking-label-row">
-        <span>&#9650; Least applicable</span>
-        <span>Most applicable &#9660;</span>
+      <div class="ranking-labels">
+        <span class="label-end label-least">6 = Least Applicable</span>
+        <span class="label-end label-most">1 = Most Applicable</span>
       </div>
     `;
 
@@ -517,9 +521,9 @@ const Tool1 = Object.assign({}, FormToolBase, {
         These are feelings, not thoughts &mdash; notice your physical response, not just your logic.
       </p>
       <style>${this._getRankingStyles()}</style>
-      <div class="ranking-label-row">
-        <span>&#9650; Least familiar</span>
-        <span>Most familiar &#9660;</span>
+      <div class="ranking-labels">
+        <span class="label-end label-least">6 = Least Familiar</span>
+        <span class="label-end label-most">1 = Most Familiar</span>
       </div>
     `;
 
@@ -636,9 +640,9 @@ const Tool1 = Object.assign({}, FormToolBase, {
       const r = parseInt(rank);
       if (!r || r < 1) return 0;
       if (isDrag6) {
-        // New format: 1-6 drag-and-drop (1=least, 6=most)
-        // Map: 1→-5, 2→-3, 3→-1, 4→1, 5→3, 6→5
-        if (r >= 1 && r <= 6) return (r * 2) - 7;
+        // New format: 1-6 drag-and-drop (1=most applicable, 6=least)
+        // Map: 1→5, 2→3, 3→1, 4→-1, 5→-3, 6→-5
+        if (r >= 1 && r <= 6) return 7 - (r * 2);
         return 0;
       }
       // Legacy format: 1-10 dropdowns
@@ -804,15 +808,19 @@ const Tool1 = Object.assign({}, FormToolBase, {
       return tied[0];
     }
 
-    // Tie-breaker: Use highest feeling ranking
+    // Tie-breaker: Use most applicable feeling ranking
+    // New format (drag6): lower number = more applicable (1=most)
+    // Legacy format: higher number = more applicable (10=most)
+    const isDrag6 = data._rankFormat === 'drag6';
     let winner = tied[0];
-    let highestFeeling = parseInt(data[feelingFields[tied[0]]] || 0);
+    let bestFeeling = parseInt(data[feelingFields[tied[0]]] || 0);
 
     for (let i = 1; i < tied.length; i++) {
       const cat = tied[i];
       const feeling = parseInt(data[feelingFields[cat]] || 0);
-      if (feeling > highestFeeling) {
-        highestFeeling = feeling;
+      const isBetter = isDrag6 ? (feeling < bestFeeling) : (feeling > bestFeeling);
+      if (isBetter) {
+        bestFeeling = feeling;
         winner = cat;
       }
     }
