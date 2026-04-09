@@ -42,8 +42,24 @@ const Tool1 = Object.assign({}, FormToolBase, {
    * Page 1: Name and Email (content only, FormUtils wraps in form)
    */
   renderPage1Content(data, clientId) {
-    const name = data?.name || '';
-    const email = data?.email || '';
+    var name = data?.name || '';
+    var email = data?.email || '';
+
+    // Auto-populate from Students sheet if not already filled
+    if ((!name || !email) && clientId) {
+      try {
+        var studentsData = SpreadsheetCache.getSheetData(CONFIG.SHEETS.STUDENTS) || [];
+        for (var i = 1; i < studentsData.length; i++) {
+          if (studentsData[i][CONFIG.COLUMN_INDEXES.STUDENTS.CLIENT_ID] === clientId) {
+            if (!name) name = studentsData[i][CONFIG.COLUMN_INDEXES.STUDENTS.NAME] || '';
+            if (!email) email = studentsData[i][CONFIG.COLUMN_INDEXES.STUDENTS.EMAIL] || '';
+            break;
+          }
+        }
+      } catch (e) {
+        LogUtils.debug('[Tool1] Could not auto-populate name/email: ' + e.message);
+      }
+    }
 
     return `
       <h2>Let's Get Started</h2>
