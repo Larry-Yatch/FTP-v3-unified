@@ -216,18 +216,226 @@ const Tool1 = Object.assign({}, FormToolBase, {
   },
 
   /**
+   * Shared drag-and-drop ranking styles and script
+   * Used by both Page 5 (Thoughts) and Page 6 (Feelings)
+   */
+  _getRankingStyles() {
+    return `
+      .ranking-list { list-style: none; padding: 0; margin: 20px 0; }
+      .ranking-item {
+        display: flex; align-items: center; gap: 12px;
+        padding: 14px 16px; margin-bottom: 8px;
+        background: #fff; border: 2px solid #e0d6cc;
+        border-radius: 10px; cursor: grab;
+        transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+        user-select: none; -webkit-user-select: none;
+        touch-action: none;
+      }
+      .ranking-item:active { cursor: grabbing; }
+      .ranking-item.dragging {
+        opacity: 0.9; transform: scale(1.02);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+        border-color: #ad9168; z-index: 100;
+      }
+      .ranking-item .rank-number {
+        min-width: 32px; height: 32px;
+        display: flex; align-items: center; justify-content: center;
+        background: #f0ebe4; color: #6b5a47; font-weight: 700;
+        border-radius: 50%; font-size: 14px; flex-shrink: 0;
+      }
+      .ranking-item .rank-text { flex: 1; font-size: 15px; line-height: 1.4; color: #333; }
+      .ranking-item .drag-handle {
+        color: #bbb; font-size: 20px; flex-shrink: 0;
+        display: flex; align-items: center;
+      }
+      .ranking-label-row {
+        display: flex; justify-content: space-between;
+        padding: 0 16px; margin-bottom: 6px;
+        font-size: 12px; color: #999; font-weight: 600;
+        text-transform: uppercase; letter-spacing: 0.5px;
+      }
+      .drop-indicator {
+        height: 4px; background: #ad9168; border-radius: 2px;
+        margin: -4px 0 4px 0; display: none;
+      }
+      .drop-indicator.visible { display: block; }
+    `;
+  },
+
+  _getRankingScript(listId, fieldPrefix) {
+    return `
+      (function() {
+        var list = document.getElementById("${listId}");
+        var dragItem = null;
+        var touchStartY = 0;
+        var touchOffsetY = 0;
+        var placeholder = null;
+
+        function updateHiddenInputs() {
+          var items = list.querySelectorAll(".ranking-item");
+          for (var i = 0; i < items.length; i++) {
+            var name = items[i].getAttribute("data-name");
+            var input = document.querySelector("input[name=" + "'" + name + "'" + "]");
+            if (input) input.value = i + 1;
+            var numEl = items[i].querySelector(".rank-number");
+            if (numEl) numEl.textContent = i + 1;
+          }
+        }
+
+        // --- Mouse drag ---
+        list.addEventListener("mousedown", function(e) {
+          var item = e.target.closest(".ranking-item");
+          if (!item) return;
+          e.preventDefault();
+          dragItem = item;
+          dragItem.classList.add("dragging");
+
+          function onMouseMove(e) {
+            if (!dragItem) return;
+            var items = Array.from(list.querySelectorAll(".ranking-item:not(.dragging)"));
+            var afterElement = null;
+            for (var i = 0; i < items.length; i++) {
+              var box = items[i].getBoundingClientRect();
+              var offset = e.clientY - box.top - box.height / 2;
+              if (offset < 0) { afterElement = items[i]; break; }
+            }
+            if (afterElement) {
+              list.insertBefore(dragItem, afterElement);
+            } else {
+              list.appendChild(dragItem);
+            }
+          }
+
+          function onMouseUp() {
+            if (dragItem) dragItem.classList.remove("dragging");
+            dragItem = null;
+            updateHiddenInputs();
+            document.removeEventListener("mousemove", onMouseMove);
+            document.removeEventListener("mouseup", onMouseUp);
+          }
+
+          document.addEventListener("mousemove", onMouseMove);
+          document.addEventListener("mouseup", onMouseUp);
+        });
+
+        // --- Touch drag ---
+        list.addEventListener("touchstart", function(e) {
+          var item = e.target.closest(".ranking-item");
+          if (!item) return;
+          dragItem = item;
+          var touch = e.touches[0];
+          var rect = item.getBoundingClientRect();
+          touchOffsetY = touch.clientY - rect.top;
+          touchStartY = touch.clientY;
+
+          // Create placeholder
+          placeholder = document.createElement("li");
+          placeholder.style.height = rect.height + "px";
+          placeholder.style.background = "rgba(173,145,104,0.1)";
+          placeholder.style.border = "2px dashed #ad9168";
+          placeholder.style.borderRadius = "10px";
+          placeholder.style.marginBottom = "8px";
+          placeholder.style.listStyle = "none";
+
+          // Float the dragged item
+          dragItem.classList.add("dragging");
+          dragItem.style.position = "fixed";
+          dragItem.style.left = rect.left + "px";
+          dragItem.style.top = (touch.clientY - touchOffsetY) + "px";
+          dragItem.style.width = rect.width + "px";
+          dragItem.style.zIndex = "1000";
+
+          list.insertBefore(placeholder, dragItem);
+        }, {passive: true});
+
+        list.addEventListener("touchmove", function(e) {
+          if (!dragItem || !placeholder) return;
+          e.preventDefault();
+          var touch = e.touches[0];
+          dragItem.style.top = (touch.clientY - touchOffsetY) + "px";
+
+          var items = Array.from(list.querySelectorAll(".ranking-item:not(.dragging)"));
+          var afterElement = null;
+          for (var i = 0; i < items.length; i++) {
+            var box = items[i].getBoundingClientRect();
+            if (touch.clientY < box.top + box.height / 2) { afterElement = items[i]; break; }
+          }
+          if (afterElement) {
+            list.insertBefore(placeholder, afterElement);
+          } else {
+            list.appendChild(placeholder);
+          }
+        }, {passive: false});
+
+        list.addEventListener("touchend", function(e) {
+          if (!dragItem) return;
+          dragItem.classList.remove("dragging");
+          dragItem.style.position = "";
+          dragItem.style.left = "";
+          dragItem.style.top = "";
+          dragItem.style.width = "";
+          dragItem.style.zIndex = "";
+
+          if (placeholder && placeholder.parentNode) {
+            list.insertBefore(dragItem, placeholder);
+            placeholder.parentNode.removeChild(placeholder);
+          }
+          placeholder = null;
+          dragItem = null;
+          updateHiddenInputs();
+        });
+
+        // Initialize rank numbers
+        updateHiddenInputs();
+      })();
+    `;
+  },
+
+  /**
+   * Build a drag-and-drop ranking list from items array
+   * Restores previous order from saved data if available
+   */
+  _buildRankingList(items, formData, listId, fieldPrefix) {
+    // Sort items by saved rank if available (for edit mode / back navigation)
+    var ordered = items.slice();
+    var hasSavedData = false;
+    for (var i = 0; i < items.length; i++) {
+      if (formData[items[i].name]) { hasSavedData = true; break; }
+    }
+    if (hasSavedData) {
+      ordered.sort(function(a, b) {
+        var ra = parseInt(formData[a.name]) || 99;
+        var rb = parseInt(formData[b.name]) || 99;
+        return ra - rb;
+      });
+    }
+
+    var html = '<ul id="' + listId + '" class="ranking-list">';
+    for (var i = 0; i < ordered.length; i++) {
+      var t = ordered[i];
+      html += '<li class="ranking-item" data-name="' + t.name + '">' +
+        '<span class="rank-number">' + (i + 1) + '</span>' +
+        '<span class="rank-text">' + t.text + '</span>' +
+        '<span class="drag-handle">&#8661;</span>' +
+      '</li>';
+    }
+    html += '</ul>';
+
+    // Hidden inputs to store rank values
+    for (var i = 0; i < items.length; i++) {
+      var val = formData[items[i].name] || '';
+      html += '<input type="hidden" name="' + items[i].name + '" value="' + val + '">';
+    }
+
+    return html;
+  },
+
+  /**
    * Page 5: Rank Your Thoughts
    */
   renderPage5Content(data, clientId) {
-    LogUtils.debug(`=== Page 5 Data Structure ===`);
-    LogUtils.debug(`Data keys: ${JSON.stringify(Object.keys(data || {}))}`);
-    LogUtils.debug(`thought_fsv (direct): ${data?.thought_fsv}`);
-    LogUtils.debug(`thought_fsv (nested): ${data?.formData?.thought_fsv}`);
-
     // DEFENSIVE: Extract formData if nested (EDIT_DRAFT compatibility)
     const formData = data?.formData || data || {};
-
-    LogUtils.debug(`Using formData - thought_fsv: ${formData.thought_fsv}`);
 
     const thoughts = [
       {name: 'thought_fsv', text: 'I have to do something / be someone better to be safe.'},
@@ -244,76 +452,25 @@ const Tool1 = Object.assign({}, FormToolBase, {
         Below are six thought patterns. Read each one and ask yourself: <em>how often does this thought show up in my mind?</em>
       </p>
       <p class="muted mb-20">
-        Rank them from <strong>1</strong> (shows up least) to <strong>10</strong> (shows up most).
+        <strong>Drag and drop</strong> to reorder from <strong>least applicable</strong> (top) to <strong>most applicable</strong> (bottom).
       </p>
       <p class="muted mb-20">
-        <strong>Rules:</strong><br>
-        &bull; <strong>Each number can only be used once</strong> &mdash; no two thoughts can share the same rank<br>
-        &bull; All six must be ranked before you can continue<br>
-        &bull; Go with your gut, not what you think sounds right
+        Go with your gut, not what you think sounds right.
       </p>
+      <style>${this._getRankingStyles()}</style>
+      <div class="ranking-label-row">
+        <span>&#9650; Least applicable</span>
+        <span>Most applicable &#9660;</span>
+      </div>
     `;
 
-    thoughts.forEach(t => {
-      const selected = formData && formData[t.name] ? String(formData[t.name]) : '';
-      LogUtils.debug(`Setting ${t.name} selected = ${selected}`);
-      html += `
-        <div class="form-group">
-          <label class="form-label">${t.text} *</label>
-          <select name="${t.name}" class="ranking-select thought-ranking" onchange="updateRankingOptions()" required>
-            <option value="">Select rank (1-10)</option>
-            ${Array.from({length: 10}, (_, i) => i + 1).map(rank =>
-              `<option value="${rank}"${selected === String(rank) ? ' selected' : ''}>${rank}</option>`
-            ).join('')}
-          </select>
-        </div>
-      `;
-    });
+    html += this._buildRankingList(thoughts, formData, 'thoughtRankingList', 'thought');
+    html += '<input type="hidden" name="_rankFormat" value="drag6">';
 
     html += `
-      <div id="rankingError" class="error" style="display: none; margin: 20px 0; padding: 15px; background: #fee; border: 1px solid #fcc; border-radius: 8px;"></div>
-
+      <script>${this._getRankingScript('thoughtRankingList', 'thought')}</script>
       <script>
-        function updateRankingOptions() {
-          const selects = document.querySelectorAll('.thought-ranking');
-          const selected = Array.from(selects).map(s => s.value).filter(v => v !== '');
-
-          selects.forEach(function(select) {
-            const currentValue = select.value;
-            Array.from(select.options).forEach(function(option) {
-              if (option.value && option.value !== currentValue) {
-                if (selected.includes(option.value)) {
-                  option.disabled = true;
-                  option.style.color = '#ccc';
-                  option.textContent = option.value + ' (taken)';
-                } else {
-                  option.disabled = false;
-                  option.style.color = '';
-                  option.textContent = option.value;
-                }
-              }
-            });
-          });
-        }
-
-        function validateThoughtRankings() {
-          const errorDiv = document.getElementById('rankingError');
-          const selects = document.querySelectorAll('.thought-ranking');
-          const ranks = Array.from(selects).map(function(s) { return s.value; });
-          const uniqueRanks = new Set(ranks.filter(function(v) { return v !== ''; }));
-
-          if (uniqueRanks.size !== 6) {
-            errorDiv.textContent = 'Each thought must have a unique ranking. Please make sure all six are ranked and no two share the same number.';
-            errorDiv.style.display = 'block';
-            errorDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            return false;
-          }
-
-          errorDiv.style.display = 'none';
-          return true;
-        }
-
-        updateRankingOptions();
+        function validateThoughtRankings() { return true; }
       </script>
     `;
 
@@ -324,15 +481,8 @@ const Tool1 = Object.assign({}, FormToolBase, {
    * Page 6: Rank Your Feelings
    */
   renderPage6Content(data, clientId) {
-    LogUtils.debug(`=== Page 6 Data Structure ===`);
-    LogUtils.debug(`Data keys: ${JSON.stringify(Object.keys(data || {}))}`);
-    LogUtils.debug(`feeling_fsv (direct): ${data?.feeling_fsv}`);
-    LogUtils.debug(`feeling_fsv (nested): ${data?.formData?.feeling_fsv}`);
-
     // DEFENSIVE: Extract formData if nested (EDIT_DRAFT compatibility)
     const formData = data?.formData || data || {};
-
-    LogUtils.debug(`Using formData - feeling_fsv: ${formData.feeling_fsv}`);
 
     const feelings = [
       {name: 'feeling_fsv', text: 'I feel insufficient.'},
@@ -349,76 +499,24 @@ const Tool1 = Object.assign({}, FormToolBase, {
         Below are six feeling states. Read each one and ask yourself: <em>how familiar does this feeling feel to you?</em>
       </p>
       <p class="muted mb-20">
-        Rank them from <strong>1</strong> (least familiar) to <strong>10</strong> (most familiar).
+        <strong>Drag and drop</strong> to reorder from <strong>least familiar</strong> (top) to <strong>most familiar</strong> (bottom).
       </p>
       <p class="muted mb-20">
-        <strong>Rules:</strong><br>
-        &bull; <strong>Each number can only be used once</strong> &mdash; no two feelings can share the same rank<br>
-        &bull; All six must be ranked before you can continue<br>
-        &bull; These are feelings, not thoughts &mdash; notice your physical response, not just your logic
+        These are feelings, not thoughts &mdash; notice your physical response, not just your logic.
       </p>
+      <style>${this._getRankingStyles()}</style>
+      <div class="ranking-label-row">
+        <span>&#9650; Least familiar</span>
+        <span>Most familiar &#9660;</span>
+      </div>
     `;
 
-    feelings.forEach(f => {
-      const selected = formData && formData[f.name] ? String(formData[f.name]) : '';
-      LogUtils.debug(`Setting ${f.name} selected = ${selected}`);
-      html += `
-        <div class="form-group">
-          <label class="form-label">${f.text} *</label>
-          <select name="${f.name}" class="ranking-select feeling-ranking" onchange="updateRankingOptions()" required>
-            <option value="">Select rank (1-10)</option>
-            ${Array.from({length: 10}, (_, i) => i + 1).map(rank =>
-              `<option value="${rank}"${selected === String(rank) ? ' selected' : ''}>${rank}</option>`
-            ).join('')}
-          </select>
-        </div>
-      `;
-    });
+    html += this._buildRankingList(feelings, formData, 'feelingRankingList', 'feeling');
 
     html += `
-      <div id="rankingError" class="error" style="display: none; margin: 20px 0; padding: 15px; background: #fee; border: 1px solid #fcc; border-radius: 8px;"></div>
-
+      <script>${this._getRankingScript('feelingRankingList', 'feeling')}</script>
       <script>
-        function updateRankingOptions() {
-          const selects = document.querySelectorAll('.feeling-ranking');
-          const selected = Array.from(selects).map(s => s.value).filter(v => v !== '');
-
-          selects.forEach(function(select) {
-            const currentValue = select.value;
-            Array.from(select.options).forEach(function(option) {
-              if (option.value && option.value !== currentValue) {
-                if (selected.includes(option.value)) {
-                  option.disabled = true;
-                  option.style.color = '#ccc';
-                  option.textContent = option.value + ' (taken)';
-                } else {
-                  option.disabled = false;
-                  option.style.color = '';
-                  option.textContent = option.value;
-                }
-              }
-            });
-          });
-        }
-
-        function validateFeelingRankings() {
-          const errorDiv = document.getElementById('rankingError');
-          const selects = document.querySelectorAll('.feeling-ranking');
-          const ranks = Array.from(selects).map(function(s) { return s.value; });
-          const uniqueRanks = new Set(ranks.filter(function(v) { return v !== ''; }));
-
-          if (uniqueRanks.size !== 6) {
-            errorDiv.textContent = 'Each feeling must have a unique ranking. Please make sure all six are ranked and no two share the same number.';
-            errorDiv.style.display = 'block';
-            errorDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            return false;
-          }
-
-          errorDiv.style.display = 'none';
-          return true;
-        }
-
-        updateRankingOptions();
+        function validateFeelingRankings() { return true; }
       </script>
     `;
 
@@ -519,9 +617,19 @@ const Tool1 = Object.assign({}, FormToolBase, {
    * Formula: sum(3 statements) + (2 × normalized_thought_ranking)
    */
   calculateScores(data) {
-    // Helper: Normalize thought ranking (1-10) to (-5 to +5)
+    // Helper: Normalize thought ranking to (-5 to +5)
+    // Supports both new drag-and-drop (1-6) and legacy dropdown (1-10)
+    const isDrag6 = data._rankFormat === 'drag6';
     const normalizeThought = (rank) => {
       const r = parseInt(rank);
+      if (!r || r < 1) return 0;
+      if (isDrag6) {
+        // New format: 1-6 drag-and-drop (1=least, 6=most)
+        // Map: 1→-5, 2→-3, 3→-1, 4→1, 5→3, 6→5
+        if (r >= 1 && r <= 6) return (r * 2) - 7;
+        return 0;
+      }
+      // Legacy format: 1-10 dropdowns
       if (r >= 1 && r <= 5) return r - 6;  // 1→-5, 2→-4, ..., 5→-1
       if (r >= 6 && r <= 10) return r - 5; // 6→1, 7→2, ..., 10→5
       return 0;
