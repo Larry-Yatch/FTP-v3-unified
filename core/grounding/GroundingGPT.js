@@ -307,6 +307,136 @@ const GroundingGPT = {
   },
 
   /**
+   * Batch-analyze all uncached subdomains in parallel using UrlFetchApp.fetchAll().
+   * Called at submission time instead of per-page.
+   *
+   * @param {Object} params - { toolId, clientId, subdomains, allData }
+   */
+  analyzeAllSubdomainsBatch(params) {
+    var toolId = params.toolId;
+    var clientId = params.clientId;
+    var subdomains = params.subdomains;
+    var allData = params.allData;
+
+    // Identify which subdomains need analysis (not cached)
+    var needed = [];
+    for (var i = 0; i < subdomains.length; i++) {
+      var subdomain = subdomains[i];
+      var cached = this.getCachedInsight(toolId, clientId, subdomain.key);
+      if (cached) {
+        LogUtils.debug('[BATCH] ' + subdomain.key + ' already cached, skipping');
+        continue;
+      }
+
+      var openResponseKey = subdomain.key + '_open_response';
+      var openResponse = allData[openResponseKey];
+      if (!openResponse || openResponse.trim().length < 10) {
+        LogUtils.debug('[BATCH] ' + subdomain.key + ' insufficient open response, using fallback');
+        // Generate fallback and cache it
+        var aspects = ['belief', 'behavior', 'feeling', 'consequence'];
+        var aspectScores = {};
+        for (var a = 0; a < aspects.length; a++) {
+          aspectScores[aspects[a]] = parseInt(allData[subdomain.key + '_' + aspects[a]]) || 0;
+        }
+        var fallback = GroundingFallbacks.getSubdomainFallback(toolId, subdomain.key, aspectScores, {});
+        this.cacheInsight(toolId, clientId, subdomain.key, fallback);
+        continue;
+      }
+
+      // Build request data
+      var aspects2 = ['belief', 'behavior', 'feeling', 'consequence'];
+      var responses = {};
+      var aspectScores2 = {};
+      for (var b = 0; b < aspects2.length; b++) {
+        var fieldName = subdomain.key + '_' + aspects2[b];
+        var score = parseInt(allData[fieldName]) || 0;
+        responses[fieldName] = score;
+        responses[fieldName + '_label'] = allData[fieldName + '_label'] || '';
+        aspectScores2[aspects2[b]] = score;
+      }
+      responses[openResponseKey] = openResponse;
+
+      needed.push({
+        subdomain: subdomain,
+        responses: responses,
+        aspectScores: aspectScores2
+      });
+    }
+
+    if (needed.length === 0) {
+      LogUtils.debug('[BATCH] All subdomains cached or fallback, no API calls needed');
+      return;
+    }
+
+    LogUtils.debug('[BATCH] Analyzing ' + needed.length + ' subdomains in parallel');
+
+    try {
+      var apiKey = PropertiesService.getScriptProperties().getProperty('OPENAI_API_KEY');
+      if (!apiKey) throw new Error('OPENAI_API_KEY not found');
+
+      var requests = [];
+      for (var n = 0; n < needed.length; n++) {
+        var item = needed[n];
+        var sysPrompt = this.buildSubdomainSystemPrompt(item.subdomain, item.aspectScores);
+        var usrPrompt = this.buildSubdomainUserPrompt(item.responses, item.aspectScores, {});
+
+        requests.push({
+          url: 'https://api.openai.com/v1/chat/completions',
+          method: 'post',
+          contentType: 'application/json',
+          headers: { 'Authorization': 'Bearer ' + apiKey },
+          payload: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages: [
+              { role: 'system', content: sysPrompt },
+              { role: 'user', content: usrPrompt }
+            ],
+            temperature: 0.2,
+            max_tokens: 400
+          }),
+          muteHttpExceptions: true
+        });
+      }
+
+      var responses2 = UrlFetchApp.fetchAll(requests);
+
+      for (var r = 0; r < responses2.length; r++) {
+        var item2 = needed[r];
+        try {
+          var json = JSON.parse(responses2[r].getContentText());
+          if (json.error) throw new Error(json.error.message);
+          var content = json.choices[0].message.content;
+          var parsed = this.parseSubdomainResponse(content);
+          if (parsed && parsed.pattern) {
+            this.cacheInsight(toolId, clientId, item2.subdomain.key, parsed);
+            LogUtils.debug('[BATCH] Cached ' + item2.subdomain.key);
+          } else {
+            throw new Error('Empty parse');
+          }
+        } catch (parseErr) {
+          LogUtils.debug('[BATCH] ' + item2.subdomain.key + ' failed, using fallback: ' + parseErr.message);
+          var fb = GroundingFallbacks.getSubdomainFallback(toolId, item2.subdomain.key, item2.aspectScores, {});
+          this.cacheInsight(toolId, clientId, item2.subdomain.key, fb);
+        }
+      }
+
+      LogUtils.debug('[BATCH] All subdomain analyses complete');
+
+    } catch (batchErr) {
+      LogUtils.error('[BATCH] fetchAll failed, using fallbacks: ' + batchErr.message);
+      // Fall back for all uncached
+      for (var f = 0; f < needed.length; f++) {
+        var fbItem = needed[f];
+        var existing = this.getCachedInsight(toolId, clientId, fbItem.subdomain.key);
+        if (!existing) {
+          var fb2 = GroundingFallbacks.getSubdomainFallback(toolId, fbItem.subdomain.key, fbItem.aspectScores, {});
+          this.cacheInsight(toolId, clientId, fbItem.subdomain.key, fb2);
+        }
+      }
+    }
+  },
+
+  /**
    * Batch-synthesize both domains in parallel using UrlFetchApp.fetchAll().
    * Falls back to individual calls if batch fails.
    *

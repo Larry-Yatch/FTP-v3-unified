@@ -51,62 +51,9 @@ var GroundingToolBase = Object.assign({}, FormToolBase, {
    * Called by FormToolBase.savePageData() via onPageSaved hook.
    */
   onPageSaved(clientId, page, formData, draftData) {
-    if (page < 2 || page > 7) return;
-
-    var toolId = this.config.id;
-    var subdomainIndex = page - 2; // 0-5
-    var subdomain = this.config.subdomains[subdomainIndex];
-
-    try {
-      // Extract open response for this subdomain
-      var openResponseKey = subdomain.key + '_open_response';
-      var openResponse = formData[openResponseKey];
-
-      // Need sufficient data for GPT analysis
-      if (!openResponse || openResponse.trim().length < 10) {
-        LogUtils.debug('[' + toolId + '] Skipping GPT - insufficient open response for ' + subdomain.key + ' (length: ' + (openResponse ? openResponse.length : 0) + ')');
-        return;
-      }
-
-      LogUtils.debug('[' + toolId + '] Triggering GPT analysis for ' + subdomain.key);
-
-      // Extract aspect scores for GPT context
-      var aspects = ['belief', 'behavior', 'feeling', 'consequence'];
-      var responses = {};
-      var aspectScores = {};
-
-      aspects.forEach(function(aspect) {
-        var fieldName = subdomain.key + '_' + aspect;
-        var score = parseInt(formData[fieldName]);
-        responses[fieldName] = score;
-        responses[fieldName + '_label'] = formData[fieldName + '_label'] || '';
-        aspectScores[aspect] = score;
-      });
-      responses[openResponseKey] = openResponse;
-
-      // Check for duplicate (prevent redundant API calls on back/forward navigation)
-      var existingInsight = GroundingGPT.getCachedInsight(toolId, clientId, subdomain.key);
-
-      if (existingInsight) {
-        LogUtils.debug('[' + toolId + '] GPT insight already cached for ' + subdomain.key + ' - skipping');
-      } else {
-        GroundingGPT.analyzeSubdomain({
-          toolId: toolId,
-          clientId: clientId,
-          subdomainKey: subdomain.key,
-          subdomainConfig: subdomain,
-          responses: responses,
-          aspectScores: aspectScores,
-          previousInsights: {}
-        });
-
-        LogUtils.debug('[' + toolId + '] GPT analysis completed for ' + subdomain.key);
-      }
-    } catch (error) {
-      // GPT failures must not block navigation
-      LogUtils.error('[' + toolId + '] GPT trigger failed (non-blocking): ' + error.message);
-      LogUtils.error(error.stack);
-    }
+    // GPT subdomain analysis is deferred to submission time (batch via fetchAll)
+    // to avoid blocking page navigation. See analyzeAllSubdomainsBatch().
+    return;
   },
 
   // ============================================================
@@ -141,7 +88,15 @@ var GroundingToolBase = Object.assign({}, FormToolBase, {
 
       LogUtils.debug('[' + toolId + '] Scoring complete: Overall=' + scoringResult.overallQuotient);
 
-      // Collect all GPT insights (from cache)
+      // Batch-analyze all subdomains that were not cached during page saves
+      GroundingGPT.analyzeAllSubdomainsBatch({
+        toolId: toolId,
+        clientId: clientId,
+        subdomains: this.config.subdomains,
+        allData: allData
+      });
+
+      // Collect all GPT insights (now cached from batch above)
       var gptInsights = this.collectGPTInsights(clientId);
 
       // Run final 3 synthesis calls
