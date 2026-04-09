@@ -2203,18 +2203,6 @@
       const body = document.getElementById('reportModalBody');
       const pdfButton = document.getElementById('reportPdfButton');
 
-      // Find tool name
-      const toolNames = {
-        'tool1': 'Personal Orientation',
-        'tool2': 'Financial Clarity',
-        'tool3': 'Identity & Validation',
-        'tool4': 'Work & Purpose',
-        'tool5': 'Love & Connection',
-        'tool6': 'Health & Vitality',
-        'tool7': 'Transcendence',
-        'tool8': 'Integration & Action'
-      };
-
       // Hide modal header (report HTML has its own header)
       title.style.display = 'none';
       subtitle.style.display = 'none';
@@ -2224,71 +2212,45 @@
       if (pdfTools.includes(toolId)) {
         pdfButton.innerHTML = `
           <button class="btn btn-primary" onclick="downloadReportPDF('${currentReportStudent.clientId}', '${toolId}')">
-            📥 Download PDF
+            Download PDF
           </button>
         `;
       } else {
         pdfButton.innerHTML = '';
       }
 
-      // Extract styles from <head> section
-      const styleMatch = reportHTML.match(/<style[^>]*>([\s\S]*?)<\/style>/i);
-      let styles = styleMatch ? styleMatch[1] : '';
+      // Clean up the report HTML before rendering
+      // Remove loading overlay
+      var cleanHTML = reportHTML.replace(/<div[^>]*id="loadingOverlay"[^>]*>[\s\S]*?<\/div>\s*<\/div>/gi, '');
+      // Remove action buttons, scripts, and "edit your responses" text
+      cleanHTML = cleanHTML.replace(/<div[^>]*class="[^"]*action-buttons[^"]*"[^>]*>[\s\S]*?<\/div>/gi, '');
+      cleanHTML = cleanHTML.replace(/<script[\s\S]*?<\/script>/gi, '');
+      cleanHTML = cleanHTML.replace(/<p[^>]*>[^<]*To edit your responses[^<]*<\/p>/gi, '');
+      // Remove standalone buttons (but keep the rest of the structure)
+      cleanHTML = cleanHTML.replace(/<button[^>]*>[\s\S]*?<\/button>/gi, '');
+      // Remove feedback widget
+      cleanHTML = cleanHTML.replace(/<div[^>]*data-feedback-widget[^>]*>[\s\S]*?<\/div>/gi, '');
 
-      // Scope all styles to #reportModalBody to prevent affecting rest of page
-      // Replace global selectors with scoped selectors
-      styles = styles
-        .replace(/body\s*{/g, '#reportModalBody {')
-        .replace(/([^\w-])(\.[\w-]+)/g, '$1#reportModalBody $2')  // Scope class selectors
-        .replace(/#reportModalBody\s+#reportModalBody/g, '#reportModalBody')  // Remove duplicates
-        .replace(/(@[\w-]+[^{]*{[^}]*})/g, '$1');  // Keep @import and @keyframes as-is
+      // Render in a sandboxed iframe to avoid CSS conflicts
+      body.innerHTML = '<iframe id="reportIframe" style="width: 100%; border: none; min-height: 500px; border-radius: 8px;" sandbox="allow-same-origin"></iframe>';
+      var iframe = document.getElementById('reportIframe');
 
-      // Extract body content
-      const bodyMatch = reportHTML.match(/<body[^>]*>([\s\S]*)<\/body>/i);
-      let bodyContent = bodyMatch ? bodyMatch[1] : reportHTML;
+      iframe.onload = function() {
+        var doc = iframe.contentDocument || iframe.contentWindow.document;
+        doc.open();
+        doc.write(cleanHTML);
+        doc.close();
 
-      // Remove loading overlay from the HTML (it interferes with display)
-      bodyContent = bodyContent.replace(/<div[^>]*id="loadingOverlay"[^>]*>[\s\S]*?<\/div>\s*<\/div>/gi, '');
-
-      // Create/update scoped style element
-      let styleElement = document.getElementById('reportStyles');
-      if (!styleElement) {
-        styleElement = document.createElement('style');
-        styleElement.id = 'reportStyles';
-        document.head.appendChild(styleElement);
-      }
-      styleElement.textContent = styles;
-
-      // Inject the report HTML
-      body.innerHTML = bodyContent;
-
-      // Remove action buttons from the report (they're for student view, not admin)
-      const actionButtons = body.querySelector('.action-buttons');
-      if (actionButtons) {
-        actionButtons.remove();
-      }
-
-      // Remove feedback widget if present
-      const feedbackWidget = body.querySelector('[data-feedback-widget]');
-      if (feedbackWidget) {
-        feedbackWidget.remove();
-      }
-
-      // Remove any paragraph with "To edit your responses" text
-      const paragraphs = body.querySelectorAll('p');
-      paragraphs.forEach(p => {
-        if (p.textContent.includes('To edit your responses')) {
-          p.remove();
+        // Auto-resize iframe to fit content
+        function resizeIframe() {
+          var h = doc.documentElement.scrollHeight || doc.body.scrollHeight;
+          iframe.style.height = h + 'px';
         }
-      });
-
-      // Remove all buttons (navigation, PDF download, etc - we have our own PDF button in modal footer)
-      const buttons = body.querySelectorAll('button');
-      buttons.forEach(btn => btn.remove());
-
-      // Remove all inline scripts
-      const scripts = body.querySelectorAll('script');
-      scripts.forEach(script => script.remove());
+        resizeIframe();
+        // Resize again after fonts/images load
+        setTimeout(resizeIframe, 500);
+        setTimeout(resizeIframe, 1500);
+      };
     }
 
     // Download report PDF
@@ -2333,6 +2295,14 @@
     // Close report modal
     function closeReportModal() {
       document.getElementById('reportModal').classList.remove('show');
+      // Restore modal header for next open
+      document.getElementById('reportModalTitle').style.display = '';
+      document.getElementById('reportModalSubtitle').style.display = '';
+      // Clean up iframe
+      document.getElementById('reportModalBody').innerHTML = '';
+      // Remove any leftover scoped styles from old rendering method
+      var oldStyles = document.getElementById('reportStyles');
+      if (oldStyles) oldStyles.remove();
     }
 
     // ========================================
