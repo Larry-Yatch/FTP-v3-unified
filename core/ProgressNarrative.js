@@ -316,10 +316,20 @@ const ProgressNarrative = {
         var data = responses[r].data;
         if (!data) continue;
 
+        // Navigate to the correct nested path for open-text fields:
+        // Tool 2 stores form data under data.data
+        // Tools 3/5/7 store responses under data.responses
+        var textSource = data;
+        if (toolId === 'tool2' && data.data) {
+          textSource = data.data;
+        } else if (data.responses) {
+          textSource = data.responses;
+        }
+
         var texts = {};
         var hasAny = false;
         for (var f = 0; f < fields.length; f++) {
-          var val = data[fields[f].key] || '';
+          var val = textSource[fields[f].key] || '';
           if (val && val.length > 0) {
             // Truncate to 300 chars
             texts[fields[f].label] = val.length > 300 ? val.substring(0, 297) + '...' : val;
