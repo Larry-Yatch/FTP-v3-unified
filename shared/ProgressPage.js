@@ -442,7 +442,7 @@ const ProgressPage = {
     // Domain quotients
     html += '<div class="chart-group">'
       + '<h3 class="chart-group-title">Domain Quotients</h3>'
-      + '<div class="chart-grid">';
+      + '<div class="chart-grid chart-grid-centered">';
 
     var domainNames = [config.domain1Name, config.domain2Name];
     var domainKeys = ['domain1', 'domain2'];
@@ -767,7 +767,11 @@ const ProgressPage = {
       + '  display: grid;'
       + '  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));'
       + '  gap: 12px;'
-      + '  justify-content: center;'
+      + '}'
+      + '.chart-grid-centered {'
+      + '  grid-template-columns: repeat(2, minmax(260px, 1fr));'
+      + '  max-width: 600px;'
+      + '  margin: 0 auto;'
       + '}'
 
       // Trend cards
