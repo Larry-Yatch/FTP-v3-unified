@@ -234,6 +234,11 @@ const ProgressHistory = {
       // Enforce version cap
       this._enforceVersionCap(sheet, clientId, toolId);
 
+      // Clear cached narratives so they regenerate with new data
+      if (typeof ProgressNarrative !== 'undefined') {
+        ProgressNarrative._clearCache(clientId);
+      }
+
       LogUtils.debug('ProgressHistory: Recorded v' + versionNumber + ' for ' + clientId + ' / ' + toolId);
 
     } catch (error) {

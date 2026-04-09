@@ -104,6 +104,7 @@ const ProgressPage = {
       + '<div class="progress-container">'
       + this._renderHeader(title, clientId, isCoach)
       + this._renderOverviewStrip(history)
+      + this._renderCrossToolNarrativeContainer(history)
       + this._renderToolSections(history)
       + this._renderFooter()
       + '</div>'
@@ -150,6 +151,34 @@ const ProgressPage = {
     return html;
   },
 
+  // ─── Narrative Containers ───────────────────────────────────────────
+
+  _renderCrossToolNarrativeContainer(history) {
+    // Only show if at least one tool has >= 2 entries
+    var hasProgress = false;
+    for (var i = 0; i < this.TOOL_ORDER.length; i++) {
+      var entries = history[this.TOOL_ORDER[i]] || [];
+      if (entries.length >= 2) { hasProgress = true; break; }
+    }
+    if (!hasProgress) return '';
+
+    return '<div class="narrative-container" id="cross-tool-narrative">'
+      + '<div class="narrative-loading">'
+      + '<div class="narrative-pulse"></div>'
+      + '<span>Analyzing your progress...</span>'
+      + '</div>'
+      + '</div>';
+  },
+
+  _renderToolNarrativeContainer(toolId) {
+    return '<div class="narrative-container narrative-tool" id="narrative-' + toolId + '" data-loaded="false">'
+      + '<div class="narrative-loading">'
+      + '<div class="narrative-pulse"></div>'
+      + '<span>Loading analysis...</span>'
+      + '</div>'
+      + '</div>';
+  },
+
   // ─── Tool Sections ─────────────────────────────────────────────────
 
   _renderToolSections(history) {
@@ -188,6 +217,7 @@ const ProgressPage = {
     } else if (entries.length === 1) {
       html += this._renderEmptyState(toolId, 'single');
     } else {
+      html += this._renderToolNarrativeContainer(toolId);
       html += this._renderCharts(toolId, entries);
     }
 
@@ -806,6 +836,68 @@ const ProgressPage = {
       + '  border-radius: 6px;'
       + '}'
 
+      // Narrative containers
+      + '.narrative-container {'
+      + '  background: rgba(20, 15, 35, 0.85);'
+      + '  border: 1px solid rgba(173, 145, 104, 0.25);'
+      + '  border-left: 3px solid #ad9168;'
+      + '  border-radius: 12px;'
+      + '  padding: 20px 24px;'
+      + '  margin-bottom: 24px;'
+      + '  min-height: 60px;'
+      + '}'
+      + '.narrative-container.narrative-tool {'
+      + '  margin-bottom: 16px;'
+      + '  padding: 16px 20px;'
+      + '}'
+      + '.narrative-loading {'
+      + '  display: flex;'
+      + '  align-items: center;'
+      + '  gap: 12px;'
+      + '  color: rgba(255,255,255,0.5);'
+      + '  font-size: 0.9rem;'
+      + '}'
+      + '.narrative-pulse {'
+      + '  width: 8px;'
+      + '  height: 8px;'
+      + '  background: #ad9168;'
+      + '  border-radius: 50%;'
+      + '  animation: narrativePulse 1.5s ease-in-out infinite;'
+      + '}'
+      + '@keyframes narrativePulse {'
+      + '  0%, 100% { opacity: 0.3; transform: scale(1); }'
+      + '  50% { opacity: 1; transform: scale(1.3); }'
+      + '}'
+      + '.narrative-text {'
+      + '  color: rgba(255,255,255,0.85);'
+      + '  font-size: 0.95rem;'
+      + '  line-height: 1.7;'
+      + '}'
+      + '.narrative-section { margin-bottom: 16px; }'
+      + '.narrative-section:last-child { margin-bottom: 0; }'
+      + '.narrative-section-title {'
+      + '  color: #ad9168;'
+      + '  font-size: 0.8rem;'
+      + '  font-weight: 600;'
+      + '  text-transform: uppercase;'
+      + '  letter-spacing: 1px;'
+      + '  margin-bottom: 6px;'
+      + '}'
+      + '.narrative-source {'
+      + '  display: inline-block;'
+      + '  margin-top: 12px;'
+      + '  font-size: 0.7rem;'
+      + '  color: rgba(255,255,255,0.3);'
+      + '  border: 1px solid rgba(255,255,255,0.1);'
+      + '  padding: 2px 8px;'
+      + '  border-radius: 4px;'
+      + '}'
+      + '.narrative-error {'
+      + '  color: rgba(255,255,255,0.4);'
+      + '  font-size: 0.85rem;'
+      + '  font-style: italic;'
+      + '}'
+
       // Footer
       + '.progress-footer {'
       + '  text-align: center;'
@@ -828,7 +920,87 @@ const ProgressPage = {
   // ─── Scripts ───────────────────────────────────────────────────────
 
   _getScripts(clientId, isCoach) {
-    return 'function goBack(clientId, isCoach) {'
+    return 'var _clientId = "' + clientId + '";'
+
+      // Narrative rendering helpers
+      + 'function renderNarrative(containerId, result) {'
+      + '  var el = document.getElementById(containerId);'
+      + '  if (!el) return;'
+      + '  if (!result || !result.success || !result.narrative) {'
+      + '    renderNarrativeError(containerId);'
+      + '    return;'
+      + '  }'
+      + '  var sourceLabel = result.source === "fallback" ? "Score-based summary" : "AI-generated insight";'
+      + '  el.innerHTML = "<div class=\\"narrative-text\\">" + result.narrative + "</div>"'
+      + '    + "<span class=\\"narrative-source\\">" + sourceLabel + "</span>";'
+      + '}'
+
+      + 'function renderToolNarrative(containerId, result) {'
+      + '  var el = document.getElementById(containerId);'
+      + '  if (!el) return;'
+      + '  if (!result || !result.success) {'
+      + '    renderNarrativeError(containerId);'
+      + '    return;'
+      + '  }'
+      + '  var sections = result.sections;'
+      + '  var html = "";'
+      + '  if (sections) {'
+      + '    if (sections.whatChanged) {'
+      + '      html += "<div class=\\"narrative-section\\"><div class=\\"narrative-section-title\\">What Changed</div>"'
+      + '        + "<div class=\\"narrative-text\\">" + sections.whatChanged + "</div></div>";'
+      + '    }'
+      + '    if (sections.whyItMatters) {'
+      + '      html += "<div class=\\"narrative-section\\"><div class=\\"narrative-section-title\\">Why It Matters</div>"'
+      + '        + "<div class=\\"narrative-text\\">" + sections.whyItMatters + "</div></div>";'
+      + '    }'
+      + '    if (sections.focusNext) {'
+      + '      html += "<div class=\\"narrative-section\\"><div class=\\"narrative-section-title\\">Focus Next</div>"'
+      + '        + "<div class=\\"narrative-text\\">" + sections.focusNext + "</div></div>";'
+      + '    }'
+      + '  } else if (result.narrative) {'
+      + '    html = "<div class=\\"narrative-text\\">" + result.narrative + "</div>";'
+      + '  }'
+      + '  var sourceLabel = result.source === "fallback" ? "Score-based summary" : "AI-generated insight";'
+      + '  el.innerHTML = html + "<span class=\\"narrative-source\\">" + sourceLabel + "</span>";'
+      + '}'
+
+      + 'function renderNarrativeError(containerId) {'
+      + '  var el = document.getElementById(containerId);'
+      + '  if (!el) return;'
+      + '  el.innerHTML = "<div class=\\"narrative-error\\">Analysis temporarily unavailable.</div>";'
+      + '}'
+
+      // Load cross-tool narrative on page load
+      + '(function() {'
+      + '  var crossEl = document.getElementById("cross-tool-narrative");'
+      + '  if (crossEl) {'
+      + '    google.script.run'
+      + '      .withSuccessHandler(function(result) {'
+      + '        renderNarrative("cross-tool-narrative", result);'
+      + '        loadFirstVisibleToolNarrative();'
+      + '      })'
+      + '      .withFailureHandler(function(err) {'
+      + '        renderNarrativeError("cross-tool-narrative");'
+      + '        loadFirstVisibleToolNarrative();'
+      + '      })'
+      + '      .getProgressNarrative(_clientId);'
+      + '  }'
+      + '})();'
+
+      // After cross-tool finishes, load the first expanded tool narrative
+      + 'function loadFirstVisibleToolNarrative() {'
+      + '  var tools = ["tool1","tool2","tool3","tool5","tool7"];'
+      + '  for (var i = 0; i < tools.length; i++) {'
+      + '    var body = document.getElementById("body-" + tools[i]);'
+      + '    var container = document.getElementById("narrative-" + tools[i]);'
+      + '    if (body && !body.classList.contains("collapsed") && container && container.dataset.loaded !== "true") {'
+      + '      loadToolNarrative(tools[i]);'
+      + '      break;'
+      + '    }'
+      + '  }'
+      + '}'
+
+      + 'function goBack(clientId, isCoach) {'
       + '  var overlay = document.createElement("div");'
       + '  overlay.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:9999;color:#fff;font-size:1.1rem;";'
       + '  overlay.textContent = "Loading dashboard...";'
@@ -869,10 +1041,21 @@ const ProgressPage = {
       + '  if (body.classList.contains("collapsed")) {'
       + '    body.classList.remove("collapsed");'
       + '    arrow.classList.add("open");'
+      + '    loadToolNarrative(toolId);'
       + '  } else {'
       + '    body.classList.add("collapsed");'
       + '    arrow.classList.remove("open");'
       + '  }'
+      + '}'
+
+      + 'function loadToolNarrative(toolId) {'
+      + '  var container = document.getElementById("narrative-" + toolId);'
+      + '  if (!container || container.dataset.loaded === "true") return;'
+      + '  container.dataset.loaded = "true";'
+      + '  google.script.run'
+      + '    .withSuccessHandler(function(result) { renderToolNarrative("narrative-" + toolId, result); })'
+      + '    .withFailureHandler(function(err) { renderNarrativeError("narrative-" + toolId); })'
+      + '    .getToolProgressNarrative(_clientId, toolId);'
       + '}'
 
       + 'function toggleSubdomains(toolId) {'

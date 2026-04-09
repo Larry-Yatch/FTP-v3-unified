@@ -864,6 +864,37 @@ function getStudentProgressPage(clientId) {
 }
 
 /**
+ * Get cross-tool progress narrative (AI-generated)
+ * @param {string} clientId - Client ID
+ * @returns {Object} { success, narrative, source }
+ */
+function getProgressNarrative(clientId) {
+  try {
+    var result = ProgressNarrative.generateCrossToolSynthesis(clientId);
+    return { success: true, narrative: result.narrative, source: result.source };
+  } catch (error) {
+    LogUtils.error('getProgressNarrative error: ' + error);
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get per-tool deep dive progress narrative (AI-generated)
+ * @param {string} clientId - Client ID
+ * @param {string} toolId - Tool identifier
+ * @returns {Object} { success, sections: { whatChanged, whyItMatters, focusNext }, source }
+ */
+function getToolProgressNarrative(clientId, toolId) {
+  try {
+    var result = ProgressNarrative.generateToolDeepDive(clientId, toolId);
+    return { success: true, sections: result.sections, narrative: result.narrative, source: result.source };
+  } catch (error) {
+    LogUtils.error('getToolProgressNarrative error: ' + error);
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
  * Get admin dashboard HTML for navigation back from full-page views (e.g., progress page)
  * @returns {string} Admin dashboard HTML content
  */
