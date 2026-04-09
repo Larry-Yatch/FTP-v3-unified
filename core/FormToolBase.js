@@ -174,16 +174,44 @@ const FormToolBase = {
 
     if (!isEditMode) {
       if (page === 1) {
-        // Page 1: Create new DRAFT row
-        DataService.saveDraft(clientId, toolId, draftData);
+        // Page 1: Create new DRAFT row and capture row index for fast updates
+        var saveResult = DataService.saveDraft(clientId, toolId, draftData);
+        if (saveResult && saveResult.draftRowIndex) {
+          // Store row index in PropertiesService for fast lookup on subsequent pages
+          try {
+            PropertiesService.getUserProperties().setProperty(
+              '_draftRow_' + toolId + '_' + clientId, String(saveResult.draftRowIndex)
+            );
+          } catch (e) { /* non-fatal */ }
+        }
       } else {
-        // Later pages: Update existing DRAFT row with complete merged data
-        DataService.updateDraft(clientId, toolId, draftData);
+        // Later pages: Use tracked row index for fast update (skip full sheet scan)
+        var rowIdx = null;
+        try {
+          var stored = PropertiesService.getUserProperties().getProperty('_draftRow_' + toolId + '_' + clientId);
+          rowIdx = stored ? parseInt(stored) : null;
+        } catch (e) { /* fall through */ }
+
+        if (rowIdx) {
+          DataService.updateDraftByRow(clientId, toolId, draftData, rowIdx);
+        } else {
+          DataService.updateDraft(clientId, toolId, draftData);
+        }
       }
     } else {
-      // Edit mode: Update EDIT_DRAFT to keep RESPONSES sheet in sync
-      LogUtils.debug('[' + toolId + '] Updating EDIT_DRAFT with current data');
-      DataService.updateDraft(clientId, toolId, draftData);
+      // Edit mode: Use tracked row index if available
+      var editRowIdx = null;
+      try {
+        var editStored = PropertiesService.getUserProperties().getProperty('_draftRow_' + toolId + '_' + clientId);
+        editRowIdx = editStored ? parseInt(editStored) : null;
+      } catch (e) { /* fall through */ }
+
+      if (editRowIdx) {
+        DataService.updateDraftByRow(clientId, toolId, draftData, editRowIdx);
+      } else {
+        LogUtils.debug('[' + toolId + '] Updating EDIT_DRAFT with current data');
+        DataService.updateDraft(clientId, toolId, draftData);
+      }
     }
 
     // Call tool-specific post-save hook if defined

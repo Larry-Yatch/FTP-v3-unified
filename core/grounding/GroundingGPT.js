@@ -85,7 +85,7 @@ const GroundingGPT = {
       // TIER 2: Retry GPT Analysis
       // ============================================================
       try {
-        Utilities.sleep(2000);
+        Utilities.sleep(500);
         LogUtils.debug(`[TIER 2] Retrying GPT: ${clientId} - ${subdomainKey}`);
 
         const systemPrompt = this.buildSubdomainSystemPrompt(subdomainConfig, aspectScores);
@@ -303,6 +303,83 @@ const GroundingGPT = {
         toolConfig,
         allScores
       );
+    }
+  },
+
+  /**
+   * Batch-synthesize both domains in parallel using UrlFetchApp.fetchAll().
+   * Falls back to individual calls if batch fails.
+   *
+   * @param {Object} params1 - Domain 1 synthesis parameters
+   * @param {Object} params2 - Domain 2 synthesis parameters
+   * @returns {Object} { domain1: {...}, domain2: {...} }
+   */
+  synthesizeDomainsBatch(params1, params2) {
+    try {
+      const apiKey = PropertiesService.getScriptProperties().getProperty('OPENAI_API_KEY');
+      if (!apiKey) throw new Error('OPENAI_API_KEY not found');
+
+      // Build prompts for both domains
+      const sys1 = this.buildDomainSynthesisPrompt(params1.domainConfig, params1.subdomainScores, params1.domainScore, params1.subdomainConfigs);
+      const user1 = this.buildDomainUserPrompt(params1.subdomainInsights, params1.subdomainConfigs);
+      const sys2 = this.buildDomainSynthesisPrompt(params2.domainConfig, params2.subdomainScores, params2.domainScore, params2.subdomainConfigs);
+      const user2 = this.buildDomainUserPrompt(params2.subdomainInsights, params2.subdomainConfigs);
+
+      LogUtils.debug('[SYNTHESIS] Batch domain call: ' + params1.domainConfig.name + ' + ' + params2.domainConfig.name);
+
+      var makeRequest = function(sysPrompt, usrPrompt) {
+        return {
+          url: 'https://api.openai.com/v1/chat/completions',
+          method: 'post',
+          contentType: 'application/json',
+          headers: { 'Authorization': 'Bearer ' + apiKey },
+          payload: JSON.stringify({
+            model: 'gpt-4o',
+            messages: [
+              { role: 'system', content: sysPrompt },
+              { role: 'user', content: usrPrompt }
+            ],
+            temperature: 0.3,
+            max_tokens: 500
+          }),
+          muteHttpExceptions: true
+        };
+      };
+
+      var responses = UrlFetchApp.fetchAll([
+        makeRequest(sys1, user1),
+        makeRequest(sys2, user2)
+      ]);
+
+      var results = [];
+      for (var i = 0; i < responses.length; i++) {
+        var json = JSON.parse(responses[i].getContentText());
+        if (json.error) throw new Error('Domain ' + (i + 1) + ' API error: ' + json.error.message);
+        results.push(json.choices[0].message.content);
+      }
+
+      // Parse both
+      var parsed1 = this.parseDomainSynthesis(results[0]);
+      var parsed2 = this.parseDomainSynthesis(results[1]);
+
+      // Validate and fall back individually
+      var domain1 = this.isValidDomainSynthesis(parsed1)
+        ? Object.assign({}, parsed1, { source: 'gpt', timestamp: new Date().toISOString() })
+        : GroundingFallbacks.getDomainFallback(params1.toolId, params1.domainConfig, params1.subdomainScores, params1.domainScore);
+
+      var domain2 = this.isValidDomainSynthesis(parsed2)
+        ? Object.assign({}, parsed2, { source: 'gpt', timestamp: new Date().toISOString() })
+        : GroundingFallbacks.getDomainFallback(params2.toolId, params2.domainConfig, params2.subdomainScores, params2.domainScore);
+
+      LogUtils.debug('[SYNTHESIS] Batch domain success');
+      return { domain1: domain1, domain2: domain2 };
+
+    } catch (error) {
+      LogUtils.debug('[SYNTHESIS] Batch failed, falling back to sequential: ' + error.message);
+      return {
+        domain1: this.synthesizeDomain(params1),
+        domain2: this.synthesizeDomain(params2)
+      };
     }
   },
 

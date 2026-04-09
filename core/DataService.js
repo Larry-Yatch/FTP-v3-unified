@@ -52,6 +52,7 @@ const DataService = {
         status,                    // Status
         'true'                     // Is_Latest
       ]);
+      var draftRowIndex = sheet.getLastRow();
       SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.RESPONSES);
 
       // Log activity and update status based on save type
@@ -91,7 +92,8 @@ const DataService = {
 
       return {
         success: true,
-        message: `${toolId} response saved successfully`
+        message: `${toolId} response saved successfully`,
+        draftRowIndex: (status === 'DRAFT' || status === 'EDIT_DRAFT') ? draftRowIndex : undefined
       };
 
     } catch (error) {
@@ -188,6 +190,58 @@ const DataService = {
     } catch (error) {
       LogUtils.error('Error updating draft:', error);
       return { success: false, error: error.toString() };
+    }
+  },
+
+  /**
+   * Fast draft update using known row index — skips full sheet scan.
+   * Falls back to updateDraft() if row index is invalid.
+   */
+  updateDraftByRow(clientId, toolId, data, rowIndex) {
+    try {
+      const sheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.RESPONSES);
+      if (!sheet || !rowIndex || rowIndex < 2) {
+        return this.updateDraft(clientId, toolId, data);
+      }
+
+      // Read just the header row + target row (2 rows, not entire sheet)
+      var headerRow = sheet.getRange(1, 1, 1, 7).getValues()[0];
+      var dataCol = headerRow.indexOf('Data');
+      var timestampCol = headerRow.indexOf('Timestamp');
+      var clientIdCol = headerRow.indexOf('Client_ID');
+      var toolIdCol = headerRow.indexOf('Tool_ID');
+      var statusCol = headerRow.indexOf('Status');
+
+      // Quick verification: read just the target row
+      var rowData = sheet.getRange(rowIndex, 1, 1, 7).getValues()[0];
+      if (rowData[clientIdCol] !== clientId || rowData[toolIdCol] !== toolId ||
+          (rowData[statusCol] !== 'DRAFT' && rowData[statusCol] !== 'EDIT_DRAFT')) {
+        LogUtils.debug('DataService: Row index mismatch, falling back to full scan');
+        return this.updateDraft(clientId, toolId, data);
+      }
+
+      // Merge data for EDIT_DRAFT
+      var dataToSave = data;
+      if (rowData[statusCol] === 'EDIT_DRAFT') {
+        try {
+          var existing = typeof rowData[dataCol] === 'string' ? JSON.parse(rowData[dataCol]) : rowData[dataCol];
+          dataToSave = Object.assign({}, existing, data);
+        } catch (e) {
+          LogUtils.warn('DataService: Could not parse existing EDIT_DRAFT, replacing');
+        }
+      }
+
+      // Write data + timestamp
+      sheet.getRange(rowIndex, dataCol + 1).setValue(JSON.stringify(dataToSave));
+      sheet.getRange(rowIndex, timestampCol + 1).setValue(new Date());
+      SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.RESPONSES);
+
+      LogUtils.debug('DataService: Fast draft update for ' + clientId + ' / ' + toolId + ' at row ' + rowIndex);
+      return { success: true, message: 'Draft updated (fast path)', action: 'updated' };
+
+    } catch (error) {
+      LogUtils.error('DataService: updateDraftByRow error, falling back: ' + error);
+      return this.updateDraft(clientId, toolId, data);
     }
   },
 

@@ -218,8 +218,8 @@ var GroundingToolBase = Object.assign({}, FormToolBase, {
   runFinalSyntheses(clientId, scoringResult, gptInsights) {
     var syntheses = {};
 
-    // Domain 1 synthesis
-    syntheses.domain1 = GroundingGPT.synthesizeDomain({
+    // Domain 1 + Domain 2 synthesis — parallel via fetchAll
+    var domain1Params = {
       toolId: this.config.id,
       clientId: clientId,
       domainConfig: {
@@ -231,10 +231,9 @@ var GroundingToolBase = Object.assign({}, FormToolBase, {
       subdomainScores: this.extractDomainScores(scoringResult.subdomainQuotients, 0, 3),
       domainScore: scoringResult.domainQuotients.domain1,
       subdomainConfigs: this.config.subdomains.slice(0, 3)
-    });
+    };
 
-    // Domain 2 synthesis
-    syntheses.domain2 = GroundingGPT.synthesizeDomain({
+    var domain2Params = {
       toolId: this.config.id,
       clientId: clientId,
       domainConfig: {
@@ -246,7 +245,11 @@ var GroundingToolBase = Object.assign({}, FormToolBase, {
       subdomainScores: this.extractDomainScores(scoringResult.subdomainQuotients, 3, 6),
       domainScore: scoringResult.domainQuotients.domain2,
       subdomainConfigs: this.config.subdomains.slice(3, 6)
-    });
+    };
+
+    var batchResult = GroundingGPT.synthesizeDomainsBatch(domain1Params, domain2Params);
+    syntheses.domain1 = batchResult.domain1;
+    syntheses.domain2 = batchResult.domain2;
 
     // Overall synthesis
     syntheses.overall = GroundingGPT.synthesizeOverall({
