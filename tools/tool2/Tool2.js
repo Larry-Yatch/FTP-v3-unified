@@ -1197,17 +1197,43 @@ const Tool2 = Object.assign({}, FormToolBase, {
       if (!isEditMode) {
         // Use complete draft data so RESPONSES sheet has ALL pages
         if (page === 1) {
-          // Page 1: Create new DRAFT row
-          DataService.saveDraft(clientId, 'tool2', draftData);
+          // Page 1: Create new DRAFT row and capture row index for fast updates
+          var saveResult = DataService.saveDraft(clientId, 'tool2', draftData);
+          if (saveResult && saveResult.draftRowIndex) {
+            try {
+              PropertiesService.getUserProperties().setProperty(
+                '_draftRow_tool2_' + clientId, String(saveResult.draftRowIndex)
+              );
+            } catch (e) { /* non-fatal */ }
+          }
         } else {
-          // Pages 2-5: Update existing DRAFT row with complete merged data
-          DataService.updateDraft(clientId, 'tool2', draftData);
+          // Pages 2-5: Use tracked row index for fast update (skip full sheet scan)
+          var rowIdx = null;
+          try {
+            var stored = PropertiesService.getUserProperties().getProperty('_draftRow_tool2_' + clientId);
+            rowIdx = stored ? parseInt(stored) : null;
+          } catch (e) { /* fall through */ }
+
+          if (rowIdx) {
+            DataService.updateDraftByRow(clientId, 'tool2', draftData, rowIdx);
+          } else {
+            DataService.updateDraft(clientId, 'tool2', draftData);
+          }
         }
       } else {
-        // EDIT MODE: Also update EDIT_DRAFT row to keep RESPONSES sheet in sync
-        // This ensures data isn't lost if PropertiesService gets cleared mid-session
-        LogUtils.debug(`[Tool2] Updating EDIT_DRAFT with current data`);
-        DataService.updateDraft(clientId, 'tool2', draftData);
+        // EDIT MODE: Use tracked row index if available
+        var editRowIdx = null;
+        try {
+          var editStored = PropertiesService.getUserProperties().getProperty('_draftRow_tool2_' + clientId);
+          editRowIdx = editStored ? parseInt(editStored) : null;
+        } catch (e) { /* fall through */ }
+
+        if (editRowIdx) {
+          DataService.updateDraftByRow(clientId, 'tool2', draftData, editRowIdx);
+        } else {
+          LogUtils.debug('[Tool2] Updating EDIT_DRAFT with current data');
+          DataService.updateDraft(clientId, 'tool2', draftData);
+        }
       }
 
       // GPT background analysis is triggered client-side after page 5 loads
