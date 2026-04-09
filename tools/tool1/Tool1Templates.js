@@ -401,6 +401,7 @@ const Tool1Templates = {
       'will provide a more complete picture of where attention may be most valuable.</p>' +
       '<p>Your highest-scoring pattern is <strong>' + winnerName + '</strong> (score: ' + winnerScore + '). ' +
       'While this is a relative high point rather than a strong signal, ' +
-      'a brief note on what we typically see with this pattern follows.</p>';
+      'even within uniformly low scores, the highest pattern still indicates where your subconscious is most likely to engage under stress. ' +
+      'A brief note on what we typically see with this pattern follows.</p>';
   }
 };

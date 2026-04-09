@@ -249,6 +249,12 @@ const Tool1Report = {
     var html = '';
 
     if (profile.type === 'NEGATIVE_DOMINANT') {
+      // Include the common intro (same as other profile types)
+      html += '<div class="intro-section">' +
+        '<h2>Thank you for completing the Core Trauma Strategies Assessment with TruPath.</h2>' +
+        Tool1Templates.commonIntro +
+      '</div>';
+
       // Condensed winner section with caveat
       html += '<div class="strategy-section strategy-condensed">' +
         '<p class="condensed-note"><em>Note: The following reflects your relative tendency rather than a dominant pattern.</em></p>' +
@@ -326,8 +332,21 @@ const Tool1Report = {
   buildStrengthsSection(profile) {
     if (!profile || !profile.lowPatterns || profile.lowPatterns.length === 0) return '';
 
-    // For negative-dominant profiles, skip strengths section (it would list too many)
-    if (profile.type === 'NEGATIVE_DOMINANT') return '';
+    // For negative-dominant profiles, show reframed interpretation
+    if (profile.type === 'NEGATIVE_DOMINANT') {
+      var winnerKey = profile.winner;
+      var winnerName = this.PATTERN_NAMES[winnerKey] || winnerKey;
+      return '<div class="strengths-section">' +
+        '<h2>Interpreting Uniformly Low Scores</h2>' +
+        '<p>When all six pattern scores fall below their activation thresholds, it suggests that none of these defensive strategies are strongly driving your financial behavior. ' +
+        'This is relatively uncommon and can be a genuinely positive signal \u2014 it often reflects a person who has done meaningful personal work, or who simply does not rely heavily on these particular coping mechanisms.</p>' +
+        '<p>That said, even within a low-scoring profile, <strong>relative differences still matter</strong>. ' +
+        'Your highest-scoring pattern, <strong>' + winnerName + '</strong>, represents where your subconscious is most likely to default under stress. ' +
+        'It may not be a dominant force in your daily life, but in moments of financial pressure, relationship conflict, or uncertainty, this is the pattern most likely to surface.</p>' +
+        '<p>As you move through the remaining TruPath tools, pay particular attention to whether the themes from ' + winnerName + ' show up in your financial data. ' +
+        'The objective numbers often reveal patterns that self-assessment alone cannot fully capture.</p>' +
+      '</div>';
+    }
 
     var html = '<div class="strengths-section">' +
       '<h2>Patterns You Do Not Show: Your Financial Strengths</h2>' +
