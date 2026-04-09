@@ -922,6 +922,14 @@ const ProgressPage = {
   _getScripts(clientId, isCoach) {
     return 'var _clientId = "' + clientId + '";'
 
+      // Sanitize GPT output to prevent HTML injection
+      + 'function sanitizeNarrative(text) {'
+      + '  if (!text) return "";'
+      + '  var div = document.createElement("div");'
+      + '  div.textContent = text;'
+      + '  return div.innerHTML;'
+      + '}'
+
       // Narrative rendering helpers
       + 'function renderNarrative(containerId, result) {'
       + '  var el = document.getElementById(containerId);'
@@ -931,7 +939,7 @@ const ProgressPage = {
       + '    return;'
       + '  }'
       + '  var sourceLabel = result.source === "fallback" ? "Score-based summary" : "AI-generated insight";'
-      + '  el.innerHTML = "<div class=\\"narrative-text\\">" + result.narrative + "</div>"'
+      + '  el.innerHTML = "<div class=\\"narrative-text\\">" + sanitizeNarrative(result.narrative) + "</div>"'
       + '    + "<span class=\\"narrative-source\\">" + sourceLabel + "</span>";'
       + '}'
 
@@ -947,18 +955,18 @@ const ProgressPage = {
       + '  if (sections) {'
       + '    if (sections.whatChanged) {'
       + '      html += "<div class=\\"narrative-section\\"><div class=\\"narrative-section-title\\">What Changed</div>"'
-      + '        + "<div class=\\"narrative-text\\">" + sections.whatChanged + "</div></div>";'
+      + '        + "<div class=\\"narrative-text\\">" + sanitizeNarrative(sections.whatChanged) + "</div></div>";'
       + '    }'
       + '    if (sections.whyItMatters) {'
       + '      html += "<div class=\\"narrative-section\\"><div class=\\"narrative-section-title\\">Why It Matters</div>"'
-      + '        + "<div class=\\"narrative-text\\">" + sections.whyItMatters + "</div></div>";'
+      + '        + "<div class=\\"narrative-text\\">" + sanitizeNarrative(sections.whyItMatters) + "</div></div>";'
       + '    }'
       + '    if (sections.focusNext) {'
       + '      html += "<div class=\\"narrative-section\\"><div class=\\"narrative-section-title\\">Focus Next</div>"'
-      + '        + "<div class=\\"narrative-text\\">" + sections.focusNext + "</div></div>";'
+      + '        + "<div class=\\"narrative-text\\">" + sanitizeNarrative(sections.focusNext) + "</div></div>";'
       + '    }'
       + '  } else if (result.narrative) {'
-      + '    html = "<div class=\\"narrative-text\\">" + result.narrative + "</div>";'
+      + '    html = "<div class=\\"narrative-text\\">" + sanitizeNarrative(result.narrative) + "</div>";'
       + '  }'
       + '  var sourceLabel = result.source === "fallback" ? "Score-based summary" : "AI-generated insight";'
       + '  el.innerHTML = html + "<span class=\\"narrative-source\\">" + sourceLabel + "</span>";'

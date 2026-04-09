@@ -298,9 +298,16 @@ const ProgressNarrative = {
     if (!fields) return [];
 
     try {
-      // Get latest 2 completed responses
-      var responses = ResponseManager.getAllResponses(clientId, toolId, 2);
-      if (!responses || responses.length < 2) return [];
+      // Get recent responses and filter to COMPLETED only
+      var allResponses = ResponseManager.getAllResponses(clientId, toolId, 10);
+      var responses = [];
+      for (var ri = 0; ri < allResponses.length; ri++) {
+        if (allResponses[ri].status === 'COMPLETED') {
+          responses.push(allResponses[ri]);
+          if (responses.length >= 2) break;
+        }
+      }
+      if (responses.length < 2) return [];
 
       var result = [];
       // responses are newest-first, so [0] = latest, [1] = previous
