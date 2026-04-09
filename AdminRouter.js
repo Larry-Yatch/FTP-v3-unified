@@ -653,16 +653,19 @@ function handleGetToolReportHTMLRequest(clientId, toolId) {
       case 'tool2':
         const tool2Results = Tool2Report.getResults(clientId);
         if (tool2Results) {
-          reportHTML = Tool2Report.buildReportHTML(clientId, tool2Results);
+          const isNewSchema = tool2Results.results && tool2Results.results.objectiveHealthScores;
+          reportHTML = isNewSchema
+            ? Tool2Report.buildNewReportHTML(clientId, tool2Results)
+            : Tool2Report.buildLegacyReportHTML(clientId, tool2Results);
         }
         break;
 
       case 'tool3':
         // Tool3 uses GroundingReport pattern
         const savedData3 = DataService.getToolResponse(clientId, 'tool3');
-        const assessmentData3 = savedData3?.data || savedData3;
+        const assessmentData3 = savedData3?.data;
 
-        if (assessmentData3.scoring && assessmentData3.gpt_insights && assessmentData3.syntheses) {
+        if (assessmentData3 && assessmentData3.scoring && assessmentData3.gpt_insights && assessmentData3.syntheses) {
           const gptInsights3 = {
             subdomains: assessmentData3.gpt_insights?.subdomains || {},
             domain1: assessmentData3.syntheses?.domain1,
@@ -685,9 +688,9 @@ function handleGetToolReportHTMLRequest(clientId, toolId) {
       case 'tool5':
         // Tool5 uses GroundingReport pattern
         const savedData5 = DataService.getToolResponse(clientId, 'tool5');
-        const assessmentData5 = savedData5?.data || savedData5;
+        const assessmentData5 = savedData5?.data;
 
-        if (assessmentData5.scoring && assessmentData5.gpt_insights && assessmentData5.syntheses) {
+        if (assessmentData5 && assessmentData5.scoring && assessmentData5.gpt_insights && assessmentData5.syntheses) {
           const gptInsights5 = {
             subdomains: assessmentData5.gpt_insights?.subdomains || {},
             domain1: assessmentData5.syntheses?.domain1,
@@ -710,9 +713,9 @@ function handleGetToolReportHTMLRequest(clientId, toolId) {
       case 'tool7':
         // Tool7 uses GroundingReport pattern
         const savedData7 = DataService.getToolResponse(clientId, 'tool7');
-        const assessmentData7 = savedData7?.data || savedData7;
+        const assessmentData7 = savedData7?.data;
 
-        if (assessmentData7.scoring && assessmentData7.gpt_insights && assessmentData7.syntheses) {
+        if (assessmentData7 && assessmentData7.scoring && assessmentData7.gpt_insights && assessmentData7.syntheses) {
           const gptInsights7 = {
             subdomains: assessmentData7.gpt_insights?.subdomains || {},
             domain1: assessmentData7.syntheses?.domain1,
