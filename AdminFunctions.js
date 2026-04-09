@@ -92,6 +92,20 @@ function addStudent(clientId, name, email, cohortId) {
 
     console.log('✅ Added to Students sheet');
 
+    // Add to STUDENT_COHORTS junction table
+    try {
+      var scSheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.STUDENT_COHORTS);
+      if (!scSheet) {
+        scSheet = SpreadsheetApp.getActiveSpreadsheet().insertSheet(CONFIG.SHEETS.STUDENT_COHORTS);
+        scSheet.appendRow(['Client_ID', 'Cohort_ID', 'Enrolled_Date']);
+      }
+      scSheet.appendRow([clientId || email, effectiveCohort, new Date()]);
+      SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.STUDENT_COHORTS);
+      console.log('✅ Added to STUDENT_COHORTS junction table');
+    } catch (scError) {
+      console.error('Warning: Could not write to STUDENT_COHORTS:', scError);
+    }
+
     // Only initialize tool access for active (non-pending) students
     if (!isPending) {
       const result = ToolAccessControl.initializeStudent(clientId);
@@ -413,4 +427,98 @@ function ensureCohort1Exists(ss) {
   } catch (error) {
     console.error('❌ Error ensuring Cohort 1:', error);
   }
+}
+
+/**
+ * One-time migration to multi-cohort data model.
+ * Creates STUDENT_COHORTS junction table and adds Cohort_ID column to ATTENDANCE.
+ * Idempotent — safe to run multiple times.
+ */
+function migrateToMultiCohortModel() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var results = { studentsProcessed: 0, attendanceProcessed: 0, skipped: [] };
+
+  // --- Step 1: Create STUDENT_COHORTS sheet and populate from STUDENTS ---
+  var scSheet = ss.getSheetByName(CONFIG.SHEETS.STUDENT_COHORTS);
+  if (!scSheet) {
+    scSheet = ss.insertSheet(CONFIG.SHEETS.STUDENT_COHORTS);
+    scSheet.appendRow(['Client_ID', 'Cohort_ID', 'Enrolled_Date']);
+    console.log('Created STUDENT_COHORTS sheet');
+  }
+
+  var scData = scSheet.getDataRange().getValues();
+  if (scData.length <= 1) {
+    // Empty junction table — populate from STUDENTS column 8
+    var studentsData = SpreadsheetCache.getSheetData(CONFIG.SHEETS.STUDENTS) || [];
+    var junctionRows = [];
+
+    for (var i = 1; i < studentsData.length; i++) {
+      var clientId = studentsData[i][0];
+      var cohort = studentsData[i][8];
+      var enrolledDate = studentsData[i][4] || new Date();
+
+      if (!clientId && !studentsData[i][2]) continue; // skip blank rows
+      var id = clientId || studentsData[i][2]; // use email for pending students
+
+      if (cohort) {
+        junctionRows.push([id, cohort, enrolledDate]);
+      } else {
+        // Default to cohort_1 if no cohort assigned
+        junctionRows.push([id, 'cohort_1', enrolledDate]);
+      }
+      results.studentsProcessed++;
+    }
+
+    if (junctionRows.length > 0) {
+      scSheet.getRange(2, 1, junctionRows.length, 3).setValues(junctionRows);
+      console.log('Populated STUDENT_COHORTS with ' + junctionRows.length + ' rows');
+    }
+  } else {
+    results.skipped.push('STUDENT_COHORTS already has data (' + (scData.length - 1) + ' rows)');
+    console.log('STUDENT_COHORTS already populated, skipping');
+  }
+
+  // --- Step 2: Add Cohort_ID column to ATTENDANCE ---
+  var attSheet = ss.getSheetByName(CONFIG.SHEETS.ATTENDANCE);
+  if (attSheet) {
+    var attData = attSheet.getDataRange().getValues();
+
+    if (attData.length > 0 && attData[0].length < 7) {
+      // Need to add Cohort_ID column (G, index 6)
+      // Build student → cohort lookup from STUDENTS sheet
+      var studentsData2 = SpreadsheetCache.getSheetData(CONFIG.SHEETS.STUDENTS) || [];
+      var cohortLookup = {};
+      for (var s = 1; s < studentsData2.length; s++) {
+        var sid = studentsData2[s][0];
+        if (sid) cohortLookup[sid] = studentsData2[s][8] || 'cohort_1';
+      }
+
+      // Add header
+      attSheet.getRange(1, 7).setValue('Cohort_ID');
+
+      // Batch update cohort column for all data rows
+      if (attData.length > 1) {
+        var cohortValues = [];
+        for (var a = 1; a < attData.length; a++) {
+          var attClientId = attData[a][1];
+          cohortValues.push([cohortLookup[attClientId] || 'cohort_1']);
+          results.attendanceProcessed++;
+        }
+        attSheet.getRange(2, 7, cohortValues.length, 1).setValues(cohortValues);
+        console.log('Added Cohort_ID to ' + cohortValues.length + ' ATTENDANCE rows');
+      }
+    } else if (attData.length > 0 && attData[0].length >= 7) {
+      results.skipped.push('ATTENDANCE already has 7+ columns');
+      console.log('ATTENDANCE already has Cohort_ID column, skipping');
+    }
+  } else {
+    results.skipped.push('No ATTENDANCE sheet found');
+  }
+
+  // Invalidate caches
+  SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.STUDENT_COHORTS);
+  SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.ATTENDANCE);
+
+  console.log('Migration complete:', JSON.stringify(results));
+  return results;
 }

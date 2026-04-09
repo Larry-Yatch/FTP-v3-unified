@@ -712,6 +712,10 @@
         <span class="nav-icon">📋</span>
         <span>Attendance</span>
       </div>
+      <div class="nav-item" onclick="switchPage('progress')" data-page="progress">
+        <span class="nav-icon">📊</span>
+        <span>Progress</span>
+      </div>
       <div class="nav-item" onclick="switchPage('cohorts')" data-page="cohorts">
         <span class="nav-icon">🎓</span>
         <span>Cohorts</span>
@@ -1067,7 +1071,7 @@
           </div>
           <div class="form-group" style="margin: 0;">
             <select id="attendanceCohortFilter" onchange="applyAttendanceCohortFilter()" style="width: 100%; padding: 11px; font-size: 14px;">
-              <option value="">All Cohorts</option>
+              <option value="">-- Select Cohort --</option>
             </select>
           </div>
         </div>
@@ -1153,6 +1157,37 @@
           <div id="attendance-analytics-container" class="loading">
             <div class="spinner"></div>
             <p>Loading analytics...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Progress Page -->
+      <div class="page-section" id="progress-page">
+        <div class="section-header">
+          <h2>Cohort Progress</h2>
+          <p>Combined tool completion and attendance tracking per student</p>
+        </div>
+
+        <div class="card" style="margin-bottom: 20px;">
+          <div class="card-header">
+            <div class="card-title">Select Cohort</div>
+          </div>
+          <div class="form-group" style="margin: 0;">
+            <select id="progressCohortFilter" onchange="loadCohortProgress()" style="width: 100%; padding: 11px; font-size: 14px;">
+              <option value="">-- Select Cohort --</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="progress-summary" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 20px;"></div>
+
+        <div class="card">
+          <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <div class="card-title">Student Progress</div>
+            <input type="text" id="progressStudentSearch" placeholder="Search students..." onkeyup="filterProgressTable()" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; width: 250px;">
+          </div>
+          <div id="progress-table-container">
+            <div class="empty-state">Select a cohort to view student progress</div>
           </div>
         </div>
       </div>
@@ -1368,6 +1403,8 @@
       } else if (pageName === 'attendance') {
         loadCohortDropdowns();
         loadAttendancePage();
+      } else if (pageName === 'progress') {
+        loadCohortDropdowns();
       } else if (pageName === 'cohorts') {
         loadCohortsPage();
       }
@@ -1483,11 +1520,11 @@
         const statusLabel = isPending ? '⏳ Pending setup' : student.status;
         const idDisplay = student.clientId || '<span style="color:#999;font-style:italic;">Not set yet</span>';
         html += `
-          <tr data-cohort="${escapeHtml(student.cohort || '')}">
+          <tr data-cohorts="${escapeHtml((student.cohorts || []).join(','))}">
             <td><strong>${isPending ? idDisplay : escapeHtml(student.clientId)}</strong></td>
             <td>${escapeHtml(student.name)}</td>
             <td>${escapeHtml(student.email)}</td>
-            <td>${escapeHtml(student.cohort || '-')}</td>
+            <td>${(student.cohorts && student.cohorts.length > 0) ? student.cohorts.map(c => escapeHtml(c)).join(', ') : escapeHtml(student.cohort || '-')}</td>
             <td><span class="status-badge ${statusClass}">${statusLabel}</span></td>
             <td>${isPending ? '-' : (student.toolsCompleted || 0) + ' / 8'}</td>
             <td class="action-buttons">
@@ -1619,7 +1656,7 @@
         .withSuccessHandler(r => {
           if (!r.success) return;
           cohortsData = r.cohorts;
-          const dropdownIds = ['studentCohort', 'importCohort', 'studentCohortFilter', 'analyticsCohortFilter', 'attendanceCohortFilter'];
+          const dropdownIds = ['studentCohort', 'importCohort', 'studentCohortFilter', 'analyticsCohortFilter', 'attendanceCohortFilter', 'progressCohortFilter'];
           dropdownIds.forEach(id => {
             const el = document.getElementById(id);
             if (!el) return;
@@ -1754,10 +1791,10 @@
         const clientId = row.cells[0]?.textContent.toLowerCase() || '';
         const name = row.cells[1]?.textContent.toLowerCase() || '';
         const email = row.cells[2]?.textContent.toLowerCase() || '';
-        const cohort = row.dataset.cohort || '';
+        const cohorts = (row.dataset.cohorts || '').split(',');
 
         const matchesSearch = !searchTerm || clientId.includes(searchTerm) || name.includes(searchTerm) || email.includes(searchTerm);
-        const matchesCohort = !cohortFilter || cohort === cohortFilter;
+        const matchesCohort = !cohortFilter || cohorts.indexOf(cohortFilter) !== -1;
 
         row.style.display = (matchesSearch && matchesCohort) ? '' : 'none';
       });
@@ -2253,6 +2290,123 @@
       };
     }
 
+    // ========================================
+    // COHORT PROGRESS FUNCTIONS
+    // ========================================
+
+    function loadCohortProgress() {
+      const cohortId = document.getElementById('progressCohortFilter').value;
+      const container = document.getElementById('progress-table-container');
+      const summary = document.getElementById('progress-summary');
+
+      if (!cohortId) {
+        container.innerHTML = '<div class="empty-state">Select a cohort to view student progress</div>';
+        summary.innerHTML = '';
+        return;
+      }
+
+      container.innerHTML = '<div class="loading"><div class="spinner"></div><p>Loading progress data...</p></div>';
+
+      google.script.run
+        .withSuccessHandler(renderCohortProgress)
+        .withFailureHandler(handleError)
+        .getCohortProgress(cohortId);
+    }
+
+    function renderCohortProgress(response) {
+      const container = document.getElementById('progress-table-container');
+      const summary = document.getElementById('progress-summary');
+
+      if (!response.success) {
+        container.innerHTML = '<div class="empty-state">Error: ' + response.error + '</div>';
+        return;
+      }
+
+      const d = response.data;
+
+      // Summary cards
+      summary.innerHTML =
+        '<div class="card" style="text-align:center;padding:20px;">' +
+          '<div style="font-size:28px;font-weight:700;color:#333;">' + d.totalStudents + '</div>' +
+          '<div style="font-size:12px;color:#999;margin-top:4px;">Students</div>' +
+        '</div>' +
+        '<div class="card" style="text-align:center;padding:20px;">' +
+          '<div style="font-size:28px;font-weight:700;color:#ad9168;">' + d.avgToolCompletion + '%</div>' +
+          '<div style="font-size:12px;color:#999;margin-top:4px;">Avg Tool Completion</div>' +
+        '</div>' +
+        '<div class="card" style="text-align:center;padding:20px;">' +
+          '<div style="font-size:28px;font-weight:700;color:#4a90d9;">' + d.avgAttendanceRate + '%</div>' +
+          '<div style="font-size:12px;color:#999;margin-top:4px;">Avg Attendance Rate</div>' +
+        '</div>';
+
+      if (d.students.length === 0) {
+        container.innerHTML = '<div class="empty-state">No students found in this cohort</div>';
+        return;
+      }
+
+      // Table
+      var html = '<table style="width:100%;border-collapse:collapse;font-size:14px;">';
+      html += '<thead><tr style="border-bottom:2px solid #eee;text-align:left;">';
+      html += '<th style="padding:10px 8px;cursor:pointer;" onclick="sortProgressTable(\'name\')">Student</th>';
+      html += '<th style="padding:10px 8px;cursor:pointer;" onclick="sortProgressTable(\'toolCount\')">Tools</th>';
+      html += '<th style="padding:10px 8px;cursor:pointer;" onclick="sortProgressTable(\'attendanceRate\')">Attendance</th>';
+      html += '<th style="padding:10px 8px;cursor:pointer;" onclick="sortProgressTable(\'progressScore\')">Progress</th>';
+      html += '<th style="padding:10px 8px;">Last Activity</th>';
+      html += '</tr></thead><tbody id="progressTableBody">';
+
+      d.students.forEach(function(s) {
+        var barColor = s.progressScore >= 70 ? '#4ade80' : s.progressScore >= 40 ? '#facc15' : '#f87171';
+        var lastAct = s.lastActivity ? new Date(s.lastActivity).toLocaleDateString() : '-';
+
+        html += '<tr class="progress-row" data-name="' + (s.name || '').toLowerCase() + '" style="border-bottom:1px solid #f0f0f0;">';
+        html += '<td style="padding:10px 8px;"><strong>' + s.name + '</strong><br><span style="color:#999;font-size:12px;">' + s.clientId + '</span></td>';
+        html += '<td style="padding:10px 8px;">' + s.toolCount + ' / ' + d.totalTools + '</td>';
+        html += '<td style="padding:10px 8px;">' + s.callsAttended + ' / ' + s.callsMarked + (s.callsMarked > 0 ? ' (' + s.attendanceRate + '%)' : '') + '</td>';
+        html += '<td style="padding:10px 8px;">';
+        html += '<div style="display:flex;align-items:center;gap:8px;">';
+        html += '<div style="flex:1;height:8px;background:#f0f0f0;border-radius:4px;overflow:hidden;">';
+        html += '<div style="width:' + s.progressScore + '%;height:100%;background:' + barColor + ';border-radius:4px;"></div>';
+        html += '</div>';
+        html += '<span style="font-weight:600;min-width:36px;">' + s.progressScore + '%</span>';
+        html += '</div></td>';
+        html += '<td style="padding:10px 8px;color:#999;">' + lastAct + '</td>';
+        html += '</tr>';
+      });
+
+      html += '</tbody></table>';
+      container.innerHTML = html;
+
+      // Store data for sorting
+      window._progressData = d;
+    }
+
+    var _progressSortField = 'progressScore';
+    var _progressSortAsc = false;
+
+    function sortProgressTable(field) {
+      if (!window._progressData) return;
+      if (_progressSortField === field) {
+        _progressSortAsc = !_progressSortAsc;
+      } else {
+        _progressSortField = field;
+        _progressSortAsc = field === 'name';
+      }
+      window._progressData.students.sort(function(a, b) {
+        var va = a[field], vb = b[field];
+        if (typeof va === 'string') return _progressSortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
+        return _progressSortAsc ? va - vb : vb - va;
+      });
+      renderCohortProgress({ success: true, data: window._progressData });
+    }
+
+    function filterProgressTable() {
+      var term = (document.getElementById('progressStudentSearch').value || '').toLowerCase();
+      var rows = document.querySelectorAll('.progress-row');
+      rows.forEach(function(row) {
+        row.style.display = !term || row.dataset.name.indexOf(term) !== -1 ? '' : 'none';
+      });
+    }
+
     // Download report PDF
     function downloadReportPDF(clientId, toolId) {
       showAlert('Generating PDF...', 'info');
@@ -2574,7 +2728,7 @@
       google.script.run
         .withSuccessHandler(renderCallAttendance)
         .withFailureHandler(handleError)
-        .getCallAttendance(callId);
+        .getCallAttendance(callId, document.getElementById('attendanceCohortFilter').value);
     }
 
     // Render call attendance
@@ -2599,25 +2753,21 @@
 
     // Apply cohort filter to call attendance list and reload analytics
     function applyAttendanceCohortFilter() {
-      loadAttendanceAnalytics();
-      if (callAttendanceData.length === 0) return; // no call loaded yet — nothing to filter
-
       const cohortFilter = document.getElementById('attendanceCohortFilter').value;
 
       if (!cohortFilter) {
-        renderCallAttendanceList(callAttendanceData);
+        // No cohort selected — show message
+        document.getElementById('call-attendance-container').style.display = 'none';
+        document.getElementById('student-attendance-container') && (document.getElementById('student-attendance-container').style.display = 'none');
         return;
       }
 
-      // Build a cohort lookup from studentsData (clientId → cohort)
-      const cohortLookup = {};
-      studentsData.forEach(s => { cohortLookup[s.clientId] = s.cohort || ''; });
-
-      const filtered = callAttendanceData.filter(student =>
-        (cohortLookup[student.clientId] || '') === cohortFilter
-      );
-
-      renderCallAttendanceList(filtered);
+      // Reload attendance data from server with cohort filter
+      loadAttendanceAnalytics();
+      callAttendanceData = []; // clear cached data
+      if (currentCallId) {
+        loadCallAttendance(); // reload with new cohort
+      }
     }
 
     // Render call attendance list
@@ -2747,7 +2897,7 @@
       google.script.run
         .withSuccessHandler(renderStudentAttendance)
         .withFailureHandler(handleError)
-        .getStudentAttendance(clientId);
+        .getStudentAttendance(clientId, document.getElementById('attendanceCohortFilter').value);
     }
 
     // Render student attendance
@@ -2864,7 +3014,7 @@
           handleError(error);
           loadCallAttendance(); // Only reload on error
         })
-        .updateAttendance(clientId, callId, status);
+        .updateAttendance(clientId, callId, document.getElementById('attendanceCohortFilter').value, status);
     }
 
     // Update call stats locally without reloading
@@ -2946,7 +3096,7 @@
           handleError(error);
           loadStudentAttendance(currentAttendanceStudent.clientId); // Only reload on error
         })
-        .updateAttendance(currentAttendanceStudent.clientId, callId, status);
+        .updateAttendance(currentAttendanceStudent.clientId, callId, document.getElementById('attendanceCohortFilter').value, status);
     }
 
     // Update student stats locally without reloading

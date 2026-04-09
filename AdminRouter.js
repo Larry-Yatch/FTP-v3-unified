@@ -220,11 +220,14 @@ function handleGetStudentsRequest() {
 
     const students = [];
 
+    // Build multi-cohort lookup from junction table
+    const cohortMap = buildCohortLookupMap();
+
     // Skip header row
-    const cohortFilter = null; // filtering handled client-side for simplicity
     for (let i = 1; i < data.length; i++) {
+      const cid = data[i][0];
       students.push({
-        clientId: data[i][0],
+        clientId: cid,
         name: data[i][1],
         email: data[i][2],
         status: data[i][3],
@@ -232,7 +235,8 @@ function handleGetStudentsRequest() {
         lastActivity: data[i][5] ? data[i][5].toString() : '',
         toolsCompleted: data[i][6] || 0,
         currentTool: data[i][7] || 'tool1',
-        cohort: data[i][8] || ''
+        cohort: data[i][8] || '',
+        cohorts: cohortMap[cid] || (data[i][8] ? [data[i][8]] : [])
       });
     }
 
@@ -883,13 +887,13 @@ function handleGetToolCompletionAnalytics(startDate, endDate, cohortId) {
     }
 
     const studentsData = studentsSheet.getDataRange().getValues();
+    const cohortStudentIds = cohortId ? getCohortStudentIds(cohortId) : null;
     const activeStudents = [];
 
     for (let i = 1; i < studentsData.length; i++) {
-      if (studentsData[i][3] === 'active') {
-        if (cohortId && studentsData[i][8] !== cohortId) continue;
-        activeStudents.push(studentsData[i][0]); // clientId
-      }
+      if (studentsData[i][3] !== 'active') continue;
+      if (cohortStudentIds && !cohortStudentIds.has(studentsData[i][0])) continue;
+      activeStudents.push(studentsData[i][0]); // clientId
     }
 
     console.log('[ANALYTICS] Found', activeStudents.length, 'active students');
@@ -1011,55 +1015,50 @@ function handleGetCallsRequest() {
  * @param {string} callId - The call ID (e.g., 'c1_call1')
  * @returns {Object} { success: boolean, attendance: Array }
  */
-function handleGetCallAttendanceRequest(callId) {
-  console.log('[GET_CALL_ATTENDANCE] Request received for callId:', callId);
+function handleGetCallAttendanceRequest(callId, cohortId) {
+  console.log('[GET_CALL_ATTENDANCE] Request received for callId:', callId, 'cohort:', cohortId);
 
   if (!isAdminAuthenticated()) {
-    console.log('[GET_CALL_ATTENDANCE] Not authenticated');
     return { success: false, error: 'Not authenticated' };
   }
 
   try {
     const ss = SpreadsheetCache.getSpreadsheet();
 
-    // Get all active students
+    // Get active students — filtered by cohort via junction table if provided
     const studentsSheet = ss.getSheetByName(CONFIG.SHEETS.STUDENTS);
     if (!studentsSheet) {
       return { success: false, error: 'Students sheet not found' };
     }
 
+    const cohortStudentIds = cohortId ? getCohortStudentIds(cohortId) : null;
     const studentsData = studentsSheet.getDataRange().getValues();
     const students = [];
 
     for (let i = 1; i < studentsData.length; i++) {
-      if (studentsData[i][3] === 'active') {
-        students.push({
-          clientId: studentsData[i][0],
-          name: studentsData[i][1],
-          email: studentsData[i][2]
-        });
-      }
+      if (studentsData[i][3] !== 'active') continue;
+      if (cohortStudentIds && !cohortStudentIds.has(studentsData[i][0])) continue;
+      students.push({
+        clientId: studentsData[i][0],
+        name: studentsData[i][1],
+        email: studentsData[i][2]
+      });
     }
 
-    // Get attendance records for this call
+    // Get attendance records for this call + cohort
     const attendanceSheet = ss.getSheetByName(CONFIG.SHEETS.ATTENDANCE);
     const attendanceMap = {};
 
     if (attendanceSheet) {
       const attendanceData = attendanceSheet.getDataRange().getValues();
-      // Columns: Timestamp, Client_ID, Call_ID, Status, Marked_By, Updated_At
+      // Columns: Timestamp(0), Client_ID(1), Call_ID(2), Status(3), Marked_By(4), Updated_At(5), Cohort_ID(6)
       for (let i = 1; i < attendanceData.length; i++) {
-        const clientId = attendanceData[i][1];
-        const recordCallId = attendanceData[i][2];
-        const status = attendanceData[i][3];
-
-        if (recordCallId === callId) {
-          attendanceMap[clientId] = status;
-        }
+        if (attendanceData[i][2] !== callId) continue;
+        if (cohortId && attendanceData[i][6] !== cohortId) continue;
+        attendanceMap[attendanceData[i][1]] = attendanceData[i][3];
       }
     }
 
-    // Build attendance list with all students
     const attendance = students.map(student => ({
       clientId: student.clientId,
       name: student.name,
@@ -1067,10 +1066,8 @@ function handleGetCallAttendanceRequest(callId) {
       status: attendanceMap[student.clientId] || 'unmarked'
     }));
 
-    // Sort by name
     attendance.sort((a, b) => a.name.localeCompare(b.name));
 
-    // Calculate stats
     const stats = {
       total: attendance.length,
       attended: attendance.filter(a => a.status === 'attended').length,
@@ -1078,7 +1075,6 @@ function handleGetCallAttendanceRequest(callId) {
       unmarked: attendance.filter(a => a.status === 'unmarked').length
     };
 
-    console.log('[GET_CALL_ATTENDANCE] Returning', attendance.length, 'students, stats:', stats);
     return { success: true, attendance: attendance, stats: stats };
 
   } catch (error) {
@@ -1092,32 +1088,27 @@ function handleGetCallAttendanceRequest(callId) {
  * @param {string} clientId - The student ID
  * @returns {Object} { success: boolean, attendance: Array }
  */
-function handleGetStudentAttendanceRequest(clientId) {
-  console.log('[GET_STUDENT_ATTENDANCE] Request received for clientId:', clientId);
+function handleGetStudentAttendanceRequest(clientId, cohortId) {
+  console.log('[GET_STUDENT_ATTENDANCE] Request received for clientId:', clientId, 'cohort:', cohortId);
 
   if (!isAdminAuthenticated()) {
-    console.log('[GET_STUDENT_ATTENDANCE] Not authenticated');
     return { success: false, error: 'Not authenticated' };
   }
 
   try {
     const ss = SpreadsheetCache.getSpreadsheet();
 
-    // Get attendance records for this student
+    // Get attendance records for this student, filtered by cohort
     const attendanceSheet = ss.getSheetByName(CONFIG.SHEETS.ATTENDANCE);
     const attendanceMap = {};
 
     if (attendanceSheet) {
       const attendanceData = attendanceSheet.getDataRange().getValues();
-      // Columns: Timestamp, Client_ID, Call_ID, Status, Marked_By, Updated_At
+      // Columns: Timestamp(0), Client_ID(1), Call_ID(2), Status(3), Marked_By(4), Updated_At(5), Cohort_ID(6)
       for (let i = 1; i < attendanceData.length; i++) {
-        const recordClientId = attendanceData[i][1];
-        const callId = attendanceData[i][2];
-        const status = attendanceData[i][3];
-
-        if (recordClientId === clientId) {
-          attendanceMap[callId] = status;
-        }
+        if (attendanceData[i][1] !== clientId) continue;
+        if (cohortId && attendanceData[i][6] !== cohortId) continue;
+        attendanceMap[attendanceData[i][2]] = attendanceData[i][3];
       }
     }
 
@@ -1163,8 +1154,8 @@ function handleGetStudentAttendanceRequest(clientId) {
  * @param {string} status - 'attended', 'absent', or 'unmarked' (to clear)
  * @returns {Object} { success: boolean }
  */
-function handleUpdateAttendanceRequest(clientId, callId, status) {
-  console.log('[UPDATE_ATTENDANCE] Request:', clientId, callId, status);
+function handleUpdateAttendanceRequest(clientId, callId, cohortId, status) {
+  console.log('[UPDATE_ATTENDANCE] Request:', clientId, callId, cohortId, status);
 
   if (!isAdminAuthenticated()) {
     console.log('[UPDATE_ATTENDANCE] Not authenticated');
@@ -1184,8 +1175,8 @@ function handleUpdateAttendanceRequest(clientId, callId, status) {
     // Create sheet if it doesn't exist
     if (!attendanceSheet) {
       attendanceSheet = ss.insertSheet(CONFIG.SHEETS.ATTENDANCE);
-      attendanceSheet.getRange(1, 1, 1, 6).setValues([[
-        'Timestamp', 'Client_ID', 'Call_ID', 'Status', 'Marked_By', 'Updated_At'
+      attendanceSheet.getRange(1, 1, 1, 7).setValues([[
+        'Timestamp', 'Client_ID', 'Call_ID', 'Status', 'Marked_By', 'Updated_At', 'Cohort_ID'
       ]]);
       console.log('[UPDATE_ATTENDANCE] Created ATTENDANCE sheet');
     }
@@ -1205,7 +1196,7 @@ function handleUpdateAttendanceRequest(clientId, callId, status) {
     let existingRowIndex = -1;
 
     for (let i = 1; i < data.length; i++) {
-      if (data[i][1] === clientId && data[i][2] === callId) {
+      if (data[i][1] === clientId && data[i][2] === callId && (!cohortId || data[i][6] === cohortId)) {
         existingRowIndex = i + 1; // +1 because sheet rows are 1-indexed
         break;
       }
@@ -1231,7 +1222,8 @@ function handleUpdateAttendanceRequest(clientId, callId, status) {
         callId,     // Call_ID
         status,     // Status
         markedBy,   // Marked_By
-        now         // Updated_At
+        now,        // Updated_At
+        cohortId || ''  // Cohort_ID
       ]);
       console.log('[UPDATE_ATTENDANCE] Created new record');
     }
@@ -1274,27 +1266,29 @@ function handleGetAttendanceAnalyticsRequest(cohortId) {
     }
 
     const studentsData = studentsSheet.getDataRange().getValues();
+    const cohortStudentIds = cohortId ? getCohortStudentIds(cohortId) : null;
     const activeStudents = [];
 
     for (let i = 1; i < studentsData.length; i++) {
-      if (studentsData[i][3] === 'active') {
-        if (cohortId && studentsData[i][8] !== cohortId) continue;
-        activeStudents.push({
-          clientId: studentsData[i][0],
-          name: studentsData[i][1]
-        });
-      }
+      if (studentsData[i][3] !== 'active') continue;
+      if (cohortStudentIds && !cohortStudentIds.has(studentsData[i][0])) continue;
+      activeStudents.push({
+        clientId: studentsData[i][0],
+        name: studentsData[i][1]
+      });
     }
 
     const cohortClientIds = new Set(activeStudents.map(s => s.clientId));
 
-    // Get all attendance records
+    // Get attendance records — filtered by cohort if provided
     const attendanceSheet = ss.getSheetByName(CONFIG.SHEETS.ATTENDANCE);
     const attendanceRecords = [];
 
     if (attendanceSheet) {
       const attendanceData = attendanceSheet.getDataRange().getValues();
+      // Columns: Timestamp(0), Client_ID(1), Call_ID(2), Status(3), Marked_By(4), Updated_At(5), Cohort_ID(6)
       for (let i = 1; i < attendanceData.length; i++) {
+        if (cohortId && attendanceData[i][6] !== cohortId) continue;
         attendanceRecords.push({
           clientId: attendanceData[i][1],
           callId: attendanceData[i][2],
@@ -1370,6 +1364,241 @@ function handleGetAttendanceAnalyticsRequest(cohortId) {
 
   } catch (error) {
     console.error('[ATTENDANCE_ANALYTICS] Error:', error);
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ========================================
+// COMBINED PROGRESS TRACKING
+// ========================================
+
+/**
+ * Get combined tool completion + attendance progress per student for a cohort
+ * @param {string} cohortId - Required cohort ID
+ * @returns {Object} Per-student progress data
+ */
+function handleGetCohortProgressRequest(cohortId) {
+  console.log('[COHORT_PROGRESS] Request for cohort:', cohortId);
+
+  if (!isAdminAuthenticated()) {
+    return { success: false, error: 'Not authenticated' };
+  }
+
+  if (!cohortId) {
+    return { success: false, error: 'Cohort ID is required' };
+  }
+
+  try {
+    var ss = SpreadsheetCache.getSpreadsheet();
+
+    // Get students in this cohort
+    var cohortStudentIds = getCohortStudentIds(cohortId);
+    var studentsData = SpreadsheetCache.getSheetData(CONFIG.SHEETS.STUDENTS) || [];
+    var students = [];
+
+    for (var i = 1; i < studentsData.length; i++) {
+      if (studentsData[i][3] !== 'active') continue;
+      if (!cohortStudentIds.has(studentsData[i][0])) continue;
+      students.push({
+        clientId: studentsData[i][0],
+        name: studentsData[i][1],
+        lastActivity: studentsData[i][5] ? studentsData[i][5].toString() : ''
+      });
+    }
+
+    // Get tool completions from RESPONSES (global — not cohort-scoped)
+    var responsesData = SpreadsheetCache.getSheetData(CONFIG.SHEETS.RESPONSES) || [];
+    var toolCompletionMap = {}; // clientId → Set of toolIds
+
+    for (var r = responsesData.length - 1; r > 0; r--) {
+      var cid = responsesData[r][1];
+      var toolId = responsesData[r][2];
+      var status = responsesData[r][5];
+      var isLatest = responsesData[r][6];
+
+      if (status !== 'COMPLETED') continue;
+      if (isLatest !== 'true' && isLatest !== true) continue;
+      if (!cohortStudentIds.has(cid)) continue;
+
+      if (!toolCompletionMap[cid]) toolCompletionMap[cid] = new Set();
+      toolCompletionMap[cid].add(toolId);
+    }
+
+    // Get attendance for this cohort
+    var attendanceData = SpreadsheetCache.getSheetData(CONFIG.SHEETS.ATTENDANCE) || [];
+    var attendanceMap = {}; // clientId → { attended: N, marked: N }
+
+    for (var a = 1; a < attendanceData.length; a++) {
+      if (attendanceData[a][6] !== cohortId) continue;
+      var attCid = attendanceData[a][1];
+      var attStatus = attendanceData[a][3];
+
+      if (!attendanceMap[attCid]) attendanceMap[attCid] = { attended: 0, marked: 0 };
+      if (attStatus === 'attended' || attStatus === 'absent') {
+        attendanceMap[attCid].marked++;
+        if (attStatus === 'attended') attendanceMap[attCid].attended++;
+      }
+    }
+
+    // Build per-student progress
+    var totalCalls = (CONFIG.CALLS || []).length;
+    var totalTools = 8;
+    var studentProgress = [];
+    var sumToolRate = 0;
+    var sumAttRate = 0;
+
+    for (var s = 0; s < students.length; s++) {
+      var st = students[s];
+      var tools = toolCompletionMap[st.clientId] || new Set();
+      var att = attendanceMap[st.clientId] || { attended: 0, marked: 0 };
+      var toolCount = tools.size;
+      var toolRate = Math.round((toolCount / totalTools) * 100);
+      var attendanceRate = att.marked > 0 ? Math.round((att.attended / att.marked) * 100) : 0;
+      var progressScore = Math.round((toolRate + attendanceRate) / 2);
+
+      sumToolRate += toolRate;
+      sumAttRate += attendanceRate;
+
+      studentProgress.push({
+        clientId: st.clientId,
+        name: st.name,
+        toolsCompleted: Array.from(tools),
+        toolCount: toolCount,
+        callsAttended: att.attended,
+        callsMarked: att.marked,
+        totalCalls: totalCalls,
+        attendanceRate: attendanceRate,
+        lastActivity: st.lastActivity,
+        progressScore: progressScore
+      });
+    }
+
+    // Sort by progress score descending
+    studentProgress.sort(function(a, b) { return b.progressScore - a.progressScore; });
+
+    // Get cohort name
+    var cohortsData = SpreadsheetCache.getSheetData(CONFIG.SHEETS.COHORTS) || [];
+    var cohortName = cohortId;
+    for (var c = 1; c < cohortsData.length; c++) {
+      if (cohortsData[c][0] === cohortId) { cohortName = cohortsData[c][1]; break; }
+    }
+
+    var n = students.length;
+    return {
+      success: true,
+      data: {
+        cohortName: cohortName,
+        totalStudents: n,
+        totalTools: totalTools,
+        totalCalls: totalCalls,
+        avgToolCompletion: n > 0 ? Math.round(sumToolRate / n) : 0,
+        avgAttendanceRate: n > 0 ? Math.round(sumAttRate / n) : 0,
+        students: studentProgress
+      }
+    };
+
+  } catch (error) {
+    console.error('[COHORT_PROGRESS] Error:', error);
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ========================================
+// MULTI-COHORT HELPERS
+// ========================================
+
+/**
+ * Get all cohort IDs for a student from the junction table
+ * @param {string} clientId
+ * @returns {string[]} Array of cohort IDs
+ */
+function getStudentCohortIds(clientId) {
+  var data = SpreadsheetCache.getSheetData(CONFIG.SHEETS.STUDENT_COHORTS);
+  if (!data || data.length < 2) return [];
+  var cohorts = [];
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][0] === clientId) cohorts.push(data[i][1]);
+  }
+  return cohorts;
+}
+
+/**
+ * Get Set of all student IDs in a cohort from the junction table
+ * @param {string} cohortId
+ * @returns {Set<string>} Set of client IDs
+ */
+function getCohortStudentIds(cohortId) {
+  var data = SpreadsheetCache.getSheetData(CONFIG.SHEETS.STUDENT_COHORTS);
+  var ids = new Set();
+  if (!data || data.length < 2) return ids;
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][1] === cohortId) ids.add(data[i][0]);
+  }
+  return ids;
+}
+
+/**
+ * Build a lookup map: clientId → [cohortId, cohortId, ...]
+ * @returns {Object} Map of clientId to array of cohort IDs
+ */
+function buildCohortLookupMap() {
+  var data = SpreadsheetCache.getSheetData(CONFIG.SHEETS.STUDENT_COHORTS);
+  var map = {};
+  if (!data || data.length < 2) return map;
+  for (var i = 1; i < data.length; i++) {
+    var cid = data[i][0];
+    var cohort = data[i][1];
+    if (!map[cid]) map[cid] = [];
+    map[cid].push(cohort);
+  }
+  return map;
+}
+
+/**
+ * Add an existing student to an additional cohort
+ */
+function handleAddStudentToCohortRequest(clientId, cohortId) {
+  if (!isAdminAuthenticated()) {
+    return { success: false, error: 'Not authenticated' };
+  }
+
+  try {
+    // Validate student exists
+    var studentsData = SpreadsheetCache.getSheetData(CONFIG.SHEETS.STUDENTS);
+    var studentFound = false;
+    for (var i = 1; i < studentsData.length; i++) {
+      if (studentsData[i][0] === clientId) { studentFound = true; break; }
+    }
+    if (!studentFound) return { success: false, error: 'Student not found' };
+
+    // Validate cohort exists
+    var cohortsData = SpreadsheetCache.getSheetData(CONFIG.SHEETS.COHORTS);
+    var cohortFound = false;
+    for (var c = 1; c < cohortsData.length; c++) {
+      if (cohortsData[c][0] === cohortId) { cohortFound = true; break; }
+    }
+    if (!cohortFound) return { success: false, error: 'Cohort not found' };
+
+    // Check not already in this cohort
+    var existing = getStudentCohortIds(clientId);
+    if (existing.indexOf(cohortId) !== -1) {
+      return { success: false, error: 'Student is already in this cohort' };
+    }
+
+    // Add to junction table
+    var scSheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.STUDENT_COHORTS);
+    scSheet.appendRow([clientId, cohortId, new Date()]);
+    SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.STUDENT_COHORTS);
+
+    DataService.logActivity(clientId, 'cohort_added', {
+      toolId: '',
+      details: 'Added to ' + cohortId
+    });
+
+    return { success: true, message: 'Student added to ' + cohortId };
+
+  } catch (error) {
+    console.error('[ADD_STUDENT_TO_COHORT] Error:', error);
     return { success: false, error: error.toString() };
   }
 }

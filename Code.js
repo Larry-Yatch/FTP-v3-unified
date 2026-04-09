@@ -1610,22 +1610,22 @@ function getCalls() {
 /**
  * Get attendance for a specific call
  */
-function getCallAttendance(callId) {
-  return handleGetCallAttendanceRequest(callId);
+function getCallAttendance(callId, cohortId) {
+  return handleGetCallAttendanceRequest(callId, cohortId);
 }
 
 /**
- * Get attendance for a specific student
+ * Get attendance for a specific student (cohort-scoped)
  */
-function getStudentAttendance(clientId) {
-  return handleGetStudentAttendanceRequest(clientId);
+function getStudentAttendance(clientId, cohortId) {
+  return handleGetStudentAttendanceRequest(clientId, cohortId);
 }
 
 /**
- * Update attendance status
+ * Update attendance status (cohort-scoped)
  */
-function updateAttendance(clientId, callId, status) {
-  return handleUpdateAttendanceRequest(clientId, callId, status);
+function updateAttendance(clientId, callId, cohortId, status) {
+  return handleUpdateAttendanceRequest(clientId, callId, cohortId, status);
 }
 
 /**
@@ -1633,6 +1633,20 @@ function updateAttendance(clientId, callId, status) {
  */
 function getAttendanceAnalytics(cohortId) {
   return handleGetAttendanceAnalyticsRequest(cohortId);
+}
+
+/**
+ * Add an existing student to an additional cohort
+ */
+function addStudentToCohort(clientId, cohortId) {
+  return handleAddStudentToCohortRequest(clientId, cohortId);
+}
+
+/**
+ * Get combined tool completion + attendance progress for a cohort
+ */
+function getCohortProgress(cohortId) {
+  return handleGetCohortProgressRequest(cohortId);
 }
 
 // ========================================
