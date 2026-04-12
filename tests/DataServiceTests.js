@@ -22,6 +22,10 @@ function _runDataServiceTests() {
     _testDraftLifecycle(ctx, clientId);
     _testUpdateStudentToolsCompletedCount(ctx, clientId);
     _testGetToolStatusReturnsNull(ctx, clientId);
+    _testUpsertDraftCreatesOnFirstCall(ctx, clientId);
+    _testUpsertDraftUpdatesOnSecondCall(ctx, clientId);
+    _testUpsertDraftWithStaleRowHint(ctx, clientId);
+    _testNoDuplicateIsLatestAfterMultipleSaves(ctx, clientId);
   } catch (e) {
     assert(ctx, false, 'DataService suite error', e.toString());
   } finally {
@@ -151,4 +155,105 @@ function _testGetToolStatusReturnsNull(ctx, clientId) {
   // tool8 was never completed, so status should be null or empty
   assert(ctx, !status, 'getToolStatus returns null/empty for uncompleted tool',
     'Got: ' + JSON.stringify(status));
+}
+
+// ── Test: upsertDraft creates a single DRAFT row on first call ──
+
+function _testUpsertDraftCreatesOnFirstCall(ctx, clientId) {
+  SpreadsheetCache.clearCache();
+
+  var data = { q1: 'answer1', page: 1 };
+  var result = DataService.upsertDraft(clientId, 'tool5', data, null);
+
+  assertTruthy(ctx, result.success, 'upsertDraft returns success on create');
+  assertEqual(ctx, result.action, 'created', 'upsertDraft action is created');
+  assertTruthy(ctx, result.rowIndex >= 2, 'upsertDraft returns valid rowIndex');
+
+  // Verify exactly one Is_Latest=true row for this client/tool
+  SpreadsheetCache.clearCache();
+  var draft = DataService.getActiveDraft(clientId, 'tool5');
+  assertNotNull(ctx, draft, 'Draft is retrievable after upsert create');
+  assertEqual(ctx, draft.status, 'DRAFT', 'Created row has DRAFT status');
+}
+
+// ── Test: upsertDraft updates existing row on second call ──
+
+function _testUpsertDraftUpdatesOnSecondCall(ctx, clientId) {
+  SpreadsheetCache.clearCache();
+
+  // Second upsert with updated data and the row hint from first call
+  var data2 = { q1: 'answer1', q2: 'answer2', page: 2 };
+  var firstDraft = DataService.getActiveDraft(clientId, 'tool5');
+  var result = DataService.upsertDraft(clientId, 'tool5', data2, null);
+
+  assertTruthy(ctx, result.success, 'upsertDraft returns success on update');
+  assertEqual(ctx, result.action, 'updated', 'upsertDraft action is updated');
+
+  // Verify data was merged/replaced
+  SpreadsheetCache.clearCache();
+  var draft = DataService.getActiveDraft(clientId, 'tool5');
+  assertNotNull(ctx, draft, 'Draft still retrievable after upsert update');
+  assertEqual(ctx, draft.data.q2, 'answer2', 'Updated draft has new page 2 data');
+
+  // Count Is_Latest=true rows for this client/tool — should be exactly 1
+  var sheetData = SpreadsheetCache.getSheetData(CONFIG.SHEETS.RESPONSES);
+  var headers = sheetData[0];
+  var clientCol = headers.indexOf('Client_ID');
+  var toolCol = headers.indexOf('Tool_ID');
+  var isLatestCol = headers.indexOf('Is_Latest');
+  var latestCount = 0;
+  for (var i = 1; i < sheetData.length; i++) {
+    if (sheetData[i][clientCol] === clientId && sheetData[i][toolCol] === 'tool5' &&
+        (sheetData[i][isLatestCol] === 'true' || sheetData[i][isLatestCol] === true)) {
+      latestCount++;
+    }
+  }
+  assertEqual(ctx, latestCount, 1, 'Exactly one Is_Latest=true row after two upserts');
+}
+
+// ── Test: upsertDraft with stale row hint falls back to scan ──
+
+function _testUpsertDraftWithStaleRowHint(ctx, clientId) {
+  SpreadsheetCache.clearCache();
+
+  var data = { q1: 'answer1', q3: 'answer3', page: 3 };
+  // Pass a bogus row hint — should fall back to scan and still update
+  var result = DataService.upsertDraft(clientId, 'tool5', data, 99999);
+
+  assertTruthy(ctx, result.success, 'upsertDraft succeeds with stale row hint');
+  assertEqual(ctx, result.action, 'updated', 'Falls back to scan and updates existing row');
+
+  SpreadsheetCache.clearCache();
+  var draft = DataService.getActiveDraft(clientId, 'tool5');
+  assertEqual(ctx, draft.data.q3, 'answer3', 'Data updated via scan fallback');
+}
+
+// ── Test: No duplicate Is_Latest after rapid multi-page saves ──
+
+function _testNoDuplicateIsLatestAfterMultipleSaves(ctx, clientId) {
+  SpreadsheetCache.clearCache();
+
+  // Simulate rapid page 1-3 saves for a new tool
+  var toolId = 'tool7';
+  for (var page = 1; page <= 3; page++) {
+    var data = {};
+    data['page' + page + '_q1'] = 'val' + page;
+    DataService.upsertDraft(clientId, toolId, data, null);
+  }
+
+  // Count Is_Latest=true rows
+  SpreadsheetCache.clearCache();
+  var sheetData = SpreadsheetCache.getSheetData(CONFIG.SHEETS.RESPONSES);
+  var headers = sheetData[0];
+  var clientCol = headers.indexOf('Client_ID');
+  var toolCol = headers.indexOf('Tool_ID');
+  var isLatestCol = headers.indexOf('Is_Latest');
+  var latestCount = 0;
+  for (var i = 1; i < sheetData.length; i++) {
+    if (sheetData[i][clientCol] === clientId && sheetData[i][toolCol] === toolId &&
+        (sheetData[i][isLatestCol] === 'true' || sheetData[i][isLatestCol] === true)) {
+      latestCount++;
+    }
+  }
+  assertEqual(ctx, latestCount, 1, 'Exactly one Is_Latest=true after 3 rapid upserts');
 }

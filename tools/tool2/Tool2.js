@@ -1189,51 +1189,22 @@ const Tool2 = Object.assign({}, FormToolBase, {
       // Get the complete draft data (includes all pages merged)
       const draftData = DraftService.getDraft('tool2', clientId);
 
-      // Also save/update RESPONSES sheet for dashboard detection
-      // BUT: Don't create/update if we're in edit mode (EDIT_DRAFT already exists)
-      const activeDraft = DataService.getActiveDraft(clientId, 'tool2');
-      const isEditMode = activeDraft && activeDraft.status === 'EDIT_DRAFT';
+      // Sync to RESPONSES sheet via upsert (handles both new drafts and updates)
+      var rowIdx = null;
+      try {
+        var stored = PropertiesService.getUserProperties().getProperty('_draftRow_tool2_' + clientId);
+        rowIdx = stored ? parseInt(stored) : null;
+      } catch (e) { /* fall through */ }
 
-      if (!isEditMode) {
-        // Use complete draft data so RESPONSES sheet has ALL pages
-        if (page === 1) {
-          // Page 1: Create new DRAFT row and capture row index for fast updates
-          var saveResult = DataService.saveDraft(clientId, 'tool2', draftData);
-          if (saveResult && saveResult.draftRowIndex) {
-            try {
-              PropertiesService.getUserProperties().setProperty(
-                '_draftRow_tool2_' + clientId, String(saveResult.draftRowIndex)
-              );
-            } catch (e) { /* non-fatal */ }
-          }
-        } else {
-          // Pages 2-5: Use tracked row index for fast update (skip full sheet scan)
-          var rowIdx = null;
-          try {
-            var stored = PropertiesService.getUserProperties().getProperty('_draftRow_tool2_' + clientId);
-            rowIdx = stored ? parseInt(stored) : null;
-          } catch (e) { /* fall through */ }
+      var upsertResult = DataService.upsertDraft(clientId, 'tool2', draftData, rowIdx);
 
-          if (rowIdx) {
-            DataService.updateDraftByRow(clientId, 'tool2', draftData, rowIdx);
-          } else {
-            DataService.updateDraft(clientId, 'tool2', draftData);
-          }
-        }
-      } else {
-        // EDIT MODE: Use tracked row index if available
-        var editRowIdx = null;
+      // Update stored row index for subsequent pages
+      if (upsertResult && upsertResult.success && upsertResult.rowIndex) {
         try {
-          var editStored = PropertiesService.getUserProperties().getProperty('_draftRow_tool2_' + clientId);
-          editRowIdx = editStored ? parseInt(editStored) : null;
-        } catch (e) { /* fall through */ }
-
-        if (editRowIdx) {
-          DataService.updateDraftByRow(clientId, 'tool2', draftData, editRowIdx);
-        } else {
-          LogUtils.debug('[Tool2] Updating EDIT_DRAFT with current data');
-          DataService.updateDraft(clientId, 'tool2', draftData);
-        }
+          PropertiesService.getUserProperties().setProperty(
+            '_draftRow_tool2_' + clientId, String(upsertResult.rowIndex)
+          );
+        } catch (e) { /* non-fatal */ }
       }
 
       // GPT background analysis is triggered client-side after page 5 loads

@@ -38,8 +38,8 @@ const DataService = {
         return { success: false, error: 'RESPONSES sheet not found' };
       }
 
-      // Mark previous responses as not latest if this is COMPLETED
-      if (status === 'COMPLETED' && typeof ResponseManager !== 'undefined') {
+      // Mark previous responses as not latest before appending any new row
+      if (typeof ResponseManager !== 'undefined') {
         ResponseManager._markAsNotLatest(clientId, toolId);
       }
 
@@ -72,6 +72,11 @@ const DataService = {
           toolId: toolId,
           details: `Completed ${toolId}`
         });
+
+        // Clear cached draft row index (draft is now completed)
+        try {
+          PropertiesService.getUserProperties().deleteProperty('_draftRow_' + toolId + '_' + clientId);
+        } catch (e) { /* non-fatal */ }
 
         // Single flush at end of the save cascade instead of implicit flushes
         SpreadsheetApp.flush();
@@ -113,7 +118,8 @@ const DataService = {
    * @returns {Object} Save result
    */
   saveDraft(clientId, toolId, data) {
-    return this.saveToolResponse(clientId, toolId, data, 'DRAFT');
+    // Delegates to upsertDraft to prevent duplicate Is_Latest rows
+    return this.upsertDraft(clientId, toolId, data, null);
   },
 
   /**
@@ -242,6 +248,117 @@ const DataService = {
     } catch (error) {
       LogUtils.error('DataService: updateDraftByRow error, falling back: ' + error);
       return this.updateDraft(clientId, toolId, data);
+    }
+  },
+
+  /**
+   * Upsert a DRAFT or EDIT_DRAFT row: find existing and update, or create if none exists.
+   * Eliminates the risk of duplicate Is_Latest='true' rows by always checking first.
+   *
+   * @param {string} clientId - Client/student ID
+   * @param {string} toolId - Tool identifier
+   * @param {Object} data - Draft data to save
+   * @param {number|null} rowIndexHint - Cached row index for fast-path verification (optional)
+   * @returns {Object} { success, rowIndex, action: 'updated'|'created' }
+   */
+  upsertDraft(clientId, toolId, data, rowIndexHint) {
+    try {
+      const sheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.RESPONSES);
+      if (!sheet) {
+        return { success: false, error: 'RESPONSES sheet not found' };
+      }
+
+      // Read header once
+      var headerRow = sheet.getRange(1, 1, 1, 7).getValues()[0];
+      var clientIdCol = headerRow.indexOf('Client_ID');
+      var toolIdCol = headerRow.indexOf('Tool_ID');
+      var dataCol = headerRow.indexOf('Data');
+      var timestampCol = headerRow.indexOf('Timestamp');
+      var statusCol = headerRow.indexOf('Status');
+
+      // Fast path: verify the hinted row index
+      if (rowIndexHint && rowIndexHint >= 2) {
+        try {
+          var hintRow = sheet.getRange(rowIndexHint, 1, 1, 7).getValues()[0];
+          if (hintRow[clientIdCol] === clientId &&
+              hintRow[toolIdCol] === toolId &&
+              (hintRow[statusCol] === 'DRAFT' || hintRow[statusCol] === 'EDIT_DRAFT')) {
+
+            var dataToSave = data;
+            if (hintRow[statusCol] === 'EDIT_DRAFT') {
+              try {
+                var existing = typeof hintRow[dataCol] === 'string' ? JSON.parse(hintRow[dataCol]) : hintRow[dataCol];
+                dataToSave = Object.assign({}, existing, data);
+              } catch (e) {
+                LogUtils.warn('DataService: upsertDraft could not parse existing EDIT_DRAFT, replacing');
+              }
+            }
+
+            sheet.getRange(rowIndexHint, dataCol + 1).setValue(JSON.stringify(dataToSave));
+            sheet.getRange(rowIndexHint, timestampCol + 1).setValue(new Date());
+            SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.RESPONSES);
+            LogUtils.debug('DataService: upsertDraft fast-path update for ' + clientId + ' / ' + toolId + ' at row ' + rowIndexHint);
+            return { success: true, rowIndex: rowIndexHint, action: 'updated' };
+          }
+        } catch (e) {
+          LogUtils.debug('DataService: upsertDraft hint verification failed, falling back to scan');
+        }
+      }
+
+      // Slow path: fresh scan (bypasses cache to guarantee correctness)
+      var allData = sheet.getDataRange().getValues();
+      var foundRow = -1;
+      for (var i = allData.length - 1; i >= 1; i--) {
+        if (allData[i][clientIdCol] === clientId &&
+            allData[i][toolIdCol] === toolId &&
+            (allData[i][statusCol] === 'DRAFT' || allData[i][statusCol] === 'EDIT_DRAFT')) {
+          foundRow = i;
+          break;
+        }
+      }
+
+      if (foundRow !== -1) {
+        // Update existing row
+        var sheetRow = foundRow + 1;
+        var dataToSave = data;
+        if (allData[foundRow][statusCol] === 'EDIT_DRAFT') {
+          try {
+            var existing = typeof allData[foundRow][dataCol] === 'string' ? JSON.parse(allData[foundRow][dataCol]) : allData[foundRow][dataCol];
+            dataToSave = Object.assign({}, existing, data);
+          } catch (e) {
+            LogUtils.warn('DataService: upsertDraft could not parse existing EDIT_DRAFT on scan, replacing');
+          }
+        }
+
+        sheet.getRange(sheetRow, dataCol + 1).setValue(JSON.stringify(dataToSave));
+        sheet.getRange(sheetRow, timestampCol + 1).setValue(new Date());
+        SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.RESPONSES);
+        LogUtils.debug('DataService: upsertDraft scan-path update for ' + clientId + ' / ' + toolId + ' at row ' + sheetRow);
+        return { success: true, rowIndex: sheetRow, action: 'updated' };
+      }
+
+      // No existing draft found — create new row
+      if (typeof ResponseManager !== 'undefined') {
+        ResponseManager._markAsNotLatest(clientId, toolId);
+      }
+
+      sheet.appendRow([
+        new Date(),
+        clientId,
+        toolId,
+        JSON.stringify(data),
+        CONFIG.VERSION,
+        'DRAFT',
+        'true'
+      ]);
+      var newRowIndex = sheet.getLastRow();
+      SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.RESPONSES);
+      LogUtils.debug('DataService: upsertDraft created new draft for ' + clientId + ' / ' + toolId + ' at row ' + newRowIndex);
+      return { success: true, rowIndex: newRowIndex, action: 'created' };
+
+    } catch (error) {
+      LogUtils.error('DataService: upsertDraft error: ' + error);
+      return { success: false, error: error.toString() };
     }
   },
 

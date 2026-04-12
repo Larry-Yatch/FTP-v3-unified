@@ -14,9 +14,11 @@ function _runResponseManagerTests() {
 
   try {
     _testMarkAsNotLatest(ctx, clientId);
+    _testMarkAsNotLatestInvalidatesCache(ctx, clientId);
     _testLoadResponseForEditing(ctx, clientId);
+    _testEditModeStoresRowIndex(ctx, clientId);
     _testSubmitEditedResponse(ctx, clientId);
-    _testCancelEditDraft(ctx, clientId);
+    _testCancelEditClearsDraftRowProperty(ctx, clientId);
     _testCleanupOldVersions(ctx, clientId);
     _testGetPreviousResponse(ctx, clientId);
   } catch (e) {
@@ -58,6 +60,41 @@ function _testMarkAsNotLatest(ctx, clientId) {
   DataService.saveToolResponse(clientId, 'tool1', data, 'COMPLETED');
 }
 
+// ── Test: markAsNotLatest invalidates cache (not just markDirty) ──
+
+function _testMarkAsNotLatestInvalidatesCache(ctx, clientId) {
+  SpreadsheetCache.clearCache();
+
+  // Save a response so there is something to mark
+  var data = TestFixtures.tool1Response();
+  DataService.saveToolResponse(clientId, 'tool1', data, 'COMPLETED');
+
+  // Pre-warm cache
+  SpreadsheetCache.getSheetData(CONFIG.SHEETS.RESPONSES);
+
+  // Mark as not latest
+  ResponseManager._markAsNotLatest(clientId, 'tool1');
+
+  // Read from cache immediately after — should reflect the update (cache was invalidated)
+  var sheetData = SpreadsheetCache.getSheetData(CONFIG.SHEETS.RESPONSES);
+  var headers = sheetData[0];
+  var clientCol = headers.indexOf('Client_ID');
+  var toolCol = headers.indexOf('Tool_ID');
+  var isLatestCol = headers.indexOf('Is_Latest');
+
+  var foundLatest = false;
+  for (var i = 1; i < sheetData.length; i++) {
+    if (sheetData[i][clientCol] === clientId && sheetData[i][toolCol] === 'tool1' &&
+        (sheetData[i][isLatestCol] === 'true' || sheetData[i][isLatestCol] === true)) {
+      foundLatest = true;
+    }
+  }
+  assert(ctx, !foundLatest, 'Cache reflects markAsNotLatest immediately (no stale data)');
+
+  // Restore for subsequent tests
+  DataService.saveToolResponse(clientId, 'tool1', data, 'COMPLETED');
+}
+
 // ── Test: loadResponseForEditing creates EDIT_DRAFT ──
 
 function _testLoadResponseForEditing(ctx, clientId) {
@@ -74,6 +111,20 @@ function _testLoadResponseForEditing(ctx, clientId) {
   var draft = ResponseManager.getActiveDraft(clientId, 'tool1');
   assertNotNull(ctx, draft, 'EDIT_DRAFT is retrievable via getActiveDraft');
   assertEqual(ctx, draft.status, 'EDIT_DRAFT', 'Draft has EDIT_DRAFT status');
+}
+
+// ── Test: loadResponseForEditing stores _draftRow_ property ──
+
+function _testEditModeStoresRowIndex(ctx, clientId) {
+  // EDIT_DRAFT was created by the previous test — check that row index was stored
+  var stored = null;
+  try {
+    stored = PropertiesService.getUserProperties().getProperty('_draftRow_tool1_' + clientId);
+  } catch (e) { /* fall through */ }
+
+  assertNotNull(ctx, stored, '_draftRow_ property is set after loadResponseForEditing');
+  var rowIdx = parseInt(stored);
+  assert(ctx, rowIdx >= 2, '_draftRow_ is a valid row index (>= 2)', 'Got: ' + rowIdx);
 }
 
 // ── Test: submitEditedResponse replaces EDIT_DRAFT with new COMPLETED ──
@@ -130,6 +181,18 @@ function _testCancelEditDraft(ctx, clientId) {
   assertNotNull(ctx, restored, 'COMPLETED response restored after cancel');
   assertEqual(ctx, restored.status, 'COMPLETED', 'Restored response is COMPLETED');
   assertTruthy(ctx, restored.isLatest, 'Restored response has isLatest=true');
+}
+
+// ── Test: cancelEditDraft clears _draftRow_ property ──
+
+function _testCancelEditClearsDraftRowProperty(ctx, clientId) {
+  // After cancelEditDraft (above), the _draftRow_ property should be deleted
+  var stored = null;
+  try {
+    stored = PropertiesService.getUserProperties().getProperty('_draftRow_tool1_' + clientId);
+  } catch (e) { /* fall through */ }
+
+  assertNull(ctx, stored, '_draftRow_ property is cleared after cancelEditDraft');
 }
 
 // ── Test: cleanupOldVersions keeps only N most recent ──

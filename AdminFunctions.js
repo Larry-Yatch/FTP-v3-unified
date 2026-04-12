@@ -522,3 +522,89 @@ function migrateToMultiCohortModel() {
   console.log('Migration complete:', JSON.stringify(results));
   return results;
 }
+
+/**
+ * Fix duplicate Is_Latest='true' rows on the RESPONSES sheet.
+ * Groups by (Client_ID, Tool_ID) and keeps only the newest row as 'true'.
+ *
+ * @param {boolean} dryRun - If true (default), logs what would change without writing.
+ * @returns {Object} Summary of findings and fixes
+ */
+function fixDuplicateIsLatest(dryRun) {
+  if (dryRun === undefined) dryRun = true;
+
+  var ss = SpreadsheetApp.openById(CONFIG.MASTER_SHEET_ID);
+  var sheet = ss.getSheetByName(CONFIG.SHEETS.RESPONSES);
+
+  if (!sheet) {
+    console.log('RESPONSES sheet not found');
+    return { error: 'RESPONSES sheet not found' };
+  }
+
+  var data = sheet.getDataRange().getValues();
+  if (data.length < 2) {
+    console.log('No data rows in RESPONSES');
+    return { pairsAffected: 0, rowsFixed: 0 };
+  }
+
+  var headers = data[0];
+  var clientIdCol = headers.indexOf('Client_ID');
+  var toolIdCol = headers.indexOf('Tool_ID');
+  var timestampCol = headers.indexOf('Timestamp');
+  var isLatestCol = headers.indexOf('Is_Latest');
+
+  if (isLatestCol === -1) {
+    console.log('Is_Latest column not found');
+    return { error: 'Is_Latest column not found' };
+  }
+
+  // Group rows with Is_Latest='true' by (Client_ID|Tool_ID)
+  var groups = {};
+  for (var i = 1; i < data.length; i++) {
+    var isLatest = data[i][isLatestCol];
+    if (isLatest === 'true' || isLatest === true) {
+      var key = data[i][clientIdCol] + '|' + data[i][toolIdCol];
+      if (!groups[key]) groups[key] = [];
+      groups[key].push({
+        rowIndex: i + 1,  // 1-based sheet row
+        timestamp: new Date(data[i][timestampCol]).getTime()
+      });
+    }
+  }
+
+  // Find duplicates and collect rows to fix
+  var rowsToFix = [];
+  var pairsAffected = 0;
+
+  for (var key in groups) {
+    if (groups[key].length > 1) {
+      pairsAffected++;
+      // Sort by timestamp descending — keep the newest
+      groups[key].sort(function(a, b) { return b.timestamp - a.timestamp; });
+      // All except the first (newest) need to be set to 'false'
+      for (var j = 1; j < groups[key].length; j++) {
+        rowsToFix.push(groups[key][j].rowIndex);
+      }
+      console.log('Duplicate: ' + key + ' — ' + groups[key].length + ' rows with Is_Latest=true, fixing ' + (groups[key].length - 1));
+    }
+  }
+
+  if (rowsToFix.length === 0) {
+    console.log('No duplicate Is_Latest rows found. Data is clean.');
+    return { pairsAffected: 0, rowsFixed: 0 };
+  }
+
+  console.log('Found ' + pairsAffected + ' client/tool pairs with duplicates, ' + rowsToFix.length + ' rows to fix');
+
+  if (dryRun) {
+    console.log('DRY RUN — no changes made. Run fixDuplicateIsLatest(false) to apply.');
+  } else {
+    var rangeList = rowsToFix.map(function(row) {
+      return sheet.getRange(row, isLatestCol + 1).getA1Notation();
+    });
+    sheet.getRangeList(rangeList).setValue('false');
+    console.log('Fixed ' + rowsToFix.length + ' rows — set Is_Latest to false');
+  }
+
+  return { pairsAffected: pairsAffected, rowsFixed: dryRun ? 0 : rowsToFix.length, dryRun: dryRun };
+}

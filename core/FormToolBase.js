@@ -167,51 +167,22 @@ const FormToolBase = {
     // Get the complete merged data (includes all pages)
     var draftData = DraftService.getDraft(toolId, clientId);
 
-    // Sync to RESPONSES sheet for dashboard detection
-    // Skip if in edit mode (EDIT_DRAFT already exists)
-    var activeDraft = DataService.getActiveDraft(clientId, toolId);
-    var isEditMode = activeDraft && activeDraft.status === 'EDIT_DRAFT';
+    // Sync to RESPONSES sheet via upsert (handles both new drafts and updates)
+    var rowIdx = null;
+    try {
+      var stored = PropertiesService.getUserProperties().getProperty('_draftRow_' + toolId + '_' + clientId);
+      rowIdx = stored ? parseInt(stored) : null;
+    } catch (e) { /* fall through */ }
 
-    if (!isEditMode) {
-      if (page === 1) {
-        // Page 1: Create new DRAFT row and capture row index for fast updates
-        var saveResult = DataService.saveDraft(clientId, toolId, draftData);
-        if (saveResult && saveResult.draftRowIndex) {
-          // Store row index in PropertiesService for fast lookup on subsequent pages
-          try {
-            PropertiesService.getUserProperties().setProperty(
-              '_draftRow_' + toolId + '_' + clientId, String(saveResult.draftRowIndex)
-            );
-          } catch (e) { /* non-fatal */ }
-        }
-      } else {
-        // Later pages: Use tracked row index for fast update (skip full sheet scan)
-        var rowIdx = null;
-        try {
-          var stored = PropertiesService.getUserProperties().getProperty('_draftRow_' + toolId + '_' + clientId);
-          rowIdx = stored ? parseInt(stored) : null;
-        } catch (e) { /* fall through */ }
+    var result = DataService.upsertDraft(clientId, toolId, draftData, rowIdx);
 
-        if (rowIdx) {
-          DataService.updateDraftByRow(clientId, toolId, draftData, rowIdx);
-        } else {
-          DataService.updateDraft(clientId, toolId, draftData);
-        }
-      }
-    } else {
-      // Edit mode: Use tracked row index if available
-      var editRowIdx = null;
+    // Update stored row index for subsequent pages
+    if (result && result.success && result.rowIndex) {
       try {
-        var editStored = PropertiesService.getUserProperties().getProperty('_draftRow_' + toolId + '_' + clientId);
-        editRowIdx = editStored ? parseInt(editStored) : null;
-      } catch (e) { /* fall through */ }
-
-      if (editRowIdx) {
-        DataService.updateDraftByRow(clientId, toolId, draftData, editRowIdx);
-      } else {
-        LogUtils.debug('[' + toolId + '] Updating EDIT_DRAFT with current data');
-        DataService.updateDraft(clientId, toolId, draftData);
-      }
+        PropertiesService.getUserProperties().setProperty(
+          '_draftRow_' + toolId + '_' + clientId, String(result.rowIndex)
+        );
+      } catch (e) { /* non-fatal */ }
     }
 
     // Call tool-specific post-save hook if defined

@@ -309,6 +309,14 @@ const ResponseManager = {
       SpreadsheetApp.flush();
       SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.RESPONSES);
 
+      // Store row index for fast-path updates during edit
+      try {
+        var editDraftRowIndex = sheet.getLastRow();
+        PropertiesService.getUserProperties().setProperty(
+          '_draftRow_' + toolId + '_' + clientId, String(editDraftRowIndex)
+        );
+      } catch (e) { /* non-fatal */ }
+
       LogUtils.debug(`Edit draft created successfully for ${clientId}`);
 
       return {
@@ -427,6 +435,11 @@ const ResponseManager = {
         LogUtils.debug(`Cleared PropertiesService draft for ${clientId} / ${toolId}`);
       }
 
+      // Clear cached row index (EDIT_DRAFT row was deleted)
+      try {
+        PropertiesService.getUserProperties().deleteProperty('_draftRow_' + toolId + '_' + clientId);
+      } catch (e) { /* non-fatal */ }
+
       LogUtils.debug(`Edited response submitted successfully for ${clientId}`);
 
       return {
@@ -490,6 +503,11 @@ const ResponseManager = {
         LogUtils.debug(`Cleared PropertiesService draft for ${clientId} / ${toolId}`);
       }
 
+      // Clear cached row index (row was deleted, index is invalid)
+      try {
+        PropertiesService.getUserProperties().deleteProperty('_draftRow_' + toolId + '_' + clientId);
+      } catch (e) { /* non-fatal */ }
+
       LogUtils.debug(`Draft canceled for ${clientId} (deleted ${deletedCount} row(s))`);
 
       return {
@@ -539,6 +557,8 @@ const ResponseManager = {
         const userProperties = PropertiesService.getUserProperties();
         const draftKey = `${toolId}_draft_${clientId}`;
         userProperties.deleteProperty(draftKey);
+        // Clear cached row index (draft rows were deleted)
+        userProperties.deleteProperty('_draftRow_' + toolId + '_' + clientId);
         LogUtils.debug(`Cleared PropertiesService draft: ${draftKey}`);
       } catch (propError) {
         LogUtils.warn(`Could not clear PropertiesService draft: ${propError}`);
@@ -635,7 +655,7 @@ const ResponseManager = {
       if (rowsToUpdate.length > 0) {
         const rangeList = rowsToUpdate.map(row => `${sheet.getRange(row, isLatestCol + 1).getA1Notation()}`);
         sheet.getRangeList(rangeList).setValue('false');
-        SpreadsheetCache.markDirty(CONFIG.SHEETS.RESPONSES);
+        SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.RESPONSES);
       }
 
     } catch (error) {
