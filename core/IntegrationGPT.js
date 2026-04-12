@@ -33,14 +33,15 @@ const IntegrationGPT = {
    * @returns {Object} Narrative object with sections + source attribution
    */
   generateNarrative(analysisData) {
+    // Build prompts once (reused across tiers)
+    var systemPrompt = this.buildSystemPrompt();
+    var userPrompt = this.buildUserPrompt(analysisData);
+
     // ============================================================
     // TIER 1: Try GPT Analysis
     // ============================================================
     try {
       Logger.log('[INTEGRATION_GPT] Tier 1: Attempting GPT narrative generation');
-
-      var systemPrompt = this.buildSystemPrompt();
-      var userPrompt = this.buildUserPrompt(analysisData);
 
       var result = this.callGPT({
         systemPrompt: systemPrompt,
@@ -68,15 +69,12 @@ const IntegrationGPT = {
       // TIER 2: Retry GPT
       // ============================================================
       try {
-        Utilities.sleep(2000);
+        Utilities.sleep(1500);
         Logger.log('[INTEGRATION_GPT] Tier 2: Retrying GPT');
 
-        var systemPrompt2 = this.buildSystemPrompt();
-        var userPrompt2 = this.buildUserPrompt(analysisData);
-
         var result2 = this.callGPT({
-          systemPrompt: systemPrompt2,
-          userPrompt: userPrompt2,
+          systemPrompt: systemPrompt,
+          userPrompt: userPrompt,
           model: 'gpt-4o',
           temperature: 0.3,
           maxTokens: 2500
@@ -608,7 +606,8 @@ const IntegrationGPT = {
         temperature: params.temperature,
         max_tokens: params.maxTokens
       }),
-      muteHttpExceptions: true
+      muteHttpExceptions: true,
+      timeout: 15000
     });
 
     var json = JSON.parse(response.getContentText());

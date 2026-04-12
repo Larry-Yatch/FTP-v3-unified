@@ -38,14 +38,15 @@ const Tool6GPTAnalysis = {
       return Tool6Fallbacks.getSingleReportFallback(profile, allocation, projections, inputs);
     }
 
+    // Build prompts once (reused across tiers)
+    const systemPrompt = this.buildSingleReportSystemPrompt(profile, allocation, projections, inputs, tool1Data, tool3Data);
+    const userPrompt = this.buildSingleReportUserPrompt(profile, allocation, projections, inputs);
+
     // ============================================================
     // TIER 1: Try GPT Analysis
     // ============================================================
     try {
       LogUtils.debug(`[TIER 1] Tool6 GPT: Single report for ${clientId}`);
-
-      const systemPrompt = this.buildSingleReportSystemPrompt(profile, allocation, projections, inputs, tool1Data, tool3Data);
-      const userPrompt = this.buildSingleReportUserPrompt(profile, allocation, projections, inputs);
 
       const result = this.callGPT({
         systemPrompt,
@@ -75,11 +76,8 @@ const Tool6GPTAnalysis = {
       // TIER 2: Retry GPT Analysis
       // ============================================================
       try {
-        Utilities.sleep(2000);
+        Utilities.sleep(1500);
         LogUtils.debug(`[TIER 2] Tool6 GPT retry: Single report for ${clientId}`);
-
-        const systemPrompt = this.buildSingleReportSystemPrompt(profile, allocation, projections, inputs, tool1Data, tool3Data);
-        const userPrompt = this.buildSingleReportUserPrompt(profile, allocation, projections, inputs);
 
         const result = this.callGPT({
           systemPrompt,
@@ -147,14 +145,15 @@ const Tool6GPTAnalysis = {
       return Tool6Fallbacks.getComparisonFallback(scenario1, scenario2, inputs);
     }
 
+    // Build prompts once (reused across tiers)
+    const systemPrompt = this.buildComparisonSystemPrompt(scenario1, scenario2, inputs, tool1Data, tool3Data);
+    const userPrompt = this.buildComparisonUserPrompt(scenario1, scenario2);
+
     // ============================================================
     // TIER 1: Try GPT Analysis
     // ============================================================
     try {
       LogUtils.debug(`[TIER 1] Tool6 GPT: Comparison report for ${clientId}`);
-
-      const systemPrompt = this.buildComparisonSystemPrompt(scenario1, scenario2, inputs, tool1Data, tool3Data);
-      const userPrompt = this.buildComparisonUserPrompt(scenario1, scenario2);
 
       const result = this.callGPT({
         systemPrompt,
@@ -184,11 +183,8 @@ const Tool6GPTAnalysis = {
       // TIER 2: Retry GPT Analysis
       // ============================================================
       try {
-        Utilities.sleep(2000);
+        Utilities.sleep(1500);
         LogUtils.debug(`[TIER 2] Tool6 GPT retry: Comparison report for ${clientId}`);
-
-        const systemPrompt = this.buildComparisonSystemPrompt(scenario1, scenario2, inputs, tool1Data, tool3Data);
-        const userPrompt = this.buildComparisonUserPrompt(scenario1, scenario2);
 
         const result = this.callGPT({
           systemPrompt,
@@ -788,7 +784,8 @@ Key Trade-offs:
         temperature,
         max_tokens: maxTokens
       }),
-      muteHttpExceptions: true
+      muteHttpExceptions: true,
+      timeout: 15000
     });
 
     const json = JSON.parse(response.getContentText());
@@ -867,7 +864,7 @@ Key Trade-offs:
       // TIER 2: Retry GPT Analysis
       // ============================================================
       try {
-        Utilities.sleep(2000);
+        Utilities.sleep(1500);
         LogUtils.debug(`[TIER 2] Tool6 GPT retry: Enhanced report for ${clientId}`);
 
         const systemPrompt = this.buildEnhancedReportSystemPrompt(profile, allocations, userInputs, projections, tool1Data, tool3Data);

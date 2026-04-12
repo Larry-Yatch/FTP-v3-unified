@@ -394,7 +394,8 @@ const GroundingGPT = {
             temperature: 0.2,
             max_tokens: 400
           }),
-          muteHttpExceptions: true
+          muteHttpExceptions: true,
+          timeout: 15000
         });
       }
 
@@ -472,7 +473,8 @@ const GroundingGPT = {
             temperature: 0.3,
             max_tokens: 500
           }),
-          muteHttpExceptions: true
+          muteHttpExceptions: true,
+          timeout: 15000
         };
       };
 
@@ -894,7 +896,8 @@ Priority Focus: ${synthesis.priorityFocus}
         temperature,
         max_tokens: maxTokens
       }),
-      muteHttpExceptions: true
+      muteHttpExceptions: true,
+      timeout: 15000
     });
 
     const json = JSON.parse(response.getContentText());

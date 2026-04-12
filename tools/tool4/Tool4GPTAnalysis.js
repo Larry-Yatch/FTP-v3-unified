@@ -39,21 +39,22 @@ const Tool4GPTAnalysis = {
       return Tool4Fallbacks.getMainReportFallback(preSurveyData, allocation);
     }
 
+    // Build prompts once (reused across tiers)
+    const systemPrompt = this.buildMainReportSystemPrompt(preSurveyData, allocation, tool1Data, tool2Data, tool3Data);
+    const userPrompt = this.buildMainReportUserPrompt(preSurveyData, allocation, validationResults, helperInsights);
+
     // ============================================================
     // TIER 1: Try GPT Analysis
     // ============================================================
     try {
       LogUtils.debug(`[TIER 1] Tool4 GPT: Main report for ${clientId}`);
 
-      const systemPrompt = this.buildMainReportSystemPrompt(preSurveyData, allocation, tool1Data, tool2Data, tool3Data);
-      const userPrompt = this.buildMainReportUserPrompt(preSurveyData, allocation, validationResults, helperInsights);
-
       const result = this.callGPT({
         systemPrompt,
         userPrompt,
         model: 'gpt-4o',
         temperature: 0.3,
-        maxTokens: 800  // Increased for trauma-informed content
+        maxTokens: 800
       });
 
       const parsed = this.parseMainReportResponse(result);
@@ -76,11 +77,8 @@ const Tool4GPTAnalysis = {
       // TIER 2: Retry GPT Analysis
       // ============================================================
       try {
-        Utilities.sleep(2000);
+        Utilities.sleep(1500);
         LogUtils.debug(`[TIER 2] Tool4 GPT retry: Main report for ${clientId}`);
-
-        const systemPrompt = this.buildMainReportSystemPrompt(preSurveyData, allocation, tool1Data, tool2Data, tool3Data);
-        const userPrompt = this.buildMainReportUserPrompt(preSurveyData, allocation, validationResults, helperInsights);
 
         const result = this.callGPT({
           systemPrompt,
@@ -149,21 +147,22 @@ const Tool4GPTAnalysis = {
       return Tool4Fallbacks.getComparisonFallback(scenario1, scenario2, preSurveyData);
     }
 
+    // Build prompts once (reused across tiers)
+    const systemPrompt = this.buildComparisonSystemPrompt(preSurveyData, scenario1, scenario2, tool1Data, tool3Data);
+    const userPrompt = this.buildComparisonUserPrompt(scenario1, scenario2, preSurveyData, comparisonData);
+
     // ============================================================
     // TIER 1: Try GPT Analysis
     // ============================================================
     try {
       LogUtils.debug(`[TIER 1] Tool4 GPT: Comparison report for ${clientId}`);
 
-      const systemPrompt = this.buildComparisonSystemPrompt(preSurveyData, scenario1, scenario2, tool1Data, tool3Data);
-      const userPrompt = this.buildComparisonUserPrompt(scenario1, scenario2, preSurveyData, comparisonData);
-
       const result = this.callGPT({
         systemPrompt,
         userPrompt,
         model: 'gpt-4o',
         temperature: 0.3,
-        maxTokens: 550  // Increased for trauma-informed content
+        maxTokens: 550
       });
 
       const parsed = this.parseComparisonResponse(result);
@@ -186,11 +185,8 @@ const Tool4GPTAnalysis = {
       // TIER 2: Retry GPT Analysis
       // ============================================================
       try {
-        Utilities.sleep(2000);
+        Utilities.sleep(1500);
         LogUtils.debug(`[TIER 2] Tool4 GPT retry: Comparison report for ${clientId}`);
-
-        const systemPrompt = this.buildComparisonSystemPrompt(preSurveyData, scenario1, scenario2, tool1Data, tool3Data);
-        const userPrompt = this.buildComparisonUserPrompt(scenario1, scenario2, preSurveyData, comparisonData);
 
         const result = this.callGPT({
           systemPrompt,
@@ -770,7 +766,8 @@ Decision Guidance:
         temperature,
         max_tokens: maxTokens
       }),
-      muteHttpExceptions: true
+      muteHttpExceptions: true,
+      timeout: 15000
     });
 
     const json = JSON.parse(response.getContentText());

@@ -538,11 +538,8 @@ const DataService = {
       // Find student row
       for (let i = 1; i < studentsData.length; i++) {
         if (studentsData[i][0] === clientId) {
-          // Update Tools_Completed (column G, index 6)
-          studentsSheet.getRange(i + 1, 7).setValue(completedCount);
-
-          // Update Last_Activity (column F, index 5)
-          studentsSheet.getRange(i + 1, 6).setValue(new Date());
+          // Update Last_Activity (column F) and Tools_Completed (column G) in one call
+          studentsSheet.getRange(i + 1, 6, 1, 2).setValues([[new Date(), completedCount]]);
 
           SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.STUDENTS);
 
@@ -624,7 +621,7 @@ const DataService = {
           if (expiresAt > now) {
             // Update last activity
             sheet.getRange(i + 1, 5).setValue(now);
-            SpreadsheetCache.markDirty(CONFIG.SHEETS.SESSIONS);
+            SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.SESSIONS);
 
             return {
               valid: true,

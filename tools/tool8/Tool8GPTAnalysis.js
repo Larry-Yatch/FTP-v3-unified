@@ -27,11 +27,13 @@ var Tool8GPTAnalysis = {
     var scenario = params.scenario;
     var resolvedData = params.resolvedData;
 
+    // Build prompts once (reused across tiers)
+    var systemPrompt = this.buildSingleSystemPrompt(scenario, resolvedData);
+    var userPrompt = this.buildSingleUserPrompt(scenario);
+
     // TIER 1: Try GPT
     try {
       LogUtils.debug('[Tool8GPT] Tier 1: Attempting GPT for single report');
-      var systemPrompt = this.buildSingleSystemPrompt(scenario, resolvedData);
-      var userPrompt = this.buildSingleUserPrompt(scenario);
 
       var raw = this.callGPT({
         systemPrompt: systemPrompt,
@@ -55,13 +57,11 @@ var Tool8GPTAnalysis = {
     // TIER 2: Retry after delay
     try {
       LogUtils.debug('[Tool8GPT] Tier 2: Retrying GPT');
-      Utilities.sleep(2000);
-      var systemPrompt2 = this.buildSingleSystemPrompt(scenario, resolvedData);
-      var userPrompt2 = this.buildSingleUserPrompt(scenario);
+      Utilities.sleep(1500);
 
       var raw2 = this.callGPT({
-        systemPrompt: systemPrompt2,
-        userPrompt: userPrompt2,
+        systemPrompt: systemPrompt,
+        userPrompt: userPrompt,
         model: 'gpt-4o',
         temperature: 0.3,
         maxTokens: 800
@@ -103,11 +103,13 @@ var Tool8GPTAnalysis = {
     var s2 = params.s2;
     var resolvedData = params.resolvedData;
 
+    // Build prompts once (reused across tiers)
+    var systemPrompt = this.buildComparisonSystemPrompt(s1, s2, resolvedData);
+    var userPrompt = this.buildComparisonUserPrompt(s1, s2);
+
     // TIER 1: Try GPT
     try {
       LogUtils.debug('[Tool8GPT] Tier 1: Attempting GPT for comparison');
-      var systemPrompt = this.buildComparisonSystemPrompt(s1, s2, resolvedData);
-      var userPrompt = this.buildComparisonUserPrompt(s1, s2);
 
       var raw = this.callGPT({
         systemPrompt: systemPrompt,
@@ -131,13 +133,11 @@ var Tool8GPTAnalysis = {
     // TIER 2: Retry after delay
     try {
       LogUtils.debug('[Tool8GPT] Tier 2: Retrying GPT for comparison');
-      Utilities.sleep(2000);
-      var systemPrompt2 = this.buildComparisonSystemPrompt(s1, s2, resolvedData);
-      var userPrompt2 = this.buildComparisonUserPrompt(s1, s2);
+      Utilities.sleep(1500);
 
       var raw2 = this.callGPT({
-        systemPrompt: systemPrompt2,
-        userPrompt: userPrompt2,
+        systemPrompt: systemPrompt,
+        userPrompt: userPrompt,
         model: 'gpt-4o',
         temperature: 0.3,
         maxTokens: 750
@@ -526,7 +526,8 @@ var Tool8GPTAnalysis = {
         temperature: opts.temperature,
         max_tokens: opts.maxTokens
       }),
-      muteHttpExceptions: true
+      muteHttpExceptions: true,
+      timeout: 15000
     });
 
     var json = JSON.parse(response.getContentText());

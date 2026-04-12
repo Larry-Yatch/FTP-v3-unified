@@ -481,11 +481,10 @@ function handleGetStudentToolsRequest(clientId) {
     const ss = SpreadsheetCache.getSpreadsheet();
 
     // Get completion info from RESPONSES sheet (more reliable than activity log)
-    const responsesSheet = ss.getSheetByName(CONFIG.SHEETS.RESPONSES);
     const completionDates = {};
+    const responsesData = SpreadsheetCache.getSheetData(CONFIG.SHEETS.RESPONSES);
 
-    if (responsesSheet) {
-      const responsesData = responsesSheet.getDataRange().getValues();
+    if (responsesData && responsesData.length > 1) {
 
       // Find COMPLETED responses for this student
       // Columns: Timestamp, Client_ID, Tool_ID, Data, Version, Status, Is_Latest
@@ -878,33 +877,34 @@ function handleGetToolCompletionAnalytics(startDate, endDate, cohortId) {
   }
 
   try {
-    const ss = SpreadsheetCache.getSpreadsheet();
+    // Batch preload sheets for faster sequential access
+    SpreadsheetCache.batchPreload([
+      CONFIG.SHEETS.STUDENTS,
+      CONFIG.SHEETS.RESPONSES
+    ]);
 
     // Get active students (optionally filtered by cohort)
-    const studentsSheet = ss.getSheetByName(CONFIG.SHEETS.STUDENTS);
-    if (!studentsSheet) {
-      return { success: false, error: 'Students sheet not found' };
+    const studentsData = SpreadsheetCache.getSheetData(CONFIG.SHEETS.STUDENTS);
+    if (!studentsData || studentsData.length < 2) {
+      return { success: false, error: 'Students sheet not found or empty' };
     }
 
-    const studentsData = studentsSheet.getDataRange().getValues();
     const cohortStudentIds = cohortId ? getCohortStudentIds(cohortId) : null;
-    const activeStudents = [];
+    const activeStudentsSet = new Set();
 
     for (let i = 1; i < studentsData.length; i++) {
       if (studentsData[i][3] !== 'active') continue;
       if (cohortStudentIds && !cohortStudentIds.has(studentsData[i][0])) continue;
-      activeStudents.push(studentsData[i][0]); // clientId
+      activeStudentsSet.add(studentsData[i][0]); // clientId
     }
 
-    console.log('[ANALYTICS] Found', activeStudents.length, 'active students');
+    console.log('[ANALYTICS] Found', activeStudentsSet.size, 'active students');
 
     // Get completion data from RESPONSES sheet
-    const responsesSheet = ss.getSheetByName(CONFIG.SHEETS.RESPONSES);
-    if (!responsesSheet) {
-      return { success: false, error: 'Responses sheet not found' };
+    const responsesData = SpreadsheetCache.getSheetData(CONFIG.SHEETS.RESPONSES);
+    if (!responsesData || responsesData.length < 2) {
+      return { success: false, error: 'Responses sheet not found or empty' };
     }
-
-    const responsesData = responsesSheet.getDataRange().getValues();
 
     // Parse date range
     const startDateObj = startDate ? new Date(startDate) : null;
@@ -926,7 +926,7 @@ function handleGetToolCompletionAnalytics(startDate, endDate, cohortId) {
       // Only count completed, latest responses for active students
       if (status !== 'COMPLETED') continue;
       if (isLatest !== 'true' && isLatest !== true) continue;
-      if (!activeStudents.includes(clientId)) continue;
+      if (!activeStudentsSet.has(clientId)) continue;
 
       // Apply date filter
       if (startDateObj && new Date(timestamp) < startDateObj) continue;
@@ -946,7 +946,7 @@ function handleGetToolCompletionAnalytics(startDate, endDate, cohortId) {
     }
 
     // Calculate rates
-    const totalActiveStudents = activeStudents.length;
+    const totalActiveStudents = activeStudentsSet.size;
     const toolRates = {};
 
     for (let i = 1; i <= 8; i++) {

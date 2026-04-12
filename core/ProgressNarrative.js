@@ -597,7 +597,8 @@ const ProgressNarrative = {
         temperature: params.temperature,
         max_tokens: params.maxTokens
       }),
-      muteHttpExceptions: true
+      muteHttpExceptions: true,
+      timeout: 15000
     });
 
     var json = JSON.parse(response.getContentText());
@@ -631,7 +632,7 @@ const ProgressNarrative = {
 
     // Tier 2: Retry after 2s
     try {
-      Utilities.sleep(2000);
+      Utilities.sleep(1500);
       var content2 = this.callGPT({
         model: 'gpt-4o',
         systemPrompt: systemPrompt,

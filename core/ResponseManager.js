@@ -377,33 +377,30 @@ const ResponseManager = {
       const statusCol = headers.indexOf('Status');
       const isLatestCol = headers.indexOf('Is_Latest');
 
-      // Delete EDIT_DRAFT row
+      // Delete EDIT_DRAFT row and collect Is_Latest rows to update in one pass
+      let deletedRowIndex = -1;
+      const rowsToUpdate = [];
+
       for (let i = sheetData.length - 1; i >= 1; i--) {
         if (sheetData[i][clientIdCol] === clientId &&
-            sheetData[i][toolIdCol] === toolId &&
-            sheetData[i][statusCol] === 'EDIT_DRAFT') {
-          LogUtils.debug(`Deleting EDIT_DRAFT row at index ${i}`);
-          sheet.deleteRow(i + 1);
-          break; // Only delete the first EDIT_DRAFT found
+            sheetData[i][toolIdCol] === toolId) {
+          if (sheetData[i][statusCol] === 'EDIT_DRAFT' && deletedRowIndex === -1) {
+            LogUtils.debug(`Deleting EDIT_DRAFT row at index ${i}`);
+            sheet.deleteRow(i + 1);
+            deletedRowIndex = i;
+          } else if (isLatestCol !== -1 && this._isTrue(sheetData[i][isLatestCol])) {
+            rowsToUpdate.push(i + 1); // 1-based sheet row
+          }
         }
       }
 
-      // Mark all previous COMPLETED versions as not latest
-      // Re-read after deleteRow since row indices shifted, then batch update
-      if (isLatestCol !== -1) {
-        const freshData = sheet.getDataRange().getValues();
-        const rowsToUpdate = [];
-        for (let i = 1; i < freshData.length; i++) {
-          if (freshData[i][clientIdCol] === clientId &&
-              freshData[i][toolIdCol] === toolId &&
-              this._isTrue(freshData[i][isLatestCol])) {
-            rowsToUpdate.push(i + 1);
-          }
-        }
-        if (rowsToUpdate.length > 0) {
-          const rangeList = rowsToUpdate.map(row => sheet.getRange(row, isLatestCol + 1).getA1Notation());
-          sheet.getRangeList(rangeList).setValue('false');
-        }
+      // Adjust row indices for the deleted row (rows below it shifted up by 1)
+      if (rowsToUpdate.length > 0 && isLatestCol !== -1) {
+        const adjustedRows = rowsToUpdate.map(row => {
+          return (deletedRowIndex !== -1 && row > deletedRowIndex + 1) ? row - 1 : row;
+        });
+        const rangeList = adjustedRows.map(row => sheet.getRange(row, isLatestCol + 1).getA1Notation());
+        sheet.getRangeList(rangeList).setValue('false');
       }
 
       // Save new version as COMPLETED with Is_Latest = true
@@ -707,11 +704,11 @@ const ResponseManager = {
    * Clean up old versions (keep only N most recent)
    * @private
    */
-  _cleanupOldVersions(clientId, toolId, keepCount = 2) {
+  _cleanupOldVersions(clientId, toolId, keepCount = 2, existingData) {
     try {
       const sheet = SpreadsheetCache.getSheet(CONFIG.SHEETS.RESPONSES);
 
-      const data = sheet.getDataRange().getValues();
+      const data = existingData || SpreadsheetCache.getSheetData(CONFIG.SHEETS.RESPONSES) || sheet.getDataRange().getValues();
       const headers = data[0];
 
       const clientIdCol = headers.indexOf('Client_ID');

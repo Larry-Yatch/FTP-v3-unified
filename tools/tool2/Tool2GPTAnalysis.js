@@ -146,9 +146,16 @@ const Tool2GPTAnalysis = {
     } catch(err) {
       LogUtils.debug('[GPT] Tier 1 failed: ' + err.message);
 
+      // Check if background analysis already cached a result
+      var cached = DraftService.getDraft('tool2_gpt', clientId);
+      if (cached && cached.insight && cached.insight.overview && cached.insight.overview.length > 50) {
+        LogUtils.debug('[GPT] Using cached background analysis for ' + clientId);
+        return cached.insight;
+      }
+
       // Tier 2: Retry
       try {
-        Utilities.sleep(2000);
+        Utilities.sleep(1500);
         LogUtils.debug('[GPT] Tier 2: Retrying for ' + clientId);
         var result2 = this.callGPT({
           systemPrompt: systemPrompt,
@@ -239,7 +246,8 @@ const Tool2GPTAnalysis = {
         temperature: params.temperature,
         max_tokens: params.maxTokens
       }),
-      muteHttpExceptions: true
+      muteHttpExceptions: true,
+      timeout: 15000
     });
 
     var responseCode = response.getResponseCode();
