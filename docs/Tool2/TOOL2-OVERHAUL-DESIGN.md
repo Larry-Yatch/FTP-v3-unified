@@ -146,6 +146,9 @@ The gap between what a person believes about their finances and what their finan
 ### Cross-Reference
 Tool 1 report improvements designed alongside this overhaul are in `docs/Tool1/TOOL1-IMPROVEMENTS-DESIGN.md`. Combination narrative templates in that doc are also used by Tool 2's report. Do not duplicate them — reference `Tool1Templates.COMBINATION_NARRATIVES` directly from `Tool2Report.js`.
 
+### Voice & Clinical Context
+For student-facing voice, the clinical model, the "Money is..." paradox framework, truth paths, and how Tool 2 fits in the overall 8-tool journey, see `docs/Financial-TruPath-Tool-Descriptions.md`. Use this as a reference when writing report narratives, GPT prompts, and user-facing copy.
+
 ---
 
 ## 2. Full vs. Light Mode Architecture

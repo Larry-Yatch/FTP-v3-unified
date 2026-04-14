@@ -98,6 +98,9 @@ Tool 1 (Core Trauma Strategy Assessment) is not being rebuilt. This document spe
 ### Cross-Reference
 This document is referenced by `docs/Tool2/TOOL2-OVERHAUL-DESIGN.md` Section 7. The combination narratives and profile classification logic defined here are also used by Tool 2's gap analysis report. Do not duplicate the narrative templates — Tool 2 imports them from Tool1Templates.js or a shared location.
 
+### Voice & Clinical Context
+For student-facing voice, the clinical model, the "Money is..." paradox framework, truth paths, and how Tool 1 fits in the overall 8-tool journey, see `docs/Financial-TruPath-Tool-Descriptions.md`. Use this as a reference when writing report narratives, GPT prompts, and user-facing copy.
+
 ### Why These Changes
 Analysis of 70 completed Tool 1 responses revealed:
 - 57% of students have a margin of victory under 5 points (top two patterns nearly tied)
