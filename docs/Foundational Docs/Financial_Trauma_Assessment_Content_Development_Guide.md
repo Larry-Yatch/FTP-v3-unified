@@ -1,3 +1,4 @@
+<!-- Encoding cleanup: 2026-04-20 — UTF-8 mojibake (double-encoded via cp1252) fixed; see KNOWLEDGE-BASE-MAP.md Known Gaps for context. -->
 # Financial Trauma Patterns: Tool Development Guide
 
 **Purpose:** This document defines six distinct financial trauma patterns for assessment tool development. Each pattern is defined across four measurable components: Core View/Untruth, Observable Behaviors, Emotional States, and Measurable Consequences.
@@ -107,7 +108,7 @@
 **"Money is Sacrifice" - Love is proven through financial sacrifice**
 
 **Core View/Untruth:**
-- "If I don't sacrifice financiallyâ€”even at my own expenseâ€”I don't truly care"
+- "If I don't sacrifice financially—even at my own expense—I don't truly care"
 - Suffering and financial sacrifice are the measures and proof of love
 - Self-depletion equals caring; boundaries equal selfishness
 - "If I have enough money, it will free us from sacrifice" (but connecting sacrifice to love ensures perpetual sacrifice)
@@ -243,7 +244,7 @@
 - "The world is hostile to my thriving; visibility attracts danger"
 - "I am safer staying small, hidden, and unnoticed"
 - "I am alone in a threatening universe with no protection"
-- "The more money I have, the more I fear its lossâ€”can't win either way"
+- "The more money I have, the more I fear its loss—can't win either way"
 - Unconsciously ensure things go wrong to prove world is unsafe
 
 **Observable Behaviors:**
@@ -278,7 +279,7 @@
 - Retirement crisis from lifetime of underearning and disasters
 - Each disaster "proves" world is unsafe, reinforcing fear
 
-**Diagnostic Distinction:** The ONLY pattern where person ENSURES THINGS GO WRONG. Repeatedly trusts wrong people, enters unprotected deals, self-sabotages at thresholdâ€”creating the disasters feared.
+**Diagnostic Distinction:** The ONLY pattern where person ENSURES THINGS GO WRONG. Repeatedly trusts wrong people, enters unprotected deals, self-sabotages at threshold—creating the disasters feared.
 
 ---
 
@@ -298,7 +299,7 @@
 
 4. **Pattern Strength:** Higher scores across all four components indicate stronger presence of that pattern. Someone may score high on multiple patterns simultaneously.
 
-5. **Diagnostic Clarity:** The distinctions documented here are absoluteâ€”use them to ensure no overlap in assessment items.
+5. **Diagnostic Clarity:** The distinctions documented here are absolute—use them to ensure no overlap in assessment items.
 
 ### Exercise Design Principles:
 

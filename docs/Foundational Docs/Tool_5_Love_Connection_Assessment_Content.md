@@ -1,15 +1,16 @@
+<!-- Encoding cleanup: 2026-04-20 — UTF-8 mojibake (double-encoded via cp1252) fixed; see KNOWLEDGE-BASE-MAP.md Known Gaps for context. -->
 # Financial TruPath: Tool 5 Assessment Content
 ## Love & Connection Grounding Tool
 
 **Created:** November 17, 2025  
 **Version:** 3.0 - Assessment Content with Flipped Scale  
-**Status:** âœ… Complete - All 24 Scale Questions with -3 to +3 (No Zero)  
+**Status:** ✅ Complete - All 24 Scale Questions with -3 to +3 (No Zero)  
 **Authority Document:** Financial Trauma Patterns: Clinical Design Document  
 **Part of:** Financial TruPath Grounding Tools Suite (Tools 3, 5, and 7)
 
 ---
 
-## ðŸ“‹ Table of Contents
+## 📋 Table of Contents
 
 1. [Executive Summary](#executive-summary)
 2. [Tool Overview](#tool-overview)
@@ -23,40 +24,40 @@
 
 ---
 
-## ðŸ“Š Executive Summary
+## 📊 Executive Summary
 
 ### Purpose
 This document contains the **complete assessment content** for the Financial TruPath Love & Connection Grounding Tool (Tool 5). It includes all 24 scale questions with full -3 to +3 descriptive labels, 6 open response questions, and the design principles behind the assessment structure.
 
 ### What's In This Document
-- âœ… Complete question text for Tool 5 (24 scale questions)
-- âœ… All scale descriptors (-3 to +3) for each question
-- âœ… Open response questions for qualitative data (6 questions - one per subdomain)
-- âœ… Assessment design principles and rationale
-- âœ… Question design philosophy and compassionate framing
+- ✅ Complete question text for Tool 5 (24 scale questions)
+- ✅ All scale descriptors (-3 to +3) for each question
+- ✅ Open response questions for qualitative data (6 questions - one per subdomain)
+- ✅ Assessment design principles and rationale
+- ✅ Question design philosophy and compassionate framing
 
 ### What's NOT In This Document
 For **implementation details** including:
-- âŒ Scoring calculations and formulas
-- âŒ Gap analysis algorithms
-- âŒ Technical data structures and schemas
-- âŒ GPT processing patterns and prompts
-- âŒ Report generation structure
-- âŒ Cross-tool integration code
-- âŒ Implementation checklist and testing
+- ❌ Scoring calculations and formulas
+- ❌ Gap analysis algorithms
+- ❌ Technical data structures and schemas
+- ❌ GPT processing patterns and prompts
+- ❌ Report generation structure
+- ❌ Cross-tool integration code
+- ❌ Implementation checklist and testing
 
 **See:** `Financial_TruPath_Grounding_Implementation_Guide.md` for all technical implementation details.
 
 ### Document Relationship
-ðŸ“„ **This Document (Assessment Content)** â†’ WHAT to ask students  
-ðŸ”§ **Implementation Guide** â†’ HOW to build and score the tools
+📄 **This Document (Assessment Content)** → WHAT to ask students  
+🔧 **Implementation Guide** → HOW to build and score the tools
 
 ### Key Innovation
-**Belief â†’ Behavior Mapping:** Each subdomain captures a specific false belief and its associated behavioral manifestation, allowing the system to identify which beliefs are actively driving which behaviors for each individual student.
+**Belief → Behavior Mapping:** Each subdomain captures a specific false belief and its associated behavioral manifestation, allowing the system to identify which beliefs are actively driving which behaviors for each individual student.
 
 ---
 
-## ðŸ¤ Tool Overview
+## 🤝 Tool Overview
 
 **Full Name:** Love & Connection Grounding Tool  
 **Tool Number:** Tool 5  
@@ -72,7 +73,7 @@ This tool addresses **Disconnection from Others**, the second of three types of 
    - Pattern 1a: False Self-View (confusion and lack of clarity)
    - Pattern 1b: External Validation (misrepresentation and image management)
 
-2. **Tool 5: Disconnection from Others** â† You are here
+2. **Tool 5: Disconnection from Others** ← You are here
    - Pattern 2a: Issues Showing Love (sacrifice and refusing repayment)
    - Pattern 2b: Issues Receiving Love (dependency and obligation)
 
@@ -82,7 +83,7 @@ This tool addresses **Disconnection from Others**, the second of three types of 
 
 ---
 
-## ðŸ§  Core Concept & Philosophy
+## 🧠 Core Concept & Philosophy
 
 ### The Grounding Metaphor
 This tool "grounds" students' understanding by:
@@ -100,26 +101,26 @@ When students are disconnected from others, they experience:
 
 ---
 
-## ðŸ“ Tool Structure
+## 📐 Tool Structure
 
 ### Structure of Tool 5
 
 ```
 Tool 5: Love & Connection
-â”œâ”€â”€ Domain 1: Issues Showing Love (ISL)
-â"‚   â"œâ"€â"€ Subdomain 1.1: "I Must Give to Be Loved"
-â"‚   â"‚   â"œâ"€â"€ Belief (scale -3 to +3)
-â"‚   â"‚   â"œâ"€â"€ Behavior (scale -3 to +3)
-â"‚   â"‚   â"œâ"€â"€ Feeling (scale -3 to +3)
-â"‚   â"‚   â"œâ"€â"€ Consequence (scale -3 to +3)
-â"‚   â"‚   â""â"€â"€ Open Response (1 question)
-â”‚   â”œâ”€â”€ Subdomain 1.2: "Their Needs > My Needs"
-â”‚   â””â”€â”€ Subdomain 1.3: "I Can't Accept Help"
-â”‚
-â””â”€â”€ Domain 2: Issues Receiving Love (IRL)
-    â”œâ”€â”€ Subdomain 2.1: "I Can't Make It Alone"
-    â”œâ”€â”€ Subdomain 2.2: "I Owe Them Everything"
-    â””â”€â”€ Subdomain 2.3: "If They Stop Giving, I'm Abandoned"
+├── Domain 1: Issues Showing Love (ISL)
+│   ├── Subdomain 1.1: "I Must Give to Be Loved"
+│   │   ├── Belief (scale -3 to +3)
+│   │   ├── Behavior (scale -3 to +3)
+│   │   ├── Feeling (scale -3 to +3)
+│   │   ├── Consequence (scale -3 to +3)
+│   │   └── Open Response (1 question)
+│   ├── Subdomain 1.2: "Their Needs > My Needs"
+│   └── Subdomain 1.3: "I Can't Accept Help"
+│
+└── Domain 2: Issues Receiving Love (IRL)
+    ├── Subdomain 2.1: "I Can't Make It Alone"
+    ├── Subdomain 2.2: "I Owe Them Everything"
+    └── Subdomain 2.3: "If They Stop Giving, I'm Abandoned"
 ```
 
 **Tool 5 Contains:**
@@ -131,9 +132,9 @@ Tool 5: Love & Connection
 
 ---
 
-## ðŸŽ¯ Assessment Design Principles
+## 🎯 Assessment Design Principles
 
-### 1. Belief â†’ Behavior Separation
+### 1. Belief → Behavior Separation
 Each subdomain measures a specific belief AND its associated behavior as separate scores. This reveals whether:
 - **Belief is driving behavior** (both high) - the belief is active and manifesting
 - **Behavior exists without this belief** (behavior high, belief low) - check other subdomains for the driving belief
@@ -177,7 +178,7 @@ Throughout, we use language like "pattern," "strategy," "approach" rather than "
 ---
 
 ### Subdomain 1.1: "I Must Give to Be Loved"
-**Belief â†’ Behavior Connection:** Believing love requires sacrifice leads to compulsive giving
+**Belief → Behavior Connection:** Believing love requires sacrifice leads to compulsive giving
 
 **Belief Scale (-3 to +3):**
 > "If I don't give/sacrifice financially, I won't be loved or valued"
@@ -225,7 +226,7 @@ Throughout, we use language like "pattern," "strategy," "approach" rather than "
 ---
 
 ### Subdomain 1.2: "Their Needs > My Needs"
-**Belief â†’ Behavior Connection:** Believing others' needs are more important leads to self-abandonment
+**Belief → Behavior Connection:** Believing others' needs are more important leads to self-abandonment
 
 **Belief Scale (-3 to +3):**
 > "Others' financial needs are always more important than my own"
@@ -273,7 +274,7 @@ Throughout, we use language like "pattern," "strategy," "approach" rather than "
 ---
 
 ### Subdomain 1.3: "I Can't Accept Help"
-**Belief â†’ Behavior Connection:** Believing you must be the giver leads to refusing receiving
+**Belief → Behavior Connection:** Believing you must be the giver leads to refusing receiving
 
 **Belief Scale (-3 to +3):**
 > "Accepting financial help makes me weak/indebted/less worthy"
@@ -329,7 +330,7 @@ Throughout, we use language like "pattern," "strategy," "approach" rather than "
 ---
 
 ### Subdomain 2.1: "I Can't Make It Alone"
-**Belief â†’ Behavior Connection:** Believing you can't survive independently leads to financial dependency
+**Belief → Behavior Connection:** Believing you can't survive independently leads to financial dependency
 
 **Belief Scale (-3 to +3):**
 > "I can't financially survive or thrive without support"
@@ -377,7 +378,7 @@ Throughout, we use language like "pattern," "strategy," "approach" rather than "
 ---
 
 ### Subdomain 2.2: "I Owe Them Everything"
-**Belief â†’ Behavior Connection:** Believing help creates debt leads to feeling trapped by obligation
+**Belief → Behavior Connection:** Believing help creates debt leads to feeling trapped by obligation
 
 **Belief Scale (-3 to +3):**
 > "I believe that when someone helps me financially, I owe them and can never fully repay them"
@@ -425,7 +426,7 @@ Throughout, we use language like "pattern," "strategy," "approach" rather than "
 ---
 
 ### Subdomain 2.3: "If They Stop Giving, I'm Abandoned"
-**Belief â†’ Behavior Connection:** Believing you'll be abandoned without help leads to emotional manipulation
+**Belief → Behavior Connection:** Believing you'll be abandoned without help leads to emotional manipulation
 
 **Belief Scale (-3 to +3):**
 > "If people stop helping me financially, it means they don't care and I'm abandoned"
@@ -472,7 +473,7 @@ Throughout, we use language like "pattern," "strategy," "approach" rather than "
 
 ---
 
-## ðŸ“ Notes & Considerations
+## 📝 Notes & Considerations
 
 ### Scoring Philosophy
 We use **-3 to +3 scales without zero** because:
@@ -518,7 +519,7 @@ The gap classification helps students understand where to focus:
 
 ---
 
-## ðŸ”— Related Tools & Resources
+## 🔗 Related Tools & Resources
 
 ### Other Grounding Tools in the Suite
 
@@ -555,7 +556,7 @@ For all technical implementation details including:
 
 *This assessment content document provides all 24 scale questions with full descriptors and 6 open response questions for Financial TruPath Tool 5: Love & Connection Grounding Tool. All scales use -3 to +3 without zero, where negative represents problematic patterns and positive represents healthy patterns. For implementation details, scoring algorithms, and technical specifications, refer to the companion Implementation Guide.*
 
-**âœ… COMPLETE: All 24 Scale Questions with -3 to +3 (No Zero)**
-**âœ… COMPLETE: All Scales Flipped (Negative = Bad, Positive = Good)**
-**âœ… COMPLETE: All 6 Open Response Questions**
-**âœ… COMPLETE: All Assessment Design Principles and Philosophy**
+**✅ COMPLETE: All 24 Scale Questions with -3 to +3 (No Zero)**
+**✅ COMPLETE: All Scales Flipped (Negative = Bad, Positive = Good)**
+**✅ COMPLETE: All 6 Open Response Questions**
+**✅ COMPLETE: All Assessment Design Principles and Philosophy**

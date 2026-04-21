@@ -1,3 +1,4 @@
+<!-- Encoding cleanup: 2026-04-20 — UTF-8 mojibake (double-encoded via cp1252) fixed; see KNOWLEDGE-BASE-MAP.md Known Gaps for context. -->
 # Financial Trauma Patterns: Co-Occurring Matrix
 
 ## Purpose
@@ -11,12 +12,12 @@ This document maps which financial trauma patterns commonly co-occur and why. Un
 
 |  | **FSV** | **ExVal** | **Show Love** | **Receive Love** | **Control** | **Fear** |
 |---|---|---|---|---|---|---|
-| **False Self-View** | â€” | Medium | Medium | Low | **HIGH** | **HIGH** |
-| **External Validation** | Medium | â€” | **HIGH** | Low | Medium | Low |
-| **Showing Love** | Medium | **HIGH** | â€” | Rare | **HIGH** | Medium |
-| **Receiving Love** | Low | Low | Rare | â€” | Rare | Medium |
-| **Control** | **HIGH** | Medium | **HIGH** | Rare | â€” | **HIGH** |
-| **Fear** | **HIGH** | Low | Medium | Medium | **HIGH** | â€” |
+| **False Self-View** | — | Medium | Medium | Low | **HIGH** | **HIGH** |
+| **External Validation** | Medium | — | **HIGH** | Low | Medium | Low |
+| **Showing Love** | Medium | **HIGH** | — | Rare | **HIGH** | Medium |
+| **Receiving Love** | Low | Low | Rare | — | Rare | Medium |
+| **Control** | **HIGH** | Medium | **HIGH** | Rare | — | **HIGH** |
+| **Fear** | **HIGH** | Low | Medium | Medium | **HIGH** | — |
 
 ### Key:
 - **HIGH** = Very common combination; patterns strongly reinforce each other
@@ -42,7 +43,7 @@ This document maps which financial trauma patterns commonly co-occur and why. Un
 **"I'm inadequate AND only I can keep me safe"**
 
 **Why They Co-Occur:**
-Both patterns stem from fundamental distrustâ€”of self and of the universe. FSV creates the confusion and lack of clarity and scarcity that "proves" inadequacy. Control attempts to manage the chaos created by FSV through rigid management, but the control strategies (not charging, not collecting, giving away) actually create more scarcity, which reinforces the inadequacy belief.
+Both patterns stem from fundamental distrust—of self and of the universe. FSV creates the confusion and lack of clarity and scarcity that "proves" inadequacy. Control attempts to manage the chaos created by FSV through rigid management, but the control strategies (not charging, not collecting, giving away) actually create more scarcity, which reinforces the inadequacy belief.
 
 **How They Interact:**
 - FSV creates scattered, inaccessible money
@@ -94,7 +95,7 @@ Person has money scattered and inaccessible (FSV), repeatedly trusts wrong peopl
 **"Others determine my worth AND suffering proves love"**
 
 **Why They Co-Occur:**
-Both are strategies to gain acceptance and prove worthiness through external means. ExVal uses financial appearance to gain acceptance. Showing Love uses financial sacrifice to prove care. Together they create a person who must both LOOK successful (or appropriate) AND sacrifice/give to others. Both prevent authentic connectionâ€”one through performance, one through martyrdom.
+Both are strategies to gain acceptance and prove worthiness through external means. ExVal uses financial appearance to gain acceptance. Showing Love uses financial sacrifice to prove care. Together they create a person who must both LOOK successful (or appropriate) AND sacrifice/give to others. Both prevent authentic connection—one through performance, one through martyrdom.
 
 **How They Interact:**
 - ExVal requires spending on image maintenance
@@ -122,7 +123,7 @@ Person buys status symbols and maintains expensive lifestyle (ExVal) while also 
 **"Suffering proves love AND only I can keep me safe"**
 
 **Why They Co-Occur:**
-Both are active strategies rooted in distrust of natural flow. Showing Love believes others won't be okay without their sacrifice. Control believes nothing will be okay without their management. Together they create someone who must both DO for others (Showing Love) and control everything themselves (Control). Both prevent trustâ€”in others' capability and in the universe's support.
+Both are active strategies rooted in distrust of natural flow. Showing Love believes others won't be okay without their sacrifice. Control believes nothing will be okay without their management. Together they create someone who must both DO for others (Showing Love) and control everything themselves (Control). Both prevent trust—in others' capability and in the universe's support.
 
 **How They Interact:**
 - Showing Love gives away resources
@@ -151,7 +152,7 @@ Person doesn't charge appropriately (Control), has uncollected invoices (Control
 **"Only I can keep me safe AND the world is hostile"**
 
 **Why They Co-Occur:**
-Both patterns exist within the same domainâ€”Disconnection from All That's Greater. They represent active vs. passive responses to the same core belief: "I am alone in a threatening universe with no support beyond myself." Control tries to manage the threat through rigid oversight. Fear withdraws and ensures disasters happen. Often the same person uses both strategies in different contexts.
+Both patterns exist within the same domain—Disconnection from All That's Greater. They represent active vs. passive responses to the same core belief: "I am alone in a threatening universe with no support beyond myself." Control tries to manage the threat through rigid oversight. Fear withdraws and ensures disasters happen. Often the same person uses both strategies in different contexts.
 
 **How They Interact:**
 - Control creates scarcity through not charging/collecting (active management)
@@ -315,13 +316,13 @@ These combinations are very unlikely because the strategies directly contradict 
 
 ### Common Primary-Secondary Relationships
 
-**FSV Primary â†’ Control Secondary:**
+**FSV Primary → Control Secondary:**
 Person starts with inadequacy/confusion and lack of clarity (FSV), develops controlling behaviors as coping mechanism to manage the chaos they've created.
 
-**ExVal Primary â†’ Showing Love Secondary:**
+**ExVal Primary → Showing Love Secondary:**
 Person needs acceptance (ExVal), learns that sacrifice is a way to earn it, develops Showing Love pattern.
 
-**Control Primary â†’ Fear Secondary:**
+**Control Primary → Fear Secondary:**
 Person tries to control everything (Control), but when control fails, Fear pattern emerges in specific contexts.
 
 ### Assessment Questions
@@ -380,10 +381,10 @@ If both appear present, likely one is primary and driving the other. Address pri
 ### Pattern Transitions
 
 Patterns can shift over time:
-- **FSV â†’ Control:** As FSV creates chaos, Control develops to manage it
-- **ExVal â†’ Showing Love:** As performance fails, sacrifice becomes new strategy
-- **Control â†’ Fear:** As control exhausts, Fear takes over (passive withdrawal)
-- **Showing Love â†’ Receiving Love:** As resources deplete from sacrifice, must become dependent
+- **FSV → Control:** As FSV creates chaos, Control develops to manage it
+- **ExVal → Showing Love:** As performance fails, sacrifice becomes new strategy
+- **Control → Fear:** As control exhausts, Fear takes over (passive withdrawal)
+- **Showing Love → Receiving Love:** As resources deplete from sacrifice, must become dependent
 
 Understanding these transitions helps predict pattern evolution and intervene earlier.
 

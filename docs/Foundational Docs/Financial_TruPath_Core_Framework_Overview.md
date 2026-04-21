@@ -1,3 +1,4 @@
+<!-- Encoding cleanup: 2026-04-20 — UTF-8 mojibake (double-encoded via cp1252) fixed; see KNOWLEDGE-BASE-MAP.md Known Gaps for context. -->
 # Financial TruPath: Core Framework Overview
 
 ## The Three Domains of Disconnection
@@ -79,7 +80,7 @@ Each subdomain operates through a core untruth about what money represents. This
 #### 3a. Control Leading to Isolation (ACTIVE)
 **"Money is Control"**
 - **Goal:** We will gain control through money  
-- **Prison:** By making control dependent on money, even if I have moneyâ€”since the money is not meâ€”I can never have control
+- **Prison:** By making control dependent on money, even if I have money—since the money is not me—I can never have control
 - **Primary Behavior:** Self-imposed suffering; going without (not charging what I'm worth, accounts receivable piling up, giving things away for free)
 - **The Trap:** I control my world into ensuring I live without, which substantiates the fear that drives my need for control
 - **Pattern Reinforcement:** Underearning from artificially low prices, uncollected money owed, living in lack despite having resources
@@ -184,13 +185,13 @@ Each subdomain has an opposite truth that breaks the paradox:
 ## Next Steps
 
 This framework provides the map. The detailed subdomain sections provide:
-- Untruth Strategy Matrix (belief â†’ behaviors â†’ feelings â†’ consequences)
+- Untruth Strategy Matrix (belief → behaviors → feelings → consequences)
 - Deep pattern understanding
 - Truth tools and reframes  
 - Financial exercises for practice
 
-Each person's journey is unique, but the patterns are universal. By identifying your specific strategy of disconnection, you can begin reconnecting to self, others, and all that is greaterâ€”finding true financial freedom.
+Each person's journey is unique, but the patterns are universal. By identifying your specific strategy of disconnection, you can begin reconnecting to self, others, and all that is greater—finding true financial freedom.
 
 ---
 
-*"We don't lack resources. We lack connection to ourselves, each other, and the abundant universe that holds us. These six patterns show us exactly where that disconnection livesâ€”and how to find our way back."*
+*"We don't lack resources. We lack connection to ourselves, each other, and the abundant universe that holds us. These six patterns show us exactly where that disconnection lives—and how to find our way back."*

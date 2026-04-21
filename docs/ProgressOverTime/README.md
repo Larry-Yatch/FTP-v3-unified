@@ -1,7 +1,8 @@
 # Progress Over Time Feature
 
-> **Status:** Implemented but currently disabled (dashboard button shows "coming soon"). The data infrastructure, UI, and coach view are built. Pending UX review before re-enabling.
+> **Status:** **LIVE** (student view) as of commit `28e384f`. Data infrastructure, student UI, write hooks in `DataService` and `ResponseManager`, and a GPT-powered narrative layer are all active. Coach view backend is built (`AdminRouter.handleGetStudentProgressRequest`) but the admin dashboard does not yet expose a button — coach access currently requires manual wiring or a direct function call. The Feb 18 2026 "coming soon" stub (commit `35ecdcb`) was superseded.
 > **Type:** Reference document — describes the feature architecture and implementation decisions.
+> **Doc last synced to code:** 2026-04-20
 
 ## What This Is
 
@@ -31,13 +32,21 @@ Students retake assessments 3-4 times over a course year. Currently, only the la
 ## Architecture
 
 ```
-core/ProgressHistory.js     — Data layer (read/write PROGRESS_HISTORY sheet)
-shared/ProgressPage.js      — UI layer (HTML generation for the progress page)
+core/ProgressHistory.js     — Data layer (read/write PROGRESS_HISTORY sheet, FIFO cap, migration)
+core/ProgressNarrative.js   — AI narrative layer (cross-tool synthesis + per-tool deep-dive,
+                              GPT → retry → template fallback, cached in PropertiesService)
+shared/ProgressPage.js      — UI layer (HTML page, inline SVG sparklines, overview strip,
+                              collapsible tool sections, client-side chain-loader JS)
 ```
 
-**Hook point:** `DataService.saveToolResponse()` calls `ProgressHistory.recordCompletion()` on every COMPLETED save.
+**Hook points:** Two write hooks, both active:
+- `DataService.saveToolResponse()` → `ProgressHistory.recordCompletion()` on every COMPLETED save (`core/DataService.js:65–68`)
+- `ResponseManager.submitEditedResponse()` → `ProgressHistory.recordCompletion()` on every edit-resubmit (`core/ResponseManager.js:424–427`)
 
-**Navigation:** Button next to "View Results Summary" on the student dashboard. "View Progress" button in admin student detail panel.
+**Navigation:**
+- Student — "Progress Over Time" button renders beside "View Collective Results" in the Results Summary card on the student dashboard, but only when `completedToolCount > 0` (`core/Router.js:902`). Click invokes `viewProgress()` (`core/Router.js:1108–1124`), which hits `google.script.run.getProgressPage(clientId)`.
+- Coach — backend ready via `getStudentProgressPage(clientId)` → `AdminRouter.handleGetStudentProgressRequest` → `ProgressPage.render(clientId, { isCoach: true, studentName })`. No admin-dashboard button yet calls it. A developer can reach it via the script editor or by wiring a button into `html/AdminDashboard.html`.
+- Direct URL — `?route=progress&client=<id>` also works (route is whitelisted at `core/Router.js:48`).
 
 ## Documentation
 
@@ -74,6 +83,9 @@ Student views progress page
 
 ## Important Notes for Future Development
 
-- **Grounding tools (3, 5, 7) use inverted scoring** — Lower quotient = healthier. The UI must show decreases as improvement (green) and increases as regression (red).
+- **Grounding tools (3, 5, 7) use inverted scoring** — Lower quotient = healthier. The UI must show decreases as improvement (green) and increases as regression (red). Enforced via `ProgressNarrative.INVERTED_TOOLS = ['tool3', 'tool5', 'tool7']` and the matching rendering logic in `ProgressPage.js`.
 - **GAS constraints apply** — No npm packages, no `window.location.reload()`, no escaped apostrophes in template literals. Follow all rules in CLAUDE.md.
-- **Migration required** — A one-time `migrateFromResponses()` function backfills history from existing RESPONSES rows. Safe to run multiple times (idempotent).
+- **Migration is idempotent** — `migrateFromResponses()` backfills history from existing RESPONSES rows and tracks migrated pairs, so running it multiple times is safe. Exposed as `migrateProgressHistory()` in `Code.js` for on-demand dev use.
+- **AI narratives layer** — `core/ProgressNarrative.js` adds GPT-generated commentary on top of the raw charts: a cross-tool synthesis paragraph and a per-tool "What Changed / Why It Matters / Focus Next" deep dive. Cached per client in `PropertiesService`; the cache is invalidated on each new `recordCompletion` so narratives stay in sync with the latest data.
+- **No feature flag** — There is no `ENABLE_PROGRESS` or similar toggle. The two write hooks use a `typeof ProgressHistory !== 'undefined'` guard against load-order issues, but that is not a kill switch. To re-disable the feature, the button at `core/Router.js:902` and the `viewProgress()` function at `core/Router.js:1108–1124` would need to be stubbed (the approach used in the reverted commit `35ecdcb`).
+- **Coach UI is the open work item.** To give coaches access, add a "View Progress" button (or link) inside `html/AdminDashboard.html` that calls `google.script.run.getStudentProgressPage(clientId)` when a student is selected.

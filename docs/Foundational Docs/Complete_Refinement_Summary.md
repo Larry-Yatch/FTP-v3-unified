@@ -1,3 +1,4 @@
+<!-- Encoding cleanup: 2026-04-20 — UTF-8 mojibake (double-encoded via cp1252) fixed; see KNOWLEDGE-BASE-MAP.md Known Gaps for context. -->
 # Financial TruPath: Complete Document Refinement Summary
 
 ## Overview
@@ -22,7 +23,7 @@ All sections of the Financial TruPath Masterdoc have been comprehensively refine
 **Focus: Self-created scarcity through confusion and lack of clarity**
 
 **Understanding the Pattern:**
-- Emphasizes the loop: scarcity proves inadequacy â†’ maintains false self
+- Emphasizes the loop: scarcity proves inadequacy → maintains false self
 - Highlights selective financial blindness (ignoring income OR spending)
 - Focuses on manufactured confusion and lack of clarity about actual financial reality
 
@@ -44,13 +45,13 @@ All sections of the Financial TruPath Masterdoc have been comprehensively refine
 **Focus: Misrepresenting financial situation for acceptance**
 
 **Understanding the Pattern:**
-- Emphasizes the loop: not enough alone â†’ manage image â†’ creates disconnection â†’ feel more unworthy
+- Emphasizes the loop: not enough alone → manage image → creates disconnection → feel more unworthy
 - All decisions filter through "What will they think?"
 - Highlights the performance exhaustion
 
 **Truth Path:**
 - Core truth: Worth is inherent; authentic connection requires vulnerability, not performance
-- Judgment â†’ Power â†’ Care framework emphasized
+- Judgment → Power → Care framework emphasized
 - Breaking pattern through: separating worth from finances, selective vulnerability, reclaiming judgment power
 - Mantra: "My worth is not determined by others' judgment. I am enough. Truth > performance."
 
@@ -69,7 +70,7 @@ All sections of the Financial TruPath Masterdoc have been comprehensively refine
 **Understanding the Pattern:**
 - Emphasizes the refusal to receive repayment (receiving would lessen suffering)
 - Highlights suffering = love equation
-- Loop: love them â†’ prove through sacrifice â†’ suffer more â†’ resent â†’ guilt â†’ give more
+- Loop: love them → prove through sacrifice → suffer more → resent → guilt → give more
 
 **Truth Path:**
 - Core truth: Love empowers rather than depletes; boundaries are acts of love
@@ -93,7 +94,7 @@ All sections of the Financial TruPath Masterdoc have been comprehensively refine
 - COMPLETELY REWRITTEN from original (was backwards)
 - Emphasizes dependency creating obligation: "you gave, I owe" = conditionality
 - Money-as-evil belief: staying poor keeps you "good"
-- Loop: need help â†’ allow dependency â†’ creates obligation â†’ can't experience pure love â†’ trapped
+- Loop: need help → allow dependency → creates obligation → can't experience pure love → trapped
 
 **Truth Path:**
 - Core truth: Money is neutral; interdependence is healthy when without obligation
@@ -160,28 +161,28 @@ All sections of the Financial TruPath Masterdoc have been comprehensively refine
 ## Key Achievements
 
 ### Eliminated Overlap:
-âœ… Each subdomain now has completely unique content
-âœ… No repetition of behaviors across subdomains
-âœ… Distinct emotional signatures for each pattern
-âœ… Unique consequences specific to each behavior
+✅ Each subdomain now has completely unique content
+✅ No repetition of behaviors across subdomains
+✅ Distinct emotional signatures for each pattern
+✅ Unique consequences specific to each behavior
 
 ### Sharpened Focus:
-âœ… Each subdomain centers on ONE primary behavioral signature
-âœ… All content ties directly to that signature
-âœ… Truth Paths address the specific untruth
-âœ… Exercises target the unique pattern
+✅ Each subdomain centers on ONE primary behavioral signature
+✅ All content ties directly to that signature
+✅ Truth Paths address the specific untruth
+✅ Exercises target the unique pattern
 
 ### Enhanced Clarity:
-âœ… "Money is..." paradoxes clearly explained for all six
-âœ… Active vs Passive distinction maintained throughout
-âœ… Destructive loops made explicit and unique
-âœ… Truth mantras specific to each pattern
+✅ "Money is..." paradoxes clearly explained for all six
+✅ Active vs Passive distinction maintained throughout
+✅ Destructive loops made explicit and unique
+✅ Truth mantras specific to each pattern
 
 ### Improved Exercises:
-âœ… Multi-phase structure for depth
-âœ… Specific, actionable steps
-âœ… Clear outputs for each exercise
-âœ… Targeted to the primary behavior signature
+✅ Multi-phase structure for depth
+✅ Specific, actionable steps
+✅ Clear outputs for each exercise
+✅ Targeted to the primary behavior signature
 
 ---
 
@@ -286,4 +287,4 @@ The Financial TruPath Masterdoc is now a precision tool. Each of the six subdoma
 
 The refinement process has transformed a comprehensive but overlapping document into a sharp, focused framework where every word serves a purpose and every subdomain stands alone while fitting perfectly into the whole.
 
-**Status:** COMPLETE âœ…
+**Status:** COMPLETE ✅

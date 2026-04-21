@@ -1,7 +1,8 @@
 # Progress Over Time — Implementation Plan
 
-> **Status:** Feature is built but disabled pending UX review. Dashboard button shows "coming soon" (commit 35ecdcb). All phases below are complete — this document is retained as a reference for the architecture and design decisions.
+> **Status:** **LIVE** (student view). Commit `35ecdcb` (Feb 18 2026) temporarily stubbed the dashboard button with a "coming soon" alert; that was superseded by commit `28e384f` (equal-width side-by-side Results / Progress buttons), and the feature has been live since. Commit `1cdcf37` then added an AI narrative layer that this plan does not cover — see "Post-Plan Additions" below. All Phase 1–4 items below are complete in code; this document is retained as the canonical record of the architecture and design decisions.
 > **Type:** Reference document
+> **Doc last synced to code:** 2026-04-20
 
 ## Context
 
@@ -146,12 +147,13 @@ if (typeof ProgressHistory !== 'undefined') {
 - `getProgressPage(clientId)` following the existing `getResultsSummaryPage()` pattern
 
 ### 7. `Code.js` — Add global functions
-- `getProgressPage(clientId)` — student access
-- `getStudentProgressPage(clientId)` — coach access (via AdminRouter)
+- `getProgressPage(clientId)` — student access **[complete]**
+- `getStudentProgressPage(clientId)` — coach access (via AdminRouter) **[complete]**
+- Post-plan additions **[complete]**: `getProgressNarrative`, `getToolProgressNarrative`, `getAdminDashboardPage`
 
 ### 8. `AdminRouter.js` — Add coach handler
-- `handleGetStudentProgressRequest(clientId)` calls `ProgressPage.render(clientId, { isCoach: true, studentName })`
-- Add "View Progress" button to admin student detail panel
+- `handleGetStudentProgressRequest(clientId)` calls `ProgressPage.render(clientId, { isCoach: true, studentName })` **[complete]**
+- Add "View Progress" button to admin student detail panel **[OPEN — the only remaining work item in this plan.]** Backend is ready; needs a button in `html/AdminDashboard.html` that calls `google.script.run.getStudentProgressPage(clientId)` when a student is selected.
 
 ---
 
@@ -220,6 +222,19 @@ Same rendering code (`ProgressPage.render`) with `options.isCoach` flag.
 - **Score methodology changes:** If scoring logic changes between versions, historical entries use old scales. Page should note this possibility.
 - **Sheet size:** With 10-version cap, PROGRESS_HISTORY grows linearly with student count (~50 students x 5 tools x 10 versions = 2,500 rows max).
 - **Cache invalidation:** After writing to PROGRESS_HISTORY, call `SpreadsheetCache.invalidateSheetData('PROGRESS_HISTORY')`.
+
+---
+
+## Post-Plan Additions (not in the original spec)
+
+Features that landed after this plan was written, discovered during the 2026-04-20 reality check against the code:
+
+- **`core/ProgressNarrative.js`** (commit `1cdcf37`) — AI-generated progress narratives. Two layers: a cross-tool synthesis paragraph and a per-tool "What Changed / Why It Matters / Focus Next" deep dive. Uses the standard GPT → retry → pre-written template fallback. Cached per client in `PropertiesService`; cache invalidated on each new `recordCompletion` so narratives stay in sync with the latest data. ~37 KB of code — treat as a peer of `ProgressHistory.js` and `ProgressPage.js`, not an internal helper.
+- **Second write hook in `ResponseManager.submitEditedResponse`** (`core/ResponseManager.js:424–427`) — history is recorded on edit-resubmit as well as new completion. The original plan only named the `DataService.saveToolResponse` hook.
+- **Narrative UI containers** in `ProgressPage.js` — `_renderCrossToolNarrativeContainer` and `_renderToolNarrativeContainer` reserve space for the GPT output, and a client-side chain-loader fetches narratives in sequence after the page renders.
+- **`SpreadsheetCache` integration** (commit `2df49ef`) — all `PROGRESS_HISTORY` reads now go through `SpreadsheetCache` rather than direct `SpreadsheetApp` calls. Writes invalidate the cache via `SpreadsheetCache.invalidateSheetData('PROGRESS_HISTORY')`.
+- **`history-manager.html` browser-back integration** (`shared/history-manager.html:1021–1048`) — `loadProgressPage(clientId, …)` supports the browser-history recovery flow so a Back button from deeper pages can restore the progress view.
+- **Additional global functions** in `Code.js` — `getProgressNarrative`, `getToolProgressNarrative`, and `getAdminDashboardPage` (the last one supports the coach-view Back button path).
 
 ---
 

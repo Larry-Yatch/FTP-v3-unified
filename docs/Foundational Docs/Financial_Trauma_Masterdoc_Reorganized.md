@@ -1,3 +1,4 @@
+<!-- Encoding cleanup: 2026-04-20 — UTF-8 mojibake (double-encoded via cp1252) fixed; see KNOWLEDGE-BASE-MAP.md Known Gaps for context. -->
 # Financial TruPath: Comprehensive Masterdoc
 
 ## Overview
@@ -16,7 +17,7 @@ This document organizes financial trauma patterns into three core disconnections
 
 The foundational untruth: **"I am fundamentally inadequate, and only through accumulating enough money can I become safe and worthy."**
 
-This belief creates a fixed identity where self-worth is conditional upon financial achievement. The paradox: "I will gain safety through money"â€”but by connecting my safety to money, I will never truly be safe. The deeper trap: I unconsciously create scarcity to prove my inadequacy true, maintaining the false self-view that keeps me "safe" from having to step into my full potential.
+This belief creates a fixed identity where self-worth is conditional upon financial achievement. The paradox: "I will gain safety through money"—but by connecting my safety to money, I will never truly be safe. The deeper trap: I unconsciously create scarcity to prove my inadequacy true, maintaining the false self-view that keeps me "safe" from having to step into my full potential.
 
 **2. Required Behaviors**
 
@@ -85,7 +86,7 @@ This belief creates a fixed identity where self-worth is conditional upon financ
 - **Self-Worth** - feeling at fault for financial struggles
 
 **The Loop:**
-I want financial freedom â†’ but I am unable to create it â†’ so I have to limit my potential and abilities â†’ living in this limitation ensures I do not make enough to be free â†’ reinforces "I will never have enough"
+I want financial freedom → but I am unable to create it → so I have to limit my potential and abilities → living in this limitation ensures I do not make enough to be free → reinforces "I will never have enough"
 
 #### Common Fixed Identity Attachments
 From research interviews, people attach to identities that don't serve them:
@@ -136,7 +137,7 @@ Behaviors that always limit money to reinforce the False Self-View:
 #### Understanding the Pattern
 
 **The Destructive Loop:**
-"It would work! â†’ Therefore, I would have to let go of my False Self-View â†’ So I sabotage it through creating scarcity and confusion"
+"It would work! → Therefore, I would have to let go of my False Self-View → So I sabotage it through creating scarcity and confusion"
 
 **Key Insight:**
 There is a correlation between financial growth, assessment of position, and ambition:
@@ -148,7 +149,7 @@ The pattern maintains itself through manufactured confusion about your actual fi
 #### The Truth Path
 
 **Core Truth:**
-Money is a neutral tool for coordination of actionâ€”not the source of safety. Safety comes from self-trust, clear assessment, and coordinated action. More powerful tools for safety include purpose, value, connection, and honor.
+Money is a neutral tool for coordination of action—not the source of safety. Safety comes from self-trust, clear assessment, and coordinated action. More powerful tools for safety include purpose, value, connection, and honor.
 
 **Breaking the Pattern:**
 1. **Create clarity** - Face your actual financial situation without fog or avoidance
@@ -183,7 +184,7 @@ Money is a neutral tool for coordination of actionâ€”not the source of safe
 3. **Simplify systems** - Consolidate accounts; reduce hiding places
 4. **Accountability** - Share your actual situation with a trusted person
 
-**Output Goal:** A realistic, clear view of where you actually areâ€”not where you fear you are or where you wish you were.
+**Output Goal:** A realistic, clear view of where you actually are—not where you fear you are or where you wish you were.
 
 ---
 
@@ -196,7 +197,7 @@ Money is a neutral tool for coordination of actionâ€”not the source of safe
 
 The foundational untruth: **"My worth is determined by others' judgment of my financial situation, and I must curate that perception to be accepted and loved."**
 
-This belief externalizes the source of your value, placing it in the hands of others. The paradox: "We gain acceptance through money"â€”but by connecting my acceptance to money and others' judgment of my money, I can never truly be accepted. The deeper trap: I must constantly manage the image, which creates a performance-based existence where vulnerability equals rejection.
+This belief externalizes the source of your value, placing it in the hands of others. The paradox: "We gain acceptance through money"—but by connecting my acceptance to money and others' judgment of my money, I can never truly be accepted. The deeper trap: I must constantly manage the image, which creates a performance-based existence where vulnerability equals rejection.
 
 **2. Required Behaviors**
 
@@ -255,7 +256,7 @@ This belief externalizes the source of your value, placing it in the hands of ot
 #### Understanding the Pattern
 
 **The Destructive Loop:**
-"I'm not enough alone â†’ Others' judgment determines my worth â†’ I must control the image â†’ But the performance creates disconnection â†’ I feel more alone and unworthy â†’ I double down on the image"
+"I'm not enough alone → Others' judgment determines my worth → I must control the image → But the performance creates disconnection → I feel more alone and unworthy → I double down on the image"
 
 **Types of Judgment Feared:**
 All spending and financial decisions filter through: "What will they think?"
@@ -278,7 +279,7 @@ Your worth is inherent, not determined by others' opinions. Authentic connection
 4. **Choose authentic over accepted** - Better to be genuinely known by few than falsely admired by many
 5. **Reclaim judgment power** - Decide whose opinions actually matter in your life
 
-**The Judgment â†’ Power â†’ Care Framework:**
+**The Judgment → Power → Care Framework:**
 Only give weight to judgment from people who have:
 - **Power** - Ability to influence change in your life (mentors, employers, key relationships)
 - **Care** - History of caring for your wellbeing and concerns
@@ -327,9 +328,9 @@ Only give weight to judgment from people who have:
 
 **1. Core False Belief**
 
-The foundational untruth: **"Love is proven through financial sacrifice and suffering. If I don't sacrifice financiallyâ€”even at my own expenseâ€”I don't truly care. My suffering is the measure of my love."**
+The foundational untruth: **"Love is proven through financial sacrifice and suffering. If I don't sacrifice financially—even at my own expense—I don't truly care. My suffering is the measure of my love."**
 
-This belief equates love with self-depletion and makes suffering the currency of caring. The paradox: I sacrifice financially to prove love and hope that "if I have enough money, it will free us from having to sacrifice"â€”but by connecting sacrifice to love, I ensure I will always sacrifice, which guarantees I never have enough money. The deeper trap: I don't want repayment because receiving would lessen my suffering, and suffering is how I prove my love.
+This belief equates love with self-depletion and makes suffering the currency of caring. The paradox: I sacrifice financially to prove love and hope that "if I have enough money, it will free us from having to sacrifice"—but by connecting sacrifice to love, I ensure I will always sacrifice, which guarantees I never have enough money. The deeper trap: I don't want repayment because receiving would lessen my suffering, and suffering is how I prove my love.
 
 **2. Required Behaviors**
 
@@ -402,7 +403,7 @@ This belief equates love with self-depletion and makes suffering the currency of
 #### Understanding the Pattern
 
 **The Destructive Loop:**
-"I love them â†’ I must prove it through sacrifice â†’ The more I suffer, the more I prove love â†’ But I resent them and I'm depleted â†’ Guilt about resentment â†’ Give even more to prove I really love them"
+"I love them → I must prove it through sacrifice → The more I suffer, the more I prove love → But I resent them and I'm depleted → Guilt about resentment → Give even more to prove I really love them"
 
 **The Refusal to Receive:**
 Those with this pattern actively don't want repayment because:
@@ -416,7 +417,7 @@ The pattern maintains itself through the equation: suffering = love.
 #### The Truth Path
 
 **Core Truth:**
-True love empowers rather than depletes. Love does not require suffering as proof. Healthy boundaries are an act of love for both yourself and othersâ€”they allow genuine connection without resentment and support others' growth rather than dependency.
+True love empowers rather than depletes. Love does not require suffering as proof. Healthy boundaries are an act of love for both yourself and others—they allow genuine connection without resentment and support others' growth rather than dependency.
 
 **Breaking the Pattern:**
 1. **Separate love from sacrifice** - You can love deeply AND maintain boundaries
@@ -433,7 +434,7 @@ True love empowers rather than depletes. Love does not require suffering as proo
 **Key Principles:**
 1. You can love someone deeply and still say "no"
 2. Financial enabling often prevents growth and perpetuates problems
-3. You cannot pour from an empty cupâ€”your depletion helps no one
+3. You cannot pour from an empty cup—your depletion helps no one
 4. Healthy boundaries create healthier, more authentic relationships
 
 **Truth Mantra:**
@@ -486,9 +487,9 @@ True love empowers rather than depletes. Love does not require suffering as proo
 
 **1. Core False Belief**
 
-The foundational untruth: **"Money is fundamentally corrupt and corrupting. By allowing myself to be financially dependent on others or accumulating debt/obligation to them, I keep myself 'safe' from the evil of having moneyâ€”but this creates conditionality that prevents me from experiencing love."**
+The foundational untruth: **"Money is fundamentally corrupt and corrupting. By allowing myself to be financially dependent on others or accumulating debt/obligation to them, I keep myself 'safe' from the evil of having money—but this creates conditionality that prevents me from experiencing love."**
 
-This belief conflates money with moral corruption while simultaneously creating financial dependency on others. The paradox: by believing money is evil, I won't allow myself to have it (because that would make me evil), yet I allow myself to become dependent on others' money, which creates obligation and debt. This dependency creates the condition "you gave to me, I owe you"â€”and love can only be experienced without conditions.
+This belief conflates money with moral corruption while simultaneously creating financial dependency on others. The paradox: by believing money is evil, I won't allow myself to have it (because that would make me evil), yet I allow myself to become dependent on others' money, which creates obligation and debt. This dependency creates the condition "you gave to me, I owe you"—and love can only be experienced without conditions.
 
 **2. Required Behaviors**
 
@@ -555,7 +556,7 @@ This belief conflates money with moral corruption while simultaneously creating 
 #### Understanding the Pattern
 
 **The Destructive Loop:**
-"I need help â†’ I allow dependency on others â†’ They support me â†’ Now I owe them â†’ The obligation prevents me from experiencing their love as pure â†’ I feel trapped and resentful â†’ But I can't leave because I'm financially bound"
+"I need help → I allow dependency on others → They support me → Now I owe them → The obligation prevents me from experiencing their love as pure → I feel trapped and resentful → But I can't leave because I'm financially bound"
 
 **The Money-as-Evil Belief:**
 This pattern uniquely views money itself as corrupting:
@@ -567,12 +568,12 @@ This pattern uniquely views money itself as corrupting:
 - This dependency creates the conditionality that prevents experiencing love
 
 **The Conditionality Trap:**
-Love can only be experienced without conditions. By becoming financially dependent, I create the condition "you gave to me, I owe you"â€”and this debt/obligation ensures I can never fully experience their love or care as unconditional.
+Love can only be experienced without conditions. By becoming financially dependent, I create the condition "you gave to me, I owe you"—and this debt/obligation ensures I can never fully experience their love or care as unconditional.
 
 #### The Truth Path
 
 **Core Truth:**
-Money is neutralâ€”neither good nor evil. Interdependence is healthy, but it must be based on mutual support without obligation. Receiving help can be without strings when both parties recognize it as part of the natural give-and-take of human connection.
+Money is neutral—neither good nor evil. Interdependence is healthy, but it must be based on mutual support without obligation. Receiving help can be without strings when both parties recognize it as part of the natural give-and-take of human connection.
 
 **Breaking the Pattern:**
 1. **Separate money from morality** - Money is a tool, not a measure of character
@@ -586,7 +587,7 @@ Money is neutralâ€”neither good nor evil. Interdependence is healthy, but i
 2. **Dependency prevents growth** - Yours and potentially theirs
 3. **Obligation is optional** - Help can be freely given and received
 4. **Financial capability is empowering** - It doesn't make you bad
-5. **Interdependence â‰  dependency** - Healthy mutual support vs. one-way reliance
+5. **Interdependence ≠ dependency** - Healthy mutual support vs. one-way reliance
 
 **Truth Mantra:**
 "Money is neutral. I can be financially capable and still be good. I can receive help without creating lifelong debt. Love can be unconditional."
@@ -644,7 +645,7 @@ Money is neutralâ€”neither good nor evil. Interdependence is healthy, but i
 
 The foundational untruth: **"Safety comes from controlling every financial detail. If I maintain rigid control, I'll prevent chaos and loss. I cannot trust anything or anyone else."**
 
-This belief equates control with safety and assumes human effort alone creates security. The paradox: "We will gain control through money"â€”but by making control dependent on money, even if I have money (since the money is not me), I can never have control. The deeper trap: I control my world into ensuring I live without, which substantiates the fear that drives my need for control.
+This belief equates control with safety and assumes human effort alone creates security. The paradox: "We will gain control through money"—but by making control dependent on money, even if I have money (since the money is not me), I can never have control. The deeper trap: I control my world into ensuring I live without, which substantiates the fear that drives my need for control.
 
 **2. Required Behaviors**
 
@@ -705,7 +706,7 @@ This belief equates control with safety and assumes human effort alone creates s
 #### Understanding the Pattern
 
 **The Destructive Loop:**
-"I fear chaos â†’ I must control everything â†’ I control into scarcity (not charging, not collecting, giving away) â†’ The scarcity proves I need control â†’ I tighten control further â†’ More suffering from going without"
+"I fear chaos → I must control everything → I control into scarcity (not charging, not collecting, giving away) → The scarcity proves I need control → I tighten control further → More suffering from going without"
 
 **The Self-Imposed Suffering Mechanism:**
 This pattern uniquely creates suffering as proof that control is necessary:
@@ -797,7 +798,7 @@ True security comes from trust and appropriate action, not from control and self
    - Invest appropriately for your situation
    - Notice that using money doesn't cause disaster
 
-**Output Goal:** Healthy financial stewardship that values your work appropriately, collects what's owed, and uses resources wiselyâ€”without the illusion that suffering equals control.
+**Output Goal:** Healthy financial stewardship that values your work appropriately, collects what's owed, and uses resources wisely—without the illusion that suffering equals control.
 
 ---
 
@@ -810,7 +811,7 @@ True security comes from trust and appropriate action, not from control and self
 
 The foundational untruth: **"The world is hostile to my thriving. Visibility attracts danger. I am safer staying small, hidden, and unnoticed. I am alone in a threatening universe."**
 
-This belief assumes a fundamentally threatening universe where success equals danger. The paradox: "It is through money that we will free ourselves from fear"â€”but by making that attachment, the more money we have, the more we fear its loss. We can't win if we don't have money, or if we do. The deeper trap: I unconsciously ensure things go wrong, creating the disasters I fear, which proves the world is unsafe.
+This belief assumes a fundamentally threatening universe where success equals danger. The paradox: "It is through money that we will free ourselves from fear"—but by making that attachment, the more money we have, the more we fear its loss. We can't win if we don't have money, or if we do. The deeper trap: I unconsciously ensure things go wrong, creating the disasters I fear, which proves the world is unsafe.
 
 **2. Required Behaviors**
 
@@ -885,14 +886,14 @@ This belief assumes a fundamentally threatening universe where success equals da
 - Fear of visibility or success
 
 **The Loop:**
-I fear loss â†’ so I stay small and hidden â†’ this limits my potential â†’ which reinforces my scarcity â†’ my fear grows â†’ I isolate further â†’ I feel more alone and unsupported
+I fear loss → so I stay small and hidden → this limits my potential → which reinforces my scarcity → my fear grows → I isolate further → I feel more alone and unsupported
 
 #### Common Manifestations
 
 #### Understanding the Pattern
 
 **The Destructive Loop:**
-"I fear loss and danger â†’ I unconsciously ensure things go wrong â†’ Disasters happen â†’ This proves the world is unsafe â†’ My fear intensifies â†’ I create more disasters"
+"I fear loss and danger → I unconsciously ensure things go wrong → Disasters happen → This proves the world is unsafe → My fear intensifies → I create more disasters"
 
 **The Self-Fulfilling Prophecy Mechanism:**
 This pattern uniquely creates the very disasters it fears:
@@ -929,7 +930,7 @@ You are held by something greater than yourself. The universe is not hostile to 
 5. **Completion is possible** - you don't have to sabotage at the threshold
 
 **Key Concept - Value:**
-Value is subjectiveâ€”the power to create change that someone desires. Stepping into your value and being visible serves others' needs. Your gifts hidden help no one.
+Value is subjective—the power to create change that someone desires. Stepping into your value and being visible serves others' needs. Your gifts hidden help no one.
 
 **Truth Mantra:**
 "The world is not hostile to my thriving. I can trust wisely. I can protect myself appropriately. I can complete what I start. I am held by something greater."
