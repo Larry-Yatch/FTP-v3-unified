@@ -117,7 +117,7 @@ const CollectiveResults = {
       var html = this._buildPageHTML(clientId, summary, true);
       var template = HtmlService.createTemplate(html);
       return template.evaluate()
-        .setTitle('Integration Analysis: ' + clientId)
+        .setTitle('Consolidated Dashboard: ' + clientId)
         .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
         .getContent();
     } catch (error) {
@@ -133,7 +133,7 @@ const CollectiveResults = {
 
   _buildPageHTML(clientId, summary, isCoach) {
     const completionPct = Math.round((summary.completedCount / summary.totalTools) * 100);
-    const pageTitle = isCoach ? 'Integration Analysis' : 'Your TruPath Results';
+    const pageTitle = isCoach ? 'Consolidated Dashboard' : 'Your TruPath Results';
     const pageSubtitle = isCoach ? 'Coach view for ' + clientId : 'Collective summary across all assessments';
     const baseUrl = ScriptApp.getService().getUrl();
 
@@ -141,7 +141,7 @@ const CollectiveResults = {
       <!DOCTYPE html>
       <html>
       <head>
-        <title>${isCoach ? 'Integration Analysis: ' + clientId : 'TruPath - Your Results Summary'}</title>
+        <title>${isCoach ? 'Consolidated Dashboard: ' + clientId : 'TruPath - Your Results Summary'}</title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta name="theme-color" content="#1e192b">
         <style>
