@@ -2158,11 +2158,15 @@
       });
       html += '</div>';
 
-      // Integration Analysis button (below tool cards)
-      html += '<div style="text-align: center; margin: 20px 0 4px; padding-top: 16px; border-top: 1px solid #e0e0e0;">' +
+      // Integration Analysis + Progress Over Time buttons (below tool cards)
+      html += '<div style="text-align: center; margin: 20px 0 4px; padding-top: 16px; border-top: 1px solid #e0e0e0; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">' +
         '<button onclick="viewIntegrationAnalysis()" ' +
           'style="padding: 10px 24px; background: linear-gradient(135deg, #4b4166, #1e192b); border: 1px solid #ad9168; color: #ad9168; border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: 500;">' +
           'View Integration Analysis' +
+        '</button>' +
+        '<button onclick="viewProgressOverTime()" ' +
+          'style="padding: 10px 24px; background: linear-gradient(135deg, #4b4166, #1e192b); border: 1px solid #ad9168; color: #ad9168; border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: 500;">' +
+          'View Progress Over Time' +
         '</button>' +
       '</div>';
 
@@ -2231,6 +2235,38 @@
           showAlert('Error loading analysis: ' + err.message, 'error');
         })
         .getIntegrationAnalysis(currentReportStudent.clientId);
+    }
+
+    // View progress over time (coach view — full page via document.write)
+    function viewProgressOverTime() {
+      if (!currentReportStudent) {
+        showAlert('No student selected', 'error');
+        return;
+      }
+
+      // Show loading indicator before replacing page
+      document.body.style.opacity = '0.5';
+      document.body.style.pointerEvents = 'none';
+
+      google.script.run
+        .withSuccessHandler(function(result) {
+          if (result && result.success && result.html) {
+            document.open();
+            document.write(result.html);
+            document.close();
+            window.scrollTo(0, 0);
+          } else {
+            document.body.style.opacity = '1';
+            document.body.style.pointerEvents = '';
+            showAlert(result ? result.error : 'Unknown error', 'error');
+          }
+        })
+        .withFailureHandler(function(err) {
+          document.body.style.opacity = '1';
+          document.body.style.pointerEvents = '';
+          showAlert('Error loading progress: ' + err.message, 'error');
+        })
+        .getStudentProgressPage(currentReportStudent.clientId);
     }
 
     // Render tool report HTML (formatted student view)
