@@ -153,7 +153,7 @@ if (typeof ProgressHistory !== 'undefined') {
 
 ### 8. `AdminRouter.js` — Add coach handler
 - `handleGetStudentProgressRequest(clientId)` calls `ProgressPage.render(clientId, { isCoach: true, studentName })` **[complete]**
-- Add "View Progress" button to admin student detail panel **[OPEN — the only remaining work item in this plan.]** Backend is ready; needs a button in `html/AdminDashboard.html` that calls `google.script.run.getStudentProgressPage(clientId)` when a student is selected.
+- Add "View Progress" button to admin student detail panel **[RESOLVED 2026-04-20]** — admin-dashboard button added in `html/AdminDashboard.html` (next to "View Consolidated Dashboard") calling `google.script.run.getStudentProgressPage(clientId)`. All phases of this plan are now complete in code.
 
 ---
 

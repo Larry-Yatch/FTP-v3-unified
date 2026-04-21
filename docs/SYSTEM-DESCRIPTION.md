@@ -273,6 +273,14 @@ When enough tools are completed (Tool 1 + Tool 2 + at least one grounding tool),
 - **IntegrationGPT:** Generates an 8-section narrative connecting psychological patterns to financial behavior. Uses a detection engine that identifies belief locks, awareness gaps, belief-behavior gaps, and warning patterns.
 - **CapstoneGPT:** Produces "Your Financial Story" (cohesive cross-tool narrative) and "Capstone Insights" (patterns, contradictions, priority actions). Results are cached and invalidated when tool data changes.
 
+The same `CollectiveResults` page renders in two modes: `render()` for students and `renderCoachPage()` for coach/admin view. The coach view adds a Pipeline Analysis section (Pipeline A: Identity→Sabotage via T3→T7; Pipeline B: Identity→Caretaking via T3→T5) and expanded detail for warnings and belief locks. Coaches reach it via the **"View Consolidated Dashboard"** button on the per-student Reports panel in `html/AdminDashboard.html`.
+
+**Entry points:**
+- Student: `Dashboard → "View Collective Results"` → `Router → CollectiveResults.render(clientId)`
+- Coach: `AdminDashboard → Reports → Select Student → "View Consolidated Dashboard"` button → `getIntegrationAnalysis(clientId)` → `AdminRouter.handleGetIntegrationAnalysisRequest` → `CollectiveResults.renderCoachPage(clientId)`
+
+**Naming note:** This feature is referred to as "Consolidated Dashboard" in client-facing copy and on the admin button. In code and in the rest of this engineering doc, it is named "Integration Analysis" / "Collective Results" / "Capstone Integration." All four names refer to the same feature.
+
 ---
 
 ## 6. Client Experience

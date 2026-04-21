@@ -1,6 +1,6 @@
 # Progress Over Time Feature
 
-> **Status:** **LIVE** (student view) as of commit `28e384f`. Data infrastructure, student UI, write hooks in `DataService` and `ResponseManager`, and a GPT-powered narrative layer are all active. Coach view backend is built (`AdminRouter.handleGetStudentProgressRequest`) but the admin dashboard does not yet expose a button — coach access currently requires manual wiring or a direct function call. The Feb 18 2026 "coming soon" stub (commit `35ecdcb`) was superseded.
+> **Status:** **LIVE** end-to-end as of 2026-04-20. Student view has been live since commit `28e384f`; the coach-view "View Progress Over Time" button was added to the admin dashboard on 2026-04-20, closing the last open item from the original plan. Data infrastructure, both UIs, write hooks in `DataService` and `ResponseManager`, and a GPT-powered narrative layer are all active. The Feb 18 2026 "coming soon" stub (commit `35ecdcb`) was superseded.
 > **Type:** Reference document — describes the feature architecture and implementation decisions.
 > **Doc last synced to code:** 2026-04-20
 
@@ -45,7 +45,7 @@ shared/ProgressPage.js      — UI layer (HTML page, inline SVG sparklines, over
 
 **Navigation:**
 - Student — "Progress Over Time" button renders beside "View Collective Results" in the Results Summary card on the student dashboard, but only when `completedToolCount > 0` (`core/Router.js:902`). Click invokes `viewProgress()` (`core/Router.js:1108–1124`), which hits `google.script.run.getProgressPage(clientId)`.
-- Coach — backend ready via `getStudentProgressPage(clientId)` → `AdminRouter.handleGetStudentProgressRequest` → `ProgressPage.render(clientId, { isCoach: true, studentName })`. No admin-dashboard button yet calls it. A developer can reach it via the script editor or by wiring a button into `html/AdminDashboard.html`.
+- Coach — "View Progress Over Time" button in the per-student Reports panel (`html/AdminDashboard.html`, next to "View Consolidated Dashboard") invokes `viewProgressOverTime()` → `google.script.run.getStudentProgressPage(clientId)` → `AdminRouter.handleGetStudentProgressRequest` → `ProgressPage.render(clientId, { isCoach: true, studentName })`.
 - Direct URL — `?route=progress&client=<id>` also works (route is whitelisted at `core/Router.js:48`).
 
 ## Documentation
@@ -88,4 +88,4 @@ Student views progress page
 - **Migration is idempotent** — `migrateFromResponses()` backfills history from existing RESPONSES rows and tracks migrated pairs, so running it multiple times is safe. Exposed as `migrateProgressHistory()` in `Code.js` for on-demand dev use.
 - **AI narratives layer** — `core/ProgressNarrative.js` adds GPT-generated commentary on top of the raw charts: a cross-tool synthesis paragraph and a per-tool "What Changed / Why It Matters / Focus Next" deep dive. Cached per client in `PropertiesService`; the cache is invalidated on each new `recordCompletion` so narratives stay in sync with the latest data.
 - **No feature flag** — There is no `ENABLE_PROGRESS` or similar toggle. The two write hooks use a `typeof ProgressHistory !== 'undefined'` guard against load-order issues, but that is not a kill switch. To re-disable the feature, the button at `core/Router.js:902` and the `viewProgress()` function at `core/Router.js:1108–1124` would need to be stubbed (the approach used in the reverted commit `35ecdcb`).
-- **Coach UI is the open work item.** To give coaches access, add a "View Progress" button (or link) inside `html/AdminDashboard.html` that calls `google.script.run.getStudentProgressPage(clientId)` when a student is selected.
+- **Coach UI shipped 2026-04-20.** The "View Progress Over Time" button in `html/AdminDashboard.html` (next to "View Consolidated Dashboard") calls `google.script.run.getStudentProgressPage(clientId)` via `viewProgressOverTime()`. All phases of the original plan are now complete.

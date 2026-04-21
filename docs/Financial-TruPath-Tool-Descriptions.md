@@ -354,6 +354,8 @@ The dashboard brings everything into a single view organized across three layers
 
 Five features work together to show you what's really happening beneath the surface:
 
+*Each feature activates as its required tools are completed. The Integration Profile and most Cross-Tool Warnings appear once Tool 1 plus any grounding tool are complete. The Awareness Gap requires Tool 2 plus a grounding tool. Belief Locks and Belief-Behavior Gaps unlock as additional grounding tools are completed. Before the minimum threshold for a given feature, that section gracefully degrades — when no engines have produced content yet, the dashboard shows an "Almost there" placeholder pointing you to the remaining tools.*
+
 **Integration Profiles** — Based on your Tool 1 pattern and your grounding scores, you're matched to an archetype that captures how your psychology and finances interact. The Guardian controls everything and calls it responsibility. The Provider pours financial energy into others and calls it love. The Achiever builds wealth to prove worth and calls it ambition. The Protector knows the dangers but can't act and calls it caution. The Connector experiences money as relationship currency and calls it loyalty. Each profile names both the strength and the cost.
 
 **Cross-Tool Warning Patterns** — The system detects compound patterns that span multiple tools. Shame from Tool 3 reinforcing stagnation from Tool 1. Caretaking from Tool 5 draining the budget built in Tool 4. Control from Tool 7 isolating you from the help you need. These warnings name specific financial risks you'd never see by looking at any single tool alone.
@@ -363,6 +365,8 @@ Five features work together to show you what's really happening beneath the surf
 **Belief Locks** — Interlocking patterns across multiple tools that reinforce each other. Scarcity plus shame suppresses growth despite affordability. The caretaker trap inflates essentials and underfunds your goals. Control plus isolation creates financial blindness through perfectionism. Fear plus paralysis freezes all action. Each lock shows you the specific beliefs involved and the financial consequence of their interaction.
 
 **Belief-Behavior Gaps** — Where what you believe and what you do don't match within each grounding subdomain. Internal resistance (you believe the pattern but fight it in behavior) is a sign of emerging health. Autopilot (you act on the pattern more than you consciously believe) is a sign of an unconscious habit. Both are valuable to see.
+
+**AI Capstone Synthesis** — Once Tool 1, Tool 2, and at least one grounding tool are complete, two GPT-powered layers activate on the dashboard. *Your Financial Story* gives you a cohesive cross-tool narrative connecting psychology to finance in plain language. *Capstone Insights* surfaces patterns, contradictions, and priority actions you wouldn't see by reading any single tool report alone. Both layers cache per-student and refresh automatically when you complete or edit a tool.
 
 ### Why This Matters to You
 
@@ -374,6 +378,8 @@ No single tool tells the full story. The dashboard shows you the *connections* �
 - **Cross-tool warnings** that no single assessment could detect
 - **Awareness gap visibility** — whether your pattern is hiding financial risk from your own perception
 - **Belief locks identified** — the specific interlocking beliefs keeping you stuck, with their financial cost
+- **AI-generated Your Financial Story** (when minimum tools complete) — a plain-language synthesis connecting your psychology to your finances
+- **A downloadable Capstone Report PDF** — synthesizes every active section into a printable, coach-style document you can bring to a meeting or save for reference
 - **One unified view** of your entire journey — patterns, finances, relationships, trust, and the connections between all of them
 
 ---

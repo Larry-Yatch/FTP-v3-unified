@@ -13,6 +13,7 @@
 - 2026-04-20 — Foundational Docs encoding cleanup (removed double-encoded UTF-8 mojibake across 6 files). See Known Gaps.
 - 2026-04-20 — Progress Over Time status corrected: feature is LIVE, not dormant. Map Tier assignments, per-doc entries, and Staleness Register updated accordingly.
 - 2026-04-20 — **Google Drive consolidation.** Local copies of the Business Vision and Structural Design docs already existed in `Business Docs/` and are identical to the Drive versions. Going forward, the local `Business Docs/` copies are canonical for all TruPath work; Drive versions are not consulted. If Drive sync is re-enabled in the future for sharing, local remains authoritative — Drive becomes an outbound mirror only.
+- 2026-04-20 — Admin panel coherence pass — added Progress Over Time admin button, renamed Consolidated Dashboard button label, synced product/system docs to shipped capstone state.
 
 ---
 
@@ -51,7 +52,7 @@ Rich source material. Pull in only when the conversation enters that territory.
 - `Navigation/GAS-NAVIGATION-RULES.md` — non-negotiable GAS navigation rules
 - `DESIGN-SYSTEM.md` — CSS tokens, brand palette, components
 - `COHORT-MANAGEMENT-GUIDE.md` — operational runbook (admin + student flows)
-- `ProgressOverTime/README.md` + `ProgressOverTime/IMPLEMENTATION-PLAN.md` — Progress Over Time feature (LIVE student view; coach-UI button is the open work item)
+- `ProgressOverTime/README.md` + `ProgressOverTime/IMPLEMENTATION-PLAN.md` — Progress Over Time feature (LIVE end-to-end; student + coach UIs shipped 2026-04-20)
 - All `Tool1/`, `Tool2/`, `Tool4/`, `Tool6/` subfolder docs — per-tool specs (see per-tool sub-maps below)
 
 ### Tier 5 — Archival / Dormant (ignore unless explicitly asked)
@@ -95,7 +96,8 @@ When you don't know which doc to open, match the question to the nearest row.
 | Tool 6 anything | `Tool6/Tool6-Consolidated-Specification.md` |
 | Starting a Tool 6 dev session | `Tool6/TOOL6-DEV-STARTUP.md` |
 | Tool 8 | **No spec doc exists** — fall back to `SYSTEM-DESCRIPTION.md` § 4 + code. See Known Gaps. |
-| Progress Over Time feature | `ProgressOverTime/README.md` (feature is LIVE; coach UI pending) |
+| Progress Over Time feature | `ProgressOverTime/README.md` (feature is LIVE end-to-end; student + coach UIs shipped) |
+| The Consolidated Dashboard (a.k.a. Integration Analysis in code) | `Financial-TruPath-Tool-Descriptions.md` § "The Consolidated Dashboard" (client voice); `SYSTEM-DESCRIPTION.md` § 5 Capstone Integration (engineering) |
 
 ---
 
@@ -172,7 +174,7 @@ Folder-level navigational index with task → doc table and folder tree. **Open 
 Runbook for admin cohort setup, batch imports, student ID conventions ("4521JS"), and student first-time/forgot-ID flows. **Open when:** any ops question about admin panel, cohorts, or student support. **Staleness:** Low (April 2026).
 
 **`ProgressOverTime/README.md`** + **`ProgressOverTime/IMPLEMENTATION-PLAN.md`**
-What the Progress Over Time feature is, its schema, data flow, and the engineering spec. Three code files: `core/ProgressHistory.js` (data layer), `core/ProgressNarrative.js` (AI narrative layer added post-plan), `shared/ProgressPage.js` (UI). Two write hooks: `DataService.saveToolResponse` and `ResponseManager.submitEditedResponse`. Student view is LIVE; coach view backend is built but admin-dashboard button is missing. **Open when:** working on Progress Over Time, debugging PROGRESS_HISTORY contents, or wiring the coach-side button. **Staleness:** Low — docs synced to code on 2026-04-20.
+What the Progress Over Time feature is, its schema, data flow, and the engineering spec. Three code files: `core/ProgressHistory.js` (data layer), `core/ProgressNarrative.js` (AI narrative layer added post-plan), `shared/ProgressPage.js` (UI). Two write hooks: `DataService.saveToolResponse` and `ResponseManager.submitEditedResponse`. Feature is LIVE end-to-end: student view shipped earlier; coach "View Progress Over Time" admin button shipped 2026-04-20. **Open when:** working on Progress Over Time, debugging PROGRESS_HISTORY contents, or modifying either UI. **Staleness:** Low — docs synced to code on 2026-04-20.
 
 ### Implementation / coding detail
 
@@ -287,6 +289,7 @@ Canonical definition location in parentheses.
 - **Ambition Quotient** — Tool 6 weighting algorithm (importance + anxiety + motivation + time-discounted urgency) (`Tool6-Consolidated-Specification.md`)
 - **9 Investor Profiles** — ROBS-In-Use Strategist, ROBS-Curious Candidate, Business Owner with Employees, Solo 401(k) Optimizer, Bracket Strategist, Catch-Up Contributor, Foundation Builder, Roth Maximizer, Late-Stage Growth (same doc)
 - **Capstone / Integration Layer** — cross-tool synthesis after minimum tools complete (`SYSTEM-DESCRIPTION.md` § 5)
+- **Consolidated Dashboard** — the client-facing name for what the code calls "Integration Analysis" / "Collective Results" / "Capstone Integration." Canonical definition in `Financial-TruPath-Tool-Descriptions.md` § "The Consolidated Dashboard." Reached by students via "View Collective Results" on the dashboard and by coaches via the "View Consolidated Dashboard" button on the per-student admin Reports panel. Internal identifiers (`getIntegrationAnalysis`, `handleGetIntegrationAnalysisRequest`, `CollectiveResults.renderCoachPage`, etc.) intentionally retain the engineering names.
 - **IntegrationGPT vs CapstoneGPT** — IntegrationGPT generates 8-section narrative; CapstoneGPT produces "Your Financial Story" + "Capstone Insights" (same doc)
 - **3-tier GPT fallback** — GPT → retry at 2s → pre-written score-aware template, with `source` tagging (`SYSTEM-DESCRIPTION.md` § 5)
 - **InsightsPipeline** — configuration-driven cross-tool intelligence engine (`SYSTEM-DESCRIPTION.md`)
@@ -321,7 +324,7 @@ Things that are *not* in the knowledge base but probably should be. Flag these w
 - **Tool 2 has no standalone question-content doc.** Unlike Tools 1/3/5/7, Tool 2's question text lives inside `Tool2/TOOL2-OVERHAUL-DESIGN.md` and in code. This is a consequence of the April 2026 overhaul.
 - **No single concept glossary lived outside this map.** Integration Profile, Belief Lock, Quotient, Awareness Gap, 4 Doors, etc. were scattered across 3–4 docs each. Section 5 of this map is now the consolidated glossary.
 - **Foundational Docs encoding artifacts — FIXED 2026-04-20.** Previously, six docs had double-encoded UTF-8 mojibake (em-dashes appeared as `â€"`, arrows as `â†'`, etc.) from a UTF-8 → cp1252 → UTF-8 round-trip somewhere upstream. All six were cleaned via cp1252 reverse round-trip and `ftfy`, with an HTML-comment marker added at the top of each cleaned file. Files affected: `Co-Occurring_Pattern_Matrix.md`, `Tool_5_Love_Connection_Assessment_Content.md`, `Financial_TruPath_Core_Framework_Overview.md`, `Complete_Refinement_Summary.md`, `Financial_Trauma_Assessment_Content_Development_Guide.md`, `Financial_Trauma_Masterdoc_Reorganized.md`.
-- **Progress Over Time coach UI is missing.** The backend (`AdminRouter.handleGetStudentProgressRequest` + `getStudentProgressPage` in `Code.js`) is built and tested. The admin dashboard (`html/AdminDashboard.html`) has no button that calls it. Adding a "View Progress" button next to the existing student-detail controls is the only remaining work item from the original Progress Over Time implementation plan.
+- **~~Progress Over Time coach UI is missing.~~ RESOLVED 2026-04-20.** The "View Progress Over Time" button was added to `html/AdminDashboard.html` (per-student Reports panel, next to "View Consolidated Dashboard"), wired to `getStudentProgressPage(clientId)` via `viewProgressOverTime()`. All phases of the original Progress Over Time plan are now complete.
 - **The `TOOL-DEVELOPMENT-GUIDE.md` header date** reads "January 7, 2025" — this is a typo for 2026.
 
 ---
@@ -336,7 +339,7 @@ For quick reference. Details are in each doc's Per-Document Routing entry above.
 | **Medium** | `Business Docs/TruPath AI — Business Vision (30,000-Foot) - Local Copy.md` | Section 2 superseded by April 8 Supabase/hybrid addendum. |
 | **Medium** | `Business Docs/TruPath AI — Structural Design (10,000-Foot) - local copy.md` | Section 2 superseded by Addendum A; Section 9 Open Design Questions unresolved. |
 | **Medium** | `Middleware/middleware-mapping.md` | Feb 2026 — predates April Tool 2 overhaul. |
-| ~~Medium~~ → **Low** | `ProgressOverTime/*` | ~~Feature built but disabled since March 2026.~~ Resolved 2026-04-20: feature is LIVE for students; docs synced to code. Coach-UI button is the only open work item (tracked in Known Gaps). |
+| **Low** | `ProgressOverTime/*` | Fully resolved 2026-04-20: feature is LIVE end-to-end (student + coach UIs); all docs synced to code. |
 | **Medium** | `ToDos.md` | March 2026 — some items may be done but unstruck. |
 | **Medium** | `Tool4/*` (all 8 docs) | Nov–Dec 2025 — Tool 4 has shipped and evolved. Reference only. |
 | **Low-Medium** | `README.md` | Folder tree accurate; doesn't flag Middleware as dormant or ProgressOverTime as LIVE. |
