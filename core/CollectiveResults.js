@@ -164,6 +164,7 @@ const CollectiveResults = {
 
           <!-- Header -->
           <div class="card">
+            ${isCoach ? '<div style="margin-bottom: 16px;"><button class="btn-primary" onclick="goBackToAdmin()" style="padding: 8px 16px; font-size: 0.85rem;">← Back to Admin Dashboard</button></div>' : ''}
             <div class="tool-header">
               <h1>${pageTitle}</h1>
               <p class="muted">${pageSubtitle}</p>
@@ -3773,12 +3774,26 @@ const CollectiveResults = {
     var reportToolsStr = "'" + this.REPORT_TOOLS.join("','") + "'";
 
     if (isCoach) {
-      // Coach view: only needs back-to-admin navigation
+      // Coach view: back-to-admin navigation via document.write pattern (GAS-safe)
       return `
         <script>
           (function() {
             window.goBackToAdmin = function() {
-              window.location.href = '${baseUrl}?route=admin-dashboard';
+              var overlay = document.createElement('div');
+              overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:9999;color:#fff;font-size:1.1rem;';
+              overlay.textContent = 'Loading admin dashboard...';
+              document.body.appendChild(overlay);
+              google.script.run
+                .withSuccessHandler(function(html) {
+                  document.open();
+                  document.write(html);
+                  document.close();
+                  window.scrollTo(0, 0);
+                })
+                .withFailureHandler(function(err) {
+                  overlay.textContent = 'Error loading admin dashboard: ' + err.message;
+                })
+                .getAdminDashboardPage();
             };
           })();
         </script>
