@@ -1140,6 +1140,7 @@
                 </div>
                 <div id="studentAttendanceStats" style="font-size: 14px; color: #666;"></div>
               </div>
+              <div id="studentAttendanceCohortSwitcher" style="margin-bottom: 16px;"></div>
               <div id="student-attendance-list" class="loading">
                 <div class="spinner"></div>
                 <p>Loading attendance...</p>
@@ -1524,7 +1525,7 @@
             <td><strong>${isPending ? idDisplay : escapeHtml(student.clientId)}</strong></td>
             <td>${escapeHtml(student.name)}</td>
             <td>${escapeHtml(student.email)}</td>
-            <td>${(student.cohorts && student.cohorts.length > 0) ? student.cohorts.map(c => escapeHtml(c)).join(', ') : escapeHtml(student.cohort || '-')}</td>
+            <td>${(student.cohorts && student.cohorts.length > 0) ? student.cohorts.map(c => escapeHtml(c)).join(', ') : escapeHtml(student.legacyCohort || '-')}</td>
             <td><span class="status-badge ${statusClass}">${statusLabel}</span></td>
             <td>${isPending ? '-' : (student.toolsCompleted || 0) + ' / 8'}</td>
             <td class="action-buttons">
@@ -2668,6 +2669,10 @@
     let callsData = [];
     let currentCallId = null;
     let currentAttendanceStudent = null;
+    // Active cohort for the per-student attendance view. Decoupled from the page-level
+    // attendanceCohortFilter so multi-cohort students can switch between their cohorts
+    // without disturbing the by-call view.
+    let currentAttendanceCohort = null;
     let callAttendanceData = [];
 
     // Load attendance page
@@ -2787,14 +2792,15 @@
       renderCallAttendanceList(callAttendanceData);
     }
 
-    // Apply cohort filter to call attendance list and reload analytics
+    // Apply cohort filter to call attendance list and reload analytics.
+    // The per-student attendance view manages its own cohort context (currentAttendanceCohort),
+    // so toggling the page-level filter only affects the by-call view and analytics.
     function applyAttendanceCohortFilter() {
       const cohortFilter = document.getElementById('attendanceCohortFilter').value;
 
       if (!cohortFilter) {
-        // No cohort selected — show message
+        // No cohort selected — only hide the by-call view; the per-student card stays.
         document.getElementById('call-attendance-container').style.display = 'none';
-        document.getElementById('student-attendance-container') && (document.getElementById('student-attendance-container').style.display = 'none');
         return;
       }
 
@@ -2914,18 +2920,93 @@
       }
     }
 
+    // Look up the cohort metadata record (for display name) by id
+    function getCohortMeta(cohortId) {
+      return (cohortsData || []).find(c => c.cohortId === cohortId) || null;
+    }
+
+    // Render the cohort switcher inside the student attendance card.
+    // - If the student is in 1 cohort, just show a label (no switcher buttons).
+    // - If the student is in 2+ cohorts, show one button per cohort.
+    function renderStudentCohortSwitcher(cohorts, activeCohortId) {
+      const switcher = document.getElementById('studentAttendanceCohortSwitcher');
+      if (!switcher) return;
+
+      if (!cohorts || cohorts.length === 0) {
+        switcher.innerHTML = '<div style="padding: 10px; background: #fff8e1; border: 1px solid #ffe082; border-radius: 6px; color: #8a6d3b; font-size: 13px;">' +
+          'This student is not currently enrolled in any cohort. Add them to a cohort before tracking attendance.' +
+          '</div>';
+        return;
+      }
+
+      if (cohorts.length === 1) {
+        const meta = getCohortMeta(cohorts[0]);
+        const label = meta ? (meta.name + ' — ' + meta.startMonth + ' ' + meta.startYear) : cohorts[0];
+        switcher.innerHTML = '<div style="font-size: 13px; color: #666;">Showing attendance for <strong>' + escapeHtml(label) + '</strong></div>';
+        return;
+      }
+
+      let html = '<div style="font-size: 13px; color: #666; margin-bottom: 8px;">This student is in multiple cohorts. Select which one to view:</div>';
+      html += '<div style="display: flex; gap: 8px; flex-wrap: wrap;">';
+      cohorts.forEach(cid => {
+        const meta = getCohortMeta(cid);
+        const label = meta ? meta.name : cid;
+        const isActive = cid === activeCohortId;
+        const cls = isActive ? 'btn btn-primary' : 'btn btn-secondary';
+        html += '<button class="' + cls + '" style="padding: 8px 16px; font-size: 13px;" onclick="setStudentAttendanceCohort(\'' + escapeJs(cid) + '\')">' +
+          escapeHtml(label) + '</button>';
+      });
+      html += '</div>';
+      switcher.innerHTML = html;
+    }
+
+    // Switch the active cohort for the per-student attendance view (called from the switcher buttons).
+    function setStudentAttendanceCohort(cohortId) {
+      if (!currentAttendanceStudent) return;
+      currentAttendanceCohort = cohortId;
+      const cohorts = (currentAttendanceStudent.cohorts || []);
+      renderStudentCohortSwitcher(cohorts, currentAttendanceCohort);
+      loadStudentAttendance(currentAttendanceStudent.clientId);
+    }
+
     // Select student for attendance view
     function selectAttendanceStudent(clientId, name) {
-      currentAttendanceStudent = { clientId, name };
+      // Look up the student's cohort list from the loaded students data so the per-student
+      // view is always anchored to the student's actual cohorts, not whatever the page-level
+      // filter happens to be set to.
+      const studentRecord = (studentsData || []).find(s => s.clientId === clientId);
+      const cohorts = (studentRecord && studentRecord.cohorts) ? studentRecord.cohorts.slice() : [];
+
+      // Pick the initial active cohort: prefer the page-level filter if it matches one of the
+      // student's cohorts, otherwise fall back to the student's first cohort.
+      const globalFilter = document.getElementById('attendanceCohortFilter').value || '';
+      let initialCohort = '';
+      if (globalFilter && cohorts.indexOf(globalFilter) !== -1) {
+        initialCohort = globalFilter;
+      } else if (cohorts.length > 0) {
+        initialCohort = cohorts[0];
+      }
+
+      currentAttendanceStudent = { clientId, name, cohorts };
+      currentAttendanceCohort = initialCohort;
+
       document.getElementById('studentAttendanceId').textContent = clientId;
       document.getElementById('studentAttendanceName').textContent = name;
       document.getElementById('attendanceStudentLookup').value = clientId;
       document.getElementById('student-attendance-container').style.display = 'block';
 
-      loadStudentAttendance(clientId);
+      renderStudentCohortSwitcher(cohorts, currentAttendanceCohort);
+
+      if (initialCohort) {
+        loadStudentAttendance(clientId);
+      } else {
+        // No cohort to load — wipe the list area.
+        document.getElementById('student-attendance-list').innerHTML = '';
+        document.getElementById('studentAttendanceStats').innerHTML = '';
+      }
     }
 
-    // Load student attendance
+    // Load student attendance for the active per-student cohort context.
     function loadStudentAttendance(clientId) {
       const container = document.getElementById('student-attendance-list');
       container.innerHTML = '<div class="loading"><div class="spinner"></div><p>Loading attendance...</p></div>';
@@ -2933,7 +3014,7 @@
       google.script.run
         .withSuccessHandler(renderStudentAttendance)
         .withFailureHandler(handleError)
-        .getStudentAttendance(clientId, document.getElementById('attendanceCohortFilter').value);
+        .getStudentAttendance(clientId, currentAttendanceCohort || '');
     }
 
     // Render student attendance
@@ -3132,7 +3213,7 @@
           handleError(error);
           loadStudentAttendance(currentAttendanceStudent.clientId); // Only reload on error
         })
-        .updateAttendance(currentAttendanceStudent.clientId, callId, document.getElementById('attendanceCohortFilter').value, status);
+        .updateAttendance(currentAttendanceStudent.clientId, callId, currentAttendanceCohort || '', status);
     }
 
     // Update student stats locally without reloading

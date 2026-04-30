@@ -524,6 +524,257 @@ function migrateToMultiCohortModel() {
 }
 
 /**
+ * Repair TOOL_ACCESS schema for all active students.
+ *
+ * Symptom this fixes: many older students have a malformed TOOL_ACCESS pattern
+ * (e.g. tool1 + tool4×3 + tool5–8, missing tool2 and tool3 entirely) from a
+ * historical bug in initializeStudent(). The current code is correct, but
+ * legacy data is dirty.
+ *
+ * For each active student, this function ensures exactly 8 TOOL_ACCESS rows
+ * (tool1 through tool8) by:
+ *   - **Deduplicating**: when multiple rows exist for the same (clientId, toolId),
+ *     keeps the most permissive/authoritative one (unlocked > locked, admin > system,
+ *     newest > oldest) and drops the rest.
+ *   - **Backfilling**: when a tool row is missing entirely, synthesizes one using
+ *     the same defaults `initializeStudent()` would use, with the prerequisite-met
+ *     check applied so completed-tool prereqs result in 'unlocked' rather than
+ *     'locked'.
+ *
+ * The function NEVER downgrades an unlocked tool to locked. Rows for inactive
+ * students or test accounts (any non-active row in STUDENTS) are passed through
+ * unchanged.
+ *
+ * Implementation note: rebuilds the data area of TOOL_ACCESS in one pass —
+ * faster than iterative deleteRow for large dedup volumes.
+ *
+ * @param {boolean} dryRun - If true (default), reports what would change without writing.
+ * @returns {Object} Report with counts and per-student actions.
+ */
+function repairToolAccessSchema(dryRun) {
+  if (dryRun === undefined) dryRun = true;
+  console.log('[REPAIR_TOOL_ACCESS] Starting (dryRun=' + dryRun + ')');
+
+  var ss = SpreadsheetCache.getSpreadsheet();
+  var taSheet = ss.getSheetByName(CONFIG.SHEETS.TOOL_ACCESS);
+  if (!taSheet) return { error: 'TOOL_ACCESS sheet not found' };
+
+  var taData = taSheet.getDataRange().getValues();
+  if (taData.length < 1) return { error: 'TOOL_ACCESS sheet is empty (no headers)' };
+
+  // ---- Step 1: Build completion map from RESPONSES (truth source for completion) ----
+  var completed = {}; // clientId -> { toolId: true }
+  var responsesData = SpreadsheetCache.getSheetData(CONFIG.SHEETS.RESPONSES) || [];
+  for (var r = 1; r < responsesData.length; r++) {
+    var rcid = String(responsesData[r][1] || '').trim();
+    var rtid = String(responsesData[r][2] || '').trim();
+    var rstatus = String(responsesData[r][5] || '').trim();
+    var rlatest = responsesData[r][6];
+    if (!rcid || !rtid) continue;
+    if (rstatus !== 'COMPLETED') continue;
+    if (rlatest !== true && rlatest !== 'true') continue;
+    if (!completed[rcid]) completed[rcid] = {};
+    completed[rcid][rtid] = true;
+  }
+
+  // ---- Step 2: Identify active students from STUDENTS sheet ----
+  var studentsSheet = ss.getSheetByName(CONFIG.SHEETS.STUDENTS);
+  var studentsData = studentsSheet ? studentsSheet.getDataRange().getValues() : [];
+  var activeStudentSet = {};
+  var activeStudents = [];
+  for (var s = 1; s < studentsData.length; s++) {
+    var sid = String(studentsData[s][0] || '').trim();
+    var sstatus = String(studentsData[s][3] || '').trim().toLowerCase();
+    if (!sid) continue;
+    if (sstatus !== 'active') continue;
+    if (!activeStudentSet[sid]) {
+      activeStudentSet[sid] = true;
+      activeStudents.push(sid);
+    }
+  }
+
+  // ---- Step 3: Partition existing TOOL_ACCESS rows ----
+  // - Active students' rows: collect for dedup/repair
+  // - Other rows (test accounts, inactive, blank): pass through unchanged
+  var byActiveStudent = {}; // cid -> { toolId -> [rowArray, ...] }
+  var passthroughRows = [];
+
+  for (var i = 1; i < taData.length; i++) {
+    var rowArr = taData[i];
+    var cid = String(rowArr[0] || '').trim();
+    var tid = String(rowArr[1] || '').trim();
+    if (!cid) continue; // drop blank-client rows
+
+    if (activeStudentSet[cid]) {
+      if (!byActiveStudent[cid]) byActiveStudent[cid] = {};
+      if (!byActiveStudent[cid][tid]) byActiveStudent[cid][tid] = [];
+      byActiveStudent[cid][tid].push(rowArr);
+    } else {
+      passthroughRows.push(rowArr);
+    }
+  }
+
+  // ---- Step 4: Build canonical 8-row set per active student ----
+  var canonicalRows = [];
+  var report = {
+    studentsScanned: activeStudents.length,
+    studentsRepaired: 0,
+    duplicatesRemoved: 0,
+    rowsAdded: 0,
+    rowsBefore: taData.length - 1,
+    passthroughRows: passthroughRows.length,
+    actionsByStudent: {}
+  };
+
+  activeStudents.forEach(function(cid) {
+    var perTool = byActiveStudent[cid] || {};
+    var actions = [];
+    var changedThisStudent = false;
+
+    for (var t = 1; t <= 8; t++) {
+      var tid = 'tool' + t;
+      var records = perTool[tid] || [];
+      var prereqMet = (t === 1) || (completed[cid] && completed[cid]['tool' + (t - 1)]);
+
+      if (records.length === 0) {
+        // Synthesize a missing row with the right defaults
+        var newStatus, newLockedBy, newReason;
+        if (t === 1) {
+          newStatus = 'unlocked';
+          newLockedBy = 'system';
+          newReason = 'Initial unlock';
+        } else if (prereqMet) {
+          newStatus = 'unlocked';
+          newLockedBy = 'system';
+          newReason = 'Auto-unlocked (prerequisites met)';
+        } else {
+          newStatus = 'locked';
+          newLockedBy = '';
+          newReason = 'Locked until prerequisites met';
+        }
+        canonicalRows.push([cid, tid, newStatus, '[]', new Date(), newLockedBy, newReason]);
+        report.rowsAdded++;
+        actions.push('add ' + tid + ' (' + newStatus + ')');
+        changedThisStudent = true;
+      } else if (records.length === 1) {
+        canonicalRows.push(records[0]);
+      } else {
+        // Multiple — pick canonical and discard rest
+        var sorted = records.slice().sort(function(a, b) {
+          var aUnlock = a[2] === 'unlocked' ? 1 : 0;
+          var bUnlock = b[2] === 'unlocked' ? 1 : 0;
+          if (aUnlock !== bUnlock) return bUnlock - aUnlock;
+          var aAdmin = (a[5] && a[5] !== 'system') ? 1 : 0;
+          var bAdmin = (b[5] && b[5] !== 'system') ? 1 : 0;
+          if (aAdmin !== bAdmin) return bAdmin - aAdmin;
+          var aDate = a[4] ? new Date(a[4]).getTime() : 0;
+          var bDate = b[4] ? new Date(b[4]).getTime() : 0;
+          return bDate - aDate;
+        });
+        canonicalRows.push(sorted[0]);
+        var dropped = records.length - 1;
+        report.duplicatesRemoved += dropped;
+        actions.push('dedup ' + tid + ' (' + records.length + ' → 1, kept ' + sorted[0][2] + ')');
+        changedThisStudent = true;
+      }
+    }
+
+    if (changedThisStudent) {
+      report.studentsRepaired++;
+      report.actionsByStudent[cid] = actions;
+    }
+  });
+
+  var allRows = passthroughRows.concat(canonicalRows);
+  report.rowsAfter = allRows.length;
+
+  if (dryRun) {
+    report.dryRun = true;
+    console.log('[REPAIR_TOOL_ACCESS] DRY RUN summary:', JSON.stringify({
+      studentsScanned: report.studentsScanned,
+      studentsRepaired: report.studentsRepaired,
+      duplicatesRemoved: report.duplicatesRemoved,
+      rowsAdded: report.rowsAdded,
+      rowsBefore: report.rowsBefore,
+      rowsAfter: report.rowsAfter
+    }));
+    return report;
+  }
+
+  // ---- Step 5: Apply by rebuilding the data area ----
+  var oldLastRow = taSheet.getLastRow();
+  if (oldLastRow > 1) {
+    taSheet.getRange(2, 1, oldLastRow - 1, 7).clearContent();
+  }
+  if (allRows.length > 0) {
+    taSheet.getRange(2, 1, allRows.length, 7).setValues(allRows);
+  }
+
+  SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.TOOL_ACCESS);
+
+  report.dryRun = false;
+  console.log('[REPAIR_TOOL_ACCESS] Applied. ' + report.studentsRepaired + ' students repaired, ' +
+              report.duplicatesRemoved + ' duplicates removed, ' + report.rowsAdded + ' rows added.');
+  return report;
+}
+
+/**
+ * Editor-friendly wrapper: dry-run the schema repair and log the report.
+ * Run this first to preview what will change.
+ */
+function previewToolAccessRepair() {
+  var report = repairToolAccessSchema(true);
+  console.log('--- Tool Access Repair PREVIEW ---');
+  console.log(JSON.stringify(report, null, 2));
+  return report;
+}
+
+/**
+ * Editor-friendly wrapper: actually apply the schema repair.
+ * Only run this after reviewing the preview.
+ */
+function applyToolAccessRepair() {
+  var report = repairToolAccessSchema(false);
+  console.log('--- Tool Access Repair APPLIED ---');
+  console.log(JSON.stringify(report, null, 2));
+  return report;
+}
+
+/**
+ * Backfill TOOL_ACCESS rows for a single student who is missing them.
+ *
+ * Use case: students whose row was created outside the normal addStudent() flow
+ * (e.g., manual spreadsheet edit, or a pending student whose status was flipped
+ * to active by hand) end up with no TOOL_ACCESS rows and are locked out of every
+ * tool. This function checks for missing rows and initializes them safely —
+ * it is a no-op if the student already has TOOL_ACCESS records.
+ *
+ * @param {string} clientId - The student's Client_ID
+ * @returns {Object} { success, message } or { success:false, error }
+ */
+function backfillToolAccessForStudent(clientId) {
+  if (!clientId) return { success: false, error: 'clientId is required' };
+
+  var ss = SpreadsheetCache.getSpreadsheet();
+  var sheet = ss.getSheetByName(CONFIG.SHEETS.TOOL_ACCESS);
+  if (!sheet) return { success: false, error: 'TOOL_ACCESS sheet not found' };
+
+  var data = sheet.getDataRange().getValues();
+  for (var i = 1; i < data.length; i++) {
+    if (String(data[i][0] || '').trim() === clientId) {
+      return { success: true, message: 'Already has TOOL_ACCESS rows; nothing to do', existing: true };
+    }
+  }
+
+  // No rows found — initialize via the canonical path
+  var result = ToolAccessControl.initializeStudent(clientId);
+  if (!result.success) return result;
+
+  console.log('[BACKFILL_TOOL_ACCESS] Initialized 8 rows for', clientId);
+  return { success: true, message: 'Backfilled 8 TOOL_ACCESS rows for ' + clientId, created: true };
+}
+
+/**
  * Fix duplicate Is_Latest='true' rows on the RESPONSES sheet.
  * Groups by (Client_ID, Tool_ID) and keeps only the newest row as 'true'.
  *

@@ -235,7 +235,7 @@ function handleGetStudentsRequest() {
         lastActivity: data[i][5] ? data[i][5].toString() : '',
         toolsCompleted: data[i][6] || 0,
         currentTool: data[i][7] || 'tool1',
-        cohort: data[i][8] || '',
+        legacyCohort: data[i][8] || '',
         cohorts: cohortMap[cid] || (data[i][8] ? [data[i][8]] : [])
       });
     }
@@ -1168,6 +1168,12 @@ function handleUpdateAttendanceRequest(clientId, callId, cohortId, status) {
     return { success: false, error: 'Invalid status. Must be: attended, absent, or unmarked' };
   }
 
+  // Cohort ID is required so we never mutate the wrong cohort's record for multi-cohort students
+  if (!cohortId) {
+    console.log('[UPDATE_ATTENDANCE] Missing cohortId');
+    return { success: false, error: 'Cohort is required to update attendance' };
+  }
+
   try {
     const ss = SpreadsheetCache.getSpreadsheet();
     let attendanceSheet = ss.getSheetByName(CONFIG.SHEETS.ATTENDANCE);
@@ -1191,12 +1197,12 @@ function handleUpdateAttendanceRequest(clientId, callId, cohortId, status) {
 
     const now = new Date();
 
-    // Check if record already exists
+    // Check if record already exists for this exact (clientId, callId, cohortId) tuple
     const data = attendanceSheet.getDataRange().getValues();
     let existingRowIndex = -1;
 
     for (let i = 1; i < data.length; i++) {
-      if (data[i][1] === clientId && data[i][2] === callId && (!cohortId || data[i][6] === cohortId)) {
+      if (data[i][1] === clientId && data[i][2] === callId && data[i][6] === cohortId) {
         existingRowIndex = i + 1; // +1 because sheet rows are 1-indexed
         break;
       }
@@ -1223,7 +1229,7 @@ function handleUpdateAttendanceRequest(clientId, callId, cohortId, status) {
         status,     // Status
         markedBy,   // Marked_By
         now,        // Updated_At
-        cohortId || ''  // Cohort_ID
+        cohortId    // Cohort_ID (required, validated above)
       ]);
       console.log('[UPDATE_ATTENDANCE] Created new record');
     }
@@ -1878,6 +1884,31 @@ function handleCompleteStudentSetupRequest(name, email, chosenClientId) {
     studentsSheet.getRange(targetRow + 1, 1).setValue(normalizedId);  // Client_ID
     studentsSheet.getRange(targetRow + 1, 4).setValue('active');       // Status
     SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.STUDENTS);
+
+    // Migrate STUDENT_COHORTS junction rows from email → new Client_ID. Batch-imported students
+    // start with their email in column A (since they have no Client_ID yet); without this swap
+    // they stay invisible to cohort-scoped lookups (which match Client_ID) forever after activation.
+    try {
+      const cohortsSheet = ss.getSheetByName(CONFIG.SHEETS.STUDENT_COHORTS);
+      if (cohortsSheet) {
+        const cohortsData = cohortsSheet.getDataRange().getValues();
+        let migrated = 0;
+        for (let r = 1; r < cohortsData.length; r++) {
+          const key = String(cohortsData[r][0] || '').trim().toLowerCase();
+          if (key === normalizedEmail) {
+            cohortsSheet.getRange(r + 1, 1).setValue(normalizedId);
+            migrated++;
+          }
+        }
+        if (migrated > 0) {
+          SpreadsheetCache.invalidateSheetData(CONFIG.SHEETS.STUDENT_COHORTS);
+          console.log('[SETUP_COMPLETE] Migrated', migrated, 'STUDENT_COHORTS row(s) from email to Client_ID for', normalizedId);
+        }
+      }
+    } catch (e) {
+      // Non-fatal — student is already activated; cohort-table fix can be retried by an admin.
+      console.error('[SETUP_COMPLETE] Junction migration error (non-fatal):', e);
+    }
 
     // Initialize tool access now that we have a real ID
     const initResult = ToolAccessControl.initializeStudent(normalizedId);
