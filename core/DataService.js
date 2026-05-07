@@ -337,7 +337,32 @@ const DataService = {
         return { success: true, rowIndex: sheetRow, action: 'updated' };
       }
 
-      // No existing draft found — create new row
+      // No existing DRAFT/EDIT_DRAFT — but before we append a fresh draft row,
+      // make sure we are not silently destroying a current COMPLETED.
+      //
+      // Background: if the user has a Tool page open passively (stale tab, or
+      // they re-entered the tool to view but not edit), the 2-minute autosave
+      // timer keeps firing. With no DRAFT/EDIT_DRAFT to update, this branch
+      // would otherwise demote their COMPLETED Is_Latest row and append a
+      // phantom DRAFT — making the dashboard report "tool not done" until
+      // someone hits Cancel from edit mode. Genuine edits go through
+      // ResponseManager.loadResponseForEditing (which writes EDIT_DRAFT
+      // directly), so reaching this point with an active COMPLETED means
+      // autosave fired without a real edit context. Suppress the create.
+      var isLatestCol = headerRow.indexOf('Is_Latest');
+      if (isLatestCol !== -1) {
+        for (var k = 1; k < allData.length; k++) {
+          if (allData[k][clientIdCol] === clientId &&
+              allData[k][toolIdCol] === toolId &&
+              allData[k][statusCol] === 'COMPLETED' &&
+              (allData[k][isLatestCol] === 'true' || allData[k][isLatestCol] === true)) {
+            LogUtils.debug('DataService: upsertDraft suppressed phantom DRAFT for ' + clientId + ' / ' + toolId + ' (active COMPLETED at row ' + (k + 1) + ')');
+            return { success: true, suppressed: true, reason: 'active_completion_exists' };
+          }
+        }
+      }
+
+      // No existing draft and no active completion — legitimate first-time draft.
       if (typeof ResponseManager !== 'undefined') {
         ResponseManager._markAsNotLatest(clientId, toolId);
       }
